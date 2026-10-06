@@ -144,11 +144,11 @@ public sealed class AiLyricsService : IDisposable
     public Task<string?> GetInstalledPathAsync(string modelId, CancellationToken token) =>
         _models.GetInstalledPathAsync(modelId, token);
 
-    public async Task DownloadAsync(string modelId, bool consent, IProgress<double>? progress, CancellationToken token)
+    public async Task DownloadAsync(string modelId, bool consent, IProgress<double>? progress, CancellationToken token, IProgress<DropSpace.Core.Downloads.TrackProgress>? transferProgress = null)
     {
         if (AiLyricsModelCatalog.FindSelectable(modelId) is null)
             throw new ArgumentException("This legacy model is available only for removal.", nameof(modelId));
-        await _models.DownloadAsync(modelId, consent, progress, token, RuntimeExtractionMiB * 1_048_576).ConfigureAwait(false);
+        await _models.DownloadAsync(modelId, consent, progress, token, RuntimeExtractionMiB * 1_048_576, transferProgress).ConfigureAwait(false);
         InvalidateExecutionConfiguration();
         ModelDownloaded?.Invoke(this, EventArgs.Empty);
     }

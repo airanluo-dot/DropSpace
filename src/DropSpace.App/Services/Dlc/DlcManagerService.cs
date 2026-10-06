@@ -1,3 +1,4 @@
+using DropSpace.Core.Downloads;
 using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 using DropSpace.Infrastructure.Storage;
@@ -9,7 +10,7 @@ namespace DropSpace.App.Services.Dlc;
 public enum DlcPackageState { Checking, Available, Installed, Downloading, Canceling, Removing, Failed }
 public enum DlcPackageAction { Inspect, Download, Delete }
 public sealed record DlcPackageSnapshot(DlcPackageDescriptor Package, DlcPackageInspection? Installation,
-    DlcPackageState State, double? Progress = null, DlcPackageAction? FailedAction = null, bool WasCanceled = false);
+    DlcPackageState State, double? Progress = null, DlcPackageAction? FailedAction = null, bool WasCanceled = false, TrackProgress? Transfer = null);
 
 /// <summary>Application-lifetime inventory and operation state. Lightweight provider metadata
 /// describes installed files; it is never reused as execution trust.</summary>
@@ -198,7 +199,8 @@ public sealed class DlcManagerService : IAsyncDisposable
                 await PersistPendingAsync(packageId);
                 lock (_sync) _downloadStop = stop;
                 Publish(snapshot with { State = DlcPackageState.Downloading, Progress = null, FailedAction = null, WasCanceled = false });
-                await provider.DownloadAsync(packageId, consent, new PackageProgress(this, packageId, stop), stop.Token);
+                using var progress = new PackageProgress(this, packageId, stop);
+                await provider.DownloadWithProgressAsync(packageId, consent, progress, stop.Token);
             }
             else
             {
@@ -225,6 +227,7 @@ public sealed class DlcManagerService : IAsyncDisposable
             _logger.LogWarning("DLC package operation failed ({Category}).", error.GetType().Name);
             if (snapshot is not null)
             {
+                lock (_sync) snapshot = _snapshots[packageId];
                 // Retain the original error/action, but expose real partial files for removal.
                 if (provider is not null && !_lifetime.IsCancellationRequested)
                 {
@@ -232,7 +235,7 @@ public sealed class DlcManagerService : IAsyncDisposable
                     catch (Exception inspectionError) when (inspectionError is not OutOfMemoryException)
                     { _logger.LogWarning("DLC post-failure inspection failed ({Category}).", inspectionError.GetType().Name); }
                 }
-                Publish(snapshot with { State = DlcPackageState.Failed, FailedAction = action, Progress = null });
+                Publish(snapshot with { State = DlcPackageState.Failed, FailedAction = action, Progress = null, Transfer = snapshot.Transfer is { } latest ? latest with { ErrorCode = error.GetType().Name } : null });
             }
         }
         finally
@@ -253,22 +256,48 @@ public sealed class DlcManagerService : IAsyncDisposable
 
     private void OnPackagesChanged(object? sender, EventArgs args) => _ = RefreshAsync(force: true);
 
-    private sealed class PackageProgress(DlcManagerService owner, string id, CancellationTokenSource stop) : IProgress<double>
+    private sealed class PackageProgress : IProgress<TrackProgress>, IDisposable
     {
-        private int _last = -1;
-        public void Report(double value)
+        private readonly DlcManagerService _owner;
+        private readonly string _id;
+        private readonly CancellationTokenSource _stop;
+        private readonly Timer _timer;
+        private readonly Guid _run = Guid.NewGuid();
+        private bool _scheduled;
+        private bool _disposed;
+        public PackageProgress(DlcManagerService owner, string id, CancellationTokenSource stop)
+        { _owner = owner; _id = id; _stop = stop; _timer = new Timer(_ => Notify(), null, Timeout.Infinite, Timeout.Infinite); }
+        public void Report(TrackProgress value)
         {
-            if (!double.IsFinite(value)) return;
-            value = Math.Clamp(value, 0, 1);
-            var percent = (int)(value * 100);
-            if (Interlocked.Exchange(ref _last, percent) == percent) return;
-            lock (owner._sync)
+            bool immediate;
+            lock (_owner._sync)
             {
-                if (!ReferenceEquals(owner._downloadStop, stop) || stop.IsCancellationRequested) return;
-                owner._snapshots[id] = owner._snapshots[id] with { Progress = value };
+                if (_disposed || !ReferenceEquals(_owner._downloadStop, _stop) || _stop.IsCancellationRequested) return;
+                var old = _owner._snapshots[_id];
+                immediate = old.Transfer?.Stage != value.Stage;
+                value = value with { RunId = _run, LastByteAt = value.LastByteAt ?? old.Transfer?.LastByteAt };
+                _owner._snapshots[_id] = old with { Transfer = value,
+                    Progress = value.Fraction ?? (value.TotalBytes is > 0 ? Math.Clamp((double)value.DownloadedBytes / value.TotalBytes.Value, 0, 1) : null) };
+                if (immediate) { _timer.Change(Timeout.Infinite, Timeout.Infinite); _scheduled = false; }
+                else if (!_scheduled) { _scheduled = true; _timer.Change(200, Timeout.Infinite); }
             }
-            owner.Changed?.Invoke(owner, EventArgs.Empty);
+            if (immediate)
+            {
+                _owner._logger.LogInformation("DLC {PackageId} run {RunId}: {Stage}, bytes {Bytes}/{Total}, connections {Connections}, attempt {Attempt}, error {Error}",
+                    _id, _run, value.Stage, value.DownloadedBytes, value.TotalBytes, value.ActiveConnections, value.Attempt, value.ErrorCode);
+                _owner.Changed?.Invoke(_owner, EventArgs.Empty);
+            }
         }
+        private void Notify()
+        {
+            lock (_owner._sync)
+            {
+                _scheduled = false;
+                if (_disposed || !ReferenceEquals(_owner._downloadStop, _stop)) return;
+            }
+            _owner.Changed?.Invoke(_owner, EventArgs.Empty);
+        }
+        public void Dispose() { lock (_owner._sync) { _disposed = true; _timer.Dispose(); } }
     }
 
     public async ValueTask DisposeAsync()

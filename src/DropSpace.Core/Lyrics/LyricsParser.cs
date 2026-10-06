@@ -54,7 +54,7 @@ public static class LyricsParser
                     ? !string.IsNullOrWhiteSpace(translations[translationIndex].SourceLanguage) : line.TranslationLanguageIsExplicit,
             };
         }
-        return LyricsLanguagePolicy.IdentifyProviderTranslations(new(ordered, provider));
+        return LyricsBodyQualityPolicy.Normalize(LyricsLanguagePolicy.IdentifyProviderTranslations(new(ordered, provider)));
     }
 
     private static int[] AlignTranslations(LyricsLine[] lines, LyricsLine[] translations)

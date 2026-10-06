@@ -38,7 +38,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private readonly Channel<bool> _changes = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly CancellationTokenSource _stop = new();
     private readonly SemaphoreSlim _lyricsMaintenance = new(1, 1);
-    private readonly DispatcherQueueTimer _frames, _expiry;
+    private readonly DispatcherQueueTimer _frames;
     private readonly Timer _audioRecovery;
     private long _lastAudioAttempt;
     private readonly MediaSoftRestartOperation _restart = new(TimeSpan.FromSeconds(20));
@@ -79,7 +79,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 Stopwatch.GetElapsedTime(observation.Timestamp), Stopwatch.GetElapsedTime(Interlocked.Read(ref _lastAudioAttempt))))
                 _changes.Writer.TryWrite(true);
         }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-        _expiry = dispatcher.CreateTimer(); _expiry.IsRepeating = false; _expiry.Tick += OnExpiry;
         _experience.Changed += OnExperienceChanged;
         _visualPreferences.Changed += OnVisualPreferencesChanged;
         _view.PropertyChanged += OnPresentationChanged;
@@ -387,7 +386,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
                                 ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
                         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(settings.OverlayMotion);
-                        _experience.UpdateMedia(playing, settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds, settings.IslandAppearance.AutoHide);
+                        _experience.UpdateMedia(session.IsActive && session.PlaybackState is MediaPlaybackState.Playing or MediaPlaybackState.Paused,
+                            settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds, contentIdentity:
+                            string.Join("\u001f", session.SessionId, session.SourceAppUserModelId, session.TrackTitle));
                         RenderFrame(); UpdateFrameTimer();
                         return Task.CompletedTask;
                     }).WaitAsync(token).ConfigureAwait(false);
@@ -656,12 +657,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
     }
     private void OnExperienceChanged(object? sender, IslandExperienceSnapshot snapshot)
     {
-        _expiry.Stop();
-        if (snapshot.NextDeadline is { } deadline)
-        {
-            _expiry.Interval = TimeSpan.FromMilliseconds(Math.Max(1, (deadline - DateTimeOffset.UtcNow).TotalMilliseconds));
-            _expiry.Start();
-        }
         UpdateFrameTimer();
     }
     private void UpdateFrameTimer()
@@ -674,7 +669,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
         if (args.PropertyName is not (nameof(MediaViewModel.IsPresentationVisible) or nameof(MediaViewModel.IsIslandGlowActive))) return;
         UpdateFrameTimer(); _changes.Writer.TryWrite(true);
     }
-    private void OnExpiry(DispatcherQueueTimer sender, object args) => _experience.Reconcile();
 
     public async ValueTask DisposeAsync()
     {
@@ -685,8 +679,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
             _runtimeStop?.Request();
         }
         _audioRecovery.Dispose();
-        _frames.Stop(); _expiry.Stop();
-        _frames.Tick -= OnFrame; _expiry.Tick -= OnExpiry; _experience.Changed -= OnExperienceChanged;
+        _frames.Stop();
+        _frames.Tick -= OnFrame; _experience.Changed -= OnExperienceChanged;
         _visualPreferences.Changed -= OnVisualPreferencesChanged;
         _view.PropertyChanged -= OnPresentationChanged;
         AiLyrics.ModelDownloaded -= OnModelDownloaded;

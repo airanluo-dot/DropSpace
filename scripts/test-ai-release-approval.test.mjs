@@ -12,14 +12,14 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const now = Date.parse('2026-10-02T00:00:00Z');
 const json = value => JSON.stringify(value, null, 2) + '\n';
 
-test('fixture admission retains unknown Latin and Kana, and abstains only from unconfirmed Han for a Chinese target', () => {
+test('fixture admission abstains from unknown language for every target', () => {
   const unknown = { detectedLanguage: null, confidence: 0 };
   for (const text of ['kimi no na wa', 'I love you je suis heureux', 'あ', '愛 I will wait', '\uf900']) {
-    assert.equal(fixtureAdmissionDecision(text, 'zh-Hans', unknown), 'Translate', text);
+    assert.equal(fixtureAdmissionDecision(text, 'zh-Hans', unknown), 'Abstain', text);
   }
   for (const text of ['愛', '山谷的石门', '我不関焉', '\u{20000}']) {
     assert.equal(fixtureAdmissionDecision(text, 'zh-Hans', unknown), 'Abstain', text);
-    assert.equal(fixtureAdmissionDecision(text, 'en', unknown), 'Translate', text);
+    assert.equal(fixtureAdmissionDecision(text, 'en', unknown), 'Abstain', text);
   }
   assert.deepEqual(unknown, { detectedLanguage: null, confidence: 0 }, 'Abstention must not invent a language identity.');
 });
@@ -28,17 +28,17 @@ test('fixture admission preserves reliable Japanese evidence and the confidence 
   assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 1 }), 'Translate');
   assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 0.9 }), 'Translate');
   assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 0.65 }), 'Abstain');
-  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'mul', confidence: 1 }), 'Abstain');
+  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'mul', confidence: 1 }), 'Translate');
   assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'zh-Hant', confidence: 1 }), 'SameLanguage');
   assert.equal(fixtureAdmissionDecision('I love you', 'en', { detectedLanguage: 'en', confidence: 0.95 }), 'SameLanguage');
 });
 
 for (const [label, target, id, eligible] of [
   ['cannot relabel Chinese-target Han abstention as unknown translation', 'zh-Hans', 36, true],
-  ['cannot suppress unknown Latin for a Chinese target', 'zh-Hans', 4, false],
+  ['cannot translate unknown Latin for a Chinese target', 'zh-Hans', 4, true],
   ['cannot suppress reliably identified Japanese', 'zh-Hans', 12, false],
-  ['cannot suppress unknown Han for an English target', 'en', 36, false],
-  ['cannot suppress unknown Latin for an English target', 'en', 4, false],
+  ['cannot translate unknown Han for an English target', 'en', 36, true],
+  ['cannot translate unknown Latin for an English target', 'en', 4, true],
 ]) {
   test(`current fixture admission ${label}`, t => {
     const x = example(t);
@@ -49,7 +49,7 @@ for (const [label, target, id, eligible] of [
     row.reason = eligible ? 'unknown-language-retained' : 'no-eligible-segments';
     row.segments = eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : [];
     fs.writeFileSync(filename, json(record));
-    assert.throws(() => readScope(x.root), /v8 three-state policy/);
+    assert.throws(() => readScope(x.root), /v9 three-state policy/);
   });
 }
 
@@ -277,8 +277,8 @@ test('owner-accepted Beta preserves timeout and unexecuted evidence without sema
 });
 
 for (const [label, mutate, expected] of [
-  ['future Beta', x => { const future = experimentalBetaVersion.replace(/\d+$/, n => String(Number(n) + 1)); x.write('RELEASE_VERSION', future); x.scope.releaseVersion = future; }, /only for v0.3.1-beta.12/],
-  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.12/],
+  ['future Beta', x => { const future = experimentalBetaVersion.replace(/\d+$/, n => String(Number(n) + 1)); x.write('RELEASE_VERSION', future); x.scope.releaseVersion = future; }, /only for v0.3.1-beta.13/],
+  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.13/],
   ['Stable', x => { x.write('RELEASE_VERSION', 'v0.3.1'); x.scope.releaseVersion = 'v0.3.1'; }, /only to a Beta/],
   ['missing owner acceptance', x => { delete x.report.userAcceptance; }, /Actual user acceptance/],
   ['no incomplete-validation acceptance', x => { x.report.userAcceptance.acceptsIncompleteModelValidation = false; }, /Explicit acceptance/],

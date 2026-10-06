@@ -6,12 +6,22 @@ namespace DropSpace.Infrastructure.Downloads;
 
 public sealed class RetryExecutor
 {
+    public static void EnsureSuccess(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode) return;
+        var after = response.Headers.RetryAfter;
+        throw new HttpRetryException(response.StatusCode,
+            after?.Delta ?? (after?.Date is { } date ? date - DateTimeOffset.UtcNow : null));
+    }
+    private sealed class HttpRetryException(System.Net.HttpStatusCode status, TimeSpan? retryAfter)
+        : HttpRequestException($"Download HTTP status {(int)status}.", null, status)
+    { public TimeSpan? RetryAfter { get; } = retryAfter; }
     [SuppressMessage("Performance", "CA1822", Justification = "The executor is intentionally kept as an injectable service for testability and future policy state.")]
     public async Task<T> ExecuteAsync<T>(
         Func<CancellationToken, Task<T>> operation,
         RetryPolicy policy,
         Func<Exception, bool> isTransient,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, Action<int, Exception, TimeSpan>? retrying = null)
     {
         ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(policy);
@@ -28,7 +38,16 @@ public sealed class RetryExecutor
             catch (Exception exception) when (attempt < attempts && isTransient(exception))
             {
                 lastException = exception;
-                await Task.Delay(AddJitter(policy.GetDelay(attempt)), cancellationToken).ConfigureAwait(false);
+                var delay = AddJitter(policy.GetDelay(attempt));
+                if (exception is HttpRetryException { RetryAfter: { } after } && after > delay)
+                {
+                    // A longer server cooldown is a terminal retry deferral, never an
+                    // excuse to request earlier than Retry-After or wait without a bound.
+                    if (after > TimeSpan.FromMinutes(2)) throw;
+                    delay = after;
+                }
+                retrying?.Invoke(attempt, exception, delay);
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             }
         }
 

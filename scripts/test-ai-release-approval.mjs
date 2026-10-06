@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { compareInventory, directoryInventory, validateArtifactContract, validateInventory, validateRuntimeProducer, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 
 export const approvalPath = 'scripts/ai-model-qa/release-approval.json';
-export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v8.json';
+export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v9.json';
 export const fixturePath = 'scripts/ai-model-qa/inputs/source48.json';
 export const residentSourcePaths = Object.freeze([
   'tools/plain-lyrics-helper/CMakeLists.txt',
@@ -77,6 +77,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Core/Lyrics/LyricsDisplayPolicy.cs',
   'src/DropSpace.Core/Lyrics/LyricsReloadPolicy.cs',
   'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs',
+  'src/DropSpace.Core/Lyrics/LyricsBodyQualityPolicy.cs',
   'src/DropSpace.Core/Lyrics/LyricsMarqueePolicy.cs',
   'src/DropSpace.Core/Media/MediaModels.cs',
   'src/DropSpace.Core/Media/MediaPlaybackClock.cs',
@@ -248,7 +249,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.12';
+export const experimentalBetaVersion = 'v0.3.1-beta.13';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -259,12 +260,7 @@ const readJson = (root, name) => JSON.parse(readText(root, name));
 export function fixtureAdmissionDecision(text, target, { detectedLanguage, confidence }) {
   const confident = detectedLanguage !== null && confidence >= 0.9;
   if (confident && (detectedLanguage === target || detectedLanguage.startsWith('zh-') && target.startsWith('zh-'))) return 'SameLanguage';
-  const letters = [...text].filter(letter => /\p{L}/u.test(letter));
-  const pureHan = letters.length > 0 && letters.every(letter => {
-    const rune = letter.codePointAt(0);
-    return rune >= 0x3400 && rune <= 0x9fff || rune >= 0x20000 && rune <= 0x323af;
-  });
-  if ((!confident || detectedLanguage === 'mul') && target.startsWith('zh-') && pureHan) return 'Abstain';
+  if (!confident) return 'Abstain';
   return 'Translate';
 }
 const nonempty = (value, label) => assert.ok(typeof value === 'string' && value.trim().length > 0, `${label} is required`);
@@ -353,7 +349,7 @@ export function readScope(root) {
   const fixtureBytes = fs.readFileSync(path.join(root, fixturePath));
   const fixture = JSON.parse(fixtureBytes);
   assert.equal(admission.schemaVersion, 1, 'Unknown audited fixture admission schema');
-  assert.equal(admission.recordKind, 'host-fixture-admission-v8', 'Expected a current host admission computation');
+  assert.equal(admission.recordKind, 'host-fixture-admission-v9', 'Expected a current host admission computation');
   assert.equal(admission.modelInferenceExecuted, false, 'Host admission cannot claim model inference');
   assert.equal(admission.semanticApproved, false, 'Host admission cannot claim semantic approval');
   assert.equal(admission.fixtureSha256, sha256(fixtureBytes), 'Audited admission fixture is stale');
@@ -373,10 +369,10 @@ export function readScope(root) {
       assert.ok(row.detectedLanguage === null || typeof row.detectedLanguage === 'string' && row.detectedLanguage.length > 0, 'Invalid detected language');
       assert.ok(typeof row.eligible === 'boolean');
       if (row.confidence >= 0.9) assert.equal(row.detectedLanguage, admission.semanticLanguages.find(group => id >= group.firstLineId && id <= group.lastLineId).language, 'Confident admission language conflicts with independent fixture annotation');
-      // The fixture has no credits: ambiguous pure Han can abstain only for a
-      // Chinese target. Unknown Latin/Kana and reliable foreign evidence remain eligible.
+      // The fixture has no credits. Unknown language abstains for every target;
+      // confident foreign evidence remains eligible.
       const decision = fixtureAdmissionDecision(row.sourceText, target, row);
-      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the v8 three-state policy');
+      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the v9 three-state policy');
       assert.equal(row.reason, decision === 'SameLanguage' ? 'same-target-language' : decision === 'Abstain' ? 'no-eligible-segments' : row.confidence >= 0.9 ? 'identified-foreign-language' : 'unknown-language-retained');
       assert.deepEqual(row.segments, row.eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : []);
     }

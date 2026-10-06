@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Collections.ObjectModel;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Downloads;
@@ -20,15 +21,16 @@ public sealed class DownloadPanel : UserControl
     private readonly TextBox _name = new();
     private readonly TextBox _defaultDirectory = new();
     private readonly TextBlock _error = new() { TextWrapping = TextWrapping.Wrap };
-    private readonly StackPanel _tasks = new() { Spacing = 12 };
-    private readonly Dictionary<Guid, TaskCard> _cards = [];
+    private readonly ListView _tasks;
+    private readonly ObservableCollection<TaskRow> _rows = [];
+    private readonly Dictionary<Guid, TaskRow> _rowsById = [];
+    private int _historyLimit = 50;
     private readonly Slider _connections = new() { Minimum = 1, Maximum = 256, StepFrequency = 1, SmallChange = 1 };
     private readonly NumberBox _connectionsNumber = new() { Minimum = 1, Maximum = 256, SmallChange = 1, Width = 100, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
     private readonly Slider _speed = new() { Minimum = 0, Maximum = 1024, StepFrequency = 1, SmallChange = 1 };
     private readonly NumberBox _speedNumber = new() { Minimum = 0, Maximum = 1024, SmallChange = 1, Width = 100, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
     private readonly TextBlock _speedLabel = new() { TextWrapping = TextWrapping.Wrap };
     private readonly ComboBox _concurrentDownloads = new() { ItemsSource = new[] { 1, 2, 3 }, MinWidth = 100, HorizontalAlignment = HorizontalAlignment.Left };
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private bool _syncing;
     private bool _loaded;
     private string _lastDefaultDirectory;
@@ -36,6 +38,20 @@ public sealed class DownloadPanel : UserControl
     public DownloadPanel(NativeSettingsEditor editor, IAppStringLocalizer strings, nint windowHandle)
     {
         _editor = editor; _strings = strings; _window = windowHandle;
+        _tasks = new ListView { SelectionMode = ListViewSelectionMode.None, MaxHeight = 600, IsItemClickEnabled = false };
+        _tasks.ItemTemplate = (DataTemplate)Microsoft.UI.Xaml.Markup.XamlReader.Load(
+            "<DataTemplate xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"><Grid /></DataTemplate>");
+        _tasks.ContainerContentChanging += (_, args) =>
+        {
+            if (args.ItemContainer.ContentTemplateRoot is not Grid host) return;
+            var card = host.Children.OfType<TaskCard>().FirstOrDefault();
+            if (args.InRecycleQueue) { card?.Unbind(); return; }
+            if (args.Item is not TaskRow row) return;
+            if (card is null) { card = new TaskCard(this, row.Snapshot); host.Children.Add(card); }
+            card.Bind(row);
+            args.ItemContainer.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+            args.Handled = true;
+        };
         _lastDefaultDirectory = editor.DefaultDownloadDirectory;
         var body = new StackPanel { Spacing = 18 };
         var form = new StackPanel { Spacing = 12 };
@@ -44,7 +60,7 @@ public sealed class DownloadPanel : UserControl
         form.Children.Add(Row("DownloadSaveTo", FolderRow(_directory, false)));
         form.Children.Add(Row("DownloadFileName", _name));
         _name.PlaceholderText = strings.Get("DownloadAutoName");
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var buttons = new DownloadActionPanel();
         var start = Button("DownloadStart", async () =>
         {
             await editor.Downloads.EnqueueAsync(_url.Text, _directory.Text, _name.Text);
@@ -54,6 +70,8 @@ public sealed class DownloadPanel : UserControl
         buttons.Children.Add(start);
         buttons.Children.Add(Button("DownloadOpenFolder", () => { editor.OpenDownloadFolder(_directory.Text); return Task.CompletedTask; }));
         form.Children.Add(buttons); form.Children.Add(_error); form.Children.Add(_tasks);
+        _tasks.ItemsSource = _rows;
+        form.Children.Add(Button("DownloadMoreHistory", () => { _historyLimit += 50; Render(); return Task.CompletedTask; }));
         body.Children.Add(Card(form));
         var settings = new StackPanel { Spacing = 12 };
         settings.Children.Add(Heading("DownloadSettings"));
@@ -81,9 +99,18 @@ public sealed class DownloadPanel : UserControl
         _connectionsNumber.ValueChanged += (_, args) => LimitsChanged(args.NewValue, null);
         _speedNumber.ValueChanged += (_, args) => LimitsChanged(null, args.NewValue);
         _defaultDirectory.LostFocus += async (_, _) => await SaveDirectoryAsync();
-        _timer.Tick += (_, _) => Render();
-        Loaded += (_, _) => { if (_loaded) return; _loaded = true; editor.PropertyChanged += SettingsChanged; RefreshSettings(); Render(); _timer.Start(); };
-        Unloaded += async (_, _) => { _loaded = false; _timer.Stop(); editor.PropertyChanged -= SettingsChanged; await editor.FlushDownloadLimitsAsync(); };
+        Loaded += (_, _) =>
+        {
+            if (_loaded) return; _loaded = true;
+            editor.PropertyChanged += SettingsChanged; editor.Downloads.Changed += DownloadsChanged;
+            editor.Downloads.TaskChanged += TaskChanged; RefreshSettings(); Render();
+        };
+        Unloaded += async (_, _) =>
+        {
+            _loaded = false; editor.PropertyChanged -= SettingsChanged;
+            editor.Downloads.Changed -= DownloadsChanged; editor.Downloads.TaskChanged -= TaskChanged;
+            await editor.FlushDownloadLimitsAsync();
+        };
     }
     private FrameworkElement FolderRow(TextBox input, bool saveDefault)
     {
@@ -133,18 +160,46 @@ public sealed class DownloadPanel : UserControl
     private void UpdateSpeedLabel() => _speedLabel.Text = _speed.Value == 0 ? _strings.Get("DownloadUnlimited") : $"{_speed.Value:0} MiB/s";
     private void Render()
     {
-        foreach (var item in _editor.Downloads.Tasks)
+        var tasks = _editor.Downloads.GetVisibleTasks(_historyLimit);
+        var visible = new HashSet<Guid>();
+        for (var index = 0; index < tasks.Count; index++)
         {
-            if (!_cards.TryGetValue(item.Id, out var card))
-            { card = new TaskCard(this, item); _cards.Add(item.Id, card); _tasks.Children.Add(card); }
-            card.Update(item);
+            var item = tasks[index];
+            visible.Add(item.Id); UpdateRow(item);
+            var oldIndex = _rows.IndexOf(_rowsById[item.Id]);
+            if (oldIndex != index) _rows.Move(oldIndex, index);
+        }
+        foreach (var row in _rows.Where(row => !visible.Contains(row.Snapshot.Id)).ToArray())
+        { _rows.Remove(row); _rowsById.Remove(row.Snapshot.Id); }
+        if (_editor.Downloads.RecoveryError is not null) _error.Text = _strings.Get("DownloadRecoveryWarning");
+    }
+    private void DownloadsChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() => { if (_loaded) Render(); });
+    private void TaskChanged(object? sender, DownloadTaskSnapshot item) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (!_loaded) return;
+        if (!_rowsById.TryGetValue(item.Id, out var row) || row.Snapshot.State != item.State) Render();
+        else row.Update(item);
+    });
+    private void UpdateRow(DownloadTaskSnapshot item)
+    {
+        if (_rowsById.TryGetValue(item.Id, out var row)) row.Update(item);
+        else { row = new TaskRow(item); _rowsById.Add(item.Id, row); _rows.Add(row); }
+    }
+    private sealed class TaskRow(DownloadTaskSnapshot snapshot)
+    {
+        public DownloadTaskSnapshot Snapshot { get; private set; } = snapshot;
+        public event Action<DownloadTaskSnapshot>? Changed;
+        public void Update(DownloadTaskSnapshot item)
+        {
+            if (item.UpdatedAt < Snapshot.UpdatedAt || item == Snapshot) return;
+            Snapshot = item; Changed?.Invoke(item);
         }
     }
     private TextBlock Heading(string key) => new() { Text = _strings.Get(key), FontSize = 18, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
     private void NameControl(DependencyObject control, string key) { AutomationProperties.SetName(control, _strings.Get(key)); AutomationProperties.SetAutomationId(control, key); }
     private Button Button(string key, Func<Task> action)
     {
-        var button = new Button { Content = _strings.Get(key) }; NameControl(button, key);
+        var button = DownloadActionPanel.Create(_strings.Get(key)); NameControl(button, key);
         button.Click += async (_, _) =>
         {
             button.IsEnabled = false; _error.Text = "";
@@ -177,23 +232,27 @@ public sealed class DownloadPanel : UserControl
         private readonly TextBlock _name = new() { TextWrapping = TextWrapping.Wrap, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
         private readonly TextBlock _detail = new() { TextWrapping = TextWrapping.Wrap };
         private readonly ProgressBar _progress = new() { Minimum = 0, Maximum = 100 };
-        private readonly Button _pause, _resume, _cancel, _retry;
+        private readonly Button _pause, _resume, _cancel, _retry, _remove;
+        private TaskRow? _row;
         private DownloadTaskSnapshot _item;
         public TaskCard(DownloadPanel owner, DownloadTaskSnapshot item)
         {
             _owner = owner; _item = item;
             var body = new StackPanel { Spacing = 8 }; body.Children.Add(_name); body.Children.Add(_detail); body.Children.Add(_progress);
             // A wrapping panel keeps actions reachable at large text scales and compact widths.
-            var actions = new VariableSizedWrapGrid { Orientation = Orientation.Horizontal, MaximumRowsOrColumns = 3 };
-            _pause = owner.Button("DownloadPause", () => owner._editor.Downloads.PauseAsync(item.Id));
-            _resume = owner.Button("DownloadResume", () => owner._editor.Downloads.ResumeAsync(item.Id));
-            _cancel = owner.Button("DownloadCancel", () => owner._editor.Downloads.CancelAsync(item.Id));
-            _retry = owner.Button("DownloadRetry", () => owner._editor.Downloads.ResumeAsync(item.Id));
-            foreach (var button in new[] { _pause, _resume, _cancel, _retry, owner.Button("DownloadOpenFolder", () =>
+            var actions = new DownloadActionPanel();
+            _pause = owner.Button("DownloadPause", () => owner._editor.Downloads.PauseAsync(_item.Id));
+            _resume = owner.Button("DownloadResume", () => owner._editor.Downloads.ResumeAsync(_item.Id));
+            _cancel = owner.Button("DownloadCancel", () => owner._editor.Downloads.CancelAsync(_item.Id));
+            _retry = owner.Button("DownloadRetry", () => owner._editor.Downloads.ResumeAsync(_item.Id));
+            _remove = owner.Button("DownloadRemoveHistory", () => owner._editor.Downloads.RemoveHistoryAsync(_item.Id));
+            foreach (var button in new[] { _pause, _resume, _cancel, _retry, _remove, owner.Button("DownloadOpenFolder", () =>
                 { owner._editor.OpenDownloadFolder(Path.GetDirectoryName(_item.OutputPath)!); return Task.CompletedTask; }) })
-            { button.Margin = new(0, 0, 8, 8); actions.Children.Add(button); }
+            { actions.Children.Add(button); }
             body.Children.Add(actions); Content = Card(body);
         }
+        public void Unbind() { if (_row is not null) _row.Changed -= Update; _row = null; }
+        public void Bind(TaskRow row) { Unbind(); _row = row; row.Changed += Update; Update(row.Snapshot); }
         public void Update(DownloadTaskSnapshot item)
         {
             _item = item; _name.Text = Path.GetFileName(item.OutputPath);
@@ -207,6 +266,8 @@ public sealed class DownloadPanel : UserControl
             _resume.Visibility = item.State == DownloadTaskState.Paused ? Visibility.Visible : Visibility.Collapsed;
             _retry.Visibility = item.State == DownloadTaskState.Failed ? Visibility.Visible : Visibility.Collapsed;
             _cancel.Visibility = item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled ? Visibility.Collapsed : Visibility.Visible;
+            _remove.Visibility = item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled ? Visibility.Visible : Visibility.Collapsed;
+            if (item.ErrorCode is not null) _detail.Text += " · " + _owner._strings.Get("DownloadError");
             AutomationProperties.SetName(_progress, _name.Text);
         }
     }

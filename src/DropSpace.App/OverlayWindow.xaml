@@ -12,7 +12,7 @@
   mc:Ignorable="d">
   <Grid
     x:Name="Root"
-    Background="Transparent">
+    Background="Transparent" KeyDown="OnIslandKeyDown">
     <Border
       x:Name="Surface"
       UseLayoutRounding="False"
@@ -69,7 +69,8 @@
           Background="Transparent"
           BorderThickness="0"
           Click="OnCompactClicked">
-          <Grid>
+          <Viewbox x:Name="CompactContentScaleHost" Stretch="Uniform">
+          <Grid x:Name="CompactContentRoot">
           <island:MediaCompactView x:Name="MusicCompact" Visibility="Collapsed" />
           <Grid x:Name="ActivityCompact" Visibility="Collapsed" ColumnSpacing="12" VerticalAlignment="Center">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -80,27 +81,17 @@
               <ProgressBar Value="{Binding Percent}" Maximum="100" Visibility="{Binding IsVolume, Converter={StaticResource BoolToVisibilityConverter}}"/>
             </StackPanel>
           </Grid>
-          <Grid x:Name="FileCompactContent" ColumnSpacing="12">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="36" />
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource DropSpaceOverlayAccentBrush}">
-              <FontIcon FontSize="17" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Glyph="&#xECC8;" />
-            </Border>
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-              <TextBlock
-                MaxWidth="230"
-                FontWeight="SemiBold"
+          <Grid x:Name="FileCompactContent" ColumnSpacing="12" VerticalAlignment="Center">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Image Source="ms-appx:///Assets/Square44x44Logo.scale-100.png" Width="32" Height="32" Stretch="Uniform"/>
+            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="SemiBold"
                 Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
-                Text="{Binding CompactTitle}"
-                TextTrimming="CharacterEllipsis" />
-              <TextBlock x:Name="CompactSubtitleText" services:XamlResourceOverride.Uid="OverlayCompactSubtitle" FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
-            </StackPanel>
-            <FontIcon Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Glyph="&#xE70D;" />
+                Text="{Binding CompactFileTitle}" TextTrimming="CharacterEllipsis"/>
           </Grid>
+          <Image x:Name="EmptyWakeLogo" Source="ms-appx:///Assets/Square44x44Logo.scale-100.png"
+              Width="32" Height="32" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
           </Grid>
+          </Viewbox>
         </Button>
 
         <StackPanel

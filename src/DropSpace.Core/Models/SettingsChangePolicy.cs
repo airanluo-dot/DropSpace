@@ -22,7 +22,7 @@ public static class SettingsChangePolicy
         DefaultDownloadDirectory = Pick(baseline.DefaultDownloadDirectory, requested.DefaultDownloadDirectory, latest.DefaultDownloadDirectory),
         IslandActivity = Pick(baseline.IslandActivity, requested.IslandActivity, latest.IslandActivity),
         Lyrics = MergeLyrics(baseline.Lyrics, requested.Lyrics, latest.Lyrics),
-        IslandAppearance = Pick(baseline.IslandAppearance, requested.IslandAppearance, latest.IslandAppearance),
+        IslandAppearance = MergeIsland(baseline.IslandAppearance, requested.IslandAppearance, latest.IslandAppearance),
         SystemActivities = Pick(baseline.SystemActivities, requested.SystemActivities, latest.SystemActivities),
         Widgets = Pick(baseline.Widgets, requested.Widgets, latest.Widgets),
         CaptureImages = Pick(baseline.CaptureImages, requested.CaptureImages, latest.CaptureImages),
@@ -60,6 +60,16 @@ public static class SettingsChangePolicy
         EnableNearbySharing = Pick(baseline.EnableNearbySharing, requested.EnableNearbySharing, latest.EnableNearbySharing),
         EnableInternetSharing = Pick(baseline.EnableInternetSharing, requested.EnableInternetSharing, latest.EnableInternetSharing),
         DefaultClipboardSyncMode = Pick(baseline.DefaultClipboardSyncMode, requested.DefaultClipboardSyncMode, latest.DefaultClipboardSyncMode),
+    };
+
+    private static IslandAppearanceSettings MergeIsland(IslandAppearanceSettings baseline, IslandAppearanceSettings requested, IslandAppearanceSettings latest) => latest with
+    {
+        Resident = Pick(baseline.Resident, requested.Resident, latest.Resident),
+        ForceShowOverFullscreen = Pick(baseline.ForceShowOverFullscreen, requested.ForceShowOverFullscreen, latest.ForceShowOverFullscreen),
+        HideDelayMilliseconds = Pick(baseline.HideDelayMilliseconds, requested.HideDelayMilliseconds, latest.HideDelayMilliseconds),
+        CompactScale = Pick(baseline.CompactScale, requested.CompactScale, latest.CompactScale),
+        ExpandedScale = Pick(baseline.ExpandedScale, requested.ExpandedScale, latest.ExpandedScale),
+        RightClickHoldToMove = Pick(baseline.RightClickHoldToMove, requested.RightClickHoldToMove, latest.RightClickHoldToMove),
     };
 
     private static LyricsSettings MergeLyrics(LyricsSettings baseline, LyricsSettings requested, LyricsSettings latest) => latest with

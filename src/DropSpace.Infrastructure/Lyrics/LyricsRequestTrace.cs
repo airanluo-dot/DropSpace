@@ -32,6 +32,7 @@ public sealed class LyricsRequestTrace : IDisposable
     {
         provider = document.Provider.ToString(), candidateId = document.Match?.CandidateId,
         document.ProviderDataRevision, lines = document.Lines.Count,
+        bodyQuality = document.BodyQuality.ToString(), bodyQualityVersion = LyricsBodyQualityPolicy.Version,
         translated = document.Lines.Count(line => !string.IsNullOrWhiteSpace(line.Secondary)),
         languages = document.Lines.Select(line => line.TranslationLanguage).Distinct().ToArray(),
         origins = document.Lines.Select(line => line.TranslationOrigin.ToString()).Distinct().ToArray(),

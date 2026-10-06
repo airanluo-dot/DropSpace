@@ -42,6 +42,23 @@ public sealed class MonitorLayoutService(
     private IReadOnlyDictionary<string, double> _refreshRates =
         new Dictionary<string, double>(StringComparer.Ordinal);
 
+    public ForegroundPresentationSnapshot Foreground { get; private set; } = new(0, 0, 0, null, false);
+    public ForegroundPresentationSnapshot CaptureForeground(IReadOnlyList<MonitorDescriptor> monitors)
+    {
+        var window = GetForegroundWindow();
+        _ = GetWindowThreadProcessId(window, out var pid);
+        var monitor = monitors.FirstOrDefault(item => item.Handle == MonitorFromWindow(window, MonitorDefaultToNearest));
+        long started = 0;
+        try { using var process = System.Diagnostics.Process.GetProcessById(checked((int)pid)); started = process.StartTime.ToUniversalTime().Ticks; }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception or OverflowException) { }
+        var snapshot = new ForegroundPresentationSnapshot(window, pid, started, monitor?.Id,
+            monitor is not null && IsWindowFullscreen(window, monitor));
+        if (snapshot != Foreground)
+            logger.LogInformation("Foreground {Window}, PID {Pid}/{Started}, monitor {Monitor}, fullscreen {Fullscreen}",
+                window, pid, started, monitor?.Id, snapshot.IsFullscreen);
+        Foreground = snapshot;
+        return snapshot;
+    }
     // This lookup never enumerates displays or calls a native API.
     public double? GetCachedRefreshRateHz(string monitorId) =>
         Volatile.Read(ref _refreshRates).TryGetValue(monitorId, out var rate) ? rate : null;
@@ -121,9 +138,9 @@ public sealed class MonitorLayoutService(
         return deltaX * deltaX + deltaY * deltaY;
     }
 
-    public bool IsForegroundFullscreen(MonitorDescriptor monitor)
+    public bool IsForegroundFullscreen(MonitorDescriptor monitor) => Foreground.IsFullscreen && Foreground.MonitorId == monitor.Id;
+    private bool IsWindowFullscreen(nint foreground, MonitorDescriptor monitor)
     {
-        var foreground = GetForegroundWindow();
         if (foreground == nint.Zero ||
             !GetWindowRect(foreground, out var bounds))
         {

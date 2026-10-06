@@ -21,7 +21,7 @@ public sealed class SettingsForm : UserControl
     {
         _editor = editor; _strings = strings; Content = Rows;
         Loaded += (_, _) => { _editor.PropertyChanged += OnChanged; Refresh(); };
-        Unloaded += (_, _) => _editor.PropertyChanged -= OnChanged;
+        Unloaded += async (_, _) => { _editor.PropertyChanged -= OnChanged; await _editor.FlushEditsAsync(); };
     }
     public void AddHeading(string key) => Rows.Children.Add(new TextBlock { Text = _strings.Get(key), FontSize = 20, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new(0, 12, 0, 4) });
     public ToggleSwitch AddToggle(string key, Func<AppSettings, bool> read, Func<AppSettings, bool, AppSettings> write, Func<bool, Task<bool>>? beforeChange = null, Func<AppSettings, bool>? isEnabled = null)
@@ -61,6 +61,32 @@ public sealed class SettingsForm : UserControl
         _refresh.Add(() => number.Value = read(_editor.Settings)); Refresh();
         number.ValueChanged += async (_, args) => { if (!_syncing && double.IsFinite(args.NewValue)) { var value = args.NewValue; await _editor.UpdateAsync(settings => write(settings, value)); } };
         return number;
+    }
+    public Slider AddSlider(string key, double minimum, double maximum, double step, Func<AppSettings, double> read,
+        Func<AppSettings, double, AppSettings> write, Func<double, string> format)
+    {
+        var slider = new Slider { Minimum = minimum, Maximum = maximum, StepFrequency = step, SmallChange = step,
+            LargeChange = step, MinWidth = 140, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, MinWidth = 54 };
+        var panel = new Grid { ColumnSpacing = 12, MinWidth = 210 };
+        panel.ColumnDefinitions.Add(new()); panel.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        panel.Children.Add(slider); Grid.SetColumn(label, 1); panel.Children.Add(label);
+        AutomationProperties.SetName(slider, _strings.Get(key)); AutomationProperties.SetAutomationId(slider, key);
+        AddRow(key, panel);
+        _refresh.Add(() =>
+        {
+            if (_editor.HasPendingEdit(key)) return;
+            var value = read(_editor.Settings); slider.Value = value; label.Text = format(value);
+        });
+        Refresh();
+        slider.ValueChanged += (_, args) =>
+        {
+            if (_syncing || !double.IsFinite(args.NewValue)) return;
+            var value = Math.Clamp(Math.Round(args.NewValue / step, MidpointRounding.AwayFromZero) * step, minimum, maximum);
+            label.Text = format(value);
+            _editor.QueueEdit(key, settings => write(settings, value));
+        };
+        return slider;
     }
     public void AddRow(string key, FrameworkElement control)
     {

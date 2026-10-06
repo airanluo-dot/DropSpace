@@ -57,7 +57,9 @@ public sealed record IslandAppearanceSettings
 {
     // Opt-in only. Missing fields in existing settings remain false; the old
     // fullscreen suppression preference is retained and resumes when this is off.
+    public bool Resident { get; init; }
     public bool ForceShowOverFullscreen { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool AutoHide { get; init; } = true;
     public int HideDelayMilliseconds { get; init; } = 3_000;
     public double CompactScale { get; init; } = 1;
@@ -69,6 +71,7 @@ public sealed record SystemActivitySettings
 {
     public bool ShowWindowsNotifications { get; init; }
     public bool ShowVolumeChanges { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool SuppressOverFullscreen { get; init; } = true;
 }
 

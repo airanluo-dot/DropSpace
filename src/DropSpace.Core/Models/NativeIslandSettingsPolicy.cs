@@ -7,6 +7,8 @@ public static class NativeIslandSettingsPolicy
 {
     public const int MaximumSources = 128;
     public const int MaximumSourceLength = 512;
+    public const int MaximumIslandHideDelayMilliseconds = 10_000;
+    public static int NormalizeHideDelay(int value) => (int)Math.Clamp(Math.Round(value / 1000d, MidpointRounding.AwayFromZero), 0, 10) * 1000;
     public const int MaximumDelayMilliseconds = 30_000;
     public const int MinimumWidth = 80;
     public const int MaximumWidth = 600;
@@ -52,7 +54,7 @@ public static class NativeIslandSettingsPolicy
             },
             IslandAppearance = appearance with
             {
-                HideDelayMilliseconds = Math.Clamp(appearance.HideDelayMilliseconds, 500, MaximumDelayMilliseconds),
+                HideDelayMilliseconds = NormalizeHideDelay(appearance.HideDelayMilliseconds),
                 CompactScale = NormalizeScale(appearance.CompactScale),
                 ExpandedScale = NormalizeScale(appearance.ExpandedScale),
             },

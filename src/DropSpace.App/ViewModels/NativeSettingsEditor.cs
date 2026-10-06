@@ -51,6 +51,29 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
             MaxConcurrentDownloads = limits.ConcurrentDownloads
         });
     }
+    private readonly Dictionary<string, Func<AppSettings, AppSettings>> _pendingEdits = [];
+    private CancellationTokenSource? _editDelay;
+    private Task _editSave = Task.CompletedTask;
+    public bool HasPendingEdit(string key) => _pendingEdits.ContainsKey(key);
+    public void QueueEdit(string key, Func<AppSettings, AppSettings> change)
+    {
+        _pendingEdits[key] = change;
+        _editDelay?.Cancel();
+        _editDelay = new();
+        _editSave = SaveEditsAfterDelayAsync(_editDelay);
+    }
+    private async Task SaveEditsAfterDelayAsync(CancellationTokenSource delay)
+    {
+        try { await Task.Delay(350, delay.Token); await FlushEditsAsync(); }
+        catch (OperationCanceledException) when (delay.IsCancellationRequested) { }
+        finally { if (ReferenceEquals(_editDelay, delay)) _editDelay = null; delay.Dispose(); }
+    }
+    public async Task FlushEditsAsync()
+    {
+        if (_pendingEdits.Count == 0) return;
+        var edits = _pendingEdits.Values.ToArray(); _pendingEdits.Clear();
+        await UpdateAsync(settings => edits.Aggregate(settings, (current, edit) => edit(current)));
+    }
     public AppSettings Settings => _main.Settings;
     public string Error { get => _error; private set => SetProperty(ref _error, value); }
     public async Task<bool> CheckNotificationAccessAsync(bool enabled)
@@ -98,5 +121,5 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
     { if (args.PropertyName == nameof(MainViewModel.Settings)) OnPropertyChanged(nameof(Settings)); }
     public async ValueTask DisposeAsync()
-    { await FlushDownloadLimitsAsync(); await _downloadSave; _main.PropertyChanged -= OnChanged; _stop.Cancel(); await _save.WaitAsync(); _save.Release(); }
+    { await FlushEditsAsync(); await _editSave; await FlushDownloadLimitsAsync(); await _downloadSave; _main.PropertyChanged -= OnChanged; _stop.Cancel(); await _save.WaitAsync(); _save.Release(); }
 }

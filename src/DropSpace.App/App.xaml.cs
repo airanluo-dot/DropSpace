@@ -148,7 +148,14 @@ public partial class App : Application
             downloads.Connections.SetLimit(persistedSettings.MaxDownloadConnections);
             downloads.Transfers.SetLimit(persistedSettings.MaxConcurrentDownloads);
             downloads.Bandwidth.SetLimit(persistedSettings.DownloadSpeedLimitBytesPerSecond);
-            await _services.GetRequiredService<DropSpace.Infrastructure.Downloads.DownloadManager>().RestoreAsync();
+            // Recovery owns its I/O failures and lifetime. A slow or inaccessible user
+            // download directory must not keep the application's window from starting.
+            var downloadManager = _services.GetRequiredService<DropSpace.Infrastructure.Downloads.DownloadManager>();
+            _ = Task.Run(async () =>
+            {
+                try { await downloadManager.RestoreAsync(); }
+                catch (OperationCanceledException) { /* Application shutdown owns cancellation. */ }
+            });
             var language = _services.GetRequiredService<AppLanguageService>();
             var requestedSmokeLanguage = GetCommandLineArgumentValue(commandLine, "--smoke-language");
             var smokeLanguage = AppLanguagePreference.System;
@@ -634,7 +641,8 @@ public partial class App : Application
         services.AddSingleton<ClipboardIslandViewModel>();
         services.AddSingleton<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>();
         services.AddSingleton<DropSpace.Core.Downloads.IDownloadTaskRepository>(provider => new DropSpace.Infrastructure.Downloads.DownloadTaskRepository(
-            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "Downloads", "Tasks")));
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "Downloads", "Tasks"),
+            provider.GetRequiredService<ILogger<DropSpace.Infrastructure.Downloads.DownloadTaskRepository>>()));
         services.AddSingleton<DropSpace.Infrastructure.Downloads.DownloadManager>();
         services.AddSingleton(provider => new AiModelPackageService(
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Models"),

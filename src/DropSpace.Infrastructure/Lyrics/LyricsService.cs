@@ -65,8 +65,8 @@ public sealed class LyricsService
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
         });
-        var key = target.Length == 0 ? OriginalSourceKey("source-v3") : TargetSourceKey("source-v6");
-        LyricsRequestTrace.Record("cache-lookup", new { key = LyricsRequestTrace.Key(key), version = target.Length == 0 ? "source-v3" : "source-v6", target, refresh });
+        var key = target.Length == 0 ? OriginalSourceKey("source-v4-quality1") : TargetSourceKey("source-v7-quality1");
+        LyricsRequestTrace.Record("cache-lookup", new { key = LyricsRequestTrace.Key(key), version = target.Length == 0 ? "source-v4-quality1" : "source-v7-quality1", target, refresh });
         var generation = _cache?.Generation ?? _memory.Generation;
         LyricsDocument? cachedPreview = null;
         if (kind != LyricsProviderKind.LocalLrc && !refresh)
@@ -74,7 +74,7 @@ public sealed class LyricsService
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
             if (cached is null)
             {
-                var priorKey = target.Length == 0 ? OriginalSourceKey("source-v2") : TargetSourceKey("source-v5");
+                var priorKey = target.Length == 0 ? OriginalSourceKey("source-v3") : TargetSourceKey("source-v6");
                 var prior = _cache is null ? _memory.Read(priorKey) : await _cache.ReadDocumentAsync(priorKey, cancellationToken).ConfigureAwait(false);
                 // Source ordering changed. A preferred-provider cache stays usable;
                 // older lower-priority winners must pass the new source stage once.
@@ -91,6 +91,8 @@ public sealed class LyricsService
                     !LyricsTranslationPolicy.NeedsProviderTranslation(legacy, target) &&
                     legacy.Lines.All(line => string.IsNullOrWhiteSpace(line.Secondary))) cached = legacy;
             }
+            if (cached is not null && LyricsBodyQualityPolicy.Classify(cached) != LyricsBodyQuality.Usable)
+            { LyricsRequestTrace.Record("cache-rejected", new { reason = "placeholder-or-empty-body", qualityVersion = LyricsBodyQualityPolicy.Version }); cached = null; }
             // Older source-v2 entries persisted both heuristic and explicit tags
             // without provenance. They cannot safely be distinguished. Refetch
             // those entries once; legacy untagged entries remain reusable. New
@@ -194,6 +196,7 @@ public sealed class LyricsService
                 catch (InvalidDataException) { }
             }
             var failed = document.Lines.Count == 0 && (primary.Failed || fallbackFailed);
+            if (failed) document = document with { BodyQuality = LyricsBodyQuality.RequestFailed };
             return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : failed ? LyricsQueryStatus.Failed : LyricsQueryStatus.NotFound, translationIncomplete) { SelectionCandidates = candidates.Snapshot };
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or IOException or InvalidDataException or XmlException or FormatException or RegexMatchTimeoutException)
@@ -368,10 +371,10 @@ public sealed class LyricsService
                 catch (TimeoutException) { }
             }
             token.ThrowIfCancellationRequested();
-            return new(LyricsDocument.Empty, true);
+            return new(LyricsDocument.Empty with { BodyQuality = LyricsBodyQuality.RequestFailed }, true);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
-        { return new(LyricsDocument.Empty, true); }
+        { return new(LyricsDocument.Empty with { BodyQuality = LyricsBodyQuality.RequestFailed }, true); }
         finally { if (!invocationOwnsCancellation) await cancellation.CompleteAsync().ConfigureAwait(false); }
     }
     private async Task<ProviderResult> InvokeProviderAsync(LyricsProviderKind kind, LyricsQuery query,
@@ -388,6 +391,7 @@ public sealed class LyricsService
             // Cancellation wins even when a transport returns a stale success instead of throwing.
             token.ThrowIfCancellationRequested();
             reportCandidate(document);
+            LyricsRequestTrace.Record("provider-body", LyricsRequestTrace.Describe(LyricsBodyQualityPolicy.Normalize(document)));
             var validated = Validate(document, query);
             LyricsDiagnostics.Report(_diagnostic, new(kind, LyricsDiagnosticStage.Query,
                 validated.Lines.Count > 0 ? LyricsDiagnosticOutcome.Found : LyricsDiagnosticOutcome.NoMatch,
@@ -403,7 +407,8 @@ public sealed class LyricsService
                 (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
                 ApiCode: (error as LyricsProviderRejectedException)?.ApiCode,
                 HttpStatus: error is HttpRequestException httpError ? (int?)httpError.StatusCode : null));
-            return new(LyricsDocument.Empty, true);
+            LyricsRequestTrace.Record("provider-body", new { provider = kind.ToString(), bodyQuality = nameof(LyricsBodyQuality.RequestFailed) });
+            return new(LyricsDocument.Empty with { BodyQuality = LyricsBodyQuality.RequestFailed }, true);
         }
         finally { await cancellation.CompleteAsync().ConfigureAwait(false); gate.Release(); }
     }
@@ -604,7 +609,9 @@ public sealed class LyricsService
 
     private static LyricsDocument Validate(LyricsDocument document, LyricsQuery query)
     {
-        if (document.Lines.Count == 0 || document.Match is null) return LyricsDocument.Empty;
+        document = LyricsBodyQualityPolicy.Normalize(document);
+        if (document.Match is null) return document.BodyQuality is LyricsBodyQuality.PlaceholderOnly or LyricsBodyQuality.RequestFailed
+            ? document : LyricsDocument.Empty;
         var match = document.Match;
         if (!string.IsNullOrEmpty(query.TrackIdentity) && !string.IsNullOrEmpty(match.TrackIdentity) && match.TrackIdentity != query.TrackIdentity)
             return LyricsDocument.Empty;

@@ -398,6 +398,8 @@ public sealed class AiLyricsSettingsCard : UserControl
     private string SizeLabel(AiLyricsModelDescriptor model) => _strings.Format("AiLyricsModelSize", (model.Bytes / 1_000_000_000d).ToString("0.00", _strings.Culture), model.Bytes.ToString("N0", _strings.Culture));
     private static string SourceLabel(AiLyricsModelDescriptor model)
     {
+        if (model.Id == AiLyricsModelCatalog.ExperimentalPlain.Id || model.Id == AiLyricsModelCatalog.ExperimentalLargePlain.Id)
+            return "github.com/airanluo-dot/DropSpace";
         var segments = model.DownloadUri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
         return model.DownloadUri.Host + "/" + string.Join('/', segments.Take(2));
     }
@@ -457,6 +459,8 @@ public sealed class AiLyricsSettingsCard : UserControl
                     _ => package.FailedAction switch { DlcPackageAction.Download => "DlcDownloadFailed", DlcPackageAction.Delete => "DlcDeleteFailed", _ => "DlcInspectFailed" },
                 }) : _inspecting ? _strings.Get("AiLyricsChecking") : !string.IsNullOrEmpty(_message) ? _message :
                 installed ? _strings.Get("AiLyricsReady") : _strings.Get("AiLyricsNeedsDownload");
+            if (package?.State == DlcPackageState.Downloading && package.Transfer is { } transfer)
+                _status.Text = DlcProgressPresentation.Describe(transfer, _strings);
             if (installed && settings.AiTranslationEnabled && !_busy && !_inspecting && string.IsNullOrEmpty(_message))
                 _status.Text = _strings.Get(_service.TranslationState switch
                 {

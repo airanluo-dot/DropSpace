@@ -21,10 +21,22 @@ public sealed record NearbyShareItem(
     long Length,
     Func<CancellationToken, Task<Stream>> OpenReadAsync);
 
-public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDisposable
+public sealed class NearbyShareServer : IAsyncDisposable
 {
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(10);
-    private readonly ShareLimits _limits = (limits ?? new ShareLimits()).Validate();
+    private readonly ShareLimits _limits;
+    private long _networkRevision, _boundRevision;
+    public NearbyShareServer(ShareLimits? limits = null)
+    {
+        _limits = (limits ?? new ShareLimits()).Validate();
+        NetworkChange.NetworkAddressChanged += NetworkChanged;
+    }
+    private void NetworkChanged(object? sender, EventArgs args)
+    {
+        Interlocked.Increment(ref _networkRevision);
+        _baseUri = null;
+        lock (_shareGate) _shares.Clear();
+    }
     private readonly ConcurrentDictionary<Guid, NearbyShare> _shares = new();
     private readonly object _shareGate = new();
     private readonly SemaphoreSlim _startGate = new(1, 1);
@@ -56,7 +68,11 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
             total += item.Length;
         }
 
-        await EnsureStartedAsync(cancellationToken).ConfigureAwait(false);
+        await _startGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+        await EnsureStartedCoreAsync(cancellationToken).ConfigureAwait(false);
+        var endpoint = _baseUri ?? throw new InvalidOperationException("Nearby network changed during startup.");
         var shareId = Guid.NewGuid();
         var token = Base64Url(System.Security.Cryptography.RandomNumberGenerator.GetBytes(_limits.NearbyTokenBytes));
         var requestedLifetime = lifetime ?? TimeSpan.FromMinutes(_limits.NearbyTtlMinutes);
@@ -65,6 +81,8 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
         lock (_shareGate)
         {
             ObjectDisposedException.ThrowIf(_disposed != 0, this);
+            if (_boundRevision != Interlocked.Read(ref _networkRevision))
+                throw new InvalidOperationException("Nearby network changed before publication.");
             PruneExpiredSharesLocked(DateTimeOffset.UtcNow);
             if (_shares.Count >= _limits.MaxNearbyShares)
             {
@@ -73,21 +91,38 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
 
             _shares[shareId] = new NearbyShare(shareId, token, expires, items.ToArray(), _limits.MaxNearbyReceivers);
         }
-        var url = new Uri(string.Concat(_baseUri, "s/", shareId.ToString("N"), "/", token));
+        var url = new Uri(string.Concat(endpoint, "s/", shareId.ToString("N"), "/", token));
         return new ShareDescriptor(shareId, url, expires, items.Count, total, false, null);
+        }
+        finally { _startGate.Release(); }
     }
 
     public bool Revoke(Guid shareId) => _shares.TryRemove(shareId, out _);
 
-    private async Task EnsureStartedAsync(CancellationToken cancellationToken)
+    private async Task EnsureStartedCoreAsync(CancellationToken cancellationToken)
     {
-        if (_app is not null && _baseUri is not null) return;
-        if (_app is not null)
-        {
-            throw new InvalidOperationException("Nearby share server is still completing a previous startup or shutdown.");
-        }
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
-        await _startGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var networkRevision = Interlocked.Read(ref _networkRevision);
+        string privateAddress;
+        try { privateAddress = GetPrivateAddress(); }
+        catch (Exception error) when (error is InvalidOperationException or NetworkInformationException)
+        {
+            _baseUri = null;
+            lock (_shareGate) _shares.Clear();
+            if (_app is { } offline && _lateAppCleanupTask is not { IsCompleted: false }) await BeginFailedStartCleanupAsync(offline).ConfigureAwait(false);
+            throw;
+        }
+        if (_app is not null && _baseUri?.Host == privateAddress && _boundRevision == networkRevision) return;
+        if (_app is { } previous)
+        {
+            _baseUri = null;
+            // Old links are explicitly revoked on rebind. Kestrel settles/aborts
+            // existing streams before another listener is published.
+            lock (_shareGate) _shares.Clear();
+            if (_lateAppCleanupTask is { IsCompleted: false })
+                throw new InvalidOperationException("Nearby share is completing its network transition.");
+            await BeginFailedStartCleanupAsync(previous).ConfigureAwait(false);
+        }
         try
         {
             ObjectDisposedException.ThrowIf(_disposed != 0, this);
@@ -97,7 +132,6 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
                 throw new InvalidOperationException("Nearby share server is still completing a previous startup or shutdown.");
             }
 
-            var privateAddress = GetPrivateAddress();
             var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
             {
                 ApplicationName = typeof(NearbyShareServer).Assembly.GetName().Name ?? "DropSpace",
@@ -120,6 +154,9 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
                     throw new InvalidOperationException("Nearby share server did not expose a bound endpoint.");
                 }
 
+                if (networkRevision != Interlocked.Read(ref _networkRevision))
+                    throw new InvalidOperationException("Nearby network changed during binding.");
+                _boundRevision = networkRevision;
                 _baseUri = new Uri(string.Concat("http://", privateAddress, ":", bound.Port, "/"));
             }
             catch
@@ -128,10 +165,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
                 throw;
             }
         }
-        finally
-        {
-            _startGate.Release();
-        }
+        finally { /* The creating operation owns the lifecycle gate through URL publication. */ }
     }
 
     private void MapRoutes(WebApplication app)
@@ -316,6 +350,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     private async Task DisposeCoreAsync()
     {
         Interlocked.Exchange(ref _disposed, 1);
+        NetworkChange.NetworkAddressChanged -= NetworkChanged;
 
         // Waiting for startup is part of ownership transfer. A caller deadline must
         // not make the only WebApplication reference unreachable.

@@ -195,7 +195,8 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
 
             Publish(Status with { State = UpdateState.Downloading, Message = _strings.Get("UpdateDownloading"), Progress = null });
             var progress = new InlineProgress<UpdateDownloadProgress>(value =>
-                Publish(Status with { State = UpdateState.Downloading, Message = _strings.Get("UpdateDownloading"), Progress = value }));
+                Publish(Status with { State = UpdateState.Downloading,
+                    Message = _strings.Get(value.Stage == DropSpace.Core.Downloads.DownloadStage.Queued ? "DownloadStageQueued" : "UpdateDownloading"), Progress = value }));
             download = await _downloader.DownloadAsync(candidate, progress, cancellationToken).ConfigureAwait(false);
             if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
             {
@@ -244,7 +245,9 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             return Publish(Status with
             {
                 State = UpdateState.Failed,
-                Message = exception is InvalidDataException
+                Message = exception is DropSpace.Infrastructure.Downloads.DownloadQueueTimeoutException ? _strings.Get("DownloadQueueTimedOut")
+                    : exception is DropSpace.Infrastructure.Downloads.DownloadTransferTimeoutException ? _strings.Get("DownloadTransferTimedOut")
+                    : exception is InvalidDataException
                     ? _strings.Get("UpdateDownloadIntegrityFailed")
                     : _strings.Get("UpdateDownloadFailed"),
                 Download = null,

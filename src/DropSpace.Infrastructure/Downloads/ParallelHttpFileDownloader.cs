@@ -25,10 +25,21 @@ public sealed class ParallelHttpFileDownloader(DownloadRequestPolicy policy, Tim
         ArgumentNullException.ThrowIfNull(uri);
         if (uri.Scheme is not ("http" or "https")) throw new ArgumentException("HTTP(S) is required.", nameof(uri));
         if (!Path.IsPathRooted(stagingPath)) throw new ArgumentException("An absolute staging path is required.", nameof(stagingPath));
+        progress?.Report(new(TrackType.File, 0, expectedBytes, Stage: DownloadStage.WaitingConnection));
         using var probeLease = await _connections.AcquireAsync(cancellationToken).ConfigureAwait(false);
-        progress?.Report(new TrackProgress(TrackType.File, 0, expectedBytes, 0, 1));
-        using var head = await _retry.ExecuteAsync(token => _deadline.RunAsync(ct => policy.SendAsync(uri, 0, 0, null, ct), token), retryPolicy, IsTransient, cancellationToken).ConfigureAwait(false);
-        if (head.StatusCode != HttpStatusCode.RequestedRangeNotSatisfiable) head.EnsureSuccessStatusCode();
+        progress?.Report(new TrackProgress(TrackType.File, 0, expectedBytes, 0, 1, DownloadStage.Probing));
+        using var head = await _retry.ExecuteAsync(async token =>
+        {
+            progress?.Report(new(TrackType.File, 0, expectedBytes, ActiveConnections: 1, Stage: DownloadStage.Probing));
+            var response = await _deadline.RunAsync(ct => policy.SendAsync(uri, 0, 0, null, ct), token).ConfigureAwait(false);
+            try
+            {
+                if (response.StatusCode != HttpStatusCode.RequestedRangeNotSatisfiable) RetryExecutor.EnsureSuccess(response);
+                return response;
+            }
+            catch { response.Dispose(); throw; }
+        }, retryPolicy, IsTransient, cancellationToken, (attempt, error, delay) =>
+            progress?.Report(new(TrackType.File, 0, expectedBytes, Stage: DownloadStage.RetryWaiting, Attempt: attempt, ErrorCode: error.GetType().Name))).ConfigureAwait(false);
         var range = head.Content.Headers.ContentRange;
         var tag = head.Headers.ETag;
         if (head.StatusCode != HttpStatusCode.PartialContent || range?.Unit != "bytes" ||
@@ -82,7 +93,10 @@ public sealed class ParallelHttpFileDownloader(DownloadRequestPolicy policy, Tim
         var resumedBytes = completed.Sum();
         // Remaining fragments and the full assembly may coexist. Existing assembly bytes
         // can be reclaimed, but do not assume unrelated files can be deleted for space.
-        DownloadStorage.CheckSpace(stagingPath, checked(length * 2 - resumedBytes));
+        // Reclaim only our own previous assembly, before measuring free space. Parts
+        // are retained; the merge is rebuilt from their validator-bound plan.
+        File.Delete(DownloadStorage.Safe(Path.GetDirectoryName(stagingPath)!, stagingPath));
+        DownloadStorage.CheckSpace(stagingPath, checked(length + (length - resumedBytes)));
         var transferClock = System.Diagnostics.Stopwatch.StartNew();
         var active = 0;
         progress?.Report(new TrackProgress(TrackType.File, resumedBytes, length));
@@ -102,6 +116,7 @@ public sealed class ParallelHttpFileDownloader(DownloadRequestPolicy policy, Tim
         cancellationToken.ThrowIfCancellationRequested();
         // A continuous sidecar must never describe a partially assembled range output.
         File.Delete(DownloadStorage.Safe(Path.GetDirectoryName(stagingPath)!, stagingPath + ".resume.json"));
+        progress?.Report(new(TrackType.File, length, length, Stage: DownloadStage.Merging));
         await using (var output = new FileStream(stagingPath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, FileOptions.Asynchronous))
         {
             for (var index = 0; index < ranges.Count; index++)
@@ -131,7 +146,7 @@ public sealed class ParallelHttpFileDownloader(DownloadRequestPolicy policy, Tim
                     using var response = await _deadline.RunAsync(readToken => policy.SendAsync(uri, part.From + existing, part.To, identity.ETag, readToken), token).ConfigureAwait(false);
                     if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.RequestedRangeNotSatisfiable)
                         throw new RangeRejectedException();
-                    response.EnsureSuccessStatusCode();
+                    RetryExecutor.EnsureSuccess(response);
                     var receivedRange = response.Content.Headers.ContentRange;
                     if (response.StatusCode != HttpStatusCode.PartialContent || HasEncoding(response) ||
                         receivedRange?.Unit != "bytes" || receivedRange.From != part.From + existing ||
@@ -155,7 +170,7 @@ public sealed class ParallelHttpFileDownloader(DownloadRequestPolicy policy, Tim
                             var total = completed.Sum();
                             var speed = transferClock.Elapsed.TotalSeconds > 0
                                 ? (total - resumedBytes) / transferClock.Elapsed.TotalSeconds : 0;
-                            progress?.Report(new TrackProgress(TrackType.File, total, length, speed, Volatile.Read(ref active)));
+                            progress?.Report(new TrackProgress(TrackType.File, total, length, speed, Volatile.Read(ref active), LastByteAt: DateTimeOffset.UtcNow));
                         }
                     }
                     await output.FlushAsync(token).ConfigureAwait(false);
@@ -172,7 +187,8 @@ public sealed class ParallelHttpFileDownloader(DownloadRequestPolicy policy, Tim
                                 (total - resumedBytes) / Math.Max(.001, transferClock.Elapsed.TotalSeconds), Volatile.Read(ref active)));
                         }
                     }
-                }, retryPolicy, IsTransient, stop.Token).ConfigureAwait(false);
+                }, retryPolicy, IsTransient, stop.Token, (attempt, error, delay) =>
+                    progress?.Report(new(TrackType.File, CompletedBytes(), length, ActiveConnections: Volatile.Read(ref active), Stage: DownloadStage.RetryWaiting, Attempt: attempt, ErrorCode: error.GetType().Name))).ConfigureAwait(false);
             }
             catch (RangeRejectedException)
             {

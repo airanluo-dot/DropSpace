@@ -63,6 +63,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
                 OnPropertyChanged(nameof(IsCompactVisible));
                 OnPropertyChanged(nameof(IsExpandedVisible));
                 OnPropertyChanged(nameof(CompactTitle));
+                OnPropertyChanged(nameof(CompactFileTitle));
                 OnPropertyChanged(nameof(DragTitle));
                 OnPropertyChanged(nameof(DragSubtitle));
                 OnPropertyChanged(nameof(IsExpandedDropTargetActive));
@@ -104,6 +105,13 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public bool IsExpandedVisible => Snapshot.State == OverlayState.Expanded;
 
     public bool IsExpandedDropTargetActive => Snapshot.ExpandedDropActive;
+
+    public string CompactFileTitle => Snapshot.TemporaryItemCount switch
+    {
+        1 when RecentItems.FirstOrDefault() is { } item => item.Title,
+        > 1 => _strings.Format("OverlayItemCount", Snapshot.TemporaryItemCount),
+        _ => string.Empty,
+    };
 
     public string CompactTitle => _shellAcknowledgement ?? (Snapshot.TemporaryItemCount switch
     {
@@ -326,6 +334,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
                 _shellAcknowledgementCancellation = acknowledgementCancellation;
                 _shellAcknowledgement = message;
                 OnPropertyChanged(nameof(CompactTitle));
+                OnPropertyChanged(nameof(CompactFileTitle));
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
             await Task.Delay(TimeSpan.FromSeconds(2), acknowledgementCancellation.Token).ConfigureAwait(false);
@@ -346,7 +355,11 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
                     {
                         _shellAcknowledgement = null;
                         _shellAcknowledgementCancellation = null;
-                        if (!_disposed) OnPropertyChanged(nameof(CompactTitle));
+                        if (!_disposed)
+                        {
+                            OnPropertyChanged(nameof(CompactTitle));
+                            OnPropertyChanged(nameof(CompactFileTitle));
+                        }
                     }
 
                     return Task.CompletedTask;
@@ -412,6 +425,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
                 });
             _stateMachine.SetTemporaryItemCount(_mainViewModel.SpaceItemCount);
             OnPropertyChanged(nameof(CompactTitle));
+            OnPropertyChanged(nameof(CompactFileTitle));
             _logger.LogInformation(
                 "Overlay projection applied serialized Temporary Space revision {Revision}, item count {ItemCount}, recent count {RecentCount}.",
                 revision,

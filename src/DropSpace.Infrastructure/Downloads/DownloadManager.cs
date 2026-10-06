@@ -2,6 +2,7 @@
 // cancellation settlement, reservations and checkpoint persistence. No media resolver or FFmpeg.
 using System.Security.Cryptography;
 using DropSpace.Core.Downloads;
+using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Downloads;
 
@@ -12,15 +13,75 @@ public sealed class DownloadManager : IAsyncDisposable
     private readonly DownloadPersistenceWorker _persistence;
     private readonly OutputReservationService _reservations = new();
     private readonly Dictionary<Guid, Work> _work = [];
+    private readonly List<Guid> _order = [];
+    private readonly IReadOnlyList<DownloadTaskSnapshot> _taskView;
+    private readonly HashSet<Guid> _dirtyProgress = [];
+    private readonly Timer _progressNotification;
+    private bool _notificationScheduled;
     private readonly object _sync = new();
     private readonly SemaphoreSlim _actions = new(1, 1);
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly ILogger<DownloadManager>? _logger;
     private bool _stopping;
     private bool _restored;
     private bool _disposed;
-    public DownloadManager(HttpRangeDownloader engine, IDownloadTaskRepository repository)
-    { _engine = engine; _repository = repository; _persistence = new(repository); }
+    public DownloadManager(HttpRangeDownloader engine, IDownloadTaskRepository repository, ILogger<DownloadManager>? logger = null)
+    {
+        _engine = engine; _repository = repository; _persistence = new(repository); _logger = logger;
+        _taskView = new TaskView(this);
+        _progressNotification = new Timer(_ => PublishProgress(), null, Timeout.Infinite, Timeout.Infinite);
+    }
+    public string? RecoveryError { get; private set; }
     public event EventHandler? Changed;
-    public IReadOnlyList<DownloadTaskSnapshot> Tasks { get { lock (_sync) return _work.Values.Select(w => w.Snapshot).OrderBy(w => w.Id).ToArray(); } }
+    public event EventHandler<DownloadTaskSnapshot>? TaskChanged;
+    public IReadOnlyList<DownloadTaskSnapshot> Tasks => _taskView;
+    public IReadOnlyList<DownloadTaskSnapshot> GetVisibleTasks(int historyLimit)
+    {
+        lock (_sync)
+        {
+            var result = new List<DownloadTaskSnapshot>();
+            var history = 0;
+            for (var i = _order.Count - 1; i >= 0; i--)
+            {
+                var item = _work[_order[i]].Snapshot;
+                if (item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled && ++history > historyLimit) continue;
+                result.Add(item);
+            }
+            return result;
+        }
+    }
+    public async Task RemoveHistoryAsync(Guid id)
+    {
+        await _actions.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            Work? item;
+            lock (_sync) _work.TryGetValue(id, out item);
+            if (item is null || item.Snapshot.State is not (DownloadTaskState.Completed or DownloadTaskState.Cancelled)) return;
+            await ObserveRunAsync(item.Run).ConfigureAwait(false);
+            await _persistence.DeleteAsync(id).ConfigureAwait(false);
+            lock (_sync) { _work.Remove(id); _order.Remove(id); _dirtyProgress.Remove(id); }
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+        finally { _actions.Release(); }
+    }
+    private void PublishProgress()
+    {
+        DownloadTaskSnapshot[] changed;
+        lock (_sync)
+        {
+            changed = _dirtyProgress.Where(_work.ContainsKey).Select(id => _work[id].Snapshot).ToArray();
+            _dirtyProgress.Clear(); _notificationScheduled = false;
+        }
+        foreach (var snapshot in changed) NotifyTask(snapshot);
+    }
+    private void NotifyTask(DownloadTaskSnapshot snapshot)
+    {
+        foreach (var observer in TaskChanged?.GetInvocationList() ?? [])
+            try { ((EventHandler<DownloadTaskSnapshot>)observer)(this, snapshot); }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            { _logger?.LogWarning("Download observer failed: {Reason}", error.GetType().Name); }
+    }
     private static string Staging(DownloadRequest request) => Path.Combine(request.OutputDirectory, ".dropspace-downloads", request.TaskId.ToString("N"), "file.part");
 
     public async Task EnqueueAsync(string url, string directory, string? fileName)
@@ -35,41 +96,77 @@ public sealed class DownloadManager : IAsyncDisposable
             item.Reservation = reservation;
             try { await _persistence.EnqueueCriticalAsync(item.Snapshot).ConfigureAwait(false); }
             catch { await _reservations.ReleaseAsync(reservation).ConfigureAwait(false); throw; }
-            lock (_sync) _work.Add(request.TaskId, item);
+            lock (_sync) { _work.Add(request.TaskId, item); _order.Add(request.TaskId); }
             Start(item);
         }
         finally { _actions.Release(); }
         Changed?.Invoke(this, EventArgs.Empty);
     }
-    public async Task RestoreAsync()
+    public async Task RestoreAsync(CancellationToken cancellationToken = default)
     {
-        await _actions.WaitAsync().ConfigureAwait(false);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+        var token = linked.Token;
+        await _actions.WaitAsync(token).ConfigureAwait(false);
         try
         {
             if (_restored) return;
             _restored = true;
-            foreach (var snapshot in await _repository.GetAllAsync().ConfigureAwait(false))
+            var recovered = await _repository.GetAllAsync(token).ConfigureAwait(false);
+            RecoveryError = _repository.RecoveryError;
+            foreach (var snapshot in recovered)
             {
+                token.ThrowIfCancellationRequested();
                 var item = new Work(snapshot with { ActiveConnections = 0, BytesPerSecond = 0 });
-                lock (_sync) _work[item.Snapshot.Id] = item;
-                if (snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled)
-                { TryClean(item.Snapshot.Request); continue; }
-                // A process may exit after rename but before persisting Completed.
-                if (snapshot.State == DownloadTaskState.Finalizing && snapshot.FinalSha256 is { } hash && File.Exists(snapshot.OutputPath))
+                lock (_sync) { if (!_work.ContainsKey(snapshot.Id)) _order.Add(snapshot.Id); _work[item.Snapshot.Id] = item; }
+                try
                 {
-                    try
-                    {
-                        await using var file = new FileStream(snapshot.OutputPath, FileMode.Open, FileAccess.Read, FileShare.Read, 131072, true);
-                        if (Convert.ToHexString(await SHA256.HashDataAsync(file).ConfigureAwait(false)) == hash)
-                        { await SetAsync(item, DownloadTaskState.Completed).ConfigureAwait(false); TryClean(snapshot.Request); continue; }
-                    }
-                    catch (IOException) { }
-                }
+                if (snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled)
+                { TryClean(item.Snapshot.Request); await ReleaseRecoveredMarkerAsync(item.Snapshot).ConfigureAwait(false); continue; }
+                if (await ReconcileCommittedAsync(item, token).ConfigureAwait(false)) continue;
                 await SetAsync(item, snapshot.State == DownloadTaskState.Failed ? DownloadTaskState.Failed : DownloadTaskState.Paused).ConfigureAwait(false);
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+                {
+                    lock (_sync) item.Snapshot = item.Snapshot with
+                    { State = item.Snapshot.State == DownloadTaskState.Completed ? DownloadTaskState.Completed : DownloadTaskState.Failed,
+                      ErrorCode = "Recovery:" + error.GetType().Name };
+                    _logger?.LogWarning("Download {TaskId} recovery deferred: {Reason}", snapshot.Id, error.GetType().Name);
+                    // Do not attempt another throwing checkpoint while reporting a failed checkpoint.
+                }
             }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        {
+            RecoveryError = error.GetType().Name;
+            _logger?.LogWarning("Download recovery unavailable: {Reason}", RecoveryError);
+            _restored = false;
         }
         finally { _actions.Release(); }
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+    private async Task<bool> ReconcileCommittedAsync(Work item, CancellationToken token)
+    {
+        var snapshot = item.Snapshot;
+        if (snapshot.State is not (DownloadTaskState.Finalizing or DownloadTaskState.Failed) ||
+            snapshot.FinalSha256 is not { Length: 64 } hash || !File.Exists(snapshot.OutputPath)) return false;
+        DownloadStorage.Safe(snapshot.Request.OutputDirectory, snapshot.OutputPath);
+        await using var file = new FileStream(snapshot.OutputPath, FileMode.Open, FileAccess.Read, FileShare.Read, 131072, true);
+        if (snapshot.TotalBytes != file.Length ||
+            !string.Equals(Convert.ToHexString(await SHA256.HashDataAsync(file, token).ConfigureAwait(false)), hash, StringComparison.OrdinalIgnoreCase)) return false;
+        await SetAsync(item, DownloadTaskState.Completed).ConfigureAwait(false);
+        TryClean(snapshot.Request);
+        await ReleaseRecoveredMarkerAsync(snapshot).ConfigureAwait(false);
+        return true;
+    }
+    private async Task ReleaseRecoveredMarkerAsync(DownloadTaskSnapshot snapshot)
+    {
+        try
+        {
+            var marker = DownloadStorage.Safe(snapshot.Request.OutputDirectory, snapshot.OutputPath + ".dropspace-reservation");
+            await _reservations.ReleaseAsync(new(snapshot.Id, snapshot.OutputPath, marker)).ConfigureAwait(false);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
+        { _logger?.LogWarning("Download marker cleanup deferred: {Reason}", error.GetType().Name); }
     }
     public async Task PauseAsync(Guid id) => await ControlAsync(id, resume: false, cancel: false).ConfigureAwait(false);
     public async Task ResumeAsync(Guid id) => await ControlAsync(id, resume: true, cancel: false).ConfigureAwait(false);
@@ -84,6 +181,7 @@ public sealed class DownloadManager : IAsyncDisposable
             {
                 if (item.Snapshot.State is not (DownloadTaskState.Paused or DownloadTaskState.Failed)) return;
                 await ObserveRunAsync(item.Run).ConfigureAwait(false);
+                if (await ReconcileCommittedAsync(item, _lifetime.Token).ConfigureAwait(false)) return;
                 await SetAsync(item, DownloadTaskState.Queued).ConfigureAwait(false);
                 Start(item);
             }
@@ -106,7 +204,7 @@ public sealed class DownloadManager : IAsyncDisposable
     }
     private void Start(Work item)
     {
-        item.Stop?.Dispose(); item.Stop = new();
+        item.Stop?.Dispose(); item.Stop = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         lock (_sync) item.Snapshot = item.Snapshot with { RunId = item.Snapshot.RunId + 1, ErrorCode = null };
         item.Run = Task.Run(() => RunAsync(item, item.Stop.Token));
     }
@@ -125,12 +223,17 @@ public sealed class DownloadManager : IAsyncDisposable
                 DownloadTaskSnapshot snapshot;
                 lock (_sync)
                 {
-                    item.Snapshot = snapshot = item.Snapshot with { State = DownloadTaskState.DownloadingFile,
+                    item.Snapshot = snapshot = item.Snapshot with { State = value.Stage == DownloadStage.Queued ? DownloadTaskState.Queued : DownloadTaskState.DownloadingFile,
                         DownloadedBytes = value.DownloadedBytes, TotalBytes = value.TotalBytes, BytesPerSecond = value.BytesPerSecond,
-                        ActiveConnections = value.ActiveConnections, UpdatedAt = DateTimeOffset.UtcNow };
+                        ActiveConnections = value.ActiveConnections, Stage = value.Stage, UpdatedAt = DateTimeOffset.UtcNow };
                 }
                 _persistence.EnqueueProgress(snapshot);
-                // The view renders on its 250 ms timer; do not flood the UI dispatcher per chunk.
+                lock (_sync)
+                {
+                    _dirtyProgress.Add(snapshot.Id);
+                    if (!_notificationScheduled)
+                    { _notificationScheduled = true; _progressNotification.Change(200, Timeout.Infinite); }
+                }
             });
             await _engine.DownloadAsync(new Uri(request.Url), staging, _engine.OrdinaryPolicy, progress, token).ConfigureAwait(false);
             await SetAsync(item, DownloadTaskState.Finalizing).ConfigureAwait(false);
@@ -150,6 +253,8 @@ public sealed class DownloadManager : IAsyncDisposable
                 }
                 await _persistence.EnqueueCriticalAsync(item.Snapshot).ConfigureAwait(false);
             }, token).ConfigureAwait(false);
+            if (item.Reservation.CleanupPending)
+                lock (_sync) item.Snapshot = item.Snapshot with { ErrorCode = "MarkerCleanupDeferred" };
             await SetAsync(item, DownloadTaskState.Completed).ConfigureAwait(false);
             DownloadStorage.Clean(staging);
         }
@@ -159,14 +264,19 @@ public sealed class DownloadManager : IAsyncDisposable
         {
             lock (_sync) item.Snapshot = item.Snapshot with { ErrorCode = error.GetType().Name };
             if (item.Snapshot.State != DownloadTaskState.Completed) await SetAsync(item, DownloadTaskState.Failed).ConfigureAwait(false);
+            else
+            {
+                _logger?.LogWarning("Completed download {TaskId} checkpoint or cleanup deferred: {Reason}", item.Snapshot.Id, error.GetType().Name);
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
         }
     }
     private async Task SetAsync(Work item, DownloadTaskState state)
     {
         DownloadTaskSnapshot snapshot;
         lock (_sync) item.Snapshot = snapshot = item.Snapshot with { State = state, ActiveConnections = 0, BytesPerSecond = 0, UpdatedAt = DateTimeOffset.UtcNow };
-        await _persistence.EnqueueCriticalAsync(snapshot).ConfigureAwait(false);
-        Changed?.Invoke(this, EventArgs.Empty);
+        try { await _persistence.EnqueueCriticalAsync(snapshot).ConfigureAwait(false); }
+        finally { NotifyTask(snapshot); }
     }
     private static void TryClean(DownloadRequest request)
     {
@@ -188,6 +298,7 @@ public sealed class DownloadManager : IAsyncDisposable
     }
     public async Task ShutdownAsync()
     {
+        await _lifetime.CancelAsync().ConfigureAwait(false);
         await _actions.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -208,7 +319,24 @@ public sealed class DownloadManager : IAsyncDisposable
     {
         if (_disposed) return;
         await ShutdownAsync().ConfigureAwait(false); _disposed = true;
-        await _persistence.DisposeAsync().ConfigureAwait(false); _reservations.Dispose();
+        await _progressNotification.DisposeAsync().ConfigureAwait(false);
+        await _persistence.DisposeAsync().ConfigureAwait(false); _reservations.Dispose(); _lifetime.Dispose();
+    }
+    private sealed class TaskView(DownloadManager owner) : IReadOnlyList<DownloadTaskSnapshot>
+    {
+        public int Count { get { lock (owner._sync) return owner._order.Count; } }
+        public DownloadTaskSnapshot this[int index] { get { lock (owner._sync) return owner._work[owner._order[index]].Snapshot; } }
+        public IEnumerator<DownloadTaskSnapshot> GetEnumerator()
+        {
+            for (var index = 0; ; index++)
+            {
+                DownloadTaskSnapshot snapshot;
+                lock (owner._sync)
+                { if (index >= owner._order.Count) yield break; snapshot = owner._work[owner._order[index]].Snapshot; }
+                yield return snapshot;
+            }
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
     private sealed class Work(DownloadTaskSnapshot snapshot)
     {

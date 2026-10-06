@@ -96,8 +96,7 @@ public sealed class OutputReservationService : IOutputReservationService
             {
                 await beforeCommit(current).ConfigureAwait(false);
                 File.Move(stagingPath, current.OutputPath, overwrite: false);
-                TryDeleteMarker(current.MarkerPath);
-                return current;
+                return current with { CleanupPending = !TryDeleteMarker(current.MarkerPath) };
             }
             catch (IOException) when (PathExists(current.OutputPath))
             {
@@ -189,9 +188,11 @@ public sealed class OutputReservationService : IOutputReservationService
 
     private static bool PathExists(string path) => File.Exists(path) || Directory.Exists(path);
 
-    private static void TryDeleteMarker(string path)
+    private static bool TryDeleteMarker(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { }
+        try { if (File.Exists(path)) File.Delete(path); return true; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { Trace.TraceWarning("Download reservation cleanup deferred: {0}", error.GetType().Name); return false; }
     }
 
     public void Dispose()

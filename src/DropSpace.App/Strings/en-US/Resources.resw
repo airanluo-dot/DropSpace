@@ -508,7 +508,7 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetHeight" xml:space="preserve"><value>Height</value></data>
   <data name="MusicArtwork" xml:space="preserve"><value>Show album artwork</value></data>
   <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>Local LRC</value></data>
-  <data name="IslandHideDelay" xml:space="preserve"><value>Hide delay (ms)</value></data>
+  <data name="IslandHideDelay" xml:space="preserve"><value>Hide delay</value></data>
   <data name="WidgetRight" xml:space="preserve"><value>Right</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>Left</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
@@ -706,7 +706,7 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="MusicReconnectFailed" xml:space="preserve"><value>Couldn’t reconnect music. Try the refresh button again.</value></data>
   <data name="MediaNextLyricLabel" xml:space="preserve"><value>Upcoming lyric</value></data>
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>Force Dynamic Island over fullscreen</value></data>
-  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Off by default. Overrides fullscreen hiding and keeps the island above fullscreen apps and borderless games without taking focus. Exclusive-fullscreen games may not support overlays; the lock screen and UAC secure desktop are not covered.</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Allow an island with content or residence enabled to appear over fullscreen apps. When off, use the hide delay.</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>Show AI lyrics label</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>Local translation could not confirm enough available memory. Free memory or choose the smaller model, then retry.</value></data>
   <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU backend</value></data>
@@ -743,6 +743,7 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="DlcDeleteEnabledModel" xml:space="preserve"><value>This is the current AI lyrics model. Removal waits for active inference to exit. Your AI preference will remain enabled; install or select an available model to translate again.</value></data>
   <data name="AiLyricsCudaFallback" xml:space="preserve"><value>CUDA components are not installed; Vulkan / CPU remains available.</value></data>
   <data name="SettingsPageDlc" xml:space="preserve"><value>DLC</value></data>
+  <data name="SettingsPageDownloads" xml:space="preserve"><value>Downloads</value></data>
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcDescription" xml:space="preserve"><value>Manage optional models, runtimes and feature components. Downloads start only when you choose them.</value></data>
   <data name="DlcManage" xml:space="preserve"><value>Manage downloads in DLC</value></data>
@@ -844,4 +845,24 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="DlcVisualCppShared" xml:space="preserve"><value>Managed by Windows and may be used by other apps.</value></data>
   <data name="DlcVisualCppInstallNotice" xml:space="preserve"><value>The runtime will be downloaded from Microsoft and installed. Windows may request administrator permission.</value></data>
   <data name="DlcNeteaseRemoveNotice" xml:space="preserve"><value>Removing the enhancement will restart NetEase Music. Your library and playlists will be preserved.</value></data>
+  <data name="DownloadMoreHistory" xml:space="preserve"><value>More download history</value></data>
+  <data name="DownloadRemoveHistory" xml:space="preserve"><value>Remove from history</value></data>
+  <data name="DownloadRecoveryWarning" xml:space="preserve"><value>Some downloads could not be restored. Check available storage and folder permissions.</value></data>
+  <data name="DownloadQueueTimedOut" xml:space="preserve"><value>The download queue wait expired. Please retry.</value></data>
+  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>The download timed out. Resumable progress has been kept.</value></data>
+  <data name="DownloadStageChecking" xml:space="preserve"><value>Checking existing files</value></data>
+  <data name="DownloadStageQueued" xml:space="preserve"><value>Waiting to download</value></data>
+  <data name="DownloadStageWaitingConnection" xml:space="preserve"><value>Waiting for a connection</value></data>
+  <data name="DownloadStageConnecting" xml:space="preserve"><value>Connecting</value></data>
+  <data name="DownloadStageProbing" xml:space="preserve"><value>Checking the download connection</value></data>
+  <data name="DownloadStageTransferring" xml:space="preserve"><value>Downloading</value></data>
+  <data name="DownloadStageRetryWaiting" xml:space="preserve"><value>Waiting to retry</value></data>
+  <data name="DownloadStageMerging" xml:space="preserve"><value>Assembling files</value></data>
+  <data name="DownloadStageVerifying" xml:space="preserve"><value>Verifying files</value></data>
+  <data name="DownloadStagePublishing" xml:space="preserve"><value>Finishing installation</value></data>
+  <data name="DownloadStageCompleted" xml:space="preserve"><value>Download complete</value></data>
+  <data name="DownloadTransferDetail" xml:space="preserve"><value>{0} / {1} · {2} MiB/s · {3} connections</value></data>
+  <data name="DownloadRetryDetail" xml:space="preserve"><value>Retry {0}</value></data>
+  <data name="IslandResident" xml:space="preserve"><value>Keep Dynamic Island visible</value></data>
+  <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} s</value></data>
 </root>

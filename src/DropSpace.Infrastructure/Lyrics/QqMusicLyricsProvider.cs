@@ -106,7 +106,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
         try { return ParseLyrics(lyric.RootElement, token); }
         catch (LyricsProviderRejectedException error)
         {
-            if (error.ApiCode is 1000 or 2001 or 101010 or 401)
+            if (error.ApiCode is 1000 or 2001 or 101010 or 401 or 429)
                 http.QqSession?.ReportAccess(generation, false, error.ApiCode);
             throw;
         }

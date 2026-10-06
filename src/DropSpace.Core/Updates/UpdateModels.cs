@@ -56,7 +56,8 @@ public sealed record UpdateCandidate(
     UpdateReleaseAsset SelectedAsset,
     DeploymentMode DeploymentMode);
 
-public sealed record UpdateDownloadProgress(long BytesReceived, long TotalBytes)
+public sealed record UpdateDownloadProgress(long BytesReceived, long TotalBytes,
+    DropSpace.Core.Downloads.DownloadStage Stage = DropSpace.Core.Downloads.DownloadStage.Transferring)
 {
     public double Percentage => TotalBytes <= 0 ? 0 : Math.Clamp(BytesReceived * 100d / TotalBytes, 0, 100);
 }

@@ -3,11 +3,12 @@ using DropSpace.Core.Overlay;
 namespace DropSpace.Core.Island;
 
 public enum IslandContentKind { None, Files, Music, Notification, Volume }
+public enum IslandPresentationVariant { Idle, EmptyWake, SingleFile, MultipleFiles, Music, Activity }
 public enum IslandPage { Widgets, Music, Files, Clipboard }
 public sealed record IslandPresenceInput(OverlaySnapshot Files, bool MediaPlaying, DateTimeOffset? MediaGraceUntil,
     bool ManualOpen, bool Expanded, IslandPage Page, DateTimeOffset? NotificationUntil, DateTimeOffset? VolumeUntil, bool RetainMedia = false);
 public sealed record IslandExperienceSnapshot(OverlayState State, IslandContentKind CompactContent, IslandPage Page,
-    bool MediaPresent, DateTimeOffset? NextDeadline, long Revision);
+    bool MediaPresent, DateTimeOffset? NextDeadline, long Revision, IslandPresentationVariant Variant = IslandPresentationVariant.Idle, bool PendingHide = false);
 
 public static class IslandPresencePolicy
 {
@@ -17,7 +18,7 @@ public static class IslandPresencePolicy
         var notification = input.NotificationUntil > now;
         var volume = input.VolumeUntil > now;
         var dragging = input.Files.State is OverlayState.DragApproaching or OverlayState.DragReady || input.Files.ExpandedDropActive;
-        var files = input.Files.TemporaryItemCount > 0 && input.Files.State is not (OverlayState.Hidden or OverlayState.Dismissing);
+        var files = input.Files.TemporaryItemCount > 0;
         var deadlines = new[] { input.MediaGraceUntil, input.NotificationUntil, input.VolumeUntil };
         var next = deadlines.Where(value => value > now).Min();
         var content = dragging ? IslandContentKind.Files : notification ? IslandContentKind.Notification : volume ? IslandContentKind.Volume :

@@ -28,6 +28,7 @@ public sealed class QqMusicSession(string directory)
     private bool _loaded;
     private QqMusicSessionState _state;
     private long _generation;
+    private DateTimeOffset _rateLimitUntil;
     public string BrowserDirectory => System.IO.Path.Combine(directory, "Browser");
     private string SessionPath => System.IO.Path.Combine(directory, "session.bin");
     public event EventHandler? Changed;
@@ -103,6 +104,8 @@ public sealed class QqMusicSession(string directory)
         bool blocked;
         lock (_gate)
         {
+            if (DateTimeOffset.UtcNow < _rateLimitUntil)
+                throw new LyricsProviderRejectedException("QQ Music request cooldown is active.", 429);
             if (_cookies.Length > 0 && !HasTicket(_cookies)) _state = QqMusicSessionState.Expired;
             blocked = _state is QqMusicSessionState.Expired or QqMusicSessionState.Rejected;
         }
@@ -148,9 +151,17 @@ public sealed class QqMusicSession(string directory)
     {
         lock (_gate)
         {
-            if (_generation != generation || !HasTicket(_cookies) || _state == QqMusicSessionState.StorageError) return;
-            _state = accepted ? QqMusicSessionState.Connected : code is 1000 or 2001 or 101010 or 401
-                ? QqMusicSessionState.Expired : QqMusicSessionState.Rejected;
+            if (_generation != generation) return;
+            if (!accepted && code == 429)
+            {
+                _rateLimitUntil = DateTimeOffset.UtcNow.AddSeconds(30);
+                return;
+            }
+            if (!HasTicket(_cookies) || _state == QqMusicSessionState.StorageError) return;
+            if (accepted) _state = QqMusicSessionState.Connected;
+            else if (code is 1000 or 2001 or 101010 or 401) _state = QqMusicSessionState.Expired;
+            // Other business/request refusals do not prove credential expiry and
+            // must not block every subsequent song for the lifetime of the session.
         }
         Notify(Changed);
     }

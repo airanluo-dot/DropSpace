@@ -17,6 +17,44 @@ namespace DropSpace.App.Tests;
 public sealed class FullAuditUndoRegressionTests
 {
     [TestMethod]
+    public async Task CommittedDeleteCleanupFailureCannotReportUndoSuccess()
+    {
+        await WithRepositoryAsync(async (repository, paths) =>
+        {
+            var item = await repository.AddTextAsync(ContentClassifier.CreateTextCandidate("cleanup failure fixture"));
+            await using var undo = new UndoCoordinator(repository, new FilePayloadStore(paths), new FilePreviewCache(paths),
+                NullLogger<UndoCoordinator>.Instance, new FailedCleanup());
+            await undo.BeginRemovalAsync([item.Id], UndoOperationKind.RemoveItem, "test");
+            await undo.FinalizeActiveAsync();
+            Assert.IsNull(undo.State);
+            Assert.IsFalse(await undo.UndoAsync());
+            Assert.IsFalse(await undo.UndoAsync());
+            Assert.IsNull(await repository.GetAsync(item.Id));
+        });
+    }
+
+    [TestMethod]
+    public async Task AlreadyRestoredRemovalDoesNotReportAnotherUndoSuccess()
+    {
+        await WithRepositoryAsync(async (repository, paths) =>
+        {
+            var item = await repository.AddTextAsync(ContentClassifier.CreateTextCandidate("zero affected fixture"));
+            await using var undo = CreateUndo(repository, paths);
+            var state = await undo.BeginRemovalAsync([item.Id], UndoOperationKind.RemoveItem, "test");
+            await repository.UndoPendingRemovalAsync(state!.Token);
+            Assert.IsFalse(await undo.UndoAsync());
+            Assert.IsNull(undo.State);
+            Assert.IsNotNull(await repository.GetAsync(item.Id));
+        });
+    }
+
+    private sealed class FailedCleanup : IPayloadCleanupCoordinator
+    {
+        public Task<int> DrainAsync(CancellationToken cancellationToken = default) => Task.FromException<int>(new IOException("fixture cleanup failure"));
+        public Task<int> RecoverAsync(CancellationToken cancellationToken = default) => DrainAsync(cancellationToken);
+    }
+
+    [TestMethod]
     public async Task StartupRecoveryRestoresRemovalWhoseUndoOwnerWasLost()
     {
         await WithRepositoryAsync(async (repository, paths) =>

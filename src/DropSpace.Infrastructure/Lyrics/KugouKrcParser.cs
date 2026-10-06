@@ -147,7 +147,7 @@ internal static class KugouKrcParser
             catch (Exception error) when (error is JsonException or FormatException or InvalidDataException) { }
         }
         Check();
-        return original with { Lines = original.Lines.Where(row => !string.IsNullOrWhiteSpace(row.Text)).OrderBy(row => row.Start).ToArray() };
+        return LyricsBodyQualityPolicy.Normalize(original with { Lines = original.Lines.Where(row => !string.IsNullOrWhiteSpace(row.Text)).OrderBy(row => row.Start).ToArray() });
     }
 
     private static TimeSpan Milliseconds(string value)

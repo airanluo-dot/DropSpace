@@ -41,10 +41,10 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                             var exactText = Text(exact.RootElement, "syncedLyrics");
                             if (string.IsNullOrWhiteSpace(exactText)) exactText = Text(exact.RootElement, "plainLyrics");
                             cancellationToken.ThrowIfCancellationRequested();
-                            var parsed = LyricsParser.Parse(exactText, Kind);
+                            var parsed = ParseBody(exact.RootElement, exactText);
                             cancellationToken.ThrowIfCancellationRequested();
                             var exactId = Text(exact.RootElement, "id");
-                            if (parsed.Lines.Count > 0 && !string.IsNullOrWhiteSpace(exactId))
+                            if (!string.IsNullOrWhiteSpace(exactId))
                             {
                                 var score = LyricsMatcher.CandidateScore(query, exactTitle, exactArtist, exactAlbum, exactDuration);
                                 if (score >= 4) return parsed.Bind(query, exactTitle, exactArtist, exactAlbum, exactDuration, score, exactId);
@@ -54,6 +54,11 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                         catch (HttpRequestException error) when (error.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest)
                         { return LyricsDocument.Empty; }
                     });
+                    if (exactDocument.Match is not null && exactDocument.Lines.Count == 0)
+                    {
+                        LyricsRequestTrace.Record("provider-body", LyricsRequestTrace.Describe(exactDocument));
+                        if (original.Lines.Count == 0) original = exactDocument;
+                    }
                     if (exactDocument.Lines.Count > 0 && attempted.Add(exactDocument.Match!.CandidateId!))
                     {
                         reportCandidate(exactDocument);
@@ -73,7 +78,8 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
             if (search.RootElement.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Unsupported LRCLIB search response.");
             LyricsRequestTrace.Record("search-result", new { provider = "Lrclib", terms, count = search.RootElement.GetArrayLength() });
             var candidates = Array(search.RootElement)
-                .Where(item => !string.IsNullOrWhiteSpace(Text(item, "syncedLyrics")) || !string.IsNullOrWhiteSpace(Text(item, "plainLyrics")))
+                .Where(item => !string.IsNullOrWhiteSpace(Text(item, "syncedLyrics")) || !string.IsNullOrWhiteSpace(Text(item, "plainLyrics")) ||
+                    item.TryGetProperty("instrumental", out var flag) && flag.ValueKind == JsonValueKind.True)
                 .Select(item => new
                 { Item = item, Score = LyricsMatcher.CandidateScore(query, Text(item, "trackName"), Text(item, "artistName"), Text(item, "albumName"), Number(item, "duration")) })
                 .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")))
@@ -89,21 +95,32 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                 {
                     var text = Text(best.Item, "syncedLyrics");
                     if (string.IsNullOrWhiteSpace(text)) text = Text(best.Item, "plainLyrics");
-                    var document = LyricsParser.Parse(text, Kind);
+                    var body = ParseBody(best.Item, text);
                     cancellationToken.ThrowIfCancellationRequested();
-                    return Task.FromResult(document);
+                    return Task.FromResult(body);
                 });
+                var document = parsed.Bind(query, Text(best.Item, "trackName"), Text(best.Item, "artistName"),
+                    Text(best.Item, "albumName"), Number(best.Item, "duration"), best.Score, bestId);
+                LyricsRequestTrace.Record("provider-body", LyricsRequestTrace.Describe(document));
                 if (parsed.Lines.Count > 0)
                 {
-                    var document = parsed.Bind(query, Text(best.Item, "trackName"), Text(best.Item, "artistName"),
-                        Text(best.Item, "albumName"), Number(best.Item, "duration"), best.Score, bestId);
                     reportCandidate(document);
                     if (!query.CollectSelectionCandidates) return document;
                     if (original.Lines.Count == 0) original = document;
                 }
+                else if (original.Lines.Count == 0 && document.BodyQuality == LyricsBodyQuality.ConfirmedInstrumental)
+                    original = document;
             }
         }
         requests.ThrowIfFailed();
         return original;
+    }
+
+    private LyricsDocument ParseBody(JsonElement response, string text)
+    {
+        var parsed = LyricsParser.Parse(text, Kind);
+        // Only the explicit provider flag is evidence; a placeholder sentence is not.
+        return parsed.Lines.Count == 0 && response.TryGetProperty("instrumental", out var flag) && flag.ValueKind == JsonValueKind.True
+            ? parsed with { BodyQuality = LyricsBodyQuality.ConfirmedInstrumental } : parsed;
     }
 }

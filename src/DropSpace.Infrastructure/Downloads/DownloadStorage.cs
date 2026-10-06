@@ -7,6 +7,10 @@ namespace DropSpace.Infrastructure.Downloads;
 
 internal static class DownloadStorage
 {
+    public static string NormalizeDirectory(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+    public static bool SameDirectory(string left, string right) => string.Equals(
+        NormalizeDirectory(left), NormalizeDirectory(right),
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     public static string Identity(Uri uri) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(uri.AbsoluteUri)));
     public static string Safe(string root, string path) => ReparseSafePathPolicy.PrepareContainedFileDestination(root, Path.GetRelativePath(root, path));
     public static IEnumerable<string> Artifacts(string staging)
