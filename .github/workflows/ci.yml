@@ -173,7 +173,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve actual Beta13 build source.' }
           $changed = @(git diff --name-only $source HEAD)
           if ($LASTEXITCODE -ne 0) { throw 'Cannot compare application inputs.' }
-          $allowed = @('.github/workflows/ci.yml')
+          $allowed = @('.github/workflows/ci.yml', 'website/_source/scripts/verify-published-release.mjs')
           if ($changed.Count -eq 0 -or @($changed | Where-Object { $_ -cnotin $allowed }).Count -gt 0) { exit 0 }
           $release = gh api repos/airanluo-dot/DropSpace/releases/404345416 | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Cannot read the owner-authorized Beta13 candidate.' }
