@@ -13,6 +13,12 @@
           "SQLitePCLRaw.core": "2.1.11"
         }
       },
+      "Panlingo.LanguageIdentification.FastText.Native": {
+        "type": "Direct",
+        "requested": "[0.8.1, )",
+        "resolved": "0.8.1",
+        "contentHash": "eEhctb16MlJzfvCdyaJkp0OWu2duiaDzP3iBzBQMHfDSYy3fcNHb3ZAry0rIld/oI1dg8ONIyeTYVzErnJJhcA=="
+      },
       "QRCoder": {
         "type": "Direct",
         "requested": "[1.6.0, )",

@@ -25,6 +25,8 @@ public sealed class AiLyricsService : IDisposable
     private readonly AiModelPackageService _models;
     private readonly IAiLyricsPackageResolver _packageResolver;
     private readonly IAiLyricsBackend _backend;
+    private readonly ILyricsLanguageIdentifier _languageIdentifier;
+    private readonly bool _ownsLanguageIdentifier;
     private readonly bool _ownsModels;
     private readonly bool _ownsBackend;
     private readonly AiLyricsCache _cache;
@@ -64,6 +66,8 @@ public sealed class AiLyricsService : IDisposable
     private AiLyricsTranslationState _state;
     private bool _fromCache;
     private LyricsSettings? _presentationSettings;
+    private LyricsWholeTrackAdmission? _sourceAdmission;
+    private MediaWorkCancellation? _activeRequest;
     public AiLyricsTranslationState TranslationState { get { lock (_stateGate) return _state; } }
 
     public AiLyricsService(AppStoragePaths paths, LyricsCache lyricsCache, ILogger<AiLyricsService> logger)
@@ -72,9 +76,11 @@ public sealed class AiLyricsService : IDisposable
     public AiLyricsService(AppStoragePaths paths, LyricsCache lyricsCache, ILogger<AiLyricsService> logger,
         AiModelPackageService? models, IAiLyricsPackageResolver? packageResolver, IAiLyricsBackend? backend,
         AiLyricsRuntimeOptions? runtimeOptions = null, CudaLyricsRuntimePackage? cudaPackage = null,
-        PersistentPlainLyricsRunner? residentRunner = null)
+        PersistentPlainLyricsRunner? residentRunner = null, ILyricsLanguageIdentifier? languageIdentifier = null)
     {
         _cudaPackage = cudaPackage; _residentRunner = residentRunner;
+        _ownsLanguageIdentifier = languageIdentifier is null;
+        _languageIdentifier = languageIdentifier ?? new FastTextLanguageIdentifier();
         _applicationRoot = paths.Root;
         var root = Path.Combine(paths.Root, "AiLyrics");
         _ownsModels = models is null;
@@ -207,9 +213,53 @@ public sealed class AiLyricsService : IDisposable
     /// <summary>Retires queued UI progress synchronously, before cancellation/draining completes.</summary>
     public void InvalidateTranslation()
     {
-        lock (_stateGate) { _statusGeneration++; _state = AiLyricsTranslationState.Ready; _fromCache = false; }
+        MediaWorkCancellation? active;
+        lock (_stateGate)
+        {
+            _statusGeneration++; _state = AiLyricsTranslationState.Ready; _fromCache = false;
+            active = _activeRequest;
+        }
+        active?.Request();
         TranslationStateChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>A fresh source revision retires every AI publication from the preceding candidate.</summary>
+    public void ObserveSource(LyricsDocument document) => TryObserveSource(document, static () => true);
+
+    private bool TryObserveSource(LyricsDocument document, Func<bool> isCurrent)
+    {
+        var admission = document.TranslationAdmission is { } prepared &&
+            LyricsLanguagePolicy.IsAdmissionCurrent(document, prepared.Target) ? prepared : null;
+        MediaWorkCancellation? active;
+        lock (_stateGate)
+        {
+            // The caller's source fence and admission update are atomic with a late native veto.
+            if (!isCurrent()) return false;
+            if (SameAdmission(_sourceAdmission, admission)) return true;
+            _sourceAdmission = admission;
+            _statusGeneration++; _state = AiLyricsTranslationState.Ready; _fromCache = false;
+            active = _activeRequest;
+        }
+        active?.Request();
+        LyricsRequestTrace.Record("ai-source-revision", new { document.TranslationAdmission?.Decision,
+            document.TranslationAdmission?.Reason, document.TranslationAdmission?.Generation });
+        TranslationStateChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    private static bool SameAdmission(LyricsWholeTrackAdmission? left, LyricsWholeTrackAdmission? right) =>
+        left is not null && right is not null && left.Decision == right.Decision && left.Target == right.Target &&
+        left.SourceIdentity == right.SourceIdentity && left.OriginalRevision == right.OriginalRevision &&
+        left.TranslationRevision == right.TranslationRevision && left.RuleVersion == right.RuleVersion &&
+        left.OriginalPrediction.ModelIdentity == right.OriginalPrediction.ModelIdentity &&
+        left.TranslationPrediction?.ModelIdentity == right.TranslationPrediction?.ModelIdentity && left.Generation == right.Generation;
+
+    private bool IsSourceCurrent(LyricsWholeTrackAdmission? admission)
+    {
+        lock (_stateGate) return SameAdmission(_sourceAdmission, admission);
+    }
+
+    public bool IsSourceCurrent(LyricsDocument document) => IsSourceCurrent(document.TranslationAdmission);
 
     public async Task MigrateCacheAsync(CancellationToken token)
     {
@@ -237,14 +287,25 @@ public sealed class AiLyricsService : IDisposable
     public async Task<AiLyricsPublication> TranslateForPublicationAsync(LyricsQuery query, LyricsDocument document,
         LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null)
     {
-        document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
+        if (token.IsCancellationRequested || !(progress?.IsCurrent ?? true)) return new(document, () => false);
+        // The shared adapter also checks the embedded model/engine identity when reusing a snapshot.
+        document = await _languageIdentifier.PrepareAsync(document, targetLanguage, token).ConfigureAwait(false);
         document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(document, targetLanguage);
         document = LyricsLanguagePolicy.MarkTranslationStates(document, targetLanguage);
-        LyricsRequestTrace.Record("ai-admission", new { policy = LyricsLanguagePolicy.Version, targetLanguage,
-            enabled = settings.Enabled && settings.AiTranslationEnabled, document = LyricsRequestTrace.Describe(document) });
+        var eligible = LyricsLanguagePolicy.EligibleIndices(document, targetLanguage);
         Func<bool> isCurrent = () => !token.IsCancellationRequested && (progress?.IsCurrent ?? true);
+        if (!TryObserveSource(document, isCurrent)) return new(document, () => false);
+        var admission = document.TranslationAdmission;
+        isCurrent = () => !token.IsCancellationRequested && (progress?.IsCurrent ?? true) && IsSourceCurrent(admission);
+        LyricsRequestTrace.Record("ai-admission", new { policy = LyricsLanguagePolicy.Version, targetLanguage,
+            enabled = settings.Enabled && settings.AiTranslationEnabled, admission?.Decision, admission?.Reason,
+            admission?.RuleVersion, admission?.Generation, document = LyricsRequestTrace.Describe(document) });
+        LyricsRequestTrace.Record("ai-plan", new { eligible = eligible.Length,
+            run = settings.Enabled && settings.AiTranslationEnabled && eligible.Length > 0,
+            reason = !settings.Enabled || !settings.AiTranslationEnabled ? "disabled" :
+                admission?.Reason ?? "whole-track-admission-missing" });
         if (!settings.Enabled || !settings.AiTranslationEnabled ||
-            LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0)
+            !LyricsLanguagePolicy.CanTranslate(document, targetLanguage) || eligible.Length == 0)
         {
             if (!isCurrent()) return new(document, () => false);
             // Retire the preceding presentation before any asynchronous configuration wait.
@@ -259,9 +320,19 @@ public sealed class AiLyricsService : IDisposable
         {
             await ConfigureRuntimeAsync(settings, isCurrent, token).ConfigureAwait(false);
             if (!isCurrent()) return new(document, () => false);
-            var translated = await _work.RunAsync(cancellation => TranslateCoreAsync(query, document, settings,
-                targetLanguage, cancellation, progress, fence => isCurrent = fence), document, token).ConfigureAwait(false);
-            return new(translated, isCurrent);
+            var request = new MediaWorkCancellation(token);
+            lock (_stateGate) _activeRequest = request;
+            try
+            {
+                var translated = await _work.RunAsync(cancellation => TranslatePreparedCoreAsync(query, document, settings,
+                    targetLanguage, cancellation, progress, fence => isCurrent = fence), document, request.Token).ConfigureAwait(false);
+                return new(translated, isCurrent);
+            }
+            finally
+            {
+                lock (_stateGate) if (ReferenceEquals(_activeRequest, request)) _activeRequest = null;
+                await request.CompleteWhenAsync(Task.CompletedTask).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         {
@@ -303,21 +374,39 @@ public sealed class AiLyricsService : IDisposable
         LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null,
         Action<Func<bool>>? capturePublicationFence = null)
     {
+        if (token.IsCancellationRequested || !(progress?.IsCurrent ?? true)) return document;
+        document = await _languageIdentifier.PrepareAsync(document, targetLanguage, token).ConfigureAwait(false);
+        if (!TryObserveSource(document, () => !token.IsCancellationRequested && (progress?.IsCurrent ?? true))) return document;
+        return await TranslatePreparedCoreAsync(query, document, settings, targetLanguage, token, progress,
+            capturePublicationFence).ConfigureAwait(false);
+    }
+
+    private async Task<LyricsDocument> TranslatePreparedCoreAsync(LyricsQuery query, LyricsDocument document,
+        LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress,
+        Action<Func<bool>>? capturePublicationFence)
+    {
         long statusGeneration;
-        lock (_stateGate) { statusGeneration = ++_statusGeneration; _presentationSettings = settings; }
+        lock (_stateGate)
+        {
+            if (!SameAdmission(_sourceAdmission, document.TranslationAdmission) ||
+                token.IsCancellationRequested || !(progress?.IsCurrent ?? true)) return document;
+            statusGeneration = ++_statusGeneration; _presentationSettings = settings;
+        }
         SetState(statusGeneration, AiLyricsTranslationState.Ready);
         if (!settings.Enabled || !settings.AiTranslationEnabled || document.Lines.Count == 0) return document;
-        // Native target translations keep priority on their own rows; eligible gaps can be filled.
-        document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
+        // The whole-track snapshot precedes cache access and every translation resource path.
         document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(document, targetLanguage);
         document = LyricsLanguagePolicy.MarkTranslationStates(document, targetLanguage);
-        if (LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0) return document;
+        if (!LyricsLanguagePolicy.CanTranslate(document, targetLanguage) ||
+            LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0) return document;
+        var admission = document.TranslationAdmission;
         // Validated cached data needs neither executable extraction nor a large model rehash.
         // Actual inference still verifies every model/runtime before execution.
         var cacheGeneration = _cache.Generation;
         var executionGeneration = _cache.ExecutionGeneration;
         bool IsCurrent() => !token.IsCancellationRequested && _cache.ExecutionGeneration == executionGeneration &&
-            Interlocked.Read(ref _statusGeneration) == statusGeneration && (progress?.IsCurrent ?? true);
+            Interlocked.Read(ref _statusGeneration) == statusGeneration && IsSourceCurrent(admission) &&
+            (progress?.IsCurrent ?? true);
         capturePublicationFence?.Invoke(IsCurrent);
         // Even a caller that does not display partial output gets the same request/cache fence.
         var acceptingProgress = 1;
@@ -325,6 +414,7 @@ public sealed class AiLyricsService : IDisposable
             () => true, (_, _) => Task.CompletedTask)).WithFence(cacheGeneration, () => Volatile.Read(ref acceptingProgress) != 0 && IsCurrent());
         if (!IsCurrent()) return document;
         var cached = await _backend.TryGetCachedResultAsync(settings.AiModelId, query, document, targetLanguage, token).ConfigureAwait(false);
+        LyricsRequestTrace.Record("ai-cache-result", new { hit = cached is not null });
         token.ThrowIfCancellationRequested();
         if (!IsCurrent()) return document;
         if (cached is not null)
@@ -343,11 +433,15 @@ public sealed class AiLyricsService : IDisposable
             if (package is null || !StringComparer.Ordinal.Equals(package.BackendId, _backend.Id))
                 return LyricsLanguagePolicy.FailPending(document, "model-or-runtime-not-ready");
             SetState(statusGeneration, AiLyricsTranslationState.Translating);
+            LyricsRequestTrace.Record("ai-inference-start", new { policy = LyricsLanguagePolicy.Version,
+                eligible = LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length });
             var result = await _backend.TranslateAsync(package with { CacheGeneration = cacheGeneration },
                 query, document, targetLanguage, token, guardedProgress).ConfigureAwait(false);
+            LyricsRequestTrace.Record("ai-inference-finished", new { outcome = result.Outcome.ToString(), result.FromCache });
             token.ThrowIfCancellationRequested();
             if (!IsCurrent())
             {
+                LyricsRequestTrace.Record("ai-result-discarded", new { reason = "retired-source-target-or-generation" });
                 SetState(statusGeneration, AiLyricsTranslationState.Ready);
                 return document;
             }
@@ -426,5 +520,6 @@ public sealed class AiLyricsService : IDisposable
         _work.Dispose();
         if (_ownsBackend) _backend.Dispose();
         if (_ownsModels) _models.Dispose();
+        if (_ownsLanguageIdentifier && _languageIdentifier is IDisposable disposable) disposable.Dispose();
     }
 }

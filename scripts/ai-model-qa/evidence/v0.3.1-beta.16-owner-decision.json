@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "v0.3.1-beta.16",
+  "recordedAt": "2026-10-06T11:57:47Z",
+  "timestampMeaning": "Owner authorization recorded during this task; this is not the exact user-message timestamp.",
+  "ownerRequest": "本附件是 Beta16 的最终需求，取代此前与其冲突的 AI 歌词方案。请先检查当前工作区及未提交改动，保留符合本规划的有效工作，再补齐剩余内容。严格执行最终四步翻译逻辑，将 lid.176.bin 随 App 内置；仅调整 AI 歌词相关部分，完成局部回退、冗余代码清理、开销与架构优化，以及缓存和原生译文保护。尽量少做测试，只执行确认修复所必需的聚焦验证和必要编译。全部要求完成并通过必要验收后，直接发布 Beta16，不替换已发布版本的资产；最后汇报修改、验证结果及发布链接，未验证的内容如实说明。",
+  "authorizationBasis": "Direct repository-owner request in the current conversation and its final Beta16 handoff plan. Publication is authorized after completing the scoped implementation, necessary acceptance and exact package verification; no further approval ceremony is requested.",
+  "permissions": {
+    "scopedAiLyricsDevelopment": true,
+    "preserveEffectiveWorktreeChanges": true,
+    "bundleOfficialLid176Bin": true,
+    "necessaryFocusedChecksAndCompilation": true,
+    "beta16DeliveryAndPublicationAfterAcceptance": true,
+    "repeatBroadRegressionOrTwentySongSurvey": false,
+    "resumePausedCloudImplementation": false,
+    "modifyPublishedReleaseAssets": false
+  },
+  "modelQualification": {
+    "existingHyMt2ModelsAndNativeBytesReused": true,
+    "promptSamplerAndProtocolUnchanged": true,
+    "fullHyMt2SemanticApproval": false,
+    "historicalCaptures": "Original source/runtime/budgets/failures are preserved. No historical capture or model qualification is relabeled as Beta16 validation.",
+    "lid176Bin": "Bundled CPU language identification requires compatibility, whole-sample correctness and final package identity checks. No detector benchmark or guaranteed recognition rate is authorized or claimed."
+  },
+  "sourceReview": "Current production changes independently reviewed by the implementing Codex agent and release-audit agent. Thirteen controlled cases plus one actual pinned-native/bin compatibility session passed. Final production source commit, packaged embedded/default-path smoke and package identity inspection are still required before publication; no build or semantic model approval is inferred.",
+  "releasePrerequisite": "Complete the final four-step policy, late-native/cache/generation protection, necessary focused checks and installer/portable/MSIX compilation and asset identity verification. Preserve every prior published asset.",
+  "reviewOnly": "This records existing human authorization, not a completed build, test result, model semantic verdict or approval of unfinished code."
+}

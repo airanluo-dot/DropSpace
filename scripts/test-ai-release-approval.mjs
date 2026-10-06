@@ -20,6 +20,20 @@ export const modelDeliverySourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj',
   'src/DropSpace.Infrastructure/Lyrics/Manifests/models-hy-mt2-q8-v1.json',
 ]);
+export const languageIdentificationSourcePaths = Object.freeze([
+  'src/DropSpace.Core/Lyrics/LyricsWholeTrackAdmission.cs',
+  'src/DropSpace.Infrastructure/Lyrics/FastTextLanguageIdentifier.cs',
+  'src/DropSpace.Infrastructure/Lyrics/Manifests/fasttext-lid176-bin-v1.json',
+  'Directory.Packages.props',
+  'src/DropSpace.Infrastructure/packages.lock.json',
+  'src/DropSpace.App/packages.lock.json',
+  'scripts/Stage-LyricsLanguageModel.ps1',
+  'scripts/Inspect-LyricsLanguagePayload.ps1',
+  'src/DropSpace.App/Services/Diagnostics/LyricsLanguageSmoke.cs',
+  'docs/licenses/fasttext-engine-MIT.txt',
+  'docs/licenses/fasttext-panlingo-MIT.txt',
+  'docs/licenses/fasttext-lid176-CC-BY-SA-3.0.txt',
+]);
 // This list is code-owned, never selected by the approval record. Removing a
 // prompt/parser/inference input from a manifest cannot weaken its binding.
 export const sourcePaths = Object.freeze([
@@ -115,6 +129,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs',
   ...modelDeliverySourcePaths,
+  ...languageIdentificationSourcePaths,
   'src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs',
   'src/DropSpace.Infrastructure/Settings/SettingsIoPolicy.cs',
   'src/DropSpace.App/Services/Media/MediaExperienceService.cs',
@@ -268,14 +283,14 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.15';
+export const experimentalBetaVersion = 'v0.3.1-beta.16';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
 const readText = (root, name) => fs.readFileSync(path.join(root, name), 'utf8').replace(/\r\n/g, '\n');
 const readJson = (root, name) => JSON.parse(readText(root, name));
-// This checks the frozen fixture's admission, not model quality. Keep the
-// Core rule's bounded Han ranges and its explicit/weak evidence distinction.
+// Preserve the Beta15 v12 host computation as historical evidence only.
+// Beta16 uses whole-track fastText admission; this helper is not production policy.
 export function fixtureAdmissionDecision(text, target, { detectedLanguage, confidence }) {
   const confident = detectedLanguage !== null && confidence >= 0.9;
   if (confident && (detectedLanguage === target || detectedLanguage.startsWith('zh-') && target.startsWith('zh-'))) return 'SameLanguage';
@@ -304,17 +319,36 @@ export function readSourceFingerprint(root) {
     const relative = include.replaceAll('\\', '/');
     assert.ok(!path.posix.isAbsolute(relative) && !relative.split('/').includes('..'), 'Embedded resource path must stay within Infrastructure');
     const name = path.posix.join(path.posix.dirname(projectPath), relative);
-    assert.ok(modelDeliverySourcePaths.includes(name), `Embedded JSON needs code-owned fingerprint coverage: ${name}`);
+    assert.ok([...modelDeliverySourcePaths, ...languageIdentificationSourcePaths].includes(name), `Embedded JSON needs code-owned fingerprint coverage: ${name}`);
     const logicalName = /\bLogicalName\s*=\s*["']([^"']+)["']/.exec(attributes)?.[1]
       ?? /<LogicalName>([^<]+)<\/LogicalName>/.exec(body)?.[1]
       ?? `${namespace}.${relative.replaceAll('/', '.')}`;
     return [{ path: name, logicalName }];
   });
-  const manifests = modelDeliverySourcePaths.filter(name => name.endsWith('.json'));
+  const manifests = [...modelDeliverySourcePaths, ...languageIdentificationSourcePaths].filter(name => name.includes('/Manifests/') && name.endsWith('.json'));
   assert.deepEqual(embeddedJson.map(resource => resource.path).sort(), [...manifests].sort(), 'Reviewed model delivery JSON must actually be embedded exactly once');
   const delivery = readText(root, 'src/DropSpace.Infrastructure/Lyrics/AiModelDeliveryManifest.cs');
   const resourceNames = [...delivery.matchAll(/GetManifestResourceStream\(\s*"([^"]+)"\)/g)].map(match => match[1]);
-  assert.deepEqual(resourceNames.sort(), embeddedJson.map(resource => resource.logicalName).sort(), 'Model delivery resource binding does not match the production reader');
+  assert.deepEqual(resourceNames.sort(), embeddedJson.filter(resource => modelDeliverySourcePaths.includes(resource.path)).map(resource => resource.logicalName).sort(), 'Model delivery resource binding does not match the production reader');
+  const languageReader = readText(root, 'src/DropSpace.Infrastructure/Lyrics/FastTextLanguageIdentifier.cs');
+  const languageManifestName = singleMatch(languageReader, /private const string ManifestResource = "([^"]+)";/g, 'Language model manifest resource');
+  assert.deepEqual(embeddedJson.filter(resource => languageIdentificationSourcePaths.includes(resource.path)).map(resource => resource.logicalName), [languageManifestName], 'Language manifest binding does not match the production reader');
+  const languageManifestPath = languageIdentificationSourcePaths.find(name => name.endsWith('.json'));
+  const languageManifest = readJson(root, languageManifestPath);
+  assert.equal(languageManifest.schemaVersion, 1, 'Unsupported bundled language manifest');
+  assert.equal(languageManifest.modelFile, 'lid.176.bin', 'Whole-track language identification must use the bin model');
+  assert.equal(languageManifest.source, 'https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin', 'Language model must be staged from the official source');
+  assert.equal(languageManifest.nativeRid, 'win-x64', 'Bundled native language engine must match the App architecture');
+  assert.equal(languageManifest.nativePackage, 'Panlingo.LanguageIdentification.FastText.Native', 'Use only the selected native package, without unused default ftz');
+  for (const field of ['sha256', 'nativeSha256']) assert.match(languageManifest[field] ?? '', hashPattern, `Missing language identity ${field}`);
+  for (const field of ['bytes', 'nativeBytes']) assert.ok(Number.isSafeInteger(languageManifest[field]) && languageManifest[field] > 0, `Invalid language length ${field}`);
+  const appProject = readText(root, 'src/DropSpace.App/DropSpace.App.csproj').replace(/<!--[\s\S]*?-->/g, '');
+  const languageResources = [...appProject.matchAll(/<EmbeddedResource\b(?=[^>]*\bLogicalName="DropSpace\.LyricsLanguage\.lid\.176\.bin")([^>]+)\/>/g)];
+  assert.equal(languageResources.length, 1, 'App must embed exactly one bundled lid.176.bin');
+  assert.match(languageResources[0][1], /Include="\.\.\\\.\.\\artifacts\\lyrics-language\\lid\.176\.bin"/, 'App bin resource must use the verified staging path');
+  assert.doesNotMatch(project, /PackageReference\b[^>]*Include="Panlingo\.LanguageIdentification\.FastText"/, 'The full wrapper would package unused default ftz');
+  const packages = readText(root, 'Directory.Packages.props');
+  assert.equal(singleMatch(packages, /<PackageVersion\b(?=[^>]*\bInclude="Panlingo\.LanguageIdentification\.FastText\.Native")(?=[^>]*\bVersion="([^"]+)")[^>]*\/>/g, 'Native language package version'), languageManifest.nativePackageVersion, 'Language native version differs from the manifest');
   // A BOM or CRLF changes the checked embedded resource identity. Normalize
   // source text only; hash manifest resources exactly as they are packaged.
   const files = sourcePaths.map(name => ({ path: name, sha256: sha256(manifests.includes(name)
@@ -405,12 +439,12 @@ export function readScope(root) {
   const fixtureBytes = fs.readFileSync(path.join(root, fixturePath));
   const fixture = JSON.parse(fixtureBytes);
   assert.equal(admission.schemaVersion, 1, 'Unknown audited fixture admission schema');
-  assert.equal(admission.recordKind, 'host-fixture-admission-v12', 'Expected a current host admission computation');
+  assert.equal(admission.recordKind, 'host-fixture-admission-v12', 'Expected the preserved historical v12 host computation');
   assert.equal(admission.modelInferenceExecuted, false, 'Host admission cannot claim model inference');
   assert.equal(admission.semanticApproved, false, 'Host admission cannot claim semantic approval');
   assert.equal(admission.fixtureSha256, sha256(fixtureBytes), 'Audited admission fixture is stale');
-  assert.equal(admission.policyVersion, singleMatch(readText(root, 'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs'), /public const string Version = "([^"]+)";/g, 'Admission policy version'), 'Admission audit must be renewed for policy changes');
-  assert.equal(admission.policySourceSha256, sha256(readText(root, 'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs')), 'Fixture admission policy source hash is stale');
+  assert.equal(admission.policyVersion, 'contextual-line-admission-v12', 'Historical fixture admission policy version changed');
+  assert.equal(admission.policySourceSha256, 'd0537cdf00831d18eac2fb86352443ad4e069802a91180ef7135c7d3ba6ad2df', 'Historical fixture admission policy source hash is stale');
   assert.deepEqual(Object.keys(admission.targets).sort(), ['en', 'zh-Hans']);
   assert.deepEqual(admission.semanticLanguages, [
     { firstLineId: 0, lastLineId: 11, language: 'en' }, { firstLineId: 12, lastLineId: 23, language: 'ja' },
@@ -428,7 +462,7 @@ export function readScope(root) {
       // The fixture has no credits. Unknown language abstains for every target;
       // confident foreign evidence remains eligible.
       const decision = fixtureAdmissionDecision(row.sourceText, target, row);
-      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the current three-state policy');
+      assert.equal(row.eligible, decision === 'Translate', 'Historical fixture admission must match the v12 three-state policy');
       assert.equal(row.reason, decision === 'SameLanguage' ? 'same-target-language' : decision === 'Abstain' ? 'no-eligible-segments' : row.confidence >= 0.9 ? 'identified-foreign-language' : 'unknown-language-retained');
       assert.deepEqual(row.segments, row.eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : []);
     }
@@ -457,7 +491,7 @@ export function readScope(root) {
     executionLimits,
     modelProfiles,
     sources,
-    fixtureAdmission: { path: admissionPath, sha256: sha256(readText(root, admissionPath)), ...admission },
+    fixtureAdmission: { path: admissionPath, sha256: sha256(readText(root, admissionPath)), scopeBoundary: 'historical-v12-host-computation-only; not Beta16 policy or language-model qualification', ...admission },
     fixture: { path: fixturePath, sha256: sha256(fs.readFileSync(path.join(root, fixturePath))) },
   };
 }

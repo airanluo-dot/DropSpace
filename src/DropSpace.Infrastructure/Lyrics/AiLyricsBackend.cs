@@ -36,6 +36,8 @@ public sealed class LlamaLyricsPackageResolver(AiModelPackageService models,
     public async Task<AiLyricsResolvedPackage?> ResolveAsync(string selectionId, LyricsQuery query,
         LyricsDocument source, string targetLanguage, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
+        if (!LyricsLanguagePolicy.CanTranslate(source, targetLanguage)) return null;
         var descriptor = AiLyricsModelCatalog.Find(selectionId);
         if (descriptor is null) return null;
         var model = await models.GetInstalledPathAsync(descriptor.Id, token).ConfigureAwait(false);

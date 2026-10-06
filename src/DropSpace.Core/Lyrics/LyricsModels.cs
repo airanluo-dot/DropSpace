@@ -53,8 +53,10 @@ public sealed record LyricsMatchInfo(
 }
 public enum LyricsLineTranslationState { Pending, Translated, Skipped, Failed }
 public sealed record LyricsWord(string Text, TimeSpan Start, TimeSpan End);
+public sealed record LyricsProviderTranslation(string Text, string? Language, bool? LanguageIsExplicit);
 public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words)
 {
+    public LyricsProviderTranslation? OriginalProviderTranslation { get; init; }
     public string? SourceLanguage { get; init; }
     public LyricsTranslationOrigin TranslationOrigin { get; init; }
     public string? TranslationLanguage { get; init; }
@@ -68,6 +70,9 @@ public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, strin
 }
 public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProviderKind Provider, LyricsMatchInfo? Match = null)
 {
+    // Session-only. Persistent source caches must re-enter the current model/rules.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public LyricsWholeTrackAdmission? TranslationAdmission { get; init; }
     // Provider parser revision, persisted so previously dropped translations can be refreshed once.
     public int ProviderDataRevision { get; init; }
     public LyricsBodyQuality BodyQuality { get; init; } = Lines.Count == 0 ? LyricsBodyQuality.NoLyrics : LyricsBodyQuality.Usable;

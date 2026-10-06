@@ -1,5 +1,15 @@
 # DropSpace UX Specification
 
+## v0.3.1 Beta16 native-translation priority
+
+AI lyrics retain the existing opt-in switch, model controls and progressive display.
+The app language determines the translation target. Originals already in that
+language start no translation-model load, download prompt, queue or inference.
+Any valid target-language native translation suppresses AI for the entire track;
+partial native coverage displays its original gaps. A late native translation
+restores provider content and gaps and removes visible AI from that candidate.
+The bundled offline language model adds no setup screen or first-use download.
+
 ## Beta 28 Music hierarchy and generic lyrics
 
 Music presents Now Playing and the bounded lyric viewport as separate Windows 11 card surfaces.

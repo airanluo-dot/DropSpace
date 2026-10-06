@@ -5,7 +5,8 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? timeProvider = null) : IProgressiveLyricsProvider, ILyricsResponseCache
+public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? timeProvider = null,
+    ILyricsLanguageIdentifier? languageIdentifier = null) : IProgressiveLyricsProvider, ILyricsResponseCache
 {
     private readonly NetEaseResponseCache _responses = new(http, timeProvider);
     private const int MaximumLyricCandidates = 3;
@@ -43,9 +44,15 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
                 LyricsRequestTrace.Record("candidate-request", new { provider = "NetEase", candidate.Id, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration, candidate.Score });
                 var document = await requests.TryAsync(() => ReadLyricsAsync(candidate, query, cancellationToken));
                 if (document.Lines.Count == 0) continue;
+                if (languageIdentifier is not null && target.Length > 0)
+                    document = await languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
                 reportCandidate(document);
-                if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) || LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;
-                if (original.Lines.Count == 0) original = document;
+                if (!query.CollectSelectionCandidates && (target.Length == 0 ||
+                    !LyricsTranslationPolicy.NeedsProviderTranslationLookup(document, target))) return document;
+                original = LyricsCandidateRules.Best([
+                    LyricsCandidateRules.Describe("current", original, target),
+                    LyricsCandidateRules.Describe("candidate", document, target),
+                ], query, Kind, null);
             }
         }
         requests.ThrowIfFailed();

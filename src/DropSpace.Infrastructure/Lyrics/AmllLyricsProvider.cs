@@ -5,7 +5,7 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider, ILyricsResponseCache
+public sealed class AmllLyricsProvider(LyricsHttpClient http, ILyricsLanguageIdentifier? languageIdentifier = null) : IProgressiveLyricsProvider, ILyricsResponseCache
 {
     private readonly object _cacheGate = new();
     private readonly Dictionary<string, CachedLyrics> _cache = new(StringComparer.Ordinal);
@@ -84,6 +84,8 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyri
             });
             if (document.Lines.Count == 0) continue;
             LyricsRequestTrace.Record("parse", new { provider = "Amll", best.Id, document = LyricsRequestTrace.Describe(document) });
+            if (languageIdentifier is not null && target.Length > 0)
+                document = await languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
             reportCandidate(document);
             if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
                 LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;

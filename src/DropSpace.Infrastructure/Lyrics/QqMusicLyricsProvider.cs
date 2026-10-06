@@ -8,7 +8,7 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
+public sealed class QqMusicLyricsProvider(LyricsHttpClient http, ILyricsLanguageIdentifier? languageIdentifier = null) : IProgressiveLyricsProvider
 {
     public const int DataRevision = 3;
     private static readonly Regex VocalCredit = new(
@@ -105,10 +105,15 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
                 if (vocalCredits.Length > 0)
                     document = document with { Match = document.Match! with { ArtistAliases = [completeArtist] } };
                 LyricsRequestTrace.Record("parse", new { provider = "QqMusic", id = songId, document = LyricsRequestTrace.Describe(document) });
+                if (languageIdentifier is not null && target.Length > 0)
+                    document = await languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
                 reportCandidate(document);
-                if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
-                    LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;
-                if (original.Lines.Count == 0) original = document;
+                if (!query.CollectSelectionCandidates && (target.Length == 0 ||
+                    !LyricsTranslationPolicy.NeedsProviderTranslationLookup(document, target))) return document;
+                original = LyricsCandidateRules.Best([
+                    LyricsCandidateRules.Describe("current", original, target),
+                    LyricsCandidateRules.Describe("candidate", document, target),
+                ], query, Kind, null);
             }
         }
         requests.ThrowIfFailed();

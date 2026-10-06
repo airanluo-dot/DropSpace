@@ -27,6 +27,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private readonly SystemVisualPreferenceService _visualPreferences;
     private readonly HttpClient _http;
     private readonly LyricsService _lyrics;
+    private readonly ILyricsLanguageIdentifier _languageIdentifier;
     private readonly LyricsCache _lyricsCache;
     private readonly object _lyricsDiagnosticGate = new();
     private long _lyricsDiagnosticWindow = Stopwatch.GetTimestamp();
@@ -61,16 +62,19 @@ public sealed class MediaExperienceService : IAsyncDisposable
     public MediaExperienceService(MainViewModel main, MediaViewModel view, WindowsMediaSessionService media,
         WindowsProcessLoopbackService audio, MediaProcessResolver processes, MediaArtworkService artwork,
         IslandExperienceCoordinator experience, DispatcherQueue dispatcher, ILogger<MediaExperienceService> logger,
-        SystemVisualPreferenceService visualPreferences, AiLyricsService aiLyrics, LyricsCache lyricsCache, QqMusicLoginService qqMusicLogin)
+        SystemVisualPreferenceService visualPreferences, AiLyricsService aiLyrics, LyricsCache lyricsCache, QqMusicLoginService qqMusicLogin,
+        ILyricsLanguageIdentifier languageIdentifier)
     {
         _main = main; _view = view; _media = media; _audio = audio; _processes = processes; _artwork = artwork;
         _experience = experience; _dispatcher = dispatcher; _logger = logger;
         _visualPreferences = visualPreferences; AiLyrics = aiLyrics; _lyricsCache = lyricsCache;
+        _languageIdentifier = languageIdentifier;
         QqMusicLogin = qqMusicLogin;
         QqMusicLogin.Session.CredentialsChanged += OnQqCredentialsChanged;
         AiLyrics.ModelDownloaded += OnModelDownloaded;
         _http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = Timeout.InfiniteTimeSpan };
-        _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http, RecordLyricsDiagnostic, qqMusicLogin.Session), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory), lyricsCache, RecordLyricsDiagnostic);
+        _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http, RecordLyricsDiagnostic, qqMusicLogin.Session),
+            () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory, languageIdentifier), lyricsCache, RecordLyricsDiagnostic, languageIdentifier);
         _frames = dispatcher.CreateTimer(); _frames.Interval = TimeSpan.FromMilliseconds(33); _frames.IsRepeating = true;
         _frames.Tick += OnFrame;
         _audioRecovery = new Timer(_ =>
@@ -485,6 +489,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
             provider = settings.Lyrics.Provider.ToString(), backup = settings.Lyrics.BackupProvider?.ToString(),
             settings.Lyrics.SearchRemainingProviders, settings.Lyrics.SecondaryLyrics, settings.Lyrics.AiTranslationEnabled });
         LyricsQueryResult? sourceResult = null;
+        var sourceGate = new object();
+        LyricsDocument? observedSource = null;
         var previewClosed = 0;
         var started = Stopwatch.GetTimestamp();
         try
@@ -498,24 +504,55 @@ public sealed class MediaExperienceService : IAsyncDisposable
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
                     session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, settings.Lyrics with { SelectionMode = LyricsSelectionMode.Rules }, token, refresh,
-                    original => _dispatcher.TryEnqueue(() =>
+                    original =>
                     {
-                        // Validate freshness after dispatch; a fast skip may retire the callback in the queue.
-                        if (Volatile.Read(ref previewClosed) != 0 || !IsLyricsRequestCurrent(session, settings, generation, token)) return;
-                        var cleaned = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
-                            LyricsLanguagePolicy.IdentifyProviderTranslations(original), targetLanguage);
-                        _document = cleaned;
-                        _sourceDocument = cleaned;
-                        _view.SetLyricsDocument(cleaned);
-                        trace.Write("ui-preview", LyricsRequestTrace.Describe(cleaned));
-                        _view.LyricsStatus = LyricsQueryStatus.Found;
-                        RenderFrame();
-                    })).ConfigureAwait(false)
+                        if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
+                        original = InPlaybackGeneration(original, generation);
+                        LyricsDocument cleaned;
+                        lock (sourceGate)
+                        {
+                            var latestSource = Volatile.Read(ref observedSource);
+                            // A validated native candidate for this recording can revoke AI
+                            // even when it arrives from a different provider after the bounded stage.
+                            if (Volatile.Read(ref previewClosed) != 0 &&
+                                !IsLateNativeVeto(latestSource, original)) return;
+                            cleaned = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(original, targetLanguage);
+                            Volatile.Write(ref observedSource, cleaned);
+                            AiLyrics.ObserveSource(cleaned);
+                        }
+                        _dispatcher.TryEnqueue(() =>
+                        {
+                            // A queued older candidate must not replace the final or late native source.
+                            if (!ReferenceEquals(Volatile.Read(ref observedSource), cleaned) ||
+                                !IsLyricsRequestCurrent(session, settings, generation, token)) return;
+                            _document = cleaned;
+                            _sourceDocument = cleaned;
+                            _view.SetLyricsDocument(cleaned);
+                            trace.Write("ui-preview", LyricsRequestTrace.Describe(cleaned));
+                            _view.LyricsStatus = LyricsQueryStatus.Found;
+                            RenderFrame();
+                        });
+                    }).ConfigureAwait(false)
                 : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
             Interlocked.Exchange(ref previewClosed, 1);
+            // Provider previews only display source lyrics. The awaited, bounded source
+            // stage must close before AI admission can resolve a model or invoke a worker.
+            trace.Write("source-stage-finished", new { result.TranslationLookupIncomplete });
             // The initial view and every failure/retired-fence fallback share this cleaned source.
-            result = result with { Document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
-                LyricsLanguagePolicy.IdentifyProviderTranslations(result.Document), targetLanguage) };
+            var prepared = LyricsLanguagePolicy.IsAdmissionCurrent(result.Document, targetLanguage)
+                ? result.Document : await _languageIdentifier.PrepareAsync(result.Document, targetLanguage, token).ConfigureAwait(false);
+            if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
+            lock (sourceGate)
+            {
+                var finalSource = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
+                    InPlaybackGeneration(prepared, generation), targetLanguage);
+                var latestSource = Volatile.Read(ref observedSource);
+                // A native veto observed during asynchronous preparation is never downgraded.
+                if (latestSource is not null && IsLateNativeVeto(finalSource, latestSource)) finalSource = latestSource;
+                result = result with { Document = finalSource };
+                Volatile.Write(ref observedSource, finalSource);
+                AiLyrics.ObserveSource(finalSource);
+            }
             sourceResult = result;
             trace.Write("source-result", new { status = result.Status.ToString(), result.TranslationLookupIncomplete, document = LyricsRequestTrace.Describe(result.Document) });
             RecordLyricsDiagnostic(new(result.Document.Lines.Count > 0 ? result.Document.Provider :
@@ -532,7 +569,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 TranslationLookupIncomplete: result.TranslationLookupIncomplete));
             await _dispatcher.EnqueueAsync(() =>
             {
-                if (IsLyricsRequestCurrent(session, settings, generation, token))
+                if (IsLyricsRequestCurrent(session, settings, generation, token) &&
+                    ReferenceEquals(Volatile.Read(ref observedSource), result.Document))
                 {
                     _document = result.Document;
                     _sourceDocument = result.Document;
@@ -552,13 +590,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 var partialApplied = false;
                 var progress = new LyricsTranslationProgressContext(
                     () => TimeSpan.FromTicks(Interlocked.Read(ref _lyricPositionTicks)),
-                    () => IsLyricsRequestCurrent(session, settings, generation, token),
+                    () => IsLyricsRequestCurrent(session, settings, generation, token) && AiLyrics.IsSourceCurrent(result.Document),
                     (update, cancellation) => _dispatcher.EnqueueAsync(() =>
                     {
                         // This guard executes after dispatch. A valid callback can be stale
                         // by the time UI work runs (clear, settings, model or song changed).
                         if (update.IsCurrent && !cancellation.IsCancellationRequested &&
-                            IsLyricsRequestCurrent(session, settings, generation, token))
+                            IsLyricsRequestCurrent(session, settings, generation, token) && AiLyrics.IsSourceCurrent(result.Document))
                         {
                             partialApplied = true;
                             _document = LyricsTranslationOutput.Reconcile(_sourceDocument, result.Document,
@@ -629,6 +667,16 @@ public sealed class MediaExperienceService : IAsyncDisposable
         CancellationToken token) => !_disposed && !token.IsCancellationRequested &&
         generation == Interlocked.Read(ref _generation) && session.IsSameTrack(Volatile.Read(ref _latest)) &&
         !LyricsReloadPolicy.RequiresReload(settings, Volatile.Read(ref _settings));
+
+    private static LyricsDocument InPlaybackGeneration(LyricsDocument document, long generation) =>
+        document.TranslationAdmission is { } admission
+            ? document with { TranslationAdmission = admission with { Generation = generation } } : document;
+
+    internal static bool IsLateNativeVeto(LyricsDocument? current, LyricsDocument candidate) =>
+        current?.TranslationAdmission is { } before && candidate.TranslationAdmission is { } after &&
+        after.Decision == LyricsWholeTrackDecision.ProviderTarget && before.Target == after.Target &&
+        current.Match?.TrackIdentity == candidate.Match?.TrackIdentity &&
+        before.Generation == after.Generation && LyricsLanguagePolicy.IsAdmissionCurrent(candidate, after.Target);
 
     internal static bool ShouldRetryLyricsWithImprovedEvidence(
         MediaSessionSnapshot? previous,

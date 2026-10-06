@@ -22,7 +22,7 @@ public static class LyricsTranslationPrompt
         var targetName = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage) switch
         {
             "en" => "English",
-            "zh-Hans" => "Simplified Chinese",
+            "zh" or "zh-Hans" => "Simplified Chinese",
             _ => throw new ArgumentException("Unsupported target language.", nameof(targetLanguage)),
         };
         if (document.Lines.Count > 500 || lineIndices.Count == 0 || lineIndices.Distinct().Count() != lineIndices.Count ||
@@ -100,7 +100,9 @@ public static class LyricsTranslationPrompt
         var material = JsonSerializer.Serialize(new
         {
             version = Version,
-            acceptance = "useful-local-ai-v1",
+            acceptance = "whole-track-beta16-v1",
+            admissionRule = LyricsLanguagePolicy.Version,
+            sourceRevision = LyricsTranslationOutput.SourceVersion(document),
             target = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage),
             model = modelSha256.ToUpperInvariant(),
             title = query.Title,
@@ -118,6 +120,7 @@ public static class LyricsTranslationPrompt
                 line.Secondary,
                 line.TranslationLanguage,
                 line.TranslationOrigin,
+                line.TranslationLanguageIsExplicit,
             }),
         });
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(material)));

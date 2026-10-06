@@ -1,5 +1,16 @@
 # DropSpace Feature Catalogue
 
+## v0.3.1 Beta16 AI lyrics
+
+- Bundled `lid.176.bin` identifies the whole original once, offline on CPU; no
+  separate component, first-use download, per-line language detection or mixed-language splitting.
+- Originals already in the app language skip AI. Any valid target-language native
+  translation, including partial coverage and foreign names/ad-libs, protects the
+  entire track and leaves missing translations blank.
+- Only Unknown originals without valid target translations use existing optional
+  Hy-MT2 progressive translation. Cache, resource resolution and all asynchronous
+  results retain current track/candidate/target/revision/generation protection.
+
 ## Beta 28 media interoperability and Music hierarchy
 
 - Player-agnostic lyric identity uses track artist and album artist as alternative credits,

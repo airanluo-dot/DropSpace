@@ -1,5 +1,16 @@
 # DropSpace Product Specification
 
+## v0.3.1 Beta16 AI-lyrics rule
+
+Translate toward the app language: English uses `en`, Chinese uses `zh`, including
+Simplified and Traditional Chinese. Identify the complete original lyric body once
+with bundled offline fastText `lid.176.bin`. A reliable target-language original
+skips AI and can skip additional translation lookup. Other originals are Unknown.
+After normal bounded source queries, any valid native target translation disables
+AI for the whole track, including uncovered rows. Unknown without a valid target
+translation may use the existing opt-in Hy-MT2 flow. Late native translations
+replace AI and preserve native gaps. Other product behavior retains Beta15.
+
 ## Beta 28 player-agnostic media and Music layout amendment
 
 Lyric lookup consumes the Windows media contract rather than player identity. Track artist and

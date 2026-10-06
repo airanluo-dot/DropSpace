@@ -178,6 +178,8 @@ public sealed class LyricsCache
                 if (CurrentQuota() == 0 || generation != Generation || isCurrent?.Invoke() == false) return;
                 Trim(CurrentQuota() - bytes.LongLength, final, temporary);
                 ReparseSafePathPolicy.RevalidatePreparedDestination(_root, final);
+                token.ThrowIfCancellationRequested();
+                if (CurrentQuota() == 0 || generation != Generation || isCurrent?.Invoke() == false) return;
                 File.Move(temporary, final, true);
                 temporary = null;
             }

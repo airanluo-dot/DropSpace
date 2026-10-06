@@ -63,6 +63,10 @@ public partial class App : Application
         try
         {
             var commandLine = Environment.GetCommandLineArgs();
+            if (Services.Diagnostics.LyricsLanguageSmoke.IsRequested(commandLine))
+            {
+                Environment.Exit(await Services.Diagnostics.LyricsLanguageSmoke.RunAsync(commandLine)); return;
+            }
             if (Services.Diagnostics.MusicVisualSmoke.IsRequested(commandLine))
             {
                 UnhandledException -= OnUnhandledException;
@@ -641,6 +645,7 @@ public partial class App : Application
         services.AddSingleton<WidgetViewModel>();
         services.AddSingleton<ClipboardIslandViewModel>();
         services.AddSingleton<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>();
+        services.AddSingleton<DropSpace.Core.Lyrics.ILyricsLanguageIdentifier, FastTextLanguageIdentifier>();
         services.AddSingleton<DropSpace.Core.Downloads.IDownloadTaskRepository>(provider => new DropSpace.Infrastructure.Downloads.DownloadTaskRepository(
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "Downloads", "Tasks"),
             provider.GetRequiredService<ILogger<DropSpace.Infrastructure.Downloads.DownloadTaskRepository>>()));

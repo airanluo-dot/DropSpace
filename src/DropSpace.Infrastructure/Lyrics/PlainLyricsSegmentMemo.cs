@@ -1,7 +1,5 @@
 using System.Text;
-using System.Text.Json;
 using DropSpace.Core.Lyrics;
-using DropSpace.Core.Models;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
@@ -26,12 +24,11 @@ internal sealed class PlainLyricsSegmentMemo
     internal void Remember(Key key, string source, string text)
     {
         if (_accepted.ContainsKey(key) || _accepted.Count >= MaximumEntries || !PlainHyLyricsProtocol.IsCompleteLine(text)) return;
-        // A whole display row may contain several physical segments. Each segment must independently
-        // pass the same output admission, including protocol-leak and copied-source rejection.
-        var projected = new LyricsDocument([new(TimeSpan.Zero, TimeSpan.Zero, source, null, [])], LyricsProviderKind.LocalLrc);
-        var json = JsonSerializer.Serialize(new[] { new { id = 0, text } });
-        if (!LyricsTranslationOutput.TryApply(json, projected, [0], key.Target, out var accepted) ||
-            !LyricsTranslationOutput.HasUsefulLocalTranslation(accepted, key.Target)) return;
+        // Whole-track admission has already granted this request. Memo validation
+        // checks only output structure/copying; it never manufactures a row-level
+        // language decision. Every reuse is mapped against the current occurrence.
+        if (!LyricsTranslationOutput.IsValidTranslationText(text) ||
+            string.Equals(source.Trim(), text.Trim(), StringComparison.Ordinal)) return;
         var bytes = key.PromptUtf8.Length * sizeof(char) + text.Length * sizeof(char) +
             (key.Target.Length + key.InferenceIdentity.Length + key.AdmissionVersion.Length) * sizeof(char);
         if (bytes > MaximumBytes - _bytes) return;

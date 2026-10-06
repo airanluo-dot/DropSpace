@@ -31,7 +31,7 @@ assert inner['sourceCommit'] == report['engineSourceCommit'] == '7fe450e19305b82
 assert inner['workerSourceSha256'] == report['workerSourceSha256']
 assert inner['files'] == report['files']
 archive = dict(report['archive'])
-assert tag in ('v0.3.1-beta.11', 'v0.3.1-beta.12', 'v0.3.1-beta.13', 'v0.3.1-beta.14', 'v0.3.1-beta.15'), 'Exact approved component reuse releases only'
+assert tag in ('v0.3.1-beta.11', 'v0.3.1-beta.12', 'v0.3.1-beta.13', 'v0.3.1-beta.14', 'v0.3.1-beta.15', 'v0.3.1-beta.16'), 'Exact approved component reuse releases only'
 assert archive['name'] == 'DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip'
 # Corrective Betas reuse the byte-identical Beta11 component. Its manifest/cache identity stays
 # stable, while its new asset name and descriptor bind to the actual App build.
