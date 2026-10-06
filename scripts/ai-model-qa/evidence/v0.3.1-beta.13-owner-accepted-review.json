@@ -4,7 +4,7 @@
   "verdict": "owner-accepted-experimental-beta",
   "semanticApproved": false,
   "reviewedBy": "Local Codex, repository-owner-authorized Beta13 source review",
-  "reviewedAt": "2026-10-06T05:06:33Z",
+  "reviewedAt": "2026-10-06T05:09:07Z",
   "expiresAt": "2026-10-13T05:06:33Z",
   "summary": "Owner-authorized Beta13 host language admission, island state/settings, resilient downloads and verified model parts, lyrics matching and independent Downloads page. Existing model/native bytes reused. Focused validation only; no general semantic approval.",
   "scope": {
@@ -1026,7 +1026,7 @@
         },
         {
           "path": "scripts/ai-runtime-publication.mjs",
-          "sha256": "10272156819ea07152461a964bfee2d77aeadba97d5e0f0ac3dcb658b7657d98"
+          "sha256": "bb170cd4b51f1fdd95078bd837731ca30e946915717d68e69b9887655447c7af"
         },
         {
           "path": "tools/plain-lyrics-helper/CMakeLists.txt",
@@ -1041,7 +1041,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "f96964a973ab7f1eca1e8a7c79a303c9ad97d93b676129c22646771edeb947ed"
+      "sha256": "7611e896e49e4bb0b05490ff713d8704f39eba5c99e30a55b0a57963454377e6"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v9.json",
