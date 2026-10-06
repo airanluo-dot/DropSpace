@@ -26,8 +26,18 @@ Versions are the versions pinned by `Directory.Packages.props`, `global.json`, t
 | Microsoft.Extensions.DependencyInjection 10.0.10 | Dependency injection | [dotnet/runtime](https://github.com/dotnet/runtime) | MIT | Runtime object code may be distributed through publish; upstream source is not vendored. |
 | Microsoft.Extensions.Logging 10.0.10 and Logging.Abstractions 10.0.10 | Application logging abstractions and services | [dotnet/runtime](https://github.com/dotnet/runtime) | MIT | Runtime object code may be distributed through publish; upstream source is not vendored. |
 | SQLitePCLRaw.bundle_e_sqlite3 2.1.12 and transitive SQLitePCLRaw packages | Native SQLite binding and bundled SQLite engine | [ericsink/SQLitePCL.raw](https://github.com/ericsink/SQLitePCL.raw) | Apache-2.0; SQLite itself is dedicated to the public domain | Native and managed object code is distributed through publish; source is not vendored. |
+| fastText engine, commit `1142dc4c4ecbc19cc16eee5cdd28472e689267e6` | Offline CPU whole-track lyric language identification | [facebookresearch/fastText](https://github.com/facebookresearch/fastText/tree/1142dc4c4ecbc19cc16eee5cdd28472e689267e6) | [MIT](docs/licenses/fasttext-engine-MIT.txt) | Native engine object code is bundled for Windows x64. The complete MIT notice is included in each package. |
+| Panlingo.LanguageIdentification.FastText.Native 0.8.1, wrapper commit `818f6264e87a2f80f33fbb3906053d95be3812c5` | Pinned native ABI used by DropSpace's small managed adapter | [Panlingo](https://github.com/gluschenko/panlingo/tree/818f6264e87a2f80f33fbb3906053d95be3812c5) | [MIT](docs/licenses/fasttext-panlingo-MIT.txt) | Only the native package is referenced; its Windows x64 `fasttext.dll` is distributed. The full wrapper's unused default ftz is not distributed. |
+| fastText `lid.176.bin`, SHA-256 `7e69ec5451bc261cc7844e49e4792a85d7f09c06789ec800fc4a44aec362764e` | Bundled 176-language identification model | [fastText language identification](https://fasttext.cc/docs/en/language-identification.html) | [CC BY-SA 3.0](docs/licenses/fasttext-lid176-CC-BY-SA-3.0.txt) | Original unchanged model by Meta Platforms, Inc. / Facebook AI Research, trained on Wikipedia, Tatoeba and SETimes. Exactly 131,266,198 bytes are embedded in installer, portable and MSIX App delivery; the attribution and complete model license ship with the packages. |
 
 The Windows App SDK binary package uses Microsoft-specific terms even though portions of its upstream source repository are open source. Apache-2.0 applies to DropSpace's own work, not to those Microsoft binaries. The package's permitted redistributable files and bundled third-party notices remain governed by its package license.
+
+fastText model references: Armand Joulin, Edouard Grave, Piotr Bojanowski and Tomas
+Mikolov, *Bag of Tricks for Efficient Text Classification* (2016); Armand Joulin,
+Edouard Grave, Piotr Bojanowski, Matthijs Douze, Hervé Jégou and Tomas Mikolov,
+*FastText.zip: Compressing text classification models* (2016). The original model
+is redistributed unchanged under its separate CC BY-SA 3.0 terms; DropSpace's own
+code, the MIT engine and the MIT native wrapper retain their separate licenses.
 
 ## Build and test dependencies
 

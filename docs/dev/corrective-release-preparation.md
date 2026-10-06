@@ -16,7 +16,11 @@ and existing source-scope mismatches. Never edit publication fields piecemeal.
 Changed or newly fingerprinted production inputs require an exact
 `--reviewed-source-path REPOSITORY_PATH` for every reviewed file. The command
 checks each path against the current code-owned fingerprint and binds its real
-hash; it cannot remove a previously reviewed input. A fingerprint algorithm change
+hash. A truly deleted production input requires an exact
+`--reviewed-removed-source-path REPOSITORY_PATH` and review of the gate's code-owned
+source list. The path must have appeared in the prior approval, must no longer exist,
+and must no longer appear in the current gate; existing production files cannot be
+silently excluded. A fingerprint algorithm change
 also requires review of the gate itself. Preparation hashes the exact gate text
 that it will write, including the target-version pin. It creates a new review
 record and leaves historical acceptance and model observations unchanged.
@@ -28,6 +32,12 @@ fixture must be unchanged. Only a computation explicitly marked as no model
 execution and no semantic approval can be renewed. Runtime, model, prompt or
 other scope changes still fail closed; this option does not renew historical
 model results.
+
+Beta16 retains the unchanged v12 host-fixture record as explicitly historical evidence.
+Its per-line annotations do not qualify the new whole-track policy or fastText model.
+The current policy/adapter, exact model/native manifest, dependency locks, staging,
+static package inspector and notices are separate code-owned fingerprint inputs;
+Beta16 focused verification is recorded in its own audit.
 
 After directly related source corrections in the same unpublished Beta, use
 `--rebind-current --review-record FRESH_VERSION_PREFIXED_JSON_PATH` with the

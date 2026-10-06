@@ -30,7 +30,7 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
         string targetLanguage, string modelSha256, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return null;
+        if (!LyricsLanguagePolicy.CanTranslate(source, targetLanguage)) return null;
         var indices = Enumerable.Range(0, source.Lines.Count).Where(index => !string.IsNullOrWhiteSpace(source.Lines[index].Text)).ToArray();
         if (indices.Length is 0 or > 500) return null;
         var key = LyricsTranslationPrompt.CacheKey(query, source, targetLanguage, modelSha256);
@@ -64,7 +64,7 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
     {
         ArgumentNullException.ThrowIfNull(infer);
         token.ThrowIfCancellationRequested();
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
+        if (!LyricsLanguagePolicy.CanTranslate(source, targetLanguage)) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var target = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage);
         var indices = Enumerable.Range(0, source.Lines.Count).Where(index =>
         {

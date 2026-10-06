@@ -49,6 +49,8 @@ public static class LyricsCandidateRules
         // it must not replace a usable lyric body from the same recording.
         var comparison = (right.Document.Lines.Count > 0).CompareTo(left.Document.Lines.Count > 0);
         if (comparison != 0) return comparison;
+        comparison = right.TargetSatisfied.CompareTo(left.TargetSatisfied);
+        if (comparison != 0) return comparison;
         comparison = right.HasTargetTranslation.CompareTo(left.HasTargetTranslation);
         if (comparison != 0) return comparison;
         comparison = SourceRank(left.Document.Provider, primary, backup).CompareTo(SourceRank(right.Document.Provider, primary, backup));
@@ -69,8 +71,7 @@ public static class LyricsCandidateRules
     public static LyricsSelectionCandidate Describe(string id, LyricsDocument document, string target)
     {
         document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
-        return new(id, document, !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
-            LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target),
+        return new(id, document, LyricsTranslationPolicy.HasCompleteTargetCoverage(document, target),
             LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target), WordCoverage(document));
     }
 

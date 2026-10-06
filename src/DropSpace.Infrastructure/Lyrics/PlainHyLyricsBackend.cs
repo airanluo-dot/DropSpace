@@ -35,8 +35,8 @@ public sealed class PlainHyLyricsPackageResolver(AiModelPackageService models, A
     }
 }
 
-/// <summary>Whole-song coordinator for host-mapped plaintext output. Unknown/same-target copied lines
-/// are neutral. Shared conservative language/credit admission runs before cache and inference.</summary>
+/// <summary>Host-mapped progressive translation after the versioned whole-track admission.
+/// Copied output remains neutral; source/provider vetoes precede cache and inference.</summary>
 public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
 {
     private readonly object _memoGate = new();
@@ -49,7 +49,6 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         source = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(source, targetLanguage);
         source = LyricsLanguagePolicy.MarkTranslationStates(source, targetLanguage);
-        if (LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0) return null;
         var indices = LyricsLanguagePolicy.EligibleIndices(source, targetLanguage);
         if (indices.Length == 0) return null;
         var generation = cache.Generation;
@@ -119,8 +118,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         source = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(source, targetLanguage);
         source = LyricsLanguagePolicy.MarkTranslationStates(source, targetLanguage);
         var executionGeneration = cache.ExecutionGeneration;
-        if (!cache.AllowsExecution(generation) || progress?.IsCurrent == false ||
-            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
+        if (!cache.AllowsExecution(generation) || progress?.IsCurrent == false)
             return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var indices = LyricsLanguagePolicy.EligibleIndices(source, targetLanguage);
         if (indices.Length == 0) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
@@ -142,6 +140,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         var pending = indices.Where(id => source.Lines[id].TranslationState != LyricsLineTranslationState.Translated).ToHashSet();
         foreach (var id in indices.Where(id => !pending.Contains(id))) outputs[id] = source.Lines[id].Secondary!;
         LyricsRequestTrace.Record("ai-line-admission", new { policy = LyricsLanguagePolicy.Version,
+            admission = source.TranslationAdmission,
             lines = source.Lines.Select((line, id) => new { id, line.TranslationState, line.TranslationReason }) });
         var finished = 0;
         bool IsCurrent() => Volatile.Read(ref finished) == 0 && !budget.IsCancellationRequested &&
@@ -257,23 +256,29 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         string targetLanguage, out LyricsDocument result)
     {
         var segments = LyricsLanguagePolicy.EligibleSegments(source, targetLanguage);
-        var projected = source with { Lines = source.Lines.Select((line, id) => line with
-            { Text = string.Join(" ", segments[id]) }).ToArray() };
-        if (!LyricsTranslationOutput.TryApply(json, projected, indices, targetLanguage, out var mapped))
+        if (!LyricsTranslationOutput.TryApply(json, source, indices, targetLanguage, out var mapped))
         { result = source; return false; }
-        result = mapped with { Lines = mapped.Lines.Select((line, id) => line with
+        var requested = indices.ToHashSet();
+        result = LyricsLanguagePolicy.WithPresentationLines(mapped, mapped.Lines.Select((line, id) =>
         {
-            Text = source.Lines[id].Text,
-            LocalAiAdmissionKey = indices.Contains(id)
-                ? line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
-                    ? LyricsLanguagePolicy.LocalAiAdmissionKey(source.Lines[id], targetLanguage, segments[id]) : null
-                : line.LocalAiAdmissionKey,
-            TranslationState = indices.Contains(id) ? line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
-                ? LyricsLineTranslationState.Translated : LyricsLineTranslationState.Skipped : line.TranslationState,
-            TranslationReason = indices.Contains(id) ? line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
-                ? "local-ai-complete" : "copied-source-output" : line.TranslationReason,
-        }).Select((line, id) => LyricsLanguagePolicy.HasTargetProviderTranslation(source.Lines[id], targetLanguage)
-            ? source.Lines[id] : line).ToArray() };
+            if (!requested.Contains(id)) return line;
+            if (line.TranslationOrigin == LyricsTranslationOrigin.LocalAi &&
+                string.Equals(line.Secondary?.Trim(), string.Join(" ", segments[id]).Trim(), StringComparison.Ordinal))
+                line = line with { Secondary = line.OriginalProviderTranslation?.Text,
+                    TranslationOrigin = line.OriginalProviderTranslation is null ? LyricsTranslationOrigin.None : LyricsTranslationOrigin.Provider,
+                    TranslationLanguage = line.OriginalProviderTranslation?.Language,
+                    TranslationLanguageIsExplicit = line.OriginalProviderTranslation?.LanguageIsExplicit,
+                    OriginalProviderTranslation = null };
+            return line with
+            {
+                LocalAiAdmissionKey = line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
+                    ? LyricsLanguagePolicy.LocalAiAdmissionKey(source, id, targetLanguage, segments[id]) : null,
+                TranslationState = line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
+                    ? LyricsLineTranslationState.Translated : LyricsLineTranslationState.Skipped,
+                TranslationReason = line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
+                    ? "local-ai-complete" : "copied-source-output",
+            };
+        }).ToArray());
         return true;
     }
 

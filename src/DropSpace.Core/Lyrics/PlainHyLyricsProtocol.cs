@@ -26,7 +26,7 @@ public static class PlainHyLyricsProtocol
         var name = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage) switch
         {
             "en" => EnglishTarget,
-            "zh-Hans" => ChineseTarget,
+            "zh" or "zh-Hans" => ChineseTarget,
             _ => throw new ArgumentException("Unsupported plaintext translation target.", nameof(targetLanguage)),
         };
         var prompt = string.Format(System.Globalization.CultureInfo.InvariantCulture, Template, name, source);
@@ -67,11 +67,14 @@ public static class PlainHyLyricsProtocol
         // Derived AI presentation is not provider source identity. A current bound projection
         // can reuse its original cache entry while keeping the model/runtime and cache fences.
         var originals = document with { Lines = document.Lines.Select(line => line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
-            ? line with { Secondary = null, TranslationOrigin = LyricsTranslationOrigin.None, TranslationLanguage = null,
-                TranslationLanguageIsExplicit = null, LocalAiAdmissionKey = null } : line).ToArray() };
+            ? line with { Secondary = line.OriginalProviderTranslation?.Text,
+                TranslationOrigin = line.OriginalProviderTranslation is null ? LyricsTranslationOrigin.None : LyricsTranslationOrigin.Provider,
+                TranslationLanguage = line.OriginalProviderTranslation?.Language,
+                TranslationLanguageIsExplicit = line.OriginalProviderTranslation?.LanguageIsExplicit,
+                OriginalProviderTranslation = null, LocalAiAdmissionKey = null } : line).ToArray() };
         var documentKey = LyricsTranslationPrompt.CacheKey(query, originals, target, inferenceIdentity);
         return Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
-        { cache = "plain-hy-complete-song-v2", eligibility = LyricsLanguagePolicy.Version, sourceLanguages = document.Lines.Select(line => line.SourceLanguage),
+        { cache = "plain-hy-whole-track-beta16-v1", eligibility = LyricsLanguagePolicy.Version, sourceLanguages = document.Lines.Select(line => line.SourceLanguage),
             eligibleIds = LyricsLanguagePolicy.EligibleIndices(document, target),
             admittedSegments = LyricsLanguagePolicy.EligibleSegments(document, target), protocol = Version, documentKey })));
     }

@@ -19,7 +19,7 @@ public static class LyricsTranslationPolicy
         result.Status == LyricsQueryStatus.Found && LyricsBodyQualityPolicy.Classify(result.Document) == LyricsBodyQuality.Usable;
 
     public static string ResolveTarget(AppLanguagePreference preference, IEnumerable<string?> systemLanguages) =>
-        AppLanguagePolicy.ResolveEffectiveLanguageTag(preference, systemLanguages);
+        LyricsLanguagePolicy.NormalizeTarget(AppLanguagePolicy.ResolveEffectiveLanguageTag(preference, systemLanguages));
 
     /// <summary>Model capabilities are supplied by the verified model catalog, never inferred from the file size.</summary>
     public static LyricsTranslationDecision Decide(bool enabled, bool hasOriginalLyrics,
@@ -29,14 +29,12 @@ public static class LyricsTranslationPolicy
         ArgumentNullException.ThrowIfNull(supportedLanguages);
         var target = NormalizeLanguage(targetLanguage);
         if (!hasOriginalLyrics || target.Length == 0) return LyricsTranslationDecision.OriginalOnly;
-        if (hasProviderTranslation && NormalizeLanguage(providerLanguage) == target)
+        if (hasProviderTranslation && LyricsLanguagePolicy.SameSourceLanguage(providerLanguage, target))
             return LyricsTranslationDecision.UseProvider;
         if (!enabled) return LyricsTranslationDecision.OriginalOnly;
         var source = NormalizeLanguage(sourceLanguage);
-        if (source.Length == 0) return LyricsTranslationDecision.OriginalOnly;
         if (LyricsLanguagePolicy.SameSourceLanguage(source, target)) return LyricsTranslationDecision.OriginalOnly;
-        if (!supportedLanguages.Any(language => NormalizeLanguage(language) == target) ||
-            (source.Length > 0 && !supportedLanguages.Any(language => NormalizeLanguage(language) == source)))
+        if (!supportedLanguages.Any(language => LyricsLanguagePolicy.SameSourceLanguage(language, target)))
             return LyricsTranslationDecision.UnsupportedLanguage;
         return LyricsTranslationDecision.TranslateLocally;
     }
@@ -44,21 +42,33 @@ public static class LyricsTranslationPolicy
     // Provider selection must not inherit the local model's 500-line admission cap.
     // Long documents can still have usable provider-authored translations.
     public static bool NeedsProviderTranslation(LyricsDocument document, string targetLanguage)
-    {
-        var evidence = LyricsLanguagePolicy.SourceEvidence(document);
-        return document.Lines.Select((line, index) => (line, Evidence: evidence[index]))
-            .Any(item => !LyricsLanguagePolicy.IsCredit(item.line.Text) && !string.IsNullOrWhiteSpace(item.line.Text) &&
-                (!item.Evidence.IsConfident || !LyricsLanguagePolicy.SameSourceLanguage(item.Evidence.Language, targetLanguage)));
-    }
+        => NeedsProviderTranslationLookup(document, targetLanguage);
 
     public static bool HasMatchingProviderTranslation(LyricsDocument document, string targetLanguage)
     {
         ArgumentNullException.ThrowIfNull(document);
-        var target = NormalizeLanguage(targetLanguage);
-        return target.Length > 0 && document.Lines.Any(line =>
-            line.TranslationOrigin == LyricsTranslationOrigin.Provider && !LyricsLanguagePolicy.IsCredit(line.Text) &&
-            !string.IsNullOrWhiteSpace(line.Secondary) &&
-            LyricsLanguagePolicy.ProviderTranslationMatches(line, target));
+        return LyricsLanguagePolicy.HasTrustedTargetProviderTranslation(document, targetLanguage) ||
+            LyricsLanguagePolicy.IsAdmissionCurrent(document, targetLanguage) &&
+            document.TranslationAdmission!.Decision == LyricsWholeTrackDecision.ProviderTarget;
+    }
+
+    /// <summary>Coverage is a source ranking metric; any valid partial native
+    /// translation independently closes the AI/native lookup gate.</summary>
+    public static bool HasCompleteTargetCoverage(LyricsDocument document, string targetLanguage) =>
+        LyricsLanguagePolicy.IsAdmissionCurrent(document, targetLanguage) &&
+        document.TranslationAdmission!.Decision == LyricsWholeTrackDecision.OriginalTarget ||
+        HasMatchingProviderTranslation(document, targetLanguage) && document.Lines.Where(line =>
+            !LyricsLanguagePolicy.IsCredit(line.Text) && !string.IsNullOrWhiteSpace(line.Text))
+            .All(line => LyricsLanguagePolicy.ProviderTranslation(line) is not null);
+
+    public static bool NeedsProviderTranslationLookup(LyricsDocument document, string targetLanguage)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (LyricsLanguagePolicy.NormalizeTarget(targetLanguage).Length == 0 ||
+            LyricsBodyQualityPolicy.Classify(document) != LyricsBodyQuality.Usable ||
+            HasMatchingProviderTranslation(document, targetLanguage)) return false;
+        return !LyricsLanguagePolicy.IsAdmissionCurrent(document, targetLanguage) ||
+            document.TranslationAdmission!.Decision == LyricsWholeTrackDecision.AllowAi;
     }
 
     public static string NormalizeLanguage(string? language)

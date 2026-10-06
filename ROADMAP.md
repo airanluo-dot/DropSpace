@@ -1,5 +1,19 @@
 # DropSpace Roadmap
 
+## Release target: v0.3.1-beta.16
+
+Use the owner's final October 6 Beta16 plan over conflicting earlier AI-lyric
+plans. Bundle fastText `lid.176.bin` for one offline whole-original prediction,
+then protect any valid target-language provider translation for the entire track.
+Partial native coverage leaves gaps empty. Only Unknown originals without valid
+target translations enter the unchanged opt-in Hy-MT2 progressive flow. Cache,
+resource resolution, progress and final publication share that whole-track gate.
+Preserve Beta15's other features and effective worktree changes. Run only required
+focused correctness checks and necessary compilation/package inspection, then
+publish a fresh Beta16 without changing old release assets. Actual results are in
+[the Beta16 audit](docs/dev/beta16-lyrics-audit.md) and
+[release notes](.github/release-notes/v0.3.1-beta.16.md).
+
 ## Published release: v0.3.1-beta.15
 
 Completed the fifteen items in the owner-supplied October6 Beta15 request and
@@ -37,7 +51,7 @@ manifest. The 1.8B GGUF is one file; the 7B GGUF uses four ordered transport
 parts (2,000,000,000 bytes for each of the first three, 1,981,928,896 for the last).
 Concatenation preserves the official original bytes.
 
-## Release target: v0.3.1-beta.12
+## Delivered slice: v0.3.1-beta.12
 
 Port NovaClip Beta8 ordinary HTTP downloads into the DLC page and share the real
 segmented transfer engine with models, CUDA, App updates and optional components.
@@ -137,7 +151,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.12
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.16
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
@@ -801,9 +815,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.12` (Beta 12). All new prereleases use
+The current Beta target is `v0.3.1-beta.16` (Beta 16). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.11 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.15 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

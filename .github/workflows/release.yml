@@ -304,6 +304,13 @@ jobs:
             throw "Release publication is restricted to the repository owner or the trusted publication bridge."
           }
 
+      - name: Enforce the exact Beta16 delivery route
+        shell: pwsh
+        run: |
+          if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.16') {
+            throw 'Beta16 uses its owner-authorized local focused-validation producer and exact nine-asset publication. This legacy workflow would repeat broad suites and emit an incomplete CUDA asset set; it is disabled for this exact release. Use the documented Beta16 delivery record and immutable asset-verification CI route.'
+          }
+
       - name: Test AI semantic release gate regressions
         if: steps.ci-promotion.outputs.reuse != 'true'
         run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs

@@ -24,7 +24,13 @@ const approval=JSON.parse(read('scripts/ai-model-qa/release-approval.json'));
 if(hash(fs.readFileSync(approval.review.path))!==approval.review.sha256)throw new Error('Previous review bytes do not match the active approval pointer.');
 const review=JSON.parse(read(approval.review.path));
 const reviewedPaths=new Set(args.flatMap((arg,i)=>arg==='--reviewed-source-path'&&args[i+1]?[args[i+1]]:[]));
+const reviewedRemovedPaths=new Set(args.flatMap((arg,i)=>arg==='--reviewed-removed-source-path'&&args[i+1]?[args[i+1]]:[]));
 for(const name of reviewedPaths)if(!oldScope.sources.files.some(file=>file.path===name))throw new Error(`Reviewed source is not a current code-owned fingerprint input: ${name}`);
+if(reviewedRemovedPaths.size>0&&!reviewedPaths.has('scripts/test-ai-release-approval.mjs'))throw new Error('Reviewed production deletions also require review of the code-owned fingerprint gate.');
+for(const name of reviewedRemovedPaths) {
+ if(!approval.scope.sources.files.some(file=>file.path===name))throw new Error(`Removed source was not a previously reviewed input: ${name}`);
+ if(oldScope.sources.files.some(file=>file.path===name)||fs.existsSync(path.join(root,name)))throw new Error(`Removed production input still exists or remains fingerprinted: ${name}`);
+}
 const admissionIndex=args.indexOf('--reviewed-fixture-admission');
 const reviewedAdmission=admissionIndex<0?null:args[admissionIndex+1];
 if(admissionIndex>=0) {
@@ -38,7 +44,7 @@ function reviewedScope(previous) {
  const copy=structuredClone(previous);
  const previousFiles=new Map(copy.sources.files.map(file=>[file.path,file]));
  if(previousFiles.size!==copy.sources.files.length)throw new Error('Previous approval has duplicate source paths.');
- for(const name of previousFiles.keys())if(!oldScope.sources.files.some(file=>file.path===name))throw new Error(`Previously reviewed production input was removed: ${name}`);
+ for(const name of previousFiles.keys())if(!oldScope.sources.files.some(file=>file.path===name)&&!reviewedRemovedPaths.has(name))throw new Error(`Previously reviewed production input was removed without an exact reviewed deletion: ${name}`);
  copy.sources.files=oldScope.sources.files.map(current=>{
   const previousFile=previousFiles.get(current.path);
   if(!previousFile&&!reviewedPaths.has(current.path))throw new Error(`New production input needs an exact reviewed source path: ${current.path}`);

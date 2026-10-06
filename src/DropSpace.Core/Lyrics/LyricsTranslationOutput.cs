@@ -10,10 +10,8 @@ public static class LyricsTranslationOutput
     public const int MaximumOutputBytes = 65_536;
 
     public static string SourceVersion(LyricsDocument document) => Convert.ToHexStringLower(SHA256.HashData(
-        JsonSerializer.SerializeToUtf8Bytes(new { document.Provider, document.ProviderDataRevision,
-            document.Match?.TrackIdentity, document.Match?.CandidateId, document.Match?.CanonicalTitle,
-            document.Match?.Title, document.Match?.Artist, document.Match?.Album, document.Match?.DurationSeconds,
-            lines = document.Lines.Select(line => new { line.Start, line.End, line.Text, line.SourceLanguage }) })));
+        JsonSerializer.SerializeToUtf8Bytes(new { version = "beta16-source-fingerprint-v1",
+            source = LyricsLanguagePolicy.SourceIdentity(document), original = LyricsLanguagePolicy.OriginalRevision(document) })));
 
     public static string LineIdentity(LyricsDocument document, int index) => LineIdentity(SourceVersion(document), document.Lines[index], index);
     public static string LineIdentity(string sourceVersion, LyricsLine line, int index) => Convert.ToHexStringLower(SHA256.HashData(
@@ -26,8 +24,12 @@ public static class LyricsTranslationOutput
     {
         var sourceVersion = SourceVersion(requestSource);
         if (SourceVersion(current) != sourceVersion || SourceVersion(generated) != sourceVersion ||
-            generated.Lines.Count != requestSource.Lines.Count) return current;
+            generated.Lines.Count != requestSource.Lines.Count ||
+            LyricsLanguagePolicy.TranslationRevision(current) != LyricsLanguagePolicy.TranslationRevision(requestSource))
+            return LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(current, targetLanguage);
         current = LyricsLanguagePolicy.MarkTranslationStates(LyricsLanguagePolicy.IdentifyProviderTranslations(current), targetLanguage);
+        if (!LyricsLanguagePolicy.CanTranslate(current, targetLanguage))
+            return LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(current, targetLanguage);
         var lines = current.Lines.ToArray();
         var segments = LyricsLanguagePolicy.EligibleSegments(current, targetLanguage);
         for (var id = 0; id < lines.Length; id++)
@@ -43,16 +45,17 @@ public static class LyricsTranslationOutput
             if (output.TranslationOrigin == LyricsTranslationOrigin.LocalAi &&
                 !string.IsNullOrWhiteSpace(output.Secondary) &&
                 LyricsLanguagePolicy.SameSourceLanguage(output.TranslationLanguage, targetLanguage) &&
-                output.LocalAiAdmissionKey == LyricsLanguagePolicy.LocalAiAdmissionKey(line, targetLanguage, segments[id]))
+                output.LocalAiAdmissionKey == LyricsLanguagePolicy.LocalAiAdmissionKey(current, id, targetLanguage, segments[id]))
                 lines[id] = line with { Secondary = output.Secondary, TranslationOrigin = output.TranslationOrigin,
                     TranslationLanguage = output.TranslationLanguage, TranslationLanguageIsExplicit = false,
+                    OriginalProviderTranslation = output.OriginalProviderTranslation,
                     LocalAiAdmissionKey = output.LocalAiAdmissionKey, TranslationState = output.TranslationState,
                     TranslationReason = output.TranslationReason };
             else if (output.TranslationState is LyricsLineTranslationState.Failed or LyricsLineTranslationState.Skipped &&
                 line.TranslationOrigin != LyricsTranslationOrigin.LocalAi)
                 lines[id] = line with { TranslationState = output.TranslationState, TranslationReason = output.TranslationReason };
         }
-        return current with { Lines = lines };
+        return LyricsLanguagePolicy.WithPresentationLines(current, lines);
     }
 
     // Reject known runtime corruption and leaked prompt fields, not arbitrary lyric punctuation.
@@ -64,6 +67,9 @@ public static class LyricsTranslationOutput
         text.Contains("[end of text]", StringComparison.Ordinal) ||
         text.Contains("<|im_start|>", StringComparison.Ordinal) ||
         text.Contains("<|im_end|>", StringComparison.Ordinal);
+
+    public static bool IsValidTranslationText(string text) => !string.IsNullOrWhiteSpace(text) && text.Length <= 4096 &&
+        !text.Any(character => char.IsControl(character) && character != '\t') && !ContainsProtocolLeak(text);
 
     public static bool HasUsefulLocalTranslation(LyricsDocument document, string targetLanguage)
     {
@@ -82,6 +88,7 @@ public static class LyricsTranslationOutput
         ArgumentNullException.ThrowIfNull(lineIndices);
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         result = source;
+        if (!LyricsLanguagePolicy.CanTranslate(source, targetLanguage)) return false;
         if (string.IsNullOrWhiteSpace(json) || Encoding.UTF8.GetByteCount(json) > MaximumOutputBytes ||
             lineIndices.Count is 0 or > 500 || string.IsNullOrWhiteSpace(targetLanguage)) return false;
         var expected = new HashSet<int>();
@@ -109,9 +116,7 @@ public static class LyricsTranslationOutput
                     }
                     else return false;
                 }
-                if (id != lineIndices[position++] || string.IsNullOrWhiteSpace(text) || text.Length > 4096 ||
-                    text.Any(character => char.IsControl(character) && character != '\t') ||
-                    ContainsProtocolLeak(text)) return false;
+                if (id != lineIndices[position++] || text is null || !IsValidTranslationText(text)) return false;
                 replacements.Add((id.Value, text));
             }
             var lines = source.Lines.ToArray();
@@ -119,14 +124,20 @@ public static class LyricsTranslationOutput
             {
                 if (LyricsLanguagePolicy.HasTargetProviderTranslation(lines[replacement.Index], targetLanguage)) continue;
                 var unchanged = string.Equals(lines[replacement.Index].Text.Trim(), replacement.Text.Trim(), StringComparison.Ordinal);
+                if (unchanged && lines[replacement.Index].TranslationOrigin == LyricsTranslationOrigin.Provider) continue;
                 lines[replacement.Index] = lines[replacement.Index] with
                 {
+                    OriginalProviderTranslation = lines[replacement.Index].OriginalProviderTranslation ??
+                        (lines[replacement.Index].TranslationOrigin == LyricsTranslationOrigin.Provider &&
+                            !string.IsNullOrWhiteSpace(lines[replacement.Index].Secondary)
+                            ? new LyricsProviderTranslation(lines[replacement.Index].Secondary!,
+                                lines[replacement.Index].TranslationLanguage, lines[replacement.Index].TranslationLanguageIsExplicit) : null),
                     Secondary = unchanged ? null : replacement.Text,
                     TranslationOrigin = unchanged ? LyricsTranslationOrigin.None : LyricsTranslationOrigin.LocalAi,
                     TranslationLanguage = unchanged ? null : targetLanguage,
                 };
             }
-            result = source with { Lines = lines };
+            result = LyricsLanguagePolicy.WithPresentationLines(source, lines);
             return true;
         }
         catch (JsonException) { return false; }

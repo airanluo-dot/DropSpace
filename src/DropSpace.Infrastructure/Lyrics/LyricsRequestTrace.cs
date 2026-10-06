@@ -40,6 +40,7 @@ public sealed class LyricsRequestTrace : IDisposable
         languages = document.Lines.Select(line => line.TranslationLanguage).Distinct().ToArray(),
         origins = document.Lines.Select(line => line.TranslationOrigin.ToString()).Distinct().ToArray(),
         sourceVersion,
+        admission = document.TranslationAdmission,
         rows = document.Lines.Select((line, id) => new { id,
             stableId = LyricsTranslationOutput.LineIdentity(sourceVersion!, line, id),
             start = line.Start.TotalMilliseconds, end = line.End.TotalMilliseconds,

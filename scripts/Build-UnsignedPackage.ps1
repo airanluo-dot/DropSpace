@@ -19,11 +19,16 @@ $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw -E
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
 
+& (Join-Path $PSScriptRoot "Stage-LyricsLanguageModel.ps1")
+if (-not $?) { throw "Bundled language-identification model staging failed." }
+
 if (Test-Path $packageDirectory)
 {
     # Package generation can be incremental. Remove the exact release-artifact root
     # first so a previous version cannot be mistaken for the current package.
-    Remove-Item -Path $packageDirectory -Recurse -Force
+    $expectedPackageDirectory = [IO.Path]::GetFullPath((Join-Path $repositoryRoot "artifacts/msix"))
+    if ($packageDirectory -cne $expectedPackageDirectory) { throw "MSIX cleanup target is outside the expected artifact directory." }
+    Remove-Item -LiteralPath $packageDirectory -Recurse -Force
 }
 New-Item -ItemType Directory -Path $packageDirectory -Force | Out-Null
 

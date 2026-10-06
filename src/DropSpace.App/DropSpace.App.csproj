@@ -51,7 +51,14 @@
     <EmbeddedResource Include="Assets\Square44x44Logo.scale-100.png" LogicalName="DropSpace.Brand.TransparentLogo.png" />
     <Content Include="Assets\AppIcon.ico" />
     <DropSpaceStringResource Include="Strings\**\*.resw" />
+    <EmbeddedResource Include="..\..\artifacts\lyrics-language\lid.176.bin" LogicalName="DropSpace.LyricsLanguage.lid.176.bin" Condition="Exists('..\..\artifacts\lyrics-language\lid.176.bin')" />
+    <Content Include="..\..\docs\licenses\fasttext-engine-MIT.txt" Link="Licenses\fasttext-engine-MIT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\docs\licenses\fasttext-panlingo-MIT.txt" Link="Licenses\fasttext-panlingo-MIT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\docs\licenses\fasttext-lid176-CC-BY-SA-3.0.txt" Link="Licenses\fasttext-lid176-CC-BY-SA-3.0.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="RequireLyricsLanguageModelForRelease" BeforeTargets="PrepareForBuild" Condition="'$(Configuration)' == 'Release'">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)\..\..\artifacts\lyrics-language\lid.176.bin')" Text="Stage the bundled lid.176.bin with scripts/Stage-LyricsLanguageModel.ps1 before a Release build." />
+  </Target>
   <PropertyGroup>
     <CudaLyricsRuntimeRoot Condition="'$(CudaLyricsRuntimeRoot)' == ''">$(MSBuildProjectDirectory)\..\..\artifacts\cuda-runtime\win-x64</CudaLyricsRuntimeRoot>
     <AiLyricsRuntimeRoot>$(MSBuildProjectDirectory)\..\..\artifacts\ai-runtime\win-x64</AiLyricsRuntimeRoot>

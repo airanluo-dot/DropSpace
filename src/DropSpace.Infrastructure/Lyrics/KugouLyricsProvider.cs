@@ -6,7 +6,7 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
+public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageIdentifier? languageIdentifier = null) : IProgressiveLyricsProvider
 {
     internal const int DataRevision = 1;
     public LyricsProviderKind Kind => LyricsProviderKind.Kugou;
@@ -19,8 +19,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
         var original = LyricsDocument.Empty;
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
         bool Complete(LyricsDocument document) => !query.CollectSelectionCandidates && document.Lines.Count > 0 &&
-            (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
-             LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target));
+            (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslationLookup(document, target));
         var attempted = new HashSet<string>(StringComparer.Ordinal);
         var requests = new LyricsCandidateRequests();
         var remaining = 3;
@@ -62,9 +61,14 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
                         with { ProviderDataRevision = DataRevision };
                 });
                 if (document.Lines.Count == 0) continue;
+                if (languageIdentifier is not null && target.Length > 0)
+                    document = await languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
                 reportCandidate(document);
                 if (Complete(document)) return document;
-                if (original.Lines.Count == 0) original = document;
+                original = LyricsCandidateRules.Best([
+                    LyricsCandidateRules.Describe("current", original, target),
+                    LyricsCandidateRules.Describe("candidate", document, target),
+                ], query, Kind, null);
             }
             return LyricsDocument.Empty;
         }

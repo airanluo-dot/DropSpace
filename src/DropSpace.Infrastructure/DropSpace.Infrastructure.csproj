@@ -6,6 +6,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <EmbeddedResource Include="Lyrics/Manifests/models-hy-mt2-q8-v1.json" />
+    <EmbeddedResource Include="Lyrics/Manifests/fasttext-lid176-bin-v1.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DropSpace.Core\DropSpace.Core.csproj" />
@@ -15,5 +16,7 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
     <PackageReference Include="QRCoder" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+    <!-- Native-only avoids the unused default ftz baked into Panlingo's full managed wrapper. -->
+    <PackageReference Include="Panlingo.LanguageIdentification.FastText.Native" />
   </ItemGroup>
 </Project>

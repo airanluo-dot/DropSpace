@@ -28,9 +28,14 @@ elseif ($Version -ne $repositoryVersion)
 }
 $fileVersion = $releaseInfo.FileVersion
 
+& (Join-Path $PSScriptRoot "Stage-LyricsLanguageModel.ps1")
+if (-not $?) { throw "Bundled language-identification model staging failed." }
+
 if (Test-Path $publishDirectory)
 {
-    Remove-Item -Path $publishDirectory -Recurse -Force
+    $expectedPublishDirectory = [IO.Path]::GetFullPath((Join-Path $repositoryRoot "artifacts/portable/win-x64"))
+    if ($publishDirectory -cne $expectedPublishDirectory) { throw "Portable cleanup target is outside the expected artifact directory." }
+    Remove-Item -LiteralPath $publishDirectory -Recurse -Force
 }
 
 New-Item -ItemType Directory -Path $publishDirectory -Force | Out-Null

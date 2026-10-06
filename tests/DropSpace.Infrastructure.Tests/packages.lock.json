@@ -135,6 +135,7 @@
         "dependencies": {
           "DropSpace.Core": "[1.0.0, )",
           "Microsoft.Data.Sqlite": "[10.0.10, )",
+          "Panlingo.LanguageIdentification.FastText.Native": "[0.8.1, )",
           "QRCoder": "[1.6.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )",
           "System.Security.Cryptography.ProtectedData": "[10.0.0, )"
@@ -150,6 +151,12 @@
           "SQLitePCLRaw.bundle_e_sqlite3": "2.1.11",
           "SQLitePCLRaw.core": "2.1.11"
         }
+      },
+      "Panlingo.LanguageIdentification.FastText.Native": {
+        "type": "CentralTransitive",
+        "requested": "[0.8.1, )",
+        "resolved": "0.8.1",
+        "contentHash": "eEhctb16MlJzfvCdyaJkp0OWu2duiaDzP3iBzBQMHfDSYy3fcNHb3ZAry0rIld/oI1dg8ONIyeTYVzErnJJhcA=="
       },
       "QRCoder": {
         "type": "CentralTransitive",

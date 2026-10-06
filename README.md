@@ -15,27 +15,22 @@ DropSpace **v0.2.1 is the Stable baseline and the current published Beta is v0.3
 
 Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.15](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.15); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
-The **v0.3.1 Beta 15** protects provider translations when AI fills missing rows,
-strengthens performer/recording matching and contextual bilingual admission,
-stabilizes settings sliders, retains paused music and restores complete hide
-animations and operation confirmations. Download cleanup and model-delivery
-approval inputs are also tracked independently.
+The **v0.3.1 Beta 16** target replaces per-line lyric admission with one offline
+whole-track fastText prediction. Originals already in the app language skip AI.
+Any valid target-language provider translation disables AI for the entire track,
+including gaps. Only an Unknown original without a valid target translation may
+enter the existing optional Hy-MT2 progressive translation flow. The model is
+bundled in installer, portable and MSIX delivery; recognition has no first-use download.
 Downloads remain on their own Settings page; DLC manages installed components.
 Optional AI translation remains off by default. Validation is limited to focused
 checks and necessary release compilation; broad model/hardware qualification
 is not claimed.
 
-The first Beta15 candidate has real playback evidence for preserved provider
-translations, App-chain CUDA output, paused-music dismissal and empty-island
-Logo/animation behavior. The corrected final App compiled from `734e0a96`;
-actual playback retained native `My City`/`DAISIES` translations and translated
-all 38 ordinary rows of Chinese `风的来信` to English through CUDA. Portable,
-installer and MSIX packages compiled and passed their necessary artifact/update
-checks. All nine new Beta15 assets are published; the website index awaits its
-main-branch sync. Exact results and
-unverified cases are recorded in the [Beta15 audit](docs/dev/beta15-fix-audit.md).
+Beta16 preparation and actual verification records are in the
+[Beta16 audit](docs/dev/beta16-lyrics-audit.md). Beta15 playback and package evidence
+remains attached to its own source stage; it does not validate Beta16.
 
-v0.3.1-beta.14 is the immediate upgrade baseline for this release.
+v0.3.1-beta.15 is the immediate upgrade baseline for this release.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables
@@ -246,9 +241,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.12` (Beta 12). All new prereleases use
+The current Beta target is `v0.3.1-beta.16` (Beta 16). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.11 is the immediate upgrade baseline and
-preserves data/settings. Subsequent Beta updates are automatic according to
+releases remain immutable. Upgrading from v0.3.1-beta.15 preserves data/settings.
+Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

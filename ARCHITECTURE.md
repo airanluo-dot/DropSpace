@@ -1,5 +1,28 @@
 # DropSpace Architecture
 
+## v0.3.1 Beta16 whole-track admission
+
+The Core whole-track policy decides Target or Unknown from one prediction of the
+cleaned original body, then checks provider translations as independent content
+roles. App-language target mapping precedes either step. Unknown is eligible for
+the original Hy-MT2 flow only after bounded normal provider queries leave no valid
+target translation. Any valid native coverage vetoes the entire track, including
+gaps, and late native coverage cancels or fences the entire AI result.
+
+Infrastructure owns a single background fastText adapter for bundled `lid.176.bin`,
+serialized native calls, integrity checks and bounded prediction caching. Cache keys
+bind content role/fingerprint, model digest, native/wrapper versions and preprocessing;
+stored labels and real scores are remapped after app-language changes. Original and
+translation tracks never share a prediction role. Missing/corrupt assets give a
+diagnosed Unknown result; runtime does not download or substitute a different model.
+
+App scheduling, backend preflight, progress/final publication and AI cache reads/writes
+reuse the current whole-track decision and candidate/target/content/generation identity.
+Only AllowAi can resolve/load translation resources or queue inference. Stable row IDs,
+timestamps and repeated occurrence identity remain the per-line output protocol;
+per-line outputs cannot override the whole-track veto. Prior per-line admission rules
+and their historical evidence describe those releases only.
+
 ## DLC inventory and execution verification
 
 DLC presentation uses read-only file metadata: the catalog's hash-addressed model
@@ -47,12 +70,11 @@ The whole-song processing ceiling is 600 seconds (10 minutes), independent of au
 Track changes, disabling AI and user cancellation still cancel immediately. A timeout restores
 source/provider lyrics and never caches a partial song; the ceiling is not a performance claim.
 First generation can take several minutes; known semantic errors remain possible under the Beta label.
-Host admission excludes recognized credits and same-target original lines using explicit TTML
-language or conservative lexical evidence. Confidence values describe deterministic rules, not
-calibrated language probabilities. Ambiguous Han, names, romanization and mixed-language lines
-remain eligible; nearby context can strengthen weak positive evidence but document majority cannot
-suppress a foreign verse. No fixture gold labels reach production. Original line IDs remain stable
-across cache, progress and final publication, and the admission version binds the cache key.
+Beta16 host admission excludes recognized credits from the original sample and uses
+one fastText dominant-language result for the whole body. Model scores retain their
+actual values; target acceptance is centralized and versioned. Original line IDs remain
+stable across cache, progress and final publication, and the admission version binds
+the cache key. Fixture annotations never reach production.
 Any valid matching source translation bypasses AI for the whole document before cache/resolver
 activity, including old source-v2 cache entries after conservative reclassification; blank source
 translation lines remain blank. Unchanged names/same-target/unknown output is neutral. Invalid, missing, multiline,
@@ -99,8 +121,9 @@ The cache uses atomic replacement, generation-fenced clearing, access-time LRU e
 settings-bounded 100 MiB–5 GiB quota (1 GiB by default); user LRC files and model packages are outside
 this directory and are never cache eviction targets. Persistent lyric identity excludes the random
 SMTC session identifier while retaining player, track metadata, track number, and exact duration;
-the runtime identity still controls song-change publication. Incompatible pre-unified AI cache
-entries are retired by strict owned-name cleanup and regenerated on demand. Cleanup runs off the
+the runtime identity still controls song-change publication. Old AI cache identities cannot
+bypass the current whole-track gate; directly incompatible AI entries are regenerated on
+demand without clearing unrelated user data. Cleanup runs off the
 UI thread, rejects reparse traversal, and exposes retryable failures without blocking startup.
 Valid model output with no useful LocalAi secondary is a neutral result, not a successful
 translation. It is suppressed only in a bounded 64-entry, ten-minute session cache keyed by the
