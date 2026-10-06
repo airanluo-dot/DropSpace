@@ -11,11 +11,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the Stable baseline and the current published Beta is v0.3.1-beta.15**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the Stable baseline and the current published Beta is v0.3.1-beta.16**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.15](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.15); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.16](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.16); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
-The **v0.3.1 Beta 16** target replaces per-line lyric admission with one offline
+The **v0.3.1 Beta 16** release replaces per-line lyric admission with one offline
 whole-track fastText prediction. Originals already in the app language skip AI.
 Any valid target-language provider translation disables AI for the entire track,
 including gaps. Only an Unknown original without a valid target translation may
@@ -26,7 +26,7 @@ Optional AI translation remains off by default. Validation is limited to focused
 checks and necessary release compilation; broad model/hardware qualification
 is not claimed.
 
-Beta16 preparation and actual verification records are in the
+Beta16 implementation and actual verification records are in the
 [Beta16 audit](docs/dev/beta16-lyrics-audit.md). Beta15 playback and package evidence
 remains attached to its own source stage; it does not validate Beta16.
 

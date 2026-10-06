@@ -1,6 +1,6 @@
 # Beta16 AI-lyrics implementation and delivery record
 
-Status: all required local focused checks, necessary packaging and exact byte bindings passed; draft upload, artifact-verification CI and publication are in progress.
+Status: published [v0.3.1-beta.16](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.16) at `2026-10-06T12:40:40Z`. Required local focused checks, necessary packaging, exact asset-verification CI and public Release/website verification passed. Final build source is `44f89877ae2a01b10a76b740c4cf3d3caf692376`; the execution limits below remain explicit.
 
 ## Scope and baseline
 
@@ -60,7 +60,17 @@ The exact asset contract is `src/DropSpace.Infrastructure/Lyrics/Manifests/fastt
 
 The model is acquired from the official fastText URL during development/build staging and ships as App embedded resource `DropSpace.LyricsLanguage.lid.176.bin`. Production recognition never downloads it, uses an optional component, or substitutes `lid.176.ftz`. One shared CPU-only instance extracts the embedded model to an identity-specific local directory, verifies size/hash, loads it explicitly through a read-only mapping, and verifies the actual loaded native DLL. The full managed wrapper is excluded because it contains its own default ftz. Final source commit and installer/portable/MSIX identities are recorded above from the actual builds.
 
-Existing Beta15 release: `404561576`, tag `v0.3.1-beta.15`, nine assets. Before/after asset snapshots compare IDs, names, sizes, digests and update timestamps. Beta16 is a fresh prerelease with its own immutable asset paths; no existing release/tag/assets are replaced.
+Beta16 Release ID is `404681331`, a prerelease with tag and target commit both bound to final build source `44f89877ae2a01b10a76b740c4cf3d3caf692376`. All nine new asset IDs, byte counts and server SHA-256 digests match the reviewed inventory above and remain unchanged from draft upload to publication. The release was published with `--latest=false`; the latest Stable remains `v0.2.1`. Actual publication receipt is `artifacts/beta16/published-release-404681331.json`.
+
+Existing Beta15 release: `404561576`, tag `v0.3.1-beta.15`, nine assets. Before-upload and after-publication snapshots match every asset's ID, name, size, digest, creation/update timestamp, state and public download URL. No existing release/tag/assets were replaced. The local receipts are `artifacts/beta16/beta15-assets-before.json` and `artifacts/beta16/beta15-release-after-publication.json`.
+
+## Publication and website verification
+
+[Windows artifact-verification CI 37464573481](https://github.com/airanluo-dot/DropSpace/actions/runs/37464573481) passed. It downloaded and hashed the exact nine uploaded assets, verified source/runtime approval binding and used the fail-closed Beta16 artifact route. Functional tests, native smoke, compilation and lifecycle steps were explicitly skipped; this CI result does not repeat or broaden the local execution evidence. [PR98](https://github.com/airanluo-dot/DropSpace/pull/98) merged the source and delivery metadata into main as `e8f13e6cd8eab3f76eedd5e84a5ee2c56adcd84d` at `2026-10-06T12:39:24Z`; this metadata merge does not change the packaged source identity.
+
+The [automatic Release-event Pages run 37464988925](https://github.com/airanluo-dot/DropSpace/actions/runs/37464988925) failed at deployment: the GitHub check annotation states that tag `v0.3.1-beta.16` is not allowed to deploy to `github-pages` by the environment protection rules. Its build passed and its live verify job was skipped. The protection settings were retained. A [main-branch dispatch 37465088818](https://github.com/airanluo-dot/DropSpace/actions/runs/37465088818) then synchronized the published release, built and deployed the website, and passed its live verification job. Broad static/browser/visual website tests were skipped under the existing exact release waiver.
+
+The actual local command `node --use-env-proxy website/_source/scripts/verify-published-release.mjs v0.3.1-beta.16 180` also exited zero, verifying GitHub Release, nine public assets, manifest, checksums, public release API, latest-change API and live website. An earlier attempt without the existing environment proxy failed with `ECONNRESET`; it was a network attempt, not a passing verification. Local receipts include `artifacts/beta16/pages-release-event-annotations.json`, `artifacts/beta16/pages-main-dispatch-jobs.json` and `artifacts/beta16/public-live-verification.txt`.
 
 ## Unverified limits
 

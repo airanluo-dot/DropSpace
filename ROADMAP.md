@@ -1,16 +1,17 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.16
+## Published release: v0.3.1-beta.16
 
-Use the owner's final October 6 Beta16 plan over conflicting earlier AI-lyric
-plans. Bundle fastText `lid.176.bin` for one offline whole-original prediction,
-then protect any valid target-language provider translation for the entire track.
+Delivered the owner's final October 6 Beta16 plan over conflicting earlier AI-lyric
+plans. The App bundles fastText `lid.176.bin` for one offline whole-original prediction,
+then protects any valid target-language provider translation for the entire track.
 Partial native coverage leaves gaps empty. Only Unknown originals without valid
 target translations enter the unchanged opt-in Hy-MT2 progressive flow. Cache,
 resource resolution, progress and final publication share that whole-track gate.
-Preserve Beta15's other features and effective worktree changes. Run only required
-focused correctness checks and necessary compilation/package inspection, then
-publish a fresh Beta16 without changing old release assets. Actual results are in
+Preserved Beta15's other features and effective worktree changes. Required
+focused correctness checks and necessary compilation/package inspection passed;
+the fresh Beta16 release and official update metadata are published, with Beta15
+assets unchanged. Actual results and unverified limits are in
 [the Beta16 audit](docs/dev/beta16-lyrics-audit.md) and
 [release notes](.github/release-notes/v0.3.1-beta.16.md).
 
