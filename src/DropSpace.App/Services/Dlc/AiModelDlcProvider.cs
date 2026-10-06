@@ -13,7 +13,7 @@ public sealed class AiModelDlcProvider(AiLyricsService service) : IDlcPackagePro
             model.Id == AiLyricsModelCatalog.ExperimentalLargePlain.Id ? "DlcLargeModelPurpose" :
             AiLyricsModelCatalog.FindSelectable(model.Id) is not null ? "DlcModelPurpose" : "DlcLegacyModelPurpose",
             model.Bytes, AiLyricsModelCatalog.FindSelectable(model.Id) is not null,
-            model.DownloadUri.Host + "/" + string.Join('/', model.DownloadUri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries).Take(2))))
+            AiLyricsModelCatalog.FindSelectable(model.Id) is not null ? "github.com/airanluo-dot/DropSpace" : model.DownloadUri.Host + "/" + string.Join('/', model.DownloadUri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries).Take(2))))
         .ToArray();
 
     public event EventHandler? PackagesChanged
@@ -27,6 +27,9 @@ public sealed class AiModelDlcProvider(AiLyricsService service) : IDlcPackagePro
 
     public Task DownloadAsync(string packageId, bool consent, IProgress<double>? progress, CancellationToken token) =>
         service.DownloadAsync(packageId, consent, progress, token);
+
+    public Task DownloadWithProgressAsync(string packageId, bool consent, IProgress<DropSpace.Core.Downloads.TrackProgress>? progress, CancellationToken token) =>
+        service.DownloadAsync(packageId, consent, null, token, progress);
 
     public async Task DeleteAsync(string packageId, CancellationToken token)
     {

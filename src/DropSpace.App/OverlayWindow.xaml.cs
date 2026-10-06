@@ -331,7 +331,6 @@ public sealed partial class OverlayWindow : Window
     internal void VerifyLocalizedResources()
     {
         VerifyResourceValue(Title, "OverlayWindow.Title");
-        VerifyResourceValue(CompactSubtitleText.Text, "OverlayCompactSubtitle.Text");
         VerifyResourceValue(ExpandedTitleText.Text, "OverlayExpandedTitle.Text");
         VerifyResourceValue(ExpandedSubtitleText.Text, "OverlayExpandedSubtitle.Text");
         VerifyResourceValue(RemoveHintText.Text, "OverlayRemoveHint.Text");
@@ -545,17 +544,23 @@ public sealed partial class OverlayWindow : Window
         var activityCompact = _experience.Current.CompactContent is DropSpace.Core.Island.IslandContentKind.Notification or DropSpace.Core.Island.IslandContentKind.Volume;
         ActivityCompact.Visibility = activityCompact ? Visibility.Visible : Visibility.Collapsed;
         MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
-        FileCompactContent.Visibility = mediaCompact || activityCompact ? Visibility.Collapsed : Visibility.Visible;
-        var mediaScale = OverlayPlacementPolicy.FitContentScale(
-            _monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight, _monitor.Scale,
-            MusicCompact.IdealIslandWidth, MusicCompact.IdealIslandHeight,
-            _mediaViewModel.Settings.IslandAppearance.CompactScale);
-        CompactPanel.Padding = new Thickness(mediaCompact ? 14 * mediaScale : 18, 0, mediaCompact ? 14 * mediaScale : 18, 0);
+        var variant = _experience.Current.Variant;
+        FileCompactContent.Visibility = variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? Visibility.Visible : Visibility.Collapsed;
+        EmptyWakeLogo.Visibility = variant == IslandPresentationVariant.EmptyWake ? Visibility.Visible : Visibility.Collapsed;
+        var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 :
+            variant == IslandPresentationVariant.SingleFile ? 340 : variant == IslandPresentationVariant.MultipleFiles ? 200 : variant == IslandPresentationVariant.EmptyWake ? 88 : 180;
+        var naturalHeight = mediaCompact ? MusicCompact.IdealIslandHeight : activityCompact ? 80 :
+            variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? 64 : 40;
+        var compactScale = OverlayPlacementPolicy.FitContentScale(_monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight,
+            _monitor.Scale, naturalWidth, naturalHeight, _mediaViewModel.Settings.IslandAppearance.CompactScale);
+        CompactPanel.Padding = new Thickness(0);
+        CompactContentRoot.Width = naturalWidth; CompactContentRoot.Height = naturalHeight;
+        CompactContentRoot.Padding = new Thickness(mediaCompact ? 14 : 18, 0, mediaCompact ? 14 : 18, 0);
+        CompactContentScaleHost.Width = naturalWidth * compactScale; CompactContentScaleHost.Height = naturalHeight * compactScale;
         MusicCompact.Width = MusicCompact.IdealIslandWidth - 28;
         MusicCompact.Height = MusicCompact.IdealIslandHeight;
         MusicCompact.HorizontalAlignment = HorizontalAlignment.Center;
-        MusicCompact.RenderTransformOrigin = new Point(0.5, 0.5);
-        MusicCompact.RenderTransform = new ScaleTransform { ScaleX = mediaScale, ScaleY = mediaScale };
+        MusicCompact.RenderTransform = null;
         if (_suppressedForPlacementEdit)
         {
             HideImmediately();
@@ -598,16 +603,11 @@ public sealed partial class OverlayWindow : Window
         var settings = _mediaViewModel.Settings;
         var fullscreen = FullscreenOverlayPolicy.Resolve(snapshot.State,
             settings.IslandAppearance.ForceShowOverFullscreen,
-            settings.SystemActivities.SuppressOverFullscreen,
             _monitorLayout.IsForegroundFullscreen(_monitor));
         _forceFullscreenPresentation = fullscreen.KeepTopmost;
         snapshot = snapshot with { State = fullscreen.State };
         _presentedState = fullscreen.State;
-        if (fullscreen.Suppress)
-        {
-            BeginFullscreenSuppression(snapshot, wakeMode);
-            return;
-        }
+        // The coordinator has already applied permission and the unified hide delay.
 
         if (_suppressedForFullscreen)
         {
@@ -634,13 +634,9 @@ public sealed partial class OverlayWindow : Window
 
         var topOffset = _resolvedPlacement.SurfaceTopOffsetDips;
         var target = CreateMotionTarget(snapshot.State, topOffset);
-        if (activityCompact && snapshot.State == OverlayState.Compact)
-            target = Create(400, 80, topOffset, 28, 1, 0, 0);
-        if (mediaCompact && snapshot.State == OverlayState.Compact)
-        {
-            var geometry = DropSpace.Core.Island.IslandGeometry.ForMusicCompact(MusicCompact.IdealIslandWidth, MusicCompact.IdealIslandHeight, mediaScale);
-            target = Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 1, 0, 0);
-        }
+        if (snapshot.State == OverlayState.Compact)
+            target = Create(naturalWidth * compactScale, naturalHeight * compactScale, topOffset,
+                Math.Min(naturalWidth, naturalHeight) * compactScale / 2, 1, 0, 0);
 
         // Hidden has TopOffset=0 because it is independent of monitor placement.
         // Anchor it while the body is still transparent; otherwise opacity can lead
@@ -747,7 +743,7 @@ public sealed partial class OverlayWindow : Window
             !_suppressedForPlacementEdit && !_placementEditActive;
         var eligibleSurface = visible && !_suppressedForFullscreen &&
             _presentationSnapshot?.State is OverlayState.Compact or OverlayState.Expanded;
-        if (!visible || preferences.HighContrast || !preferences.AdvancedEffectsEnabled)
+        if (!visible || _experience.Current.Variant == IslandPresentationVariant.Idle || preferences.HighContrast || !preferences.AdvancedEffectsEnabled)
         {
             _glowTransfer = null;
             _mediaViewModel.SetIslandGlowActive(this, false);
@@ -886,7 +882,7 @@ public sealed partial class OverlayWindow : Window
     internal bool NeedsFullscreenPresentationRecovery =>
         !_closing && _forceFullscreenPresentation && _isActiveWindow && !_nativeWindowSafeToShow &&
         !_suppressedForPlacementEdit && !_placementEditActive &&
-        _mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen;
+        FullscreenOverlayPolicy.Allows(_mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen, true);
 
     // Called by the low-frequency fullscreen watcher, not by the animation loop.
     // Reassert only a safe, visible surface; never activate or expose an empty host.
@@ -894,7 +890,7 @@ public sealed partial class OverlayWindow : Window
     {
         if (_closing || !_forceFullscreenPresentation || !_isActiveWindow || !_isVisible ||
             !_nativeWindowSafeToShow || _suppressedForFullscreen || _suppressedForPlacementEdit ||
-            _placementEditActive || !_mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen)
+            _placementEditActive || !FullscreenOverlayPolicy.Allows(_mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen, true))
             return;
 
         if (!OverlayWindowInterop.MaintainTopmostNoActivate(_windowHandle, out var failure))
@@ -1798,7 +1794,6 @@ public sealed partial class OverlayWindow : Window
             var settings = _mediaViewModel.Settings;
             var presentation = FullscreenOverlayPolicy.Resolve(OverlayState.Expanded,
                 settings.IslandAppearance.ForceShowOverFullscreen,
-                settings.SystemActivities.SuppressOverFullscreen,
                 _monitorLayout.IsForegroundFullscreen(_monitor));
             if (!presentation.AllowActivation) return;
             if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var noActivateFailure))
@@ -1815,6 +1810,11 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
+    private void OnIslandKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs args)
+    {
+        if (args.Key != Windows.System.VirtualKey.Escape || _placementEditActive) return;
+        _experience.DismissNow(); args.Handled = true;
+    }
     private void OnCollapseClicked(object sender, RoutedEventArgs args) { _experience.Collapse(); _viewModel.Collapse(); }
 
     private void OnPreviousPageClicked(object sender, RoutedEventArgs args)

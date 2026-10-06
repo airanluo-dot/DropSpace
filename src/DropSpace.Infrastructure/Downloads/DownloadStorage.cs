@@ -7,8 +7,16 @@ namespace DropSpace.Infrastructure.Downloads;
 
 internal static class DownloadStorage
 {
+    public static string NormalizeDirectory(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+    public static bool SameDirectory(string left, string right) => string.Equals(
+        NormalizeDirectory(left), NormalizeDirectory(right),
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     public static string Identity(Uri uri) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(uri.AbsoluteUri)));
-    public static string Safe(string root, string path) => ReparseSafePathPolicy.PrepareContainedFileDestination(root, Path.GetRelativePath(root, path));
+    public static string Safe(string root, string path)
+    {
+        root = NormalizeDirectory(root);
+        return ReparseSafePathPolicy.PrepareContainedFileDestination(root, Path.GetRelativePath(root, path));
+    }
     public static IEnumerable<string> Artifacts(string staging)
     {
         var root = Path.GetDirectoryName(staging)!;
@@ -35,7 +43,11 @@ internal static class DownloadStorage
     public static void CheckSpace(string path, long bytes)
     {
         var drive = new DriveInfo(Path.GetPathRoot(path)!);
-        if (drive.IsReady && drive.AvailableFreeSpace < bytes + 64L * 1024 * 1024)
+        if (drive.IsReady) CheckAvailableSpace(bytes, drive.AvailableFreeSpace);
+    }
+    internal static void CheckAvailableSpace(long bytes, long availableBytes)
+    {
+        if (bytes < 0 || availableBytes < 0 || availableBytes < checked(bytes + 64L * 1024 * 1024))
             throw new IOException("Insufficient download disk space.");
     }
     public static async Task WriteAsync<T>(string path, T value, CancellationToken token)

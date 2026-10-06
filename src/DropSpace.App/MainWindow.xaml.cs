@@ -63,6 +63,9 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         }
         catch (Exception exception)
         {
+            foreach (System.Collections.DictionaryEntry detail in exception.Data)
+                if (detail.Value is string text)
+                    logger.LogError("Main-window XAML diagnostic {Key}: {Description}", detail.Key, text);
             throw new InvalidOperationException("Main-window XAML initialization failed.", exception);
         }
 

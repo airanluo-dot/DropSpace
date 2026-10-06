@@ -158,21 +158,27 @@ public sealed class UndoCoordinator(
             {
                 return false;
             }
+            if (DateTimeOffset.UtcNow >= active.State.ExpiresAtUtc)
+            {
+                await FinalizeActiveCoreAsync(cancellationToken).ConfigureAwait(false);
+                return false;
+            }
 
+            var restored = 0;
             if (active.Removal is not null)
             {
-                await repository.UndoPendingRemovalAsync(active.State.Token, cancellationToken).ConfigureAwait(false);
-                logger.LogInformation("Delete operation {OperationId} was undone.", active.State.Token);
+                restored = await repository.UndoPendingRemovalAsync(active.State.Token, cancellationToken).ConfigureAwait(false);
+                logger.LogInformation("Delete operation {OperationId} restored {Count} records.", active.State.Token, restored);
             }
             else if (active.PreviousPinStates is not null)
             {
-                await repository.RestorePinnedStatesAsync(active.PreviousPinStates, cancellationToken).ConfigureAwait(false);
+                restored = await repository.RestorePinnedStatesAsync(active.PreviousPinStates, cancellationToken).ConfigureAwait(false);
             }
 
             CancelExpiration();
             _active = null;
             PublishState(null);
-            return true;
+            return restored > 0;
         }
         finally
         {
@@ -309,14 +315,22 @@ public sealed class UndoCoordinator(
             return;
         }
 
-        CancelExpiration();
         if (active.Removal is not null)
         {
             var result = await repository.FinalizePendingRemovalAsync(active.State.Token, cancellationToken).ConfigureAwait(false);
+            // The database transaction is the irreversible boundary. Cleanup has its
+            // own durable retry outbox and must never leave an undoable phantom record.
+            CancelExpiration();
+            _active = null;
+            PublishState(null);
             logger.LogInformation("Delete operation {OperationId} committed {RemovedCount} item(s); payload cleanup is now retryable.", active.State.Token, result.RemovedCount);
-            await DeletePayloadsAsync(result.PayloadRelativePaths, cancellationToken).ConfigureAwait(false);
+            try { await DeletePayloadsAsync(result.PayloadRelativePaths, cancellationToken).ConfigureAwait(false); }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            { logger.LogWarning(error, "Committed removal cleanup deferred to the durable outbox."); }
+            return;
         }
 
+        CancelExpiration();
         _active = null;
         PublishState(null);
     }

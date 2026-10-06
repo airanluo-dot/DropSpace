@@ -18,10 +18,10 @@ const body = (source, start, end) => {
   return source.slice(from, to);
 };
 
-test('fullscreen option has bilingual help and preserves the disabled legacy preference', () => {
+test('fullscreen option has bilingual help and replaces the legacy control', () => {
   assert.match(settings, /IslandForceShowOverFullscreen/);
   assert.match(settings, /IslandForceShowOverFullscreenDescription/);
-  assert.match(settings, /isEnabled: s => !s\.IslandAppearance\.ForceShowOverFullscreen/);
+  assert.doesNotMatch(settings, /AddToggle\("ActivitiesFullscreen"/);
   assert.doesNotMatch(settings, /ForceShowOverFullscreen = v[\s\S]{0,120}SuppressOverFullscreen = !v/);
   for (const language of ['en-US', 'zh-CN']) {
     const resw = read(`src/DropSpace.App/Strings/${language}/Resources.resw`);
@@ -31,14 +31,15 @@ test('fullscreen option has bilingual help and preserves the disabled legacy pre
   }
 });
 
-test('polling is opt-in, skips placement edits, and is released on shutdown', () => {
+test('polling observes both fullscreen directions, skips placement edits, and is released on shutdown', () => {
   const setup = body(service, 'private void UpdateFullscreenRefreshTimer()', 'private string? GetForegroundFullscreenMonitorId()');
-  assert.match(setup, /ForceShowOverFullscreen && !_disposed/);
+  assert.match(setup, /if \(!_disposed\)/);
   assert.match(setup, /_fullscreenRefreshTimer\.Start\(\)/);
   assert.match(setup, /_fullscreenRefreshTimer\.Stop\(\)/);
   const tick = body(service, 'private void OnFullscreenRefreshTick(', 'private void OnViewModelPropertyChanged(');
   assert.match(tick, /_disposed \|\| _rebuildingSurfaces \|\| _placementEditingWindow is not null/);
-  assert.match(tick, /string\.Equals\(fullscreenMonitorId, _lastFullscreenMonitorId/);
+  assert.match(tick, /CaptureForeground\(_surfaceMonitors\)/);
+  assert.match(tick, /current != previous/);
   const dispose = body(service, 'public void Dispose()', 'private void OnSnapshotChanged(');
   assert.match(dispose, /_fullscreenRefreshTimer\.Stop\(\)/);
   assert.match(dispose, /_fullscreenRefreshTimer\.Tick -= OnFullscreenRefreshTick/);

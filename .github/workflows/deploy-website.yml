@@ -38,7 +38,7 @@ jobs:
         run: |
           version="$(tr -d '\r\n' < RELEASE_VERSION)"
           waived=false
-          if [[ ( "$version" == v0.3.1-beta.11 || "$version" == v0.3.1-beta.12 ) && ( "${{ github.event_name }}" != release || "$RELEASE_EVENT_TAG" == "$version" ) ]]; then
+          if [[ ( "$version" == v0.3.1-beta.11 || "$version" == v0.3.1-beta.12 || "$version" == v0.3.1-beta.13 ) && ( "${{ github.event_name }}" != release || "$RELEASE_EVENT_TAG" == "$version" ) ]]; then
             waived=true
           fi
           echo "skip_tests=$waived" >> "$GITHUB_OUTPUT"

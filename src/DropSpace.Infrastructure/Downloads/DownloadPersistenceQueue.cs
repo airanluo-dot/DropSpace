@@ -26,6 +26,15 @@ public sealed class DownloadPersistenceWorker : IAsyncDisposable
     }
 
     public bool IsAccepting => Volatile.Read(ref _accepting) == 1;
+    public Task DeleteAsync(Guid id)
+    {
+        if (!IsAccepting) throw new ObjectDisposedException(nameof(DownloadPersistenceWorker));
+        _progress.TryRemove(id, out _);
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _critical.Enqueue(new CriticalWrite(null, completion, id));
+        ReleaseSignal();
+        return completion.Task;
+    }
 
     public void EnqueueProgress(DownloadTaskSnapshot snapshot)
     {
@@ -75,8 +84,17 @@ public sealed class DownloadPersistenceWorker : IAsyncDisposable
                 {
                     try
                     {
-                        await _repository.UpsertAsync(critical.Snapshot, CancellationToken.None).ConfigureAwait(false);
-                        RecordCheckpoint(critical.Snapshot);
+                        if (critical.Snapshot is { } snapshot)
+                        {
+                            await _repository.UpsertAsync(snapshot, CancellationToken.None).ConfigureAwait(false);
+                            RecordCheckpoint(snapshot);
+                        }
+                        else
+                        {
+                            await _repository.DeleteAsync(critical.DeleteId, CancellationToken.None).ConfigureAwait(false);
+                            _checkpoints.Remove(critical.DeleteId);
+                            _retryNotBefore.Remove(critical.DeleteId);
+                        }
                         critical.Completion.TrySetResult();
                     }
                     catch (Exception exception)
@@ -191,7 +209,7 @@ public sealed class DownloadPersistenceWorker : IAsyncDisposable
         GC.SuppressFinalize(this);
     }
 
-    private sealed record CriticalWrite(DownloadTaskSnapshot Snapshot, TaskCompletionSource Completion);
+    private sealed record CriticalWrite(DownloadTaskSnapshot? Snapshot, TaskCompletionSource Completion, Guid DeleteId = default);
 
     private sealed record ProgressCheckpoint(
         long RunId,

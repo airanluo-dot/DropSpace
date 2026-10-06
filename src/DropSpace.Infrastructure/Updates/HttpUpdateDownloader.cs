@@ -60,13 +60,11 @@ public sealed class HttpUpdateDownloader(
             (UpdateManifestParser.IsOfficialDownloadUri(uri, candidate.Release.TagName, descriptor.AssetName) ||
              uri.Host is "release-assets.githubusercontent.com" or "objects.githubusercontent.com"),
             request => request.Headers.UserAgent.ParseAdd($"DropSpace/{candidate.Manifest.Version}"));
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromMinutes(30));
         try
         {
             await downloads.DownloadAsync(candidate.SelectedAsset.DownloadUri, partialPath, policy,
                 progress is null ? null : new TransferProgress(progress, descriptor.Size),
-                timeout.Token, descriptor.Size, descriptor.Sha256).ConfigureAwait(false);
+                cancellationToken, descriptor.Size, descriptor.Sha256, transferTimeout: TimeSpan.FromMinutes(30)).ConfigureAwait(false);
             // Legacy length-only partials have no resource validator and safely restart.
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(partialPath, finalPath, true);
@@ -86,7 +84,7 @@ public sealed class HttpUpdateDownloader(
 
     private sealed class TransferProgress(IProgress<UpdateDownloadProgress> target, long total) : IProgress<TrackProgress>
     {
-        public void Report(TrackProgress value) => target.Report(new(value.DownloadedBytes, total));
+        public void Report(TrackProgress value) => target.Report(new(value.DownloadedBytes, total, value.Stage));
     }
 
     private static void TryDeletePartial(string path)

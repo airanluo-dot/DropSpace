@@ -4,8 +4,10 @@ using System.Net.Http.Headers;
 namespace DropSpace.Infrastructure.Downloads;
 
 /// <summary>Caller-owned transport, headers and per-hop trust policy. Never enables auto redirects.</summary>
-public sealed class DownloadRequestPolicy(HttpClient client, Func<Uri, bool> trusted, Action<HttpRequestMessage>? headers = null)
+public sealed class DownloadRequestPolicy(HttpClient client, Func<Uri, bool> trusted, Action<HttpRequestMessage>? headers = null, Action<string, int?>? observer = null)
 {
+    public DownloadRequestPolicy Observe(Action<string, int?> observation) => new(client, trusted, headers,
+        (host, status) => { observer?.Invoke(host, status); observation(host, status); });
     public async Task<HttpResponseMessage> SendAsync(Uri uri, long? from, long? to, string? etag, CancellationToken token)
     {
         for (var hop = 0; hop < 6; hop++)
@@ -17,7 +19,9 @@ public sealed class DownloadRequestPolicy(HttpClient client, Func<Uri, bool> tru
             request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
             if (from is not null) request.Headers.Range = new RangeHeaderValue(from, to);
             if (etag is not null) request.Headers.IfRange = new RangeConditionHeaderValue(EntityTagHeaderValue.Parse(etag));
+            observer?.Invoke(uri.Host, null);
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            observer?.Invoke(uri.Host, (int)response.StatusCode);
             if (response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Found or HttpStatusCode.SeeOther or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect)
             {
                 var location = response.Headers.Location;

@@ -1,3 +1,4 @@
+using DropSpace.Core.Downloads;
 namespace DropSpace.Core.Abstractions;
 
 /// <summary>One owned package. Unknown sizes stay null; bundled components are not downloads.</summary>
@@ -30,5 +31,21 @@ public interface IDlcPackageProvider
     event EventHandler? PackagesChanged;
     Task<DlcPackageInspection> InspectAsync(string packageId, CancellationToken token);
     Task DownloadAsync(string packageId, bool consent, IProgress<double>? progress, CancellationToken token);
+    async Task DownloadWithProgressAsync(string packageId, bool consent, IProgress<TrackProgress>? progress, CancellationToken token)
+    {
+        progress?.Report(new(TrackType.File, 0, null, Stage: DownloadStage.Connecting));
+        await DownloadAsync(packageId, consent, progress is null ? null : new DlcRatioProgress(progress), token).ConfigureAwait(false);
+    }
     Task DeleteAsync(string packageId, CancellationToken token);
+}
+
+// Older installers report operation progress, not measured transfer bytes. Preserve that
+// information without inventing sizes, connection counts or transfer speeds.
+internal sealed class DlcRatioProgress(IProgress<TrackProgress> progress) : IProgress<double>
+{
+    public void Report(double value)
+    {
+        if (double.IsFinite(value)) progress.Report(new(TrackType.File, 0, null,
+            Fraction: Math.Clamp(value, 0, 1)));
+    }
 }

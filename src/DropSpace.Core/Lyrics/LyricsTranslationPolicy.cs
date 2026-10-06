@@ -16,7 +16,7 @@ public static class LyricsTranslationPolicy
     /// <summary>A usable original can enter AI admission even when supplemental lookup timed out.
     /// Language, existing translation, user settings and model checks remain in AI admission.</summary>
     public static bool CanOfferLocalFallback(LyricsQueryResult result) =>
-        result.Status == LyricsQueryStatus.Found && result.Document.Lines.Count > 0;
+        result.Status == LyricsQueryStatus.Found && LyricsBodyQualityPolicy.Classify(result.Document) == LyricsBodyQuality.Usable;
 
     public static string ResolveTarget(AppLanguagePreference preference, IEnumerable<string?> systemLanguages) =>
         AppLanguagePolicy.ResolveEffectiveLanguageTag(preference, systemLanguages);
@@ -33,6 +33,7 @@ public static class LyricsTranslationPolicy
             return LyricsTranslationDecision.UseProvider;
         if (!enabled) return LyricsTranslationDecision.OriginalOnly;
         var source = NormalizeLanguage(sourceLanguage);
+        if (source.Length == 0) return LyricsTranslationDecision.OriginalOnly;
         if (LyricsLanguagePolicy.SameSourceLanguage(source, target)) return LyricsTranslationDecision.OriginalOnly;
         if (!supportedLanguages.Any(language => NormalizeLanguage(language) == target) ||
             (source.Length > 0 && !supportedLanguages.Any(language => NormalizeLanguage(language) == source)))
@@ -42,8 +43,13 @@ public static class LyricsTranslationPolicy
 
     // Provider selection must not inherit the local model's 500-line admission cap.
     // Long documents can still have usable provider-authored translations.
-    public static bool NeedsProviderTranslation(LyricsDocument document, string targetLanguage) =>
-        LyricsLanguagePolicy.EligibleSegments(document, targetLanguage).Any(segments => segments.Length > 0);
+    public static bool NeedsProviderTranslation(LyricsDocument document, string targetLanguage)
+    {
+        var evidence = LyricsLanguagePolicy.SourceEvidence(document);
+        return document.Lines.Select((line, index) => (line, Evidence: evidence[index]))
+            .Any(item => !LyricsLanguagePolicy.IsCredit(item.line.Text) && !string.IsNullOrWhiteSpace(item.line.Text) &&
+                (!item.Evidence.IsConfident || !LyricsLanguagePolicy.SameSourceLanguage(item.Evidence.Language, targetLanguage)));
+    }
 
     public static bool HasMatchingProviderTranslation(LyricsDocument document, string targetLanguage)
     {

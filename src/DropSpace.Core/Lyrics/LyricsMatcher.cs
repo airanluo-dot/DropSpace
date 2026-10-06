@@ -68,9 +68,15 @@ public static class LyricsMatcher
     {
         ArgumentNullException.ThrowIfNull(query);
         var title = SearchTitle(query.Title);
+        var aliases = query.ArtistCandidates.Any(artist => KnownRecordingAlias(query.Title, artist))
+            ? new[] { "怪獣 サカナクション", "Kaiju Sakanaction" } : [];
         return SearchArtists(query)
-            .Take(2)
+            .Take(1)
             .Select(artist => $"{title} {artist}".Trim())
+            .Concat(aliases)
+            .Concat(SearchArtists(query).Where(artist => Normalize(artist) == "abeltesfaye")
+                .Take(1).Select(_ => $"{title} The Weeknd"))
+            .Concat(SearchArtists(query).Skip(1).Take(1).Select(artist => $"{title} {artist}".Trim()))
             .Append(title)
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -102,6 +108,12 @@ public static class LyricsMatcher
         return candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
+    // Bounded publisher evidence: https://sakanaction.jp/news/detail/2959 and ?lang=en.
+    // This never provides a general romanization/fuzzy-title equivalence.
+    private static bool Sakanaction(string artist) => Normalize(artist) is "sakanaction" or "サカナクション" or "鱼韵" or "魚韻";
+    private static bool KnownRecordingAlias(string title, string artist) => Sakanaction(artist) &&
+        Normalize(SearchTitle(title)) is "kaiju" or "怪獣";
+
     public static bool AreTitlesEquivalent(string left, string right) =>
         !HasVersionConflict(left, right) && !HasVersionConflict(right, left) &&
         ComparableTitle(left) is { Length: > 0 } title && title == ComparableTitle(right);
@@ -132,6 +144,10 @@ public static class LyricsMatcher
         IReadOnlyList<string>? artistAliases = null)
     {
         var titleScore = TitleSimilarity(query.Title, title);
+        if (query.ArtistCandidates.Any(value => KnownRecordingAlias(query.Title, value)) && KnownRecordingAlias(title, artist) &&
+            query.Duration > TimeSpan.Zero && double.IsFinite(durationSeconds) && durationSeconds > 0 &&
+            Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds))
+            titleScore = 1;
         // Some media publishers reverse title and artist fields.
         if (titleScore < 0.4 && TitleSimilarity(query.Title, artist) > 0.8 && ArtistSimilarity(query.ArtistCandidates, title) > 0.8)
         { (title, artist) = (artist, title); titleScore = TitleSimilarity(query.Title, title); }
@@ -188,6 +204,7 @@ public static class LyricsMatcher
 
     private static double ArtistSimilarity(string left, string right)
     {
+        if (Sakanaction(left) && Sakanaction(right)) return 1;
         var requested = ArtistCredits(left);
         var candidates = ArtistCredits(right);
         if (requested.Length == 0 || candidates.Length == 0) return 0;
@@ -201,7 +218,15 @@ public static class LyricsMatcher
     }
 
     private static string[] ArtistCredits(string value) => ArtistCreditSeparator.Split(Limit(value))
-        .Select(ArtistCreditOrthography.Fold).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+        .Select(CanonicalArtistCredit).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+
+    // Exact whole-credit alias, corroborated by Apple Music's Starboy catalogue:
+    // https://music.apple.com/qa/song/1677006158. Never infer aliases from substrings.
+    private static string CanonicalArtistCredit(string value) => Normalize(value) switch
+    {
+        "abeltesfaye" or "theweeknd" => "theweeknd",
+        _ => ArtistCreditOrthography.Fold(value)
+    };
 
     private static double TitleSimilarity(string left, string right)
     {

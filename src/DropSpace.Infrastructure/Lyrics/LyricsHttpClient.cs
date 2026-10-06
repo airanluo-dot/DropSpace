@@ -187,6 +187,8 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
     {
         for (var redirects = 0; ; redirects++)
         {
+            var isQq = uri.Host is "u.y.qq.com" or "c.y.qq.com";
+            if (isQq) qqMusicSession?.EnsureUsable();
             using var request = new HttpRequestMessage(jsonBody is null ? HttpMethod.Get : HttpMethod.Post, uri);
             if (jsonBody is not null) request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
             var sessionGeneration = qqMusicSession?.Generation ?? 0;
@@ -195,9 +197,11 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
             request.Headers.UserAgent.ParseAdd("DropSpace/0.3 (+https://github.com/airanluo-dot/DropSpace)");
             if (referer is not null) request.Headers.Referrer = new(referer);
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            if (isQq && response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                qqMusicSession?.ReportAccess(sessionGeneration, false, 429);
             if (!string.IsNullOrEmpty(cookieHeader) && qqMusicSession is not null)
             {
-                if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.TooManyRequests)
                     qqMusicSession.ReportAccess(sessionGeneration, false, (int)response.StatusCode);
                 if (response.Headers.TryGetValues("Set-Cookie", out var updates))
                 {

@@ -508,7 +508,7 @@
   <data name="WidgetHeight" xml:space="preserve"><value>高度</value></data>
   <data name="MusicArtwork" xml:space="preserve"><value>显示专辑封面</value></data>
   <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>本地 LRC</value></data>
-  <data name="IslandHideDelay" xml:space="preserve"><value>隐藏延迟（毫秒）</value></data>
+  <data name="IslandHideDelay" xml:space="preserve"><value>隐藏延迟</value></data>
   <data name="WidgetRight" xml:space="preserve"><value>右侧</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>左侧</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>启用歌词</value></data>
@@ -706,7 +706,7 @@
   <data name="MusicReconnectFailed" xml:space="preserve"><value>音乐重新连接失败，请再次点击刷新重试。</value></data>
   <data name="MediaNextLyricLabel" xml:space="preserve"><value>即将播放的歌词</value></data>
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>全屏时强制显示灵动岛</value></data>
-  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>默认关闭。开启后优先于“全屏时隐藏”，在全屏应用和无边框游戏上保持置顶且不抢焦点。独占全屏游戏可能无法覆盖；不覆盖锁屏或 UAC 安全桌面。</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>允许已有内容或已开启常驻的灵动岛在全屏应用上显示。关闭后按隐藏延迟收起。</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>显示 AI 歌词标识</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>当前无法确认有足够的可用内存进行本地翻译。请释放内存或选择较小模型后重试。</value></data>
   <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU 后端</value></data>
@@ -743,6 +743,7 @@
   <data name="DlcDeleteEnabledModel" xml:space="preserve"><value>这是当前 AI 歌词模型。删除会等待正在进行的推理退出；AI 启用偏好会保留，重新安装或选择可用模型后才能继续翻译。</value></data>
   <data name="AiLyricsCudaFallback" xml:space="preserve"><value>CUDA 组件尚未安装，当前可使用 Vulkan / CPU。</value></data>
   <data name="SettingsPageDlc" xml:space="preserve"><value>DLC</value></data>
+  <data name="SettingsPageDownloads" xml:space="preserve"><value>下载</value></data>
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcDescription" xml:space="preserve"><value>统一管理额外下载的模型、运行库和功能组件。仅在你主动选择时下载。</value></data>
   <data name="DlcManage" xml:space="preserve"><value>前往 DLC 管理下载</value></data>
@@ -844,4 +845,24 @@
   <data name="DlcVisualCppShared" xml:space="preserve"><value>由 Windows 管理，其他应用也可能使用。</value></data>
   <data name="DlcVisualCppInstallNotice" xml:space="preserve"><value>将从微软下载并安装运行库，Windows 可能请求管理员权限。</value></data>
   <data name="DlcNeteaseRemoveNotice" xml:space="preserve"><value>移除增强组件会重新启动网易云音乐。你的资料库和歌单将保留。</value></data>
+  <data name="DownloadMoreHistory" xml:space="preserve"><value>更多下载记录</value></data>
+  <data name="DownloadRemoveHistory" xml:space="preserve"><value>移除记录</value></data>
+  <data name="DownloadRecoveryWarning" xml:space="preserve"><value>部分下载记录暂时无法恢复，请检查磁盘或目录权限。</value></data>
+  <data name="DownloadQueueTimedOut" xml:space="preserve"><value>等待下载超时，请重试。</value></data>
+  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>下载超时，已保留可恢复的进度。</value></data>
+  <data name="DownloadStageChecking" xml:space="preserve"><value>检查已有文件</value></data>
+  <data name="DownloadStageQueued" xml:space="preserve"><value>等待下载</value></data>
+  <data name="DownloadStageWaitingConnection" xml:space="preserve"><value>等待可用连接</value></data>
+  <data name="DownloadStageConnecting" xml:space="preserve"><value>正在连接</value></data>
+  <data name="DownloadStageProbing" xml:space="preserve"><value>检查下载连接</value></data>
+  <data name="DownloadStageTransferring" xml:space="preserve"><value>正在下载</value></data>
+  <data name="DownloadStageRetryWaiting" xml:space="preserve"><value>等待重试</value></data>
+  <data name="DownloadStageMerging" xml:space="preserve"><value>正在合并文件</value></data>
+  <data name="DownloadStageVerifying" xml:space="preserve"><value>正在校验文件</value></data>
+  <data name="DownloadStagePublishing" xml:space="preserve"><value>正在完成安装</value></data>
+  <data name="DownloadStageCompleted" xml:space="preserve"><value>下载完成</value></data>
+  <data name="DownloadTransferDetail" xml:space="preserve"><value>{0} / {1} · {2} MiB/s · {3} 个连接</value></data>
+  <data name="DownloadRetryDetail" xml:space="preserve"><value>第 {0} 次重试</value></data>
+  <data name="IslandResident" xml:space="preserve"><value>常驻灵动岛</value></data>
+  <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} 秒</value></data>
 </root>

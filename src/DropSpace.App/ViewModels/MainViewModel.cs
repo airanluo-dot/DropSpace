@@ -560,7 +560,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ? _strings.Get("UpdateNotChecked")
         : UpdateStatus.Message;
 
-    public string UpdateProgressText => UpdateStatus.Progress is { } progress
+    public string UpdateProgressText => UpdateStatus.Progress is { Stage: DropSpace.Core.Downloads.DownloadStage.Queued }
+        ? _strings.Get("DownloadStageQueued") : UpdateStatus.Progress is { } progress
         ? _strings.Format("UpdateProgress", progress.Percentage, FormatBytes(progress.BytesReceived), FormatBytes(progress.TotalBytes))
         : string.Empty;
 

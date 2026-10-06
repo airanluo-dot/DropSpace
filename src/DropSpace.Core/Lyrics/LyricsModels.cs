@@ -61,6 +61,7 @@ public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProvi
 {
     // Provider parser revision, persisted so previously dropped translations can be refreshed once.
     public int ProviderDataRevision { get; init; }
+    public LyricsBodyQuality BodyQuality { get; init; } = Lines.Count == 0 ? LyricsBodyQuality.NoLyrics : LyricsBodyQuality.Usable;
     public static LyricsDocument Empty { get; } = new([], LyricsProviderKind.LocalLrc);
 
     public LyricsDocument Bind(LyricsQuery query, string title, string artist, string album, double durationSeconds,

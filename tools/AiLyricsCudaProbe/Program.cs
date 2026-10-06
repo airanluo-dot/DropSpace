@@ -33,7 +33,7 @@ var settings = new LyricsSettings { Enabled = true, AiTranslationEnabled = true,
 var source = new LyricsDocument([
     new(TimeSpan.Zero, TimeSpan.FromSeconds(10), "The morning sunlight shines through the window, and we will meet beside the river after breakfast.", null, []),
 ], LyricsProviderKind.LocalLrc);
-var query = new LyricsQuery("Beta12 CUDA validation", "DropSpace", "", TimeSpan.FromSeconds(10), Guid.NewGuid().ToString("N"));
+var query = new LyricsQuery("Beta13 CUDA validation", "DropSpace", "", TimeSpan.FromSeconds(10), Guid.NewGuid().ToString("N"));
 var processProperty = typeof(PersistentPlainLyricsRunner).GetProperty("ActiveProcessId", BindingFlags.NonPublic | BindingFlags.Instance)!;
 var deviceProperty = typeof(PersistentPlainLyricsRunner).GetProperty("ActiveDevice", BindingFlags.NonPublic | BindingFlags.Instance)!;
 var samples = new List<object>();

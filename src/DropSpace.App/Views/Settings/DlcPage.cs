@@ -28,7 +28,7 @@ public sealed class DlcPage : UserControl
     private bool _confirming;
     private int _renderQueued;
 
-    public DlcPage(DlcManagerService manager, IAppStringLocalizer strings, ViewModels.NativeSettingsEditor editor, nint windowHandle)
+    public DlcPage(DlcManagerService manager, IAppStringLocalizer strings, ViewModels.NativeSettingsEditor editor)
     {
         _manager = manager;
         _strings = strings;
@@ -51,7 +51,6 @@ public sealed class DlcPage : UserControl
         _emptyAvailable = new TextBlock { Text = strings.Get("DlcEmptyAvailable"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
         body.Children.Add(_emptyAvailable);
         body.Children.Add(_available);
-        body.Children.Add(new DownloadPanel(editor, strings, windowHandle));
         Content = body;
         AutomationProperties.SetName(this, strings.Get("DlcTitle"));
         AutomationProperties.SetAutomationId(this, "DlcPage");
@@ -197,12 +196,12 @@ public sealed class DlcPage : UserControl
             _strings = strings;
             var body = new StackPanel { Spacing = 10 };
             body.Children.Add(_name); body.Children.Add(_purpose); body.Children.Add(_size); body.Children.Add(_status); body.Children.Add(_progress);
-            var actions = new Grid { ColumnSpacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
-            var buttons = new[] { _download, _delete, _retry, _cancel };
-            for (var i = 0; i < buttons.Length; i++)
+            var actions = new DownloadActionPanel();
+            foreach (var button in new[] { _download, _delete, _retry, _cancel })
             {
-                actions.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
-                Grid.SetColumn(buttons[i], i); actions.Children.Add(buttons[i]);
+                button.MinHeight = 36; button.Padding = new(12, 6, 12, 6); button.FontSize = 14;
+                button.VerticalContentAlignment = VerticalAlignment.Center;
+                actions.Children.Add(button);
             }
             body.Children.Add(actions);
             _download.Click += (_, _) => action(DlcPackageAction.Download);
@@ -244,7 +243,8 @@ public sealed class DlcPage : UserControl
                 },
                 _ => item.WasCanceled ? "DlcCanceled" : item.Installation?.HasArtifacts == true ? "DlcIncomplete" : "DlcNotInstalled",
             };
-            var status = _strings.Get(key);
+            var status = item.State == DlcPackageState.Downloading && item.Transfer is { } transfer
+                ? DlcProgressPresentation.Describe(transfer, _strings) : _strings.Get(key);
             if (!downloading && item.State != DlcPackageState.Failed && item.Installation?.UnavailableReasonResourceKey is { } reason)
                 status += "\n" + _strings.Get(reason);
             if (_status.Text != status) _status.Text = status;
@@ -266,7 +266,7 @@ public sealed class DlcPage : UserControl
         private void UpdateButton(Button button, string key, bool visible, bool enabled, string name)
         {
             var label = _strings.Get(key);
-            button.Content = label; button.Visibility = visible ? Visibility.Visible : Visibility.Collapsed; button.IsEnabled = enabled;
+            button.Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center }; button.Visibility = visible ? Visibility.Visible : Visibility.Collapsed; button.IsEnabled = enabled;
             AutomationProperties.SetName(button, _strings.Format("DlcPackageAction", label, name));
         }
 
