@@ -36,7 +36,7 @@ jobs:
             if(process.env.GITHUB_EVENT_NAME!=='pull_request'||!/^[a-f0-9]{40}$/.test(base??''))throw new Error('Full application build required');
             execFileSync('git',['fetch','--no-tags','--depth=1','origin',base]);
             const names=execFileSync('git',['diff','--name-only','-z',base,'HEAD'],{encoding:'utf8'}).split('\0').filter(Boolean);
-            const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md']);
+            const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md','.github/release-notes/v0.3.1-beta.14.md']);
             maintenance=names.length>0&&names.every(n=>allowed.has(n));
           } catch(e) { console.log(e.message); }
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\n`);
@@ -265,7 +265,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve actual Beta14 build source.' }
           $changed = @(git diff --name-only $source HEAD)
           if ($LASTEXITCODE -ne 0) { throw 'Cannot compare application inputs.' }
-          $allowed = @('.github/workflows/ci.yml', 'docs/dev/beta14-implementation.md')
+          $allowed = @('.github/workflows/ci.yml', 'docs/dev/beta14-implementation.md', '.github/release-notes/v0.3.1-beta.14.md')
           if ($changed.Count -eq 0 -or @($changed | Where-Object { $_ -cnotin $allowed }).Count -gt 0) { exit 0 }
           $release = gh api repos/airanluo-dot/DropSpace/releases/404435682 | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Cannot read the owner-authorized Beta14 candidate.' }
