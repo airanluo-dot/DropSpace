@@ -23,6 +23,8 @@ public sealed class LyricsCache
     {
         public readonly SemaphoreSlim Gate = new(1, 1);
         public long Generation;
+        public long ExecutionGeneration;
+        public long LastClearGeneration;
         public long MaximumBytes = -1;
         public readonly object PolicyGate = new();
     }
@@ -44,6 +46,8 @@ public sealed class LyricsCache
     }
 
     public long Generation => Interlocked.Read(ref _state.Generation);
+    public long ExecutionGeneration => Interlocked.Read(ref _state.ExecutionGeneration);
+    public bool AllowsExecution(long generation) => generation >= Interlocked.Read(ref _state.LastClearGeneration);
 
     public Task SetMaximumBytesAsync(long bytes, CancellationToken token = default)
     {
@@ -174,7 +178,7 @@ public sealed class LyricsCache
 
     public async Task ClearAsync(CancellationToken token)
     {
-        Interlocked.Increment(ref _state.Generation); // Fence writers before waiting for one already in progress.
+        RetireForClear(); // Fence writers and inference before waiting for one already in progress.
         await _gate.WaitAsync(token).ConfigureAwait(false);
         try
         {
@@ -190,7 +194,7 @@ public sealed class LyricsCache
 
     public void Clear()
     {
-        Interlocked.Increment(ref _state.Generation);
+        RetireForClear();
         _gate.Wait();
         try
         {
@@ -199,6 +203,15 @@ public sealed class LyricsCache
                 File.Delete(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, Path.GetFileName(path)));
         }
         finally { _gate.Release(); }
+    }
+
+    private void RetireForClear()
+    {
+        lock (_state.PolicyGate)
+        {
+            Interlocked.Increment(ref _state.ExecutionGeneration);
+            Interlocked.Exchange(ref _state.LastClearGeneration, Interlocked.Increment(ref _state.Generation));
+        }
     }
 
     private string EntryPath(string category, string identity)

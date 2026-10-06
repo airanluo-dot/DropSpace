@@ -67,6 +67,20 @@ public sealed class Beta14FocusedTests
     }
 
     [TestMethod]
+    public async Task DisablingDiskCacheDuringInferenceKeepsLiveResultWithoutWriting()
+    {
+        using var fixture = new CacheFixture();
+        var coordinator = new PlainHyLyricsCoordinator(fixture.Ai);
+        var result = await coordinator.TranslateAsync(new("song", "artist", "album", TimeSpan.FromSeconds(3)),
+            Song("I will stay with you"), "zh-Hans", PlainHyLyricsProtocol.InferenceIdentity(new string('a', 64)),
+            fixture.Ai.Generation, async (_, _) =>
+            { await fixture.Store.SetMaximumBytesAsync(0); return "我会陪在你身边"; }, default);
+        Assert.AreEqual(LyricsTranslationOutcome.Translated, result.Outcome);
+        Assert.IsNotNull(result.Document.Lines[0].Secondary);
+        Assert.AreEqual(0, Directory.GetFiles(fixture.Root).Length);
+    }
+
+    [TestMethod]
     public void RecordingIdentityRejectsOtherVersionsAndCredits()
     {
         var golden = new LyricsQuery("golden hour", "JVKE", "this is what ____ feels like", TimeSpan.FromSeconds(209));

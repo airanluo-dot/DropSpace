@@ -20,15 +20,24 @@ models, components, library and normal caches are preserved.
 
 ## Checks actually run
 
-A single focused seven-case MSTest run built Core/Infrastructure/test assembly.
+A single focused seven-case initial MSTest run built Core/Infrastructure/test assembly.
 Six passed initially; the cache sample had an invalid AI key and unbound source
 identity. Only that case was rerun after correcting the fixture and passed.
+One further focused boundary case passed: disabling disk persistence during
+inference preserves the live translation and leaves no cache file.
 The production cache safety checks were not relaxed. No full suite ran.
 
 The new 48-line host admission snapshot records real current policy output and
 retains independent source-language annotations. It explicitly reports no model
 inference and no semantic approval. Controlled infer delegates verify host
 admission, repeated output reuse, coverage, caching and failure states only.
+
+An isolated Release app was opened with a separate test-data root. The idle logo
+toggle displayed the embedded official logo; clicking the empty capsule opened
+the Files panel and it remained open beyond the old two-second hide deadline.
+It stayed above the ordinary main window with fullscreen forcing off. The five
+import sliders exposed a clipped readout due to the old 180-DIP column; their
+columns are now 260 DIP. This observation is not a hardware/fullscreen matrix.
 
 Release build and package identities are recorded under runtime-publication.json
 and SHA256SUMS.txt in the Release. CPU/Vulkan/CUDA native bytes are reused;

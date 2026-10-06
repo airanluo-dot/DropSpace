@@ -312,7 +312,8 @@ public sealed class AiLyricsService : IDisposable
         // Validated cached data needs neither executable extraction nor a large model rehash.
         // Actual inference still verifies every model/runtime before execution.
         var cacheGeneration = _cache.Generation;
-        bool IsCurrent() => !token.IsCancellationRequested && _cache.Generation == cacheGeneration &&
+        var executionGeneration = _cache.ExecutionGeneration;
+        bool IsCurrent() => !token.IsCancellationRequested && _cache.ExecutionGeneration == executionGeneration &&
             Interlocked.Read(ref _statusGeneration) == statusGeneration && (progress?.IsCurrent ?? true);
         capturePublicationFence?.Invoke(IsCurrent);
         // Even a caller that does not display partial output gets the same request/cache fence.

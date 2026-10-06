@@ -3,7 +3,7 @@
   "kind": "owner-accepted-experimental-beta",
   "verdict": "owner-accepted-experimental-beta",
   "semanticApproved": false,
-  "reviewedBy": "Local Codex, repository-owner-authorized Beta13 source review",
+  "reviewedBy": "Local Codex, repository-owner-authorized Beta14 source review",
   "reviewedAt": "2026-10-06T07:16:06Z",
   "expiresAt": "2026-10-20T07:16:06Z",
   "summary": "Owner-authorized Beta14 contextual line admission and gap filling, recording identity, island and settings fixes. Existing native/model bytes reused. Focused host checks only; no general semantic or hardware qualification.",
@@ -198,11 +198,11 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsCache.cs",
-          "sha256": "bf5583eabc6ddf7dc8e46fc4afba87521365dd5f07a2009ef96cd56394a303cb"
+          "sha256": "f5ce794a363a41b5de5b4b4c57c4c6f99a407de85f5678ef36c68127a52d4247"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCache.cs",
-          "sha256": "3b6e3e3893646e0b45885e2a57eb8028382a14ca32fdfb78937c0e750976b683"
+          "sha256": "6645aba160e3796957a4a503072c9e794a0ff816692c548f819b67f060525dda"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs",
@@ -242,7 +242,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs",
-          "sha256": "0bc68e1baa383a1ec851a698ab9571ebde916d767e49ee299eeda9dbac0dc335"
+          "sha256": "08f1aa124b1ff46ef424e08e54faae21aca07437827b92ab7ccd93bd5b771c04"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsSegmentMemo.cs",
@@ -262,7 +262,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
-          "sha256": "e275c7f6582241f3f83e2bcdb28e573a9c3cbe798542dd42c26634bc55054232"
+          "sha256": "c139969363f0c8abb22d507c096f7c241b8f9b281987bef1ce63f31fd575399e"
         },
         {
           "path": "src/DropSpace.Core/Abstractions/IDlcPackageProvider.cs",
@@ -546,7 +546,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.xaml",
-          "sha256": "25d8736da796d59c5f603b313eb1ee4572af2517a450d171e2def10044a48a75"
+          "sha256": "b762a9c9af1a6a4e865bf5d3ed9c4272f90491d6e54e1b14ce99aaee91ae7bbe"
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
@@ -1049,7 +1049,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "e54b61246d3cc225204fd545a21203d1af32d6211a454d97d0c99908f7ca8cd0"
+      "sha256": "2c5ae24fcea0e010c05b0a5203be06d2dacbdef1fe08b2074d7d1006b3cfe550"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v10.json",

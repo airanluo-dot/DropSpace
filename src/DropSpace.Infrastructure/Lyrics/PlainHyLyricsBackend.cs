@@ -99,7 +99,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
             // the timing scope before the final cancellation/generation/request check as well.
             measured.Dispose();
             token.ThrowIfCancellationRequested();
-            return cache.Generation == generation && progress?.IsCurrent != false ? result
+            return cache.AllowsExecution(generation) && progress?.IsCurrent != false ? result
                 : new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         }
         catch (OperationCanceledException) { measured.Complete(PlainLyricsMetrics.Outcome.Cancelled); throw; }
@@ -118,14 +118,15 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         source = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(source, targetLanguage);
         source = LyricsLanguagePolicy.MarkTranslationStates(source, targetLanguage);
-        if (cache.Generation != generation || progress?.IsCurrent == false ||
+        var executionGeneration = cache.ExecutionGeneration;
+        if (!cache.AllowsExecution(generation) || progress?.IsCurrent == false ||
             LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
             return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var indices = LyricsLanguagePolicy.EligibleIndices(source, targetLanguage);
         if (indices.Length == 0) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var key = PlainHyLyricsProtocol.CacheKey(query, source, targetLanguage, identity);
         var cached = await TryGetCachedAsync(query, source, targetLanguage, identity, token).ConfigureAwait(false);
-        if (cache.Generation != generation || progress?.IsCurrent == false) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
+        if (cache.ExecutionGeneration != executionGeneration || progress?.IsCurrent == false) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         if (cached is not null)
         {
             if (cached.Outcome == LyricsTranslationOutcome.Translated)
@@ -144,7 +145,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
             lines = source.Lines.Select((line, id) => new { id, line.TranslationState, line.TranslationReason }) });
         var finished = 0;
         bool IsCurrent() => Volatile.Read(ref finished) == 0 && !budget.IsCancellationRequested &&
-            cache.Generation == generation && (progress?.IsCurrent ?? true);
+            cache.ExecutionGeneration == executionGeneration && (progress?.IsCurrent ?? true);
         LyricsTranslationResult Failed(string reason)
         {
             result = result with { Lines = result.Lines.Select((line, id) => pending.Contains(id)

@@ -411,7 +411,7 @@
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="260" />
               </Grid.ColumnDefinitions>
               <TextBlock services:XamlResourceOverride.Uid="MaxImageMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <settings:SettingsValueSlider x:Name="MaxImageMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="256" ValueChanged="OnClipboardLimitsChanged" />
@@ -419,7 +419,7 @@
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="260" />
               </Grid.ColumnDefinitions>
               <TextBlock services:XamlResourceOverride.Uid="MaxImageMegapixelsLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <settings:SettingsValueSlider x:Name="MaxImageMegapixelsNumber" Grid.Column="1" Minimum="1" Maximum="200" ValueChanged="OnClipboardLimitsChanged" />
@@ -449,7 +449,7 @@
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="260" />
               </Grid.ColumnDefinitions>
               <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileItemsLabel" VerticalAlignment="Center" />
               <settings:SettingsValueSlider x:Name="MaxClipboardFileItemsNumber" Grid.Column="1" Minimum="1" Maximum="1000" ValueChanged="OnClipboardLimitsChanged" />
@@ -457,7 +457,7 @@
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="260" />
               </Grid.ColumnDefinitions>
               <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <settings:SettingsValueSlider x:Name="MaxClipboardFileMegabytesNumber" Nonlinear="True" Grid.Column="1" Minimum="1" Maximum="1048576" ValueChanged="OnClipboardLimitsChanged" />
@@ -465,7 +465,7 @@
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="260" />
               </Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileTotalMegabytesLabel" TextWrapping="Wrap" />
