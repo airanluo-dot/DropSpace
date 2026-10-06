@@ -1,0 +1,1432 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "host-fixture-admission-v11",
+  "fixtureSha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
+  "policyVersion": "contextual-line-admission-v11",
+  "policySourceSha256": "98fa1a00ee17634bbd740990f661b3f615d12bebd5074f2664177b60c7355718",
+  "policySourceHashNormalization": "UTF-8 with CRLF normalized to LF",
+  "modelInferenceExecuted": false,
+  "semanticApproved": false,
+  "computedWith": "Beta15TranslationProtectionTests.FrozenAdmissionSnapshotBindsCurrentHostPolicyWithoutInference",
+  "reviewNotes": "Current host computation only; unchanged independent fixture language annotations retained. No model execution or semantic approval.",
+  "semanticLanguages": [
+    {
+      "firstLineId": 0,
+      "lastLineId": 11,
+      "language": "en"
+    },
+    {
+      "firstLineId": 12,
+      "lastLineId": 23,
+      "language": "ja"
+    },
+    {
+      "firstLineId": 24,
+      "lastLineId": 35,
+      "language": "ko"
+    },
+    {
+      "firstLineId": 36,
+      "lastLineId": 47,
+      "language": "zh-Hans"
+    }
+  ],
+  "targets": {
+    "en": [
+      {
+        "lineId": 0,
+        "sourceText": "I fold the morning into a paper boat.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 1,
+        "sourceText": "Your blue cup waits beside the window.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 2,
+        "sourceText": "I did not promise to forget your name.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 3,
+        "sourceText": "You said the northern road was closed.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 4,
+        "sourceText": "We carry seven seeds across the bridge.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 5,
+        "sourceText": "No lantern can replace the summer sun.",
+        "detectedLanguage": "en",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 6,
+        "sourceText": "If you return, knock softly twice.",
+        "detectedLanguage": "en",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 7,
+        "sourceText": "I hear the train but cannot see its lights.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 8,
+        "sourceText": "The quiet room belongs to neither of us.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 9,
+        "sourceText": "Keep the red scarf; leave the silver key.",
+        "detectedLanguage": "en",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 10,
+        "sourceText": "Tomorrow I will choose a different path.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 11,
+        "sourceText": "Our little river still remembers rain.",
+        "detectedLanguage": "en",
+        "confidence": 0.92,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 12,
+        "sourceText": "\u671D\u306E\u5149\u3092\u7D19\u306E\u821F\u306B\u6298\u308B\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u671D\u306E\u5149\u3092\u7D19\u306E\u821F\u306B\u6298\u308B\u3002",
+            "sha256": "11a091edc69ece594dde7d64d15ca43698eb7d5fb46db9b106bb83c0e27bac36"
+          }
+        ]
+      },
+      {
+        "lineId": 13,
+        "sourceText": "\u9752\u3044\u30AB\u30C3\u30D7\u304C\u7A93\u8FBA\u3067\u541B\u3092\u5F85\u3064\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u9752\u3044\u30AB\u30C3\u30D7\u304C\u7A93\u8FBA\u3067\u541B\u3092\u5F85\u3064\u3002",
+            "sha256": "735c3422e7b23ea8054438c9ff46a812caf73fd825ba7147b39dc3ee5cb3ee63"
+          }
+        ]
+      },
+      {
+        "lineId": 14,
+        "sourceText": "\u541B\u306E\u540D\u524D\u3092\u5FD8\u308C\u308B\u3068\u306F\u7D04\u675F\u3057\u3066\u3044\u306A\u3044\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u541B\u306E\u540D\u524D\u3092\u5FD8\u308C\u308B\u3068\u306F\u7D04\u675F\u3057\u3066\u3044\u306A\u3044\u3002",
+            "sha256": "99c2f8c3ebe339e371fc66782d58d3a032e2dcc6b38c5791d003aadc981b971e"
+          }
+        ]
+      },
+      {
+        "lineId": 15,
+        "sourceText": "\u5317\u3078\u7D9A\u304F\u9053\u306F\u9589\u3058\u305F\u3068\u541B\u306F\u8A00\u3063\u305F\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5317\u3078\u7D9A\u304F\u9053\u306F\u9589\u3058\u305F\u3068\u541B\u306F\u8A00\u3063\u305F\u3002",
+            "sha256": "9826dece90d837d229668cc0b1d16d54ed06a1cc84ce8a9448d518d09d58d518"
+          }
+        ]
+      },
+      {
+        "lineId": 16,
+        "sourceText": "\u4E03\u3064\u306E\u7A2E\u3092\u6301\u3063\u3066\u6A4B\u3092\u6E21\u308B\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u4E03\u3064\u306E\u7A2E\u3092\u6301\u3063\u3066\u6A4B\u3092\u6E21\u308B\u3002",
+            "sha256": "e33c309dde1c4125e0dba560c5a10b6b9c2b71f648c29ed02eb1606849d22cd3"
+          }
+        ]
+      },
+      {
+        "lineId": 17,
+        "sourceText": "\u706F\u308A\u306F\u590F\u306E\u592A\u967D\u306E\u4EE3\u308F\u308A\u306B\u306F\u306A\u3089\u306A\u3044\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u706F\u308A\u306F\u590F\u306E\u592A\u967D\u306E\u4EE3\u308F\u308A\u306B\u306F\u306A\u3089\u306A\u3044\u3002",
+            "sha256": "affdb5924ed05a589ed788a804a3eb78781085474ad6a0b147f3c4f5b935f833"
+          }
+        ]
+      },
+      {
+        "lineId": 18,
+        "sourceText": "\u623B\u308B\u306A\u3089\u3001\u305D\u3063\u3068\u4E8C\u56DE\u30CE\u30C3\u30AF\u3057\u3066\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u623B\u308B\u306A\u3089\u3001\u305D\u3063\u3068\u4E8C\u56DE\u30CE\u30C3\u30AF\u3057\u3066\u3002",
+            "sha256": "569aa1fb6879a9e80fcd52acf9bf6923c51673783c4c28a7c7edf6b01dcecd2b"
+          }
+        ]
+      },
+      {
+        "lineId": 19,
+        "sourceText": "\u5217\u8ECA\u306E\u97F3\u306F\u805E\u3053\u3048\u308B\u304C\u3001\u5149\u306F\u898B\u3048\u306A\u3044\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5217\u8ECA\u306E\u97F3\u306F\u805E\u3053\u3048\u308B\u304C\u3001\u5149\u306F\u898B\u3048\u306A\u3044\u3002",
+            "sha256": "dc1f5d0f3ecffeaa7b27ad24fe6395e60177cbbbe709d3dd065c16b0eb9df32b"
+          }
+        ]
+      },
+      {
+        "lineId": 20,
+        "sourceText": "\u9759\u304B\u306A\u90E8\u5C4B\u306F\u79C1\u305F\u3061\u306E\u3069\u3061\u3089\u306E\u3082\u306E\u3067\u3082\u306A\u3044\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u9759\u304B\u306A\u90E8\u5C4B\u306F\u79C1\u305F\u3061\u306E\u3069\u3061\u3089\u306E\u3082\u306E\u3067\u3082\u306A\u3044\u3002",
+            "sha256": "b68f7b2bc2d9c4743d243bb3e44a793c31637af850f0c3c3de768a4259f7230b"
+          }
+        ]
+      },
+      {
+        "lineId": 21,
+        "sourceText": "\u8D64\u3044\u30B9\u30AB\u30FC\u30D5\u3092\u6301\u3063\u3066\u3001\u9280\u306E\u9375\u3092\u7F6E\u3044\u3066\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u8D64\u3044\u30B9\u30AB\u30FC\u30D5\u3092\u6301\u3063\u3066\u3001\u9280\u306E\u9375\u3092\u7F6E\u3044\u3066\u3002",
+            "sha256": "c99b747ece19bfd0f2b7e6ae2c41419164d66c0dda95d5bef26ea0dc14f38447"
+          }
+        ]
+      },
+      {
+        "lineId": 22,
+        "sourceText": "\u660E\u65E5\u306F\u5225\u306E\u9053\u3092\u9078\u3076\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u660E\u65E5\u306F\u5225\u306E\u9053\u3092\u9078\u3076\u3002",
+            "sha256": "444764e17ae35d068ed198ed8bbcf884e896a6cf4c6e21fef3d0a9c07906cce7"
+          }
+        ]
+      },
+      {
+        "lineId": 23,
+        "sourceText": "\u5C0F\u3055\u306A\u5DDD\u306F\u307E\u3060\u96E8\u3092\u899A\u3048\u3066\u3044\u308B\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5C0F\u3055\u306A\u5DDD\u306F\u307E\u3060\u96E8\u3092\u899A\u3048\u3066\u3044\u308B\u3002",
+            "sha256": "f053e8104c3075e946afe92c63bd20eb082f85a4fc545d62dc8edd4a08b8caa5"
+          }
+        ]
+      },
+      {
+        "lineId": 24,
+        "sourceText": "\uC544\uCE68 \uD587\uC0B4\uC744 \uC885\uC774\uBC30\uC5D0 \uC811\uC5B4 \uB2F4\uC544.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uC544\uCE68 \uD587\uC0B4\uC744 \uC885\uC774\uBC30\uC5D0 \uC811\uC5B4 \uB2F4\uC544.",
+            "sha256": "27cc182d18bfe3740c8abd013d9f03693a7ef0a3867a77e4f8fde3cdb058f9cd"
+          }
+        ]
+      },
+      {
+        "lineId": 25,
+        "sourceText": "\uD30C\uB780 \uCEF5\uC774 \uCC3D\uAC00\uC5D0\uC11C \uB108\uB97C \uAE30\uB2E4\uB824.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uD30C\uB780 \uCEF5\uC774 \uCC3D\uAC00\uC5D0\uC11C \uB108\uB97C \uAE30\uB2E4\uB824.",
+            "sha256": "b6f164bc480cf9933c512dfc14706bc4bb1fbe445e408d62dfc054bf92f60131"
+          }
+        ]
+      },
+      {
+        "lineId": 26,
+        "sourceText": "\uB124 \uC774\uB984\uC744 \uC78A\uACA0\uB2E4\uACE0 \uC57D\uC18D\uD558\uC9C0 \uC54A\uC558\uC5B4.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uB124 \uC774\uB984\uC744 \uC78A\uACA0\uB2E4\uACE0 \uC57D\uC18D\uD558\uC9C0 \uC54A\uC558\uC5B4.",
+            "sha256": "fe88492203d9b80e412d5af6cb8a754bc2ad35ecdb7cdc60a813dde95431a7c4"
+          }
+        ]
+      },
+      {
+        "lineId": 27,
+        "sourceText": "\uBD81\uCABD \uAE38\uC774 \uB2EB\uD614\uB2E4\uACE0 \uB124\uAC00 \uB9D0\uD588\uC5B4.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uBD81\uCABD \uAE38\uC774 \uB2EB\uD614\uB2E4\uACE0 \uB124\uAC00 \uB9D0\uD588\uC5B4.",
+            "sha256": "056b2d8c31816bed06c1d089f71b06a4fab2720280123ce23600f386ae84914b"
+          }
+        ]
+      },
+      {
+        "lineId": 28,
+        "sourceText": "\uC6B0\uB9AC\uB294 \uC528\uC557 \uC77C\uACF1 \uAC1C\uB97C \uB4E4\uACE0 \uB2E4\uB9AC\uB97C \uAC74\uB108.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uC6B0\uB9AC\uB294 \uC528\uC557 \uC77C\uACF1 \uAC1C\uB97C \uB4E4\uACE0 \uB2E4\uB9AC\uB97C \uAC74\uB108.",
+            "sha256": "4975a77f77f7aa4597a2ab720b97a8d1bd1bc70864c51fe75a955bac63f633af"
+          }
+        ]
+      },
+      {
+        "lineId": 29,
+        "sourceText": "\uB4F1\uBD88\uC740 \uC5EC\uB984 \uD0DC\uC591\uC744 \uB300\uC2E0\uD560 \uC218 \uC5C6\uC5B4.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uB4F1\uBD88\uC740 \uC5EC\uB984 \uD0DC\uC591\uC744 \uB300\uC2E0\uD560 \uC218 \uC5C6\uC5B4.",
+            "sha256": "777fe0301ff5b9e696c66cce4b624d5700cc49388991c8e5a6574078bd5536eb"
+          }
+        ]
+      },
+      {
+        "lineId": 30,
+        "sourceText": "\uB3CC\uC544\uC624\uBA74 \uC870\uC6A9\uD788 \uB450 \uBC88 \uB450\uB4DC\uB824.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uB3CC\uC544\uC624\uBA74 \uC870\uC6A9\uD788 \uB450 \uBC88 \uB450\uB4DC\uB824.",
+            "sha256": "f145e6fc2b43cb2e4f851fd71a91862ff5b4ba5f06e38299b77077c47af2ac20"
+          }
+        ]
+      },
+      {
+        "lineId": 31,
+        "sourceText": "\uAE30\uCC28 \uC18C\uB9AC\uB294 \uB4E4\uB9AC\uC9C0\uB9CC \uBD88\uBE5B\uC740 \uBCF4\uC774\uC9C0 \uC54A\uC544.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uAE30\uCC28 \uC18C\uB9AC\uB294 \uB4E4\uB9AC\uC9C0\uB9CC \uBD88\uBE5B\uC740 \uBCF4\uC774\uC9C0 \uC54A\uC544.",
+            "sha256": "ad00403f29203295e0181944d7e5368994fcd18426686403f62f9aabecc82641"
+          }
+        ]
+      },
+      {
+        "lineId": 32,
+        "sourceText": "\uACE0\uC694\uD55C \uBC29\uC740 \uC6B0\uB9AC \uB204\uAD6C\uC758 \uAC83\uB3C4 \uC544\uB2C8\uC57C.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uACE0\uC694\uD55C \uBC29\uC740 \uC6B0\uB9AC \uB204\uAD6C\uC758 \uAC83\uB3C4 \uC544\uB2C8\uC57C.",
+            "sha256": "6afc68e873c2566c88f9f2739a6b1a5bf5ddaf3e153cd8745bdf2aa4ad3dbbee"
+          }
+        ]
+      },
+      {
+        "lineId": 33,
+        "sourceText": "\uBE68\uAC04 \uBAA9\uB3C4\uB9AC\uB294 \uAC00\uC838\uAC00\uACE0 \uC740\uC0C9 \uC5F4\uC1E0\uB294 \uB450\uACE0 \uAC00.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uBE68\uAC04 \uBAA9\uB3C4\uB9AC\uB294 \uAC00\uC838\uAC00\uACE0 \uC740\uC0C9 \uC5F4\uC1E0\uB294 \uB450\uACE0 \uAC00.",
+            "sha256": "8e53fed0827d24451585390ff37d0fd6445d4f26ff6b91fc2a444807c553b0f6"
+          }
+        ]
+      },
+      {
+        "lineId": 34,
+        "sourceText": "\uB0B4\uC77C \uB098\uB294 \uB2E4\uB978 \uAE38\uC744 \uACE0\uB97C \uAC70\uC57C.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uB0B4\uC77C \uB098\uB294 \uB2E4\uB978 \uAE38\uC744 \uACE0\uB97C \uAC70\uC57C.",
+            "sha256": "b1aebb00b8b6b898746262d77b006dbe040aa4476a090b336b1bba7cac0d092c"
+          }
+        ]
+      },
+      {
+        "lineId": 35,
+        "sourceText": "\uC791\uC740 \uAC15\uC740 \uC544\uC9C1 \uBE44\uB97C \uAE30\uC5B5\uD574.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uC791\uC740 \uAC15\uC740 \uC544\uC9C1 \uBE44\uB97C \uAE30\uC5B5\uD574.",
+            "sha256": "a185919156106bbd0e1be0a41c415994fecc01971a4f7689ab724ac844521c93"
+          }
+        ]
+      },
+      {
+        "lineId": 36,
+        "sourceText": "\u6211\u628A\u6668\u5149\u6298\u8FDB\u4E00\u53EA\u7EB8\u8239\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u6211\u628A\u6668\u5149\u6298\u8FDB\u4E00\u53EA\u7EB8\u8239\u3002",
+            "sha256": "dc476b5ab588e500a27abe83c59b1c29a6114c9981724d1297676b3de5e83a3e"
+          }
+        ]
+      },
+      {
+        "lineId": 37,
+        "sourceText": "\u4F60\u7684\u84DD\u676F\u5B50\u4ECD\u5728\u7A97\u8FB9\u7B49\u5019\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u4F60\u7684\u84DD\u676F\u5B50\u4ECD\u5728\u7A97\u8FB9\u7B49\u5019\u3002",
+            "sha256": "ec79763bbb2dd94fc565c7ea17a8beb40ab839e0db5da03dfab1c29778c852e3"
+          }
+        ]
+      },
+      {
+        "lineId": 38,
+        "sourceText": "\u6211\u5E76\u6CA1\u6709\u7B54\u5E94\u5FD8\u8BB0\u4F60\u7684\u540D\u5B57\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u6211\u5E76\u6CA1\u6709\u7B54\u5E94\u5FD8\u8BB0\u4F60\u7684\u540D\u5B57\u3002",
+            "sha256": "519f9da3221ded7e27146ad4091a238c9b2f22016fd7df1657f841f8c9c11fbd"
+          }
+        ]
+      },
+      {
+        "lineId": 39,
+        "sourceText": "\u4F60\u8BF4\u5411\u5317\u7684\u8DEF\u5DF2\u7ECF\u5173\u95ED\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.92,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u4F60\u8BF4\u5411\u5317\u7684\u8DEF\u5DF2\u7ECF\u5173\u95ED\u3002",
+            "sha256": "a7676822074c4a63e2b8c4e935f4e23e9dc90e501122cbdd573fab26df59abf6"
+          }
+        ]
+      },
+      {
+        "lineId": 40,
+        "sourceText": "\u6211\u4EEC\u5E26\u7740\u4E03\u7C92\u79CD\u5B50\u8D70\u8FC7\u6865\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u6211\u4EEC\u5E26\u7740\u4E03\u7C92\u79CD\u5B50\u8D70\u8FC7\u6865\u3002",
+            "sha256": "d722d94e826f84ebb805062f9812065f30e4769585bf49adbe88538436a2162f"
+          }
+        ]
+      },
+      {
+        "lineId": 41,
+        "sourceText": "\u6CA1\u6709\u706F\u7B3C\u80FD\u4EE3\u66FF\u590F\u5929\u7684\u592A\u9633\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u6CA1\u6709\u706F\u7B3C\u80FD\u4EE3\u66FF\u590F\u5929\u7684\u592A\u9633\u3002",
+            "sha256": "c0f87ca9c315b2d30023dba448b01fa7e9381ee50ef9e655a83d28c84bb7aff7"
+          }
+        ]
+      },
+      {
+        "lineId": 42,
+        "sourceText": "\u5982\u679C\u4F60\u56DE\u6765\uFF0C\u8BF7\u8F7B\u8F7B\u6572\u4E24\u4E0B\u95E8\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5982\u679C\u4F60\u56DE\u6765\uFF0C\u8BF7\u8F7B\u8F7B\u6572\u4E24\u4E0B\u95E8\u3002",
+            "sha256": "c2b2d8289f6f76fd5f2a1965afdb128804a1f156d307ad98cd1852ad1584cce7"
+          }
+        ]
+      },
+      {
+        "lineId": 43,
+        "sourceText": "\u6211\u542C\u89C1\u706B\u8F66\uFF0C\u5374\u770B\u4E0D\u89C1\u706F\u5149\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u6211\u542C\u89C1\u706B\u8F66\uFF0C\u5374\u770B\u4E0D\u89C1\u706F\u5149\u3002",
+            "sha256": "08cdaf367745edff8b31b5762784fbb5e1224a1d5ff5ca01efa3e35e3ba3b3cc"
+          }
+        ]
+      },
+      {
+        "lineId": 44,
+        "sourceText": "\u5B89\u9759\u7684\u623F\u95F4\u4E0D\u5C5E\u4E8E\u6211\u4EEC\u4EFB\u4F55\u4E00\u4E2A\u4EBA\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5B89\u9759\u7684\u623F\u95F4\u4E0D\u5C5E\u4E8E\u6211\u4EEC\u4EFB\u4F55\u4E00\u4E2A\u4EBA\u3002",
+            "sha256": "b95d84b380739d10ab5ea4c3acb0c86f6493f80ba89336e5f5744d9d4b15d867"
+          }
+        ]
+      },
+      {
+        "lineId": 45,
+        "sourceText": "\u5E26\u8D70\u7EA2\u56F4\u5DFE\uFF0C\u7559\u4E0B\u94F6\u94A5\u5319\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5E26\u8D70\u7EA2\u56F4\u5DFE\uFF0C\u7559\u4E0B\u94F6\u94A5\u5319\u3002",
+            "sha256": "08a13110ea58313e8fc4d25075da4c8cccbccdae5b4e400dbefbf7d7e26c6fe3"
+          }
+        ]
+      },
+      {
+        "lineId": 46,
+        "sourceText": "\u660E\u5929\u6211\u4F1A\u9009\u62E9\u53E6\u4E00\u6761\u8DEF\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u660E\u5929\u6211\u4F1A\u9009\u62E9\u53E6\u4E00\u6761\u8DEF\u3002",
+            "sha256": "11297bf6324d6ed250f39add634f1e10b0a1e0bfb6fb33c7c58b9edea19d88a2"
+          }
+        ]
+      },
+      {
+        "lineId": 47,
+        "sourceText": "\u6211\u4EEC\u7684\u5C0F\u6CB3\u4ECD\u7136\u8BB0\u5F97\u96E8\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u6211\u4EEC\u7684\u5C0F\u6CB3\u4ECD\u7136\u8BB0\u5F97\u96E8\u3002",
+            "sha256": "7c5dca97fee5841308f69e93f031a75a3d96357158dfd437542c6c06740606aa"
+          }
+        ]
+      }
+    ],
+    "zh-Hans": [
+      {
+        "lineId": 0,
+        "sourceText": "I fold the morning into a paper boat.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "I fold the morning into a paper boat.",
+            "sha256": "03e9e32a4d6a67edd57578dbf793a536afe88b874c11f793957247e25062958f"
+          }
+        ]
+      },
+      {
+        "lineId": 1,
+        "sourceText": "Your blue cup waits beside the window.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Your blue cup waits beside the window.",
+            "sha256": "81d9f463643bed1b5748993fb149c9233f436fe111c0f6d516217365bbd70e74"
+          }
+        ]
+      },
+      {
+        "lineId": 2,
+        "sourceText": "I did not promise to forget your name.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "I did not promise to forget your name.",
+            "sha256": "a07960ebaa5f26be6722a8588ee5072f4021c5b2061c622e21aab520d63eb8e6"
+          }
+        ]
+      },
+      {
+        "lineId": 3,
+        "sourceText": "You said the northern road was closed.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "You said the northern road was closed.",
+            "sha256": "b2183e8a6bc2a5a816e7b30cac53618abb6bb86494a099ab0d8b1f4e16a5ca86"
+          }
+        ]
+      },
+      {
+        "lineId": 4,
+        "sourceText": "We carry seven seeds across the bridge.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "We carry seven seeds across the bridge.",
+            "sha256": "ea0b12b7b81ff92951d4bb670bebd42d2dcf5501cb971c0b17a2eb404a829cb2"
+          }
+        ]
+      },
+      {
+        "lineId": 5,
+        "sourceText": "No lantern can replace the summer sun.",
+        "detectedLanguage": "en",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "No lantern can replace the summer sun.",
+            "sha256": "e051f541b14956ff095166d9fd56b07fdb345780eaca93eefb72cfd9de14543c"
+          }
+        ]
+      },
+      {
+        "lineId": 6,
+        "sourceText": "If you return, knock softly twice.",
+        "detectedLanguage": "en",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "If you return, knock softly twice.",
+            "sha256": "8f5e4861a7454d840efec782042d13e7aaab92f1b6bbc4a0de68343e9043641f"
+          }
+        ]
+      },
+      {
+        "lineId": 7,
+        "sourceText": "I hear the train but cannot see its lights.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "I hear the train but cannot see its lights.",
+            "sha256": "09eb03687fe22f1e83fdee0df1b1dc6dcabfac404fac54656e08dce338268ec0"
+          }
+        ]
+      },
+      {
+        "lineId": 8,
+        "sourceText": "The quiet room belongs to neither of us.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "The quiet room belongs to neither of us.",
+            "sha256": "4ed3db6804c4fd6a0b2161bc44b741d86a3e8abd146f6855c5257a3e42b753b1"
+          }
+        ]
+      },
+      {
+        "lineId": 9,
+        "sourceText": "Keep the red scarf; leave the silver key.",
+        "detectedLanguage": "en",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Keep the red scarf; leave the silver key.",
+            "sha256": "0f463e6a028751fbe6b3ea8da2ed6c1b90b1660f02b4e706d8f68b709b108a92"
+          }
+        ]
+      },
+      {
+        "lineId": 10,
+        "sourceText": "Tomorrow I will choose a different path.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Tomorrow I will choose a different path.",
+            "sha256": "6063cd441638da140fe359d9262d44d241772471ba3bffddedde713991ce59ab"
+          }
+        ]
+      },
+      {
+        "lineId": 11,
+        "sourceText": "Our little river still remembers rain.",
+        "detectedLanguage": "en",
+        "confidence": 0.92,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Our little river still remembers rain.",
+            "sha256": "b79d75149d375841182c24d9afd02f19783d8f3596f622c556f60bfbef2e1910"
+          }
+        ]
+      },
+      {
+        "lineId": 12,
+        "sourceText": "\u671D\u306E\u5149\u3092\u7D19\u306E\u821F\u306B\u6298\u308B\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u671D\u306E\u5149\u3092\u7D19\u306E\u821F\u306B\u6298\u308B\u3002",
+            "sha256": "11a091edc69ece594dde7d64d15ca43698eb7d5fb46db9b106bb83c0e27bac36"
+          }
+        ]
+      },
+      {
+        "lineId": 13,
+        "sourceText": "\u9752\u3044\u30AB\u30C3\u30D7\u304C\u7A93\u8FBA\u3067\u541B\u3092\u5F85\u3064\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u9752\u3044\u30AB\u30C3\u30D7\u304C\u7A93\u8FBA\u3067\u541B\u3092\u5F85\u3064\u3002",
+            "sha256": "735c3422e7b23ea8054438c9ff46a812caf73fd825ba7147b39dc3ee5cb3ee63"
+          }
+        ]
+      },
+      {
+        "lineId": 14,
+        "sourceText": "\u541B\u306E\u540D\u524D\u3092\u5FD8\u308C\u308B\u3068\u306F\u7D04\u675F\u3057\u3066\u3044\u306A\u3044\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u541B\u306E\u540D\u524D\u3092\u5FD8\u308C\u308B\u3068\u306F\u7D04\u675F\u3057\u3066\u3044\u306A\u3044\u3002",
+            "sha256": "99c2f8c3ebe339e371fc66782d58d3a032e2dcc6b38c5791d003aadc981b971e"
+          }
+        ]
+      },
+      {
+        "lineId": 15,
+        "sourceText": "\u5317\u3078\u7D9A\u304F\u9053\u306F\u9589\u3058\u305F\u3068\u541B\u306F\u8A00\u3063\u305F\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5317\u3078\u7D9A\u304F\u9053\u306F\u9589\u3058\u305F\u3068\u541B\u306F\u8A00\u3063\u305F\u3002",
+            "sha256": "9826dece90d837d229668cc0b1d16d54ed06a1cc84ce8a9448d518d09d58d518"
+          }
+        ]
+      },
+      {
+        "lineId": 16,
+        "sourceText": "\u4E03\u3064\u306E\u7A2E\u3092\u6301\u3063\u3066\u6A4B\u3092\u6E21\u308B\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u4E03\u3064\u306E\u7A2E\u3092\u6301\u3063\u3066\u6A4B\u3092\u6E21\u308B\u3002",
+            "sha256": "e33c309dde1c4125e0dba560c5a10b6b9c2b71f648c29ed02eb1606849d22cd3"
+          }
+        ]
+      },
+      {
+        "lineId": 17,
+        "sourceText": "\u706F\u308A\u306F\u590F\u306E\u592A\u967D\u306E\u4EE3\u308F\u308A\u306B\u306F\u306A\u3089\u306A\u3044\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u706F\u308A\u306F\u590F\u306E\u592A\u967D\u306E\u4EE3\u308F\u308A\u306B\u306F\u306A\u3089\u306A\u3044\u3002",
+            "sha256": "affdb5924ed05a589ed788a804a3eb78781085474ad6a0b147f3c4f5b935f833"
+          }
+        ]
+      },
+      {
+        "lineId": 18,
+        "sourceText": "\u623B\u308B\u306A\u3089\u3001\u305D\u3063\u3068\u4E8C\u56DE\u30CE\u30C3\u30AF\u3057\u3066\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u623B\u308B\u306A\u3089\u3001\u305D\u3063\u3068\u4E8C\u56DE\u30CE\u30C3\u30AF\u3057\u3066\u3002",
+            "sha256": "569aa1fb6879a9e80fcd52acf9bf6923c51673783c4c28a7c7edf6b01dcecd2b"
+          }
+        ]
+      },
+      {
+        "lineId": 19,
+        "sourceText": "\u5217\u8ECA\u306E\u97F3\u306F\u805E\u3053\u3048\u308B\u304C\u3001\u5149\u306F\u898B\u3048\u306A\u3044\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5217\u8ECA\u306E\u97F3\u306F\u805E\u3053\u3048\u308B\u304C\u3001\u5149\u306F\u898B\u3048\u306A\u3044\u3002",
+            "sha256": "dc1f5d0f3ecffeaa7b27ad24fe6395e60177cbbbe709d3dd065c16b0eb9df32b"
+          }
+        ]
+      },
+      {
+        "lineId": 20,
+        "sourceText": "\u9759\u304B\u306A\u90E8\u5C4B\u306F\u79C1\u305F\u3061\u306E\u3069\u3061\u3089\u306E\u3082\u306E\u3067\u3082\u306A\u3044\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u9759\u304B\u306A\u90E8\u5C4B\u306F\u79C1\u305F\u3061\u306E\u3069\u3061\u3089\u306E\u3082\u306E\u3067\u3082\u306A\u3044\u3002",
+            "sha256": "b68f7b2bc2d9c4743d243bb3e44a793c31637af850f0c3c3de768a4259f7230b"
+          }
+        ]
+      },
+      {
+        "lineId": 21,
+        "sourceText": "\u8D64\u3044\u30B9\u30AB\u30FC\u30D5\u3092\u6301\u3063\u3066\u3001\u9280\u306E\u9375\u3092\u7F6E\u3044\u3066\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u8D64\u3044\u30B9\u30AB\u30FC\u30D5\u3092\u6301\u3063\u3066\u3001\u9280\u306E\u9375\u3092\u7F6E\u3044\u3066\u3002",
+            "sha256": "c99b747ece19bfd0f2b7e6ae2c41419164d66c0dda95d5bef26ea0dc14f38447"
+          }
+        ]
+      },
+      {
+        "lineId": 22,
+        "sourceText": "\u660E\u65E5\u306F\u5225\u306E\u9053\u3092\u9078\u3076\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u660E\u65E5\u306F\u5225\u306E\u9053\u3092\u9078\u3076\u3002",
+            "sha256": "444764e17ae35d068ed198ed8bbcf884e896a6cf4c6e21fef3d0a9c07906cce7"
+          }
+        ]
+      },
+      {
+        "lineId": 23,
+        "sourceText": "\u5C0F\u3055\u306A\u5DDD\u306F\u307E\u3060\u96E8\u3092\u899A\u3048\u3066\u3044\u308B\u3002",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\u5C0F\u3055\u306A\u5DDD\u306F\u307E\u3060\u96E8\u3092\u899A\u3048\u3066\u3044\u308B\u3002",
+            "sha256": "f053e8104c3075e946afe92c63bd20eb082f85a4fc545d62dc8edd4a08b8caa5"
+          }
+        ]
+      },
+      {
+        "lineId": 24,
+        "sourceText": "\uC544\uCE68 \uD587\uC0B4\uC744 \uC885\uC774\uBC30\uC5D0 \uC811\uC5B4 \uB2F4\uC544.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uC544\uCE68 \uD587\uC0B4\uC744 \uC885\uC774\uBC30\uC5D0 \uC811\uC5B4 \uB2F4\uC544.",
+            "sha256": "27cc182d18bfe3740c8abd013d9f03693a7ef0a3867a77e4f8fde3cdb058f9cd"
+          }
+        ]
+      },
+      {
+        "lineId": 25,
+        "sourceText": "\uD30C\uB780 \uCEF5\uC774 \uCC3D\uAC00\uC5D0\uC11C \uB108\uB97C \uAE30\uB2E4\uB824.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uD30C\uB780 \uCEF5\uC774 \uCC3D\uAC00\uC5D0\uC11C \uB108\uB97C \uAE30\uB2E4\uB824.",
+            "sha256": "b6f164bc480cf9933c512dfc14706bc4bb1fbe445e408d62dfc054bf92f60131"
+          }
+        ]
+      },
+      {
+        "lineId": 26,
+        "sourceText": "\uB124 \uC774\uB984\uC744 \uC78A\uACA0\uB2E4\uACE0 \uC57D\uC18D\uD558\uC9C0 \uC54A\uC558\uC5B4.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uB124 \uC774\uB984\uC744 \uC78A\uACA0\uB2E4\uACE0 \uC57D\uC18D\uD558\uC9C0 \uC54A\uC558\uC5B4.",
+            "sha256": "fe88492203d9b80e412d5af6cb8a754bc2ad35ecdb7cdc60a813dde95431a7c4"
+          }
+        ]
+      },
+      {
+        "lineId": 27,
+        "sourceText": "\uBD81\uCABD \uAE38\uC774 \uB2EB\uD614\uB2E4\uACE0 \uB124\uAC00 \uB9D0\uD588\uC5B4.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uBD81\uCABD \uAE38\uC774 \uB2EB\uD614\uB2E4\uACE0 \uB124\uAC00 \uB9D0\uD588\uC5B4.",
+            "sha256": "056b2d8c31816bed06c1d089f71b06a4fab2720280123ce23600f386ae84914b"
+          }
+        ]
+      },
+      {
+        "lineId": 28,
+        "sourceText": "\uC6B0\uB9AC\uB294 \uC528\uC557 \uC77C\uACF1 \uAC1C\uB97C \uB4E4\uACE0 \uB2E4\uB9AC\uB97C \uAC74\uB108.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uC6B0\uB9AC\uB294 \uC528\uC557 \uC77C\uACF1 \uAC1C\uB97C \uB4E4\uACE0 \uB2E4\uB9AC\uB97C \uAC74\uB108.",
+            "sha256": "4975a77f77f7aa4597a2ab720b97a8d1bd1bc70864c51fe75a955bac63f633af"
+          }
+        ]
+      },
+      {
+        "lineId": 29,
+        "sourceText": "\uB4F1\uBD88\uC740 \uC5EC\uB984 \uD0DC\uC591\uC744 \uB300\uC2E0\uD560 \uC218 \uC5C6\uC5B4.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uB4F1\uBD88\uC740 \uC5EC\uB984 \uD0DC\uC591\uC744 \uB300\uC2E0\uD560 \uC218 \uC5C6\uC5B4.",
+            "sha256": "777fe0301ff5b9e696c66cce4b624d5700cc49388991c8e5a6574078bd5536eb"
+          }
+        ]
+      },
+      {
+        "lineId": 30,
+        "sourceText": "\uB3CC\uC544\uC624\uBA74 \uC870\uC6A9\uD788 \uB450 \uBC88 \uB450\uB4DC\uB824.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uB3CC\uC544\uC624\uBA74 \uC870\uC6A9\uD788 \uB450 \uBC88 \uB450\uB4DC\uB824.",
+            "sha256": "f145e6fc2b43cb2e4f851fd71a91862ff5b4ba5f06e38299b77077c47af2ac20"
+          }
+        ]
+      },
+      {
+        "lineId": 31,
+        "sourceText": "\uAE30\uCC28 \uC18C\uB9AC\uB294 \uB4E4\uB9AC\uC9C0\uB9CC \uBD88\uBE5B\uC740 \uBCF4\uC774\uC9C0 \uC54A\uC544.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uAE30\uCC28 \uC18C\uB9AC\uB294 \uB4E4\uB9AC\uC9C0\uB9CC \uBD88\uBE5B\uC740 \uBCF4\uC774\uC9C0 \uC54A\uC544.",
+            "sha256": "ad00403f29203295e0181944d7e5368994fcd18426686403f62f9aabecc82641"
+          }
+        ]
+      },
+      {
+        "lineId": 32,
+        "sourceText": "\uACE0\uC694\uD55C \uBC29\uC740 \uC6B0\uB9AC \uB204\uAD6C\uC758 \uAC83\uB3C4 \uC544\uB2C8\uC57C.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uACE0\uC694\uD55C \uBC29\uC740 \uC6B0\uB9AC \uB204\uAD6C\uC758 \uAC83\uB3C4 \uC544\uB2C8\uC57C.",
+            "sha256": "6afc68e873c2566c88f9f2739a6b1a5bf5ddaf3e153cd8745bdf2aa4ad3dbbee"
+          }
+        ]
+      },
+      {
+        "lineId": 33,
+        "sourceText": "\uBE68\uAC04 \uBAA9\uB3C4\uB9AC\uB294 \uAC00\uC838\uAC00\uACE0 \uC740\uC0C9 \uC5F4\uC1E0\uB294 \uB450\uACE0 \uAC00.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uBE68\uAC04 \uBAA9\uB3C4\uB9AC\uB294 \uAC00\uC838\uAC00\uACE0 \uC740\uC0C9 \uC5F4\uC1E0\uB294 \uB450\uACE0 \uAC00.",
+            "sha256": "8e53fed0827d24451585390ff37d0fd6445d4f26ff6b91fc2a444807c553b0f6"
+          }
+        ]
+      },
+      {
+        "lineId": 34,
+        "sourceText": "\uB0B4\uC77C \uB098\uB294 \uB2E4\uB978 \uAE38\uC744 \uACE0\uB97C \uAC70\uC57C.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uB0B4\uC77C \uB098\uB294 \uB2E4\uB978 \uAE38\uC744 \uACE0\uB97C \uAC70\uC57C.",
+            "sha256": "b1aebb00b8b6b898746262d77b006dbe040aa4476a090b336b1bba7cac0d092c"
+          }
+        ]
+      },
+      {
+        "lineId": 35,
+        "sourceText": "\uC791\uC740 \uAC15\uC740 \uC544\uC9C1 \uBE44\uB97C \uAE30\uC5B5\uD574.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "\uC791\uC740 \uAC15\uC740 \uC544\uC9C1 \uBE44\uB97C \uAE30\uC5B5\uD574.",
+            "sha256": "a185919156106bbd0e1be0a41c415994fecc01971a4f7689ab724ac844521c93"
+          }
+        ]
+      },
+      {
+        "lineId": 36,
+        "sourceText": "\u6211\u628A\u6668\u5149\u6298\u8FDB\u4E00\u53EA\u7EB8\u8239\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 37,
+        "sourceText": "\u4F60\u7684\u84DD\u676F\u5B50\u4ECD\u5728\u7A97\u8FB9\u7B49\u5019\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 38,
+        "sourceText": "\u6211\u5E76\u6CA1\u6709\u7B54\u5E94\u5FD8\u8BB0\u4F60\u7684\u540D\u5B57\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 39,
+        "sourceText": "\u4F60\u8BF4\u5411\u5317\u7684\u8DEF\u5DF2\u7ECF\u5173\u95ED\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.92,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 40,
+        "sourceText": "\u6211\u4EEC\u5E26\u7740\u4E03\u7C92\u79CD\u5B50\u8D70\u8FC7\u6865\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 41,
+        "sourceText": "\u6CA1\u6709\u706F\u7B3C\u80FD\u4EE3\u66FF\u590F\u5929\u7684\u592A\u9633\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 42,
+        "sourceText": "\u5982\u679C\u4F60\u56DE\u6765\uFF0C\u8BF7\u8F7B\u8F7B\u6572\u4E24\u4E0B\u95E8\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 43,
+        "sourceText": "\u6211\u542C\u89C1\u706B\u8F66\uFF0C\u5374\u770B\u4E0D\u89C1\u706F\u5149\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 44,
+        "sourceText": "\u5B89\u9759\u7684\u623F\u95F4\u4E0D\u5C5E\u4E8E\u6211\u4EEC\u4EFB\u4F55\u4E00\u4E2A\u4EBA\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 45,
+        "sourceText": "\u5E26\u8D70\u7EA2\u56F4\u5DFE\uFF0C\u7559\u4E0B\u94F6\u94A5\u5319\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.9,
+        "evidenceKind": "Context",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 46,
+        "sourceText": "\u660E\u5929\u6211\u4F1A\u9009\u62E9\u53E6\u4E00\u6761\u8DEF\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 47,
+        "sourceText": "\u6211\u4EEC\u7684\u5C0F\u6CB3\u4ECD\u7136\u8BB0\u5F97\u96E8\u3002",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      }
+    ]
+  }
+}

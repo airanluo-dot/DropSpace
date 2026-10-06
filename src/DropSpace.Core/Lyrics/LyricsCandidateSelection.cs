@@ -45,7 +45,11 @@ public static class LyricsCandidateRules
     public static int ComparePriority(LyricsSelectionCandidate left, LyricsSelectionCandidate right,
         LyricsProviderKind primary, LyricsProviderKind? backup)
     {
-        var comparison = right.HasTargetTranslation.CompareTo(left.HasTargetTranslation);
+        // Explicit instrumental evidence is useful when no verified lyrics exist;
+        // it must not replace a usable lyric body from the same recording.
+        var comparison = (right.Document.Lines.Count > 0).CompareTo(left.Document.Lines.Count > 0);
+        if (comparison != 0) return comparison;
+        comparison = right.HasTargetTranslation.CompareTo(left.HasTargetTranslation);
         if (comparison != 0) return comparison;
         comparison = SourceRank(left.Document.Provider, primary, backup).CompareTo(SourceRank(right.Document.Provider, primary, backup));
         if (comparison != 0) return comparison;

@@ -6,6 +6,7 @@ using DropSpace.Core.Downloads;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Views.Settings;
@@ -33,7 +34,11 @@ public sealed class DownloadPanel : UserControl
     private readonly ComboBox _concurrentDownloads = new() { ItemsSource = new[] { 1, 2, 3 }, MinWidth = 100, HorizontalAlignment = HorizontalAlignment.Left };
     private bool _syncing;
     private bool _loaded;
+    private readonly HashSet<uint> _limitPointers = [];
     private string _lastDefaultDirectory;
+    private bool _defaultDirectoryDirty;
+    private int _defaultDirectoryEditVersion;
+    private int _savingDirectories;
 
     public DownloadPanel(NativeSettingsEditor editor, IAppStringLocalizer strings, nint windowHandle)
     {
@@ -98,6 +103,26 @@ public sealed class DownloadPanel : UserControl
         _speed.ValueChanged += (_, args) => LimitsChanged(null, args.NewValue);
         _connectionsNumber.ValueChanged += (_, args) => LimitsChanged(args.NewValue, null);
         _speedNumber.ValueChanged += (_, args) => LimitsChanged(null, args.NewValue);
+        foreach (var slider in new[] { _connections, _speed })
+        {
+            slider.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, args) =>
+            {
+                var point = args.GetCurrentPoint(slider);
+                if (point.IsInContact || point.Properties.IsLeftButtonPressed) _limitPointers.Add(args.Pointer.PointerId);
+            }), true);
+            slider.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(FinishLimitPointer), true);
+            slider.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler(FinishLimitPointer), true);
+            slider.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler(FinishLimitPointer), true);
+            slider.LostFocus += async (_, _) => { if (_limitPointers.Count == 0) await editor.FlushDownloadLimitsAsync(); };
+        }
+        _connectionsNumber.LostFocus += async (_, _) => await editor.FlushDownloadLimitsAsync();
+        _speedNumber.LostFocus += async (_, _) => await editor.FlushDownloadLimitsAsync();
+        _defaultDirectory.TextChanged += (_, _) =>
+        {
+            if (_syncing) return;
+            _defaultDirectoryDirty = true;
+            ++_defaultDirectoryEditVersion;
+        };
         _defaultDirectory.LostFocus += async (_, _) => await SaveDirectoryAsync();
         Loaded += (_, _) =>
         {
@@ -107,10 +132,18 @@ public sealed class DownloadPanel : UserControl
         };
         Unloaded += async (_, _) =>
         {
+            _limitPointers.Clear();
             _loaded = false; editor.PropertyChanged -= SettingsChanged;
             editor.Downloads.Changed -= DownloadsChanged; editor.Downloads.TaskChanged -= TaskChanged;
             await editor.FlushDownloadLimitsAsync();
+            await SaveDirectoryAsync();
         };
+    }
+    private async void FinishLimitPointer(object sender, PointerRoutedEventArgs args)
+    {
+        if (!_limitPointers.Remove(args.Pointer.PointerId)) return;
+        await _editor.FlushDownloadLimitsAsync();
+        RefreshSettings();
     }
     private FrameworkElement FolderRow(TextBox input, bool saveDefault)
     {
@@ -126,10 +159,19 @@ public sealed class DownloadPanel : UserControl
     }
     private async Task SaveDirectoryAsync()
     {
-        if (_syncing || _defaultDirectory.Text == _editor.DefaultDownloadDirectory) return;
+        if (_syncing) return;
+        if (!_defaultDirectoryDirty) { RefreshSettings(); return; }
         var value = _defaultDirectory.Text.Trim();
-        await _editor.UpdateAsync(settings => settings with { DefaultDownloadDirectory = value });
-        RefreshSettings();
+        if (value == _editor.DefaultDownloadDirectory) { _defaultDirectoryDirty = false; RefreshSettings(); return; }
+        var editVersion = _defaultDirectoryEditVersion;
+        ++_savingDirectories;
+        try { await _editor.UpdateAsync(settings => settings with { DefaultDownloadDirectory = value }); }
+        finally
+        {
+            --_savingDirectories;
+            if (editVersion == _defaultDirectoryEditVersion) _defaultDirectoryDirty = false;
+            RefreshSettings();
+        }
     }
     private void LimitsChanged(double? connections, double? speed, int? concurrentDownloads = null)
     {
@@ -141,7 +183,9 @@ public sealed class DownloadPanel : UserControl
         UpdateSpeedLabel();
         _syncing = false;
         // Integer MiB/s throughout: zero = unlimited, one step = 1,048,576 bytes/s.
-        _editor.QueueDownloadLimits((int)_connections.Value, (long)_speed.Value * 1_048_576, _concurrentDownloads.SelectedIndex + 1);
+        _editor.QueueDownloadLimits(connections is not null ? (int)_connections.Value : null,
+            speed is not null ? (long)_speed.Value * 1_048_576 : null,
+            concurrentDownloads is not null ? _concurrentDownloads.SelectedIndex + 1 : null);
     }
     private void SettingsChanged(object? sender, PropertyChangedEventArgs args)
     { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) RefreshSettings(); }
@@ -151,10 +195,14 @@ public sealed class DownloadPanel : UserControl
         var directory = _editor.DefaultDownloadDirectory;
         if (_directory.Text == _lastDefaultDirectory) _directory.Text = directory;
         _lastDefaultDirectory = directory;
-        _connections.Value = _connectionsNumber.Value = _editor.Settings.MaxDownloadConnections;
-        _concurrentDownloads.SelectedIndex = _editor.Settings.MaxConcurrentDownloads - 1;
-        _speed.Value = _speedNumber.Value = _editor.Settings.DownloadSpeedLimitBytesPerSecond / 1_048_576d;
-        _defaultDirectory.Text = _editor.DefaultDownloadDirectory;
+        if (_limitPointers.Count == 0 && !_editor.HasPendingDownloadLimits)
+        {
+            _connections.Value = _connectionsNumber.Value = _editor.Settings.MaxDownloadConnections;
+            _concurrentDownloads.SelectedIndex = _editor.Settings.MaxConcurrentDownloads - 1;
+            _speed.Value = _speedNumber.Value = _editor.Settings.DownloadSpeedLimitBytesPerSecond / 1_048_576d;
+        }
+        if (!_defaultDirectoryDirty && _savingDirectories == 0 && _defaultDirectory.FocusState == FocusState.Unfocused)
+            _defaultDirectory.Text = directory;
         UpdateSpeedLabel(); _syncing = false;
     }
     private void UpdateSpeedLabel() => _speedLabel.Text = _speed.Value == 0 ? _strings.Get("DownloadUnlimited") : $"{_speed.Value:0} MiB/s";
@@ -217,7 +265,7 @@ public sealed class DownloadPanel : UserControl
     }
     private static Grid SliderRow(Slider slider, NumberBox number)
     {
-        var grid = new Grid { ColumnSpacing = 12 }; grid.ColumnDefinitions.Add(new()); grid.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        var grid = new Grid { ColumnSpacing = 12 }; grid.ColumnDefinitions.Add(new()); grid.ColumnDefinitions.Add(new() { Width = new GridLength(100) });
         grid.Children.Add(slider); Grid.SetColumn(number, 1); grid.Children.Add(number); return grid;
     }
     private static Border Card(UIElement body) => new()
@@ -267,7 +315,8 @@ public sealed class DownloadPanel : UserControl
             _retry.Visibility = item.State == DownloadTaskState.Failed ? Visibility.Visible : Visibility.Collapsed;
             _cancel.Visibility = item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled ? Visibility.Collapsed : Visibility.Visible;
             _remove.Visibility = item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled ? Visibility.Visible : Visibility.Collapsed;
-            if (item.ErrorCode is not null) _detail.Text += " · " + _owner._strings.Get("DownloadError");
+            if (item.State == DownloadTaskState.Failed && item.ErrorCode is not null)
+                _detail.Text += " · " + _owner._strings.Get("DownloadError");
             AutomationProperties.SetName(_progress, _name.Text);
         }
     }

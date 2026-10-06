@@ -34,6 +34,11 @@ public sealed record DownloadTaskSnapshot
     public int ActiveConnections { get; init; }
     public string? ErrorCode { get; init; }
     public string? FinalSha256 { get; init; }
+    // Auxiliary cleanup is independent of the transfer outcome. A hidden history-removal
+    // record keeps its task ownership until cleanup succeeds, including after restart.
+    public bool CleanupPending { get; init; }
+    public string? CleanupErrorCode { get; init; }
+    public bool HistoryRemovalPending { get; init; }
 }
 public interface IDownloadTaskRepository
 {

@@ -14,11 +14,14 @@ public sealed class IslandPresencePolicyTests
         var coordinator = new IslandExperienceCoordinator(time);
         coordinator.SelectPage(IslandPage.Widgets);
         Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
-        coordinator.UpdateMedia(true, true, 3000);
-        coordinator.UpdateMedia(false, true, 3000);
+        coordinator.UpdateMedia(true, true, true, 3000);
+        coordinator.UpdateMedia(true, false, true, 3000);
         time.Now += TimeSpan.FromMilliseconds(2999); coordinator.Reconcile();
         Assert.IsTrue(coordinator.Current.MediaPresent);
         time.Now += TimeSpan.FromMilliseconds(1); coordinator.Reconcile();
+        Assert.AreEqual(OverlayState.Dismissing, coordinator.Current.State);
+        Assert.IsTrue(coordinator.Current.MediaPresent);
+        Assert.IsTrue(coordinator.CompleteDismissal(coordinator.HideGeneration));
         Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
     }
 
@@ -45,15 +48,18 @@ public sealed class IslandPresencePolicyTests
     {
         var time = new ManualTime();
         var coordinator = new IslandExperienceCoordinator(time);
-        coordinator.UpdateMedia(true, true, 3000);
-        coordinator.UpdateMedia(false, true, 3000);
+        coordinator.UpdateMedia(true, true, true, 3000);
+        coordinator.UpdateMedia(true, false, true, 3000);
         var deadline = coordinator.Current.NextDeadline;
         time.Now += TimeSpan.FromSeconds(2);
-        coordinator.UpdateMedia(false, true, 3000);
+        coordinator.UpdateMedia(true, false, true, 3000);
         Assert.AreEqual(deadline, coordinator.Current.NextDeadline);
         coordinator.UpdateMedia(true, true, 3000);
         Assert.IsNull(coordinator.Current.NextDeadline);
         coordinator.UpdateMedia(false, false, 3000);
+        Assert.IsTrue(coordinator.Current.PendingHide);
+        time.Now += TimeSpan.FromSeconds(3); coordinator.Reconcile();
+        Assert.IsTrue(coordinator.CompleteDismissal(coordinator.HideGeneration));
         Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
     }
 
@@ -76,37 +82,42 @@ public sealed class IslandPresencePolicyTests
     }
 
     [TestMethod]
-    public void ManualQuickPanelDefaultsToFilesDuringPausedGrace()
+    public void ManualQuickPanelDefaultsToRetainedMusicDuringPausedGrace()
     {
         var coordinator = new IslandExperienceCoordinator(new ManualTime());
-        coordinator.UpdateMedia(true, true, 3000);
+        coordinator.UpdateMedia(true, true, true, 3000);
         coordinator.Open();
         Assert.AreEqual(IslandPage.Music, coordinator.Current.Page);
-        coordinator.Collapse(); coordinator.UpdateMedia(false, true, 3000);
+        coordinator.Collapse(); coordinator.UpdateMedia(true, false, true, 3000);
         coordinator.Open();
-        Assert.AreEqual(IslandPage.Files, coordinator.Current.Page);
+        Assert.AreEqual(IslandPage.Music, coordinator.Current.Page);
     }
 
     [TestMethod]
-    public void AutoHideOffRetainsOnlyMediaAndReenablingStartsOneGracePeriod()
+    public void ResidentRetainsPausedMediaAndDisablingStartsOneGracePeriod()
     {
         var time = new ManualTime();
         var coordinator = new IslandExperienceCoordinator(time);
-        coordinator.UpdateMedia(false, true, 3000, autoHide: false);
+        coordinator.UpdateMedia(false, false, true, 3000);
         Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
-        coordinator.UpdateMedia(true, true, 3000, autoHide: false);
-        coordinator.UpdateMedia(false, true, 3000, autoHide: false);
+        coordinator.UpdateSettings(new() { Resident = true, HideDelayMilliseconds = 3000 }, true);
+        coordinator.UpdateMedia(true, true, true, 3000);
+        coordinator.UpdateMedia(true, false, true, 3000);
         time.Now += TimeSpan.FromHours(1); coordinator.Reconcile();
         Assert.IsTrue(coordinator.Current.MediaPresent);
         Assert.IsNull(coordinator.Current.NextDeadline);
-        coordinator.UpdateMedia(false, true, 3000);
+        coordinator.UpdateSettings(new() { Resident = false, HideDelayMilliseconds = 3000 }, true);
         var deadline = coordinator.Current.NextDeadline;
-        time.Now += TimeSpan.FromSeconds(2); coordinator.UpdateMedia(false, true, 3000);
+        time.Now += TimeSpan.FromSeconds(2); coordinator.UpdateMedia(true, false, true, 3000);
         Assert.AreEqual(deadline, coordinator.Current.NextDeadline);
         time.Now += TimeSpan.FromSeconds(1); coordinator.Reconcile();
+        Assert.AreEqual(OverlayState.Dismissing, coordinator.Current.State);
+        Assert.IsTrue(coordinator.CompleteDismissal(coordinator.HideGeneration));
         Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
-        coordinator.UpdateMedia(true, true, 3000, autoHide: false);
-        coordinator.UpdateMedia(false, false, 3000, autoHide: false);
+        coordinator.UpdateMedia(true, true, true, 3000);
+        coordinator.UpdateMedia(false, false, false, 3000);
+        time.Now += TimeSpan.FromSeconds(3); coordinator.Reconcile();
+        Assert.IsTrue(coordinator.CompleteDismissal(coordinator.HideGeneration));
         Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
     }
 

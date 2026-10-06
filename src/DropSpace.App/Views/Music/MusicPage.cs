@@ -148,7 +148,7 @@ public sealed class MusicPage : UserControl
             s => s.Lyrics.UnlimitedScrollingWidth ? 610 : s.Lyrics.ScrollingMaxWidth,
             (s,v) => s with { Lyrics = s.Lyrics with { UnlimitedScrollingWidth = v == 610,
                 ScrollingMaxWidth = v == 610 ? s.Lyrics.ScrollingMaxWidth : (int)v } },
-            v => v == 610 ? strings.Get("DownloadUnlimited") : v.ToString("0", strings.Culture));
+            v => v == 610 ? strings.Get("LyricsWidthUnlimited") : v.ToString("0", strings.Culture));
         form.AddSlider("LyricsCacheSize", 0, 10, 1,
             s => s.Lyrics.CacheMaximumBytes / 1_000_000_000d,
             (s,v) => s with { Lyrics = s.Lyrics with { CacheMaximumBytes = (long)v * 1_000_000_000 } },

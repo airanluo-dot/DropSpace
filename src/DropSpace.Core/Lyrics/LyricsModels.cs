@@ -14,7 +14,11 @@ public sealed record LyricsQuery(
     public bool BypassProviderResponseCache { get; init; }
     public bool CollectSelectionCandidates { get; init; }
 
-    public IReadOnlyList<string> ArtistCandidates => LyricsMatcher.ExpandArtistCandidates(Artist, AlbumArtist);
+    // AlbumArtist often describes a compilation or the lead performer, rather
+    // than this recording's complete vocal credits. It supplies missing SMTC
+    // metadata; it cannot replace credits that are already present.
+    public IReadOnlyList<string> ArtistCandidates => LyricsMatcher.ExpandArtistCandidates(
+        string.IsNullOrWhiteSpace(Artist) ? AlbumArtist : Artist);
 
     public bool HasDisambiguatingMetadata => ArtistCandidates.Count > 0 ||
         !string.IsNullOrWhiteSpace(Album) || Duration > TimeSpan.Zero;

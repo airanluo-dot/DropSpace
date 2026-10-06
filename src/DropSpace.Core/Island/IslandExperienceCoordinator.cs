@@ -10,7 +10,7 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
 {
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     private OverlaySnapshot _files = new(OverlayState.Hidden, 0, false, 0);
-    private bool _media, _manual, _expanded, _resident, _allows = true, _dismissed;
+    private bool _mediaAvailable, _mediaPlaying, _manual, _expanded, _resident, _allows = true, _dismissed, _hideCompleted;
     private string? _mediaIdentity;
     private IslandPage _page = IslandPage.Files;
     private DateTimeOffset? _notification, _volume, _hideStarted;
@@ -41,24 +41,38 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     }
     public void UpdateMedia(bool present, bool enabled, int hideDelayMilliseconds, bool autoHide = true, string? contentIdentity = null)
     {
-        // autoHide is retained only for source compatibility; it has no presentation duty.
-        if (enabled && present && contentIdentity != _mediaIdentity) _dismissed = false;
-        if (enabled && present) _mediaIdentity = contentIdentity;
-        _media = enabled && present;
+        // Compatibility for callers whose presence already means playing.
+        UpdateMedia(present, present, enabled, hideDelayMilliseconds, contentIdentity);
+    }
+    public void UpdateMedia(bool contentAvailable, bool playing, bool enabled, int hideDelayMilliseconds, string? contentIdentity = null)
+    {
+        var available = enabled && contentAvailable;
+        var active = available && playing;
+        if (available && contentIdentity != _mediaIdentity || active && !_mediaPlaying) _dismissed = false;
+        if (available) _mediaIdentity = contentIdentity;
+        _mediaAvailable = available;
+        _mediaPlaying = active;
         _delay = NativeIslandSettingsPolicy.NormalizeHideDelay(hideDelayMilliseconds);
         Reconcile();
     }
     public void Open(IslandPage? page = null)
     {
         _generation++; _hideStarted = null;
-        _page = page ?? (_media ? IslandPage.Music : IslandPage.Files);
+        _page = page ?? (_mediaAvailable ? IslandPage.Music : IslandPage.Files);
         _dismissed = false; _manual = true; _expanded = true; Reconcile();
     }
     public void SelectPage(IslandPage page)
     { if (!Enum.IsDefined(page)) throw new ArgumentOutOfRangeException(nameof(page)); _page = page; Reconcile(); }
     public void Collapse() { _manual = false; _expanded = false; Reconcile(); }
     public void DismissNow()
-    { _dismissed = true; _manual = false; _expanded = false; _hideStarted = null; _generation++; Reconcile(); }
+    { _dismissed = true; _manual = false; _expanded = false; _hideStarted = null; _hideCompleted = false; _generation++; Reconcile(); }
+    public bool CompleteDismissal(long generation)
+    {
+        if (generation != _generation || Current.State != OverlayState.Dismissing) return false;
+        _hideCompleted = true;
+        Reconcile();
+        return true;
+    }
     public void Notify() { _dismissed = false; _notification = _time.GetUtcNow() + SystemActivityPolicy.NotificationLifetime; Reconcile(); }
     public void VolumeChanged() { _dismissed = false; _volume = _time.GetUtcNow() + SystemActivityPolicy.VolumeLifetime; Reconcile(); }
     public void ClearNotifications() { _notification = null; Reconcile(); }
@@ -68,8 +82,13 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     public void Reconcile()
     {
         var now = _time.GetUtcNow();
-        var baseState = IslandPresencePolicy.Resolve(new(_files, _media, null, _manual, _expanded, _page, _notification, _volume), now, _revision);
-        var hasReason = baseState.State != OverlayState.Hidden || _resident;
+        // Content remains available while paused. Only playing is a persistent
+        // visibility reason; content selection must not double as a hide clock.
+        var baseState = IslandPresencePolicy.Resolve(new(_files, _mediaPlaying, null, _manual, _expanded, _page,
+            _notification, _volume, RetainMedia: _mediaAvailable), now, _revision);
+        var hasReason = _resident || _mediaPlaying || IsManuallyOpen || _files.TemporaryItemCount > 0 ||
+            _files.State is OverlayState.DragApproaching or OverlayState.DragReady || _files.ExpandedDropActive ||
+            _notification > now || _volume > now;
         var desired = hasReason && (_allows || IsManuallyOpen) && !_dismissed;
         var state = baseState.State;
         var content = baseState.CompactContent;
@@ -85,23 +104,28 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         if (desired)
         {
             if (_hideStarted is not null) { _hideStarted = null; _generation++; }
+            _hideCompleted = false;
             if (state == OverlayState.Hidden) state = OverlayState.Compact;
         }
         else
         {
-            content = IslandContentKind.None; variant = IslandPresentationVariant.Idle;
-            if (_dismissed) { _hideStarted = null; state = OverlayState.Hidden; }
+            if (_hideCompleted) state = OverlayState.Hidden;
+            else if (_dismissed)
+                state = Current.State == OverlayState.Hidden ? OverlayState.Hidden : OverlayState.Dismissing;
             else if (_hideStarted is not null || Current.State is not (OverlayState.Hidden or OverlayState.Dismissing))
             {
                 if (_hideStarted is null) { _hideStarted = now; _generation++; }
-                state = now < _hideStarted.Value.AddMilliseconds(_delay) ? OverlayState.Compact : OverlayState.Hidden;
+                state = Current.State == OverlayState.Dismissing || now >= _hideStarted.Value.AddMilliseconds(_delay)
+                    ? OverlayState.Dismissing : OverlayState.Compact;
             }
             else state = OverlayState.Hidden;
+            if (state == OverlayState.Hidden) { content = IslandContentKind.None; variant = IslandPresentationVariant.Idle; }
         }
-        var hideDeadline = !desired && !_dismissed && _hideStarted is { } start && now < start.AddMilliseconds(_delay)
+        var hideDeadline = !desired && !_dismissed && state != OverlayState.Dismissing && !_hideCompleted &&
+            _hideStarted is { } start && now < start.AddMilliseconds(_delay)
             ? start.AddMilliseconds(_delay) : (DateTimeOffset?)null;
         var next = new[] { hideDeadline, baseState.NextDeadline }.Where(value => value > now).Min();
-        var snapshot = new IslandExperienceSnapshot(state, content, baseState.Page, desired && baseState.MediaPresent, next, _revision,
+        var snapshot = new IslandExperienceSnapshot(state, content, baseState.Page, state != OverlayState.Hidden && baseState.MediaPresent, next, _revision,
             variant, hideDeadline is not null);
         if (snapshot == Current) return;
         Current = snapshot with { Revision = ++_revision };

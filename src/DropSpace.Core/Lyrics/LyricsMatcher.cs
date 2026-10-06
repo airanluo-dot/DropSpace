@@ -5,7 +5,7 @@ namespace DropSpace.Core.Lyrics;
 
 public static class LyricsMatcher
 {
-    public const string Version = "recording-identity-v2";
+    public const string Version = "recording-identity-v3-performer-credits";
     private const int MaximumMetadataCharacters = 2_048;
     // These Unicode regex tokens recognize publisher suffixes, not UI strings.
     private static readonly Regex PlayerSuffix = new(@"\s*[-|–]\s*(?:Apple Music|QQ\u97f3\u4e50|\u7f51\u6613\u4e91\u97f3\u4e50|\u9177\u72d7\u97f3\u4e50|Spotify|YouTube)\s*$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
@@ -198,8 +198,8 @@ public static class LyricsMatcher
         if (query.ArtistCandidates.Count > 0)
         {
             // A known conflicting artist remains a hard rejection. Cross-publisher performer
-            // versus album-artist differences are handled by ArtistCandidates rather than by
-            // weakening this wrong-song safeguard.
+            // metadata has priority over narrower album-artist credits. ArtistCandidates
+            // uses the album artist only when performer metadata is absent.
             if (artistKnown && !artistMatches) return 0;
             if (string.IsNullOrWhiteSpace(artist) && !albumMatches && !durationMatches) return 0;
         }

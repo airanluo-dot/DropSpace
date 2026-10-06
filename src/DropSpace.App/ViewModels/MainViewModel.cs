@@ -47,6 +47,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _queryCancellation;
     private readonly SemaphoreSlim _projectionLoadGate = new(1, 1);
+    private readonly SemaphoreSlim _settingsPublicationGate = new(1, 1);
     private ItemQueryCursor? _projectionCursor;
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private readonly object _backgroundTaskGate = new();
@@ -1236,14 +1237,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task SetClipboardPausedAsync(bool paused, CancellationToken cancellationToken = default)
     {
-        Settings = await _settingsCoordinator.SetClipboardPausedAsync(paused, cancellationToken);
+        await _settingsPublicationGate.WaitAsync(cancellationToken);
+        try
+        {
+            var updated = await _settingsCoordinator.SetClipboardPausedAsync(paused, cancellationToken);
+            await _dispatcher.EnqueueAsync(() => { Settings = updated; return Task.CompletedTask; });
+        }
+        finally { _settingsPublicationGate.Release(); }
     }
 
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        // Preserve the edit's original baseline, but serialize commit through UI
+        // publication so a late callback cannot replace a newer committed snapshot.
         var previous = Settings;
         var previousStatus = StatusMessage;
+        await _settingsPublicationGate.WaitAsync(cancellationToken);
         try
         {
             var updated = await _settingsCoordinator.UpdateAsync(
@@ -1269,6 +1279,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             });
             throw;
         }
+        finally { _settingsPublicationGate.Release(); }
     }
 
     public async Task<ClearResult> ClearClipboardAsync(ClearRange range, CancellationToken cancellationToken = default)
@@ -1763,17 +1774,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
 
-        var updated = await _settingsCoordinator.UpdateLastCheckAsync(Settings, checkedAt, cancellationToken);
-        Task ApplyAsync()
+        await _settingsPublicationGate.WaitAsync(cancellationToken);
+        try
         {
-            // Preferences may have changed while persistence or this dispatcher callback
-            // was queued. An update check owns only its monotonic timestamp.
-            Settings = SettingsChangePolicy.ApplyLastUpdateCheck(Settings, updated.LastUpdateCheckUtc ?? checkedAt);
-            return Task.CompletedTask;
+            var updated = await _settingsCoordinator.UpdateLastCheckAsync(Settings, checkedAt, cancellationToken);
+            Task ApplyAsync()
+            {
+                // An update check owns only its monotonic timestamp.
+                Settings = SettingsChangePolicy.ApplyLastUpdateCheck(Settings, updated.LastUpdateCheckUtc ?? checkedAt);
+                return Task.CompletedTask;
+            }
+            if (_dispatcher.HasThreadAccess) await ApplyAsync();
+            else await _dispatcher.EnqueueAsync(ApplyAsync);
         }
-
-        if (_dispatcher.HasThreadAccess) await ApplyAsync();
-        else await _dispatcher.EnqueueAsync(ApplyAsync);
+        finally { _settingsPublicationGate.Release(); }
     }
 
     private string FormatClipboardStatus(ClipboardCaptureStatus status) => status.State switch

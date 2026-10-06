@@ -106,12 +106,12 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public bool IsExpandedDropTargetActive => Snapshot.ExpandedDropActive;
 
-    public string CompactFileTitle => Snapshot.TemporaryItemCount switch
+    public string CompactFileTitle => _shellAcknowledgement ?? (Snapshot.TemporaryItemCount switch
     {
         1 when RecentItems.FirstOrDefault() is { } item => item.Title,
         > 1 => _strings.Format("OverlayItemCount", Snapshot.TemporaryItemCount),
         _ => string.Empty,
-    };
+    });
 
     public string CompactTitle => _shellAcknowledgement ?? (Snapshot.TemporaryItemCount switch
     {

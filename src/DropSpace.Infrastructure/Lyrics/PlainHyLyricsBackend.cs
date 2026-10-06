@@ -262,7 +262,8 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
                 ? LyricsLineTranslationState.Translated : LyricsLineTranslationState.Skipped : line.TranslationState,
             TranslationReason = indices.Contains(id) ? line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
                 ? "local-ai-complete" : "copied-source-output" : line.TranslationReason,
-        }).ToArray() };
+        }).Select((line, id) => LyricsLanguagePolicy.HasTargetProviderTranslation(source.Lines[id], targetLanguage)
+            ? source.Lines[id] : line).ToArray() };
         return true;
     }
 

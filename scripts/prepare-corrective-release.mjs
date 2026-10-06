@@ -21,13 +21,34 @@ const oldScope=readScope(root);
 const approval=JSON.parse(read('scripts/ai-model-qa/release-approval.json'));
 const review=JSON.parse(read(approval.review.path));
 const reviewedPaths=new Set(args.flatMap((arg,i)=>arg==='--reviewed-source-path'&&args[i+1]?[args[i+1]]:[]));
+for(const name of reviewedPaths)if(!oldScope.sources.files.some(file=>file.path===name))throw new Error(`Reviewed source is not a current code-owned fingerprint input: ${name}`);
+const admissionIndex=args.indexOf('--reviewed-fixture-admission');
+const reviewedAdmission=admissionIndex<0?null:args[admissionIndex+1];
+if(admissionIndex>=0) {
+ if(reviewedAdmission!==oldScope.fixtureAdmission.path)throw new Error('Reviewed host admission must name the exact current computation path.');
+ for(const name of [reviewedAdmission,'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs','scripts/test-ai-release-approval.mjs'])
+  if(!reviewedPaths.has(name))throw new Error(`Host admission renewal needs explicit source review: ${name}`);
+ if(oldScope.fixtureAdmission.modelInferenceExecuted!==false||oldScope.fixtureAdmission.semanticApproved!==false)
+  throw new Error('Corrective preparation can renew host computation only, never model or semantic evidence.');
+}
 function reviewedScope(previous) {
  const copy=structuredClone(previous);
- for(const file of copy.sources.files) {
-  const current=oldScope.sources.files.find(f=>f.path===file.path);
-  if(current&&reviewedPaths.has(file.path))file.sha256=current.sha256;
- }
+ const previousFiles=new Map(copy.sources.files.map(file=>[file.path,file]));
+ if(previousFiles.size!==copy.sources.files.length)throw new Error('Previous approval has duplicate source paths.');
+ for(const name of previousFiles.keys())if(!oldScope.sources.files.some(file=>file.path===name))throw new Error(`Previously reviewed production input was removed: ${name}`);
+ copy.sources.files=oldScope.sources.files.map(current=>{
+  const previousFile=previousFiles.get(current.path);
+  if(!previousFile&&!reviewedPaths.has(current.path))throw new Error(`New production input needs an exact reviewed source path: ${current.path}`);
+  return structuredClone(reviewedPaths.has(current.path)?current:previousFile);
+ });
+ // A fingerprint algorithm upgrade is code-owned too. It cannot be silently
+ // accepted by adding source names while leaving the gate implementation unreviewed.
+ if(copy.sources.algorithm!==oldScope.sources.algorithm&&reviewedPaths.has('scripts/test-ai-release-approval.mjs'))copy.sources.algorithm=oldScope.sources.algorithm;
  copy.sources.sha256=hash(JSON.stringify(copy.sources.files));
+ if(reviewedAdmission!==null) {
+  if(JSON.stringify(previous.fixture)!==JSON.stringify(oldScope.fixture))throw new Error('Host admission renewal cannot change the independent fixture.');
+  copy.fixtureAdmission=structuredClone(oldScope.fixtureAdmission);
+ }
  return copy;
 }
 if(JSON.stringify(oldScope)!==JSON.stringify(reviewedScope(approval.scope))||JSON.stringify(oldScope)!==JSON.stringify(reviewedScope(review.scope)))throw new Error('Unreviewed release input changes remain; record exact reviewed source paths before preparation.');
@@ -38,12 +59,11 @@ if(!notes.includes(`${old} is the immediate upgrade baseline`))throw new Error('
 const reviewPath=`scripts/ai-model-qa/evidence/${version}-owner-accepted-review.json`;
 if(fs.existsSync(reviewPath))throw new Error('Target review already exists; refusing to replace evidence.');
 const n=version.split('.').at(-1);
+const previousBeta=old.split('.').at(-1);
 const edits=new Map([['RELEASE_VERSION',version+'\n']]);
 for(const file of ['README.md','ROADMAP.md']) {
  let text=read(file);
- text=text.replace(/v\d+\.\d+\.\d+-beta\.\d+ is the immediate upgrade baseline/g,'__UPGRADE_BASELINE__');
- text=text.split(old).join(version).replace(/\(Beta \d+\)/g,`(Beta ${n})`);
- text=text.replaceAll('__UPGRADE_BASELINE__',`${old} is the immediate upgrade baseline`);
+ text=text.split(old).join(version).replaceAll(`(Beta ${previousBeta})`,`(Beta ${n})`);
  edits.set(file,text);
 }
 const gate='scripts/test-ai-release-approval.mjs';
@@ -53,10 +73,15 @@ const next=version.replace(/\d+$/,String(Number(n)+1));
 let testText=read(gateTests).split(old).join(version);
 testText=testText.replace(/(\['future Beta', x => \{ x.write\('RELEASE_VERSION', ')[^']+('; x.scope.releaseVersion = ')[^']+(')/,`$1${next}$2${next}$3`);
 edits.set(gateTests,testText);
-// readScope is unchanged except for this explicitly supplied release identity.
+// Bind the exact prospective writes, including the gate's own version pin.
+// Computing this before changing the pin used to make a prepared approval stale.
 const scope={...oldScope,releaseVersion:version};
+scope.sources={...oldScope.sources,files:oldScope.sources.files.map(file=>({...file,
+ sha256:edits.has(file.path)?hash(edits.get(file.path)):file.sha256}))};
+scope.sources.sha256=hash(JSON.stringify(scope.sources.files));
 approval.scope=review.scope=scope;
 review.reviewedAt=new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');review.expiresAt=new Date(Date.now()+7*86400000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+review.reviewedBy=`Local Codex, repository-owner-authorized ${version} source review`;
 review.userAcceptance={...review.userAcceptance,releaseVersion:version,reference:decision,acceptedAt,timestampMeaning:'Explicit owner authorization recorded in the linked decision; historical model observations unchanged.'};
 review.ownerDecision={path:decision,sha256:hash(decisionText)};
 review.summary=`Owner-authorized corrective release ${version}; model inputs and historical evidence unchanged. See exact owner decision.`;

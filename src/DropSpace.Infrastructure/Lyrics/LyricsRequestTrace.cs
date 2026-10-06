@@ -28,15 +28,26 @@ public sealed class LyricsRequestTrace : IDisposable
     public static LyricsRequestTrace Begin(object metadata) => new(metadata);
     public static void Record(string stage, object data) => Current.Value?.Write(stage, data);
     public static string Key(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..16];
-    public static object Describe(LyricsDocument document) => new
+    public static object Describe(LyricsDocument document)
     {
+        var sourceVersion = Enabled ? LyricsTranslationOutput.SourceVersion(document) : null;
+        return new
+        {
         provider = document.Provider.ToString(), candidateId = document.Match?.CandidateId,
         document.ProviderDataRevision, lines = document.Lines.Count,
         bodyQuality = document.BodyQuality.ToString(), bodyQualityVersion = LyricsBodyQualityPolicy.Version,
         translated = document.Lines.Count(line => !string.IsNullOrWhiteSpace(line.Secondary)),
         languages = document.Lines.Select(line => line.TranslationLanguage).Distinct().ToArray(),
         origins = document.Lines.Select(line => line.TranslationOrigin.ToString()).Distinct().ToArray(),
-    };
+        sourceVersion,
+        rows = document.Lines.Select((line, id) => new { id,
+            stableId = LyricsTranslationOutput.LineIdentity(sourceVersion!, line, id),
+            start = line.Start.TotalMilliseconds, end = line.End.TotalMilliseconds,
+            original = Key(line.Text), secondary = string.IsNullOrWhiteSpace(line.Secondary) ? null : Key(line.Secondary),
+            origin = line.TranslationOrigin.ToString(), line.TranslationLanguage,
+            state = line.TranslationState.ToString(), reason = line.TranslationReason }),
+        };
+    }
 
     public void Write(string stage, object data)
     {

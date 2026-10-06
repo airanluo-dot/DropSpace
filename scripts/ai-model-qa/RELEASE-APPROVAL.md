@@ -89,8 +89,14 @@ inference/cache, app composition, display, diagnostic-startup and packaging
 sources. It also covers the actual production evidence harness. Tests require
 coverage of every C# file in Core/Lyrics, Infrastructure/Lyrics,
 App/Services/Media and App/Services/Diagnostics. New dependencies elsewhere must
-be added during code review. Source text uses `sha256-utf8-lf-v1` for equivalent
-Windows/Linux checkouts. Evidence and runtime hashes cover exact bytes.
+be added during code review. The `sha256-source-lf-embedded-bytes-v2` fingerprint
+normalizes source text for equivalent Windows/Linux checkouts, but binds model
+delivery JSON to its exact embedded bytes. It includes `AiModelDeliveryManifest.cs`
+(trust rules, manifest identity and transport layout), the actual delivery JSON,
+and the Infrastructure project resource binding. Missing, redirected or unlisted
+JSON resources fail closed. Evidence and runtime hashes also cover exact bytes.
+Both fresh builds and reused release bundles call the same current-scope gate;
+a previously reviewed bundle cannot bypass changed production delivery inputs.
 
 ## Finite final production capture
 

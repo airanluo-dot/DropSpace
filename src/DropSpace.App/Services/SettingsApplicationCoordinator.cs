@@ -18,20 +18,35 @@ public sealed class SettingsApplicationCoordinator(
     DeviceHandoffService deviceHandoff,
     CrossDeviceClipboardService crossDeviceClipboard,
     ILogger<SettingsApplicationCoordinator> logger,
-    DropSpace.Infrastructure.Downloads.HttpRangeDownloader? downloads = null) : IDisposable
+    DropSpace.Infrastructure.Downloads.HttpRangeDownloader? downloads = null,
+    DropSpace.Infrastructure.Lyrics.LyricsCache? lyricsCache = null) : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    public Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default) =>
-        settingsService.LoadAsync(cancellationToken);
+    public async Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken);
+        try { return ApplyCachePolicy(await settingsService.LoadAsync(cancellationToken)); }
+        finally { _gate.Release(); }
+    }
+
+    private AppSettings ApplyCachePolicy(AppSettings settings)
+    {
+        // This boundary precedes success returning to the editor. Source and AI views
+        // share this store; quota maintenance remains in the existing background path.
+        lyricsCache?.SetMaximumBytesPolicy(settings.Lyrics.CacheMaximumBytes);
+        return settings;
+    }
 
     public async Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        settings = settings.Validate();
         await _gate.WaitAsync(cancellationToken);
         try
         {
             await settingsService.SaveAsync(settings, cancellationToken);
+            ApplyCachePolicy(settings);
         }
         finally
         {
@@ -61,7 +76,7 @@ public sealed class SettingsApplicationCoordinator(
                 await clipboard.ResumeAsync(cancellationToken);
             }
 
-            return await settingsService.LoadAsync(cancellationToken);
+            return ApplyCachePolicy(await settingsService.LoadAsync(cancellationToken));
         }
         finally
         {
@@ -84,7 +99,7 @@ public sealed class SettingsApplicationCoordinator(
             logger.LogInformation("Settings operation {OperationId} started.", operationId);
             // The form may have been captured while another edit was still saving.
             // Merge its changed fields only, under the transaction gate.
-            var persisted = await settingsService.LoadAsync(cancellationToken);
+            var persisted = ApplyCachePolicy(await settingsService.LoadAsync(cancellationToken));
             var next = SettingsChangePolicy.Merge(current, requested, persisted);
             current = persisted;
             next = next.Validate();
@@ -149,6 +164,7 @@ public sealed class SettingsApplicationCoordinator(
                     latest => SettingsChangePolicy.Merge(next, current, latest), CancellationToken.None));
                 next = await settingsService.UpdateAsync(
                     latest => SettingsChangePolicy.Merge(current, next, latest), cancellationToken);
+                ApplyCachePolicy(next);
                 logger.LogInformation("Settings operation {OperationId} committed; aiEnabledBefore={AiBefore}; aiEnabledAfter={AiAfter}; gpuEnabled={GpuEnabled}; gpuBackend={Backend}; model={ModelId}.",
                     operationId, current.Lyrics.AiTranslationEnabled, next.Lyrics.AiTranslationEnabled,
                     next.Lyrics.AiLyricsGpuAccelerationEnabled, next.Lyrics.AiLyricsGpuBackend, next.Lyrics.AiModelId);
@@ -163,9 +179,11 @@ public sealed class SettingsApplicationCoordinator(
                         operationId,
                         category,
                         exception.GetType().Name));
+                await RecoverCachePolicyAsync(current);
                 if (rollbackFailures.Count > 0)
                 {
                     var reconciliationFailures = await ReconcileAsync(rollbackFailures);
+                    await RecoverCachePolicyAsync(current);
                     if (reconciliationFailures.Count > 0)
                     {
                         logger.LogCritical(
@@ -193,14 +211,26 @@ public sealed class SettingsApplicationCoordinator(
     public async Task<AppSettings> RecoverPersistedStateAsync(AppSettings fallback)
     {
         ArgumentNullException.ThrowIfNull(fallback);
+        await _gate.WaitAsync();
         try
         {
-            return await settingsService.LoadAsync(CancellationToken.None);
+            return ApplyCachePolicy(await settingsService.LoadAsync(CancellationToken.None));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             logger.LogError(exception, "Persisted settings could not be reloaded after a failed settings transaction.");
-            return fallback;
+            return ApplyCachePolicy(fallback);
+        }
+        finally { _gate.Release(); }
+    }
+
+    private async Task RecoverCachePolicyAsync(AppSettings fallback)
+    {
+        try { ApplyCachePolicy(await settingsService.LoadAsync(CancellationToken.None)); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            ApplyCachePolicy(fallback);
+            logger.LogError(exception, "Lyrics cache policy used the previous settings after persistence recovery failed.");
         }
     }
 
@@ -213,8 +243,8 @@ public sealed class SettingsApplicationCoordinator(
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            return await settingsService.UpdateAsync(
-                settings => SettingsChangePolicy.ApplyLastUpdateCheck(settings, checkedAt), cancellationToken);
+            return ApplyCachePolicy(await settingsService.UpdateAsync(
+                settings => SettingsChangePolicy.ApplyLastUpdateCheck(settings, checkedAt), cancellationToken));
         }
         finally
         {

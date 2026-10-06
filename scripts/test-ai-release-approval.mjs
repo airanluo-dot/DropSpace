@@ -6,12 +6,19 @@ import { fileURLToPath } from 'node:url';
 import { compareInventory, directoryInventory, validateArtifactContract, validateInventory, validateRuntimeProducer, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 
 export const approvalPath = 'scripts/ai-model-qa/release-approval.json';
-export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v10.json';
+export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v11.json';
 export const fixturePath = 'scripts/ai-model-qa/inputs/source48.json';
 export const residentSourcePaths = Object.freeze([
   'tools/plain-lyrics-helper/CMakeLists.txt',
   'tools/plain-lyrics-helper/gpu-policy.h',
   'tools/plain-lyrics-helper/main.cpp',
+]);
+// Embedded transport metadata and its authorization code are reviewed inputs
+// even when the identity of the executed model remains unchanged.
+export const modelDeliverySourcePaths = Object.freeze([
+  'src/DropSpace.Infrastructure/Lyrics/AiModelDeliveryManifest.cs',
+  'src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj',
+  'src/DropSpace.Infrastructure/Lyrics/Manifests/models-hy-mt2-q8-v1.json',
 ]);
 // This list is code-owned, never selected by the approval record. Removing a
 // prompt/parser/inference input from a manifest cannot weaken its binding.
@@ -107,6 +114,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs',
   'src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs',
+  ...modelDeliverySourcePaths,
   'src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs',
   'src/DropSpace.Infrastructure/Settings/SettingsIoPolicy.cs',
   'src/DropSpace.App/Services/Media/MediaExperienceService.cs',
@@ -124,11 +132,15 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/Services/ResourceStringLocalizer.cs',
   'src/DropSpace.App/Services/SettingsApplicationCoordinator.cs',
   'src/DropSpace.App/ViewModels/MediaViewModel.cs',
+  'src/DropSpace.App/ViewModels/OverlayViewModel.cs',
+  'src/DropSpace.Core/Island/IslandExperienceCoordinator.cs',
+  'src/DropSpace.Core/Island/IslandPresencePolicy.cs',
   'src/DropSpace.App/ViewModels/MainViewModel.cs',
   'src/DropSpace.App/ViewModels/NativeSettingsEditor.cs',
   'src/DropSpace.App/Views/Music/MusicPage.cs',
   'src/DropSpace.App/Views/Settings/SettingsEditBehavior.cs',
   'src/DropSpace.App/Views/Settings/SettingsValueSlider.cs',
+  'src/DropSpace.App/Views/Settings/SettingsForm.cs',
   'src/DropSpace.App/Views/Music/LyricsRowCollection.cs',
   'src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs',
   'src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs',
@@ -190,6 +202,9 @@ export const sourcePaths = Object.freeze([
   'scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj',
   'scripts/plain-hy-production-evidence/packages.lock.json',
   'scripts/plain-hy-production-evidence/Program.cs',
+  // Retain the prior reviewed computation as an immutable historical input;
+  // the active host computation below has its own path and honest provenance.
+  'scripts/plain-hy-production-evidence/source48-admission-v10.json',
   admissionPath,
   'scripts/plain-hy-production-evidence/ContractTests.cs',
   'scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1',
@@ -251,7 +266,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.14';
+export const experimentalBetaVersion = 'v0.3.1-beta.15';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -262,7 +277,7 @@ const readJson = (root, name) => JSON.parse(readText(root, name));
 export function fixtureAdmissionDecision(text, target, { detectedLanguage, confidence }) {
   const confident = detectedLanguage !== null && confidence >= 0.9;
   if (confident && (detectedLanguage === target || detectedLanguage.startsWith('zh-') && target.startsWith('zh-'))) return 'SameLanguage';
-  if (!confident) return 'Abstain';
+  if (!confident || detectedLanguage === 'mul') return 'Abstain';
   return 'Translate';
 }
 const nonempty = (value, label) => assert.ok(typeof value === 'string' && value.trim().length > 0, `${label} is required`);
@@ -271,6 +286,38 @@ function singleMatch(text, pattern, label) {
   const matches = [...text.matchAll(pattern)];
   assert.equal(matches.length, 1, `${label} must have exactly one recognizable production declaration`);
   return matches[0][1];
+}
+
+export function readSourceFingerprint(root) {
+  assert.equal(new Set(sourcePaths).size, sourcePaths.length, 'Duplicate fingerprint source paths');
+  const projectPath = 'src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj';
+  const project = readText(root, projectPath).replace(/<!--[\s\S]*?-->/g, '');
+  const namespace = singleMatch(project, /<RootNamespace>([^<]+)<\/RootNamespace>/g, 'Infrastructure resource namespace');
+  const resources = [...project.matchAll(/<EmbeddedResource\b([^>]*?)(?:\/\s*>|>([\s\S]*?)<\/EmbeddedResource>)/g)];
+  const embeddedJson = resources.flatMap(([, attributes, body = '']) => {
+    const include = /\bInclude\s*=\s*["']([^"']+)["']/.exec(attributes)?.[1];
+    assert.ok(include, 'Embedded resource must use a recognizable literal Include');
+    assert.ok(!/[*$?;]/.test(include), 'Embedded resource expansion requires an explicit fingerprint extractor update');
+    if (!include.toLowerCase().endsWith('.json')) return [];
+    const relative = include.replaceAll('\\', '/');
+    assert.ok(!path.posix.isAbsolute(relative) && !relative.split('/').includes('..'), 'Embedded resource path must stay within Infrastructure');
+    const name = path.posix.join(path.posix.dirname(projectPath), relative);
+    assert.ok(modelDeliverySourcePaths.includes(name), `Embedded JSON needs code-owned fingerprint coverage: ${name}`);
+    const logicalName = /\bLogicalName\s*=\s*["']([^"']+)["']/.exec(attributes)?.[1]
+      ?? /<LogicalName>([^<]+)<\/LogicalName>/.exec(body)?.[1]
+      ?? `${namespace}.${relative.replaceAll('/', '.')}`;
+    return [{ path: name, logicalName }];
+  });
+  const manifests = modelDeliverySourcePaths.filter(name => name.endsWith('.json'));
+  assert.deepEqual(embeddedJson.map(resource => resource.path).sort(), [...manifests].sort(), 'Reviewed model delivery JSON must actually be embedded exactly once');
+  const delivery = readText(root, 'src/DropSpace.Infrastructure/Lyrics/AiModelDeliveryManifest.cs');
+  const resourceNames = [...delivery.matchAll(/GetManifestResourceStream\(\s*"([^"]+)"\)/g)].map(match => match[1]);
+  assert.deepEqual(resourceNames.sort(), embeddedJson.map(resource => resource.logicalName).sort(), 'Model delivery resource binding does not match the production reader');
+  // A BOM or CRLF changes the checked embedded resource identity. Normalize
+  // source text only; hash manifest resources exactly as they are packaged.
+  const files = sourcePaths.map(name => ({ path: name, sha256: sha256(manifests.includes(name)
+    ? fs.readFileSync(path.join(root, name)) : readText(root, name)) }));
+  return { algorithm: 'sha256-source-lf-embedded-bytes-v2', files, sha256: sha256(JSON.stringify(files)) };
 }
 
 export function readScope(root) {
@@ -351,7 +398,7 @@ export function readScope(root) {
   const fixtureBytes = fs.readFileSync(path.join(root, fixturePath));
   const fixture = JSON.parse(fixtureBytes);
   assert.equal(admission.schemaVersion, 1, 'Unknown audited fixture admission schema');
-  assert.equal(admission.recordKind, 'host-fixture-admission-v10', 'Expected a current host admission computation');
+  assert.equal(admission.recordKind, 'host-fixture-admission-v11', 'Expected a current host admission computation');
   assert.equal(admission.modelInferenceExecuted, false, 'Host admission cannot claim model inference');
   assert.equal(admission.semanticApproved, false, 'Host admission cannot claim semantic approval');
   assert.equal(admission.fixtureSha256, sha256(fixtureBytes), 'Audited admission fixture is stale');
@@ -374,12 +421,12 @@ export function readScope(root) {
       // The fixture has no credits. Unknown language abstains for every target;
       // confident foreign evidence remains eligible.
       const decision = fixtureAdmissionDecision(row.sourceText, target, row);
-      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the v10 three-state policy');
+      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the v11 three-state policy');
       assert.equal(row.reason, decision === 'SameLanguage' ? 'same-target-language' : decision === 'Abstain' ? 'no-eligible-segments' : row.confidence >= 0.9 ? 'identified-foreign-language' : 'unknown-language-retained');
       assert.deepEqual(row.segments, row.eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : []);
     }
   }
-  const files = sourcePaths.map(name => ({ path: name, sha256: sha256(readText(root, name)) }));
+  const sources = readSourceFingerprint(root);
   return {
     releaseVersion: readText(root, 'RELEASE_VERSION').trim(),
     shippingModels,
@@ -402,7 +449,7 @@ export function readScope(root) {
     targetNames: { en: stringConstant('EnglishTarget'), 'zh-Hans': stringConstant('ChineseTarget') },
     executionLimits,
     modelProfiles,
-    sources: { algorithm: 'sha256-utf8-lf-v1', files, sha256: sha256(JSON.stringify(files)) },
+    sources,
     fixtureAdmission: { path: admissionPath, sha256: sha256(readText(root, admissionPath)), ...admission },
     fixture: { path: fixturePath, sha256: sha256(fs.readFileSync(path.join(root, fixturePath))) },
   };

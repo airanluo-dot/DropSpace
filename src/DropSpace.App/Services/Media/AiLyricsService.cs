@@ -239,6 +239,9 @@ public sealed class AiLyricsService : IDisposable
     {
         document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
         document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(document, targetLanguage);
+        document = LyricsLanguagePolicy.MarkTranslationStates(document, targetLanguage);
+        LyricsRequestTrace.Record("ai-admission", new { policy = LyricsLanguagePolicy.Version, targetLanguage,
+            enabled = settings.Enabled && settings.AiTranslationEnabled, document = LyricsRequestTrace.Describe(document) });
         Func<bool> isCurrent = () => !token.IsCancellationRequested && (progress?.IsCurrent ?? true);
         if (!settings.Enabled || !settings.AiTranslationEnabled ||
             LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0)
