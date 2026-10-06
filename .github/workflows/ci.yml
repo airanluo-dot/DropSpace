@@ -36,8 +36,10 @@ jobs:
             if(process.env.GITHUB_EVENT_NAME!=='pull_request'||!/^[a-f0-9]{40}$/.test(base??''))throw new Error('Full application build required');
             execFileSync('git',['fetch','--no-tags','--depth=1','origin',base]);
             const names=execFileSync('git',['diff','--name-only','-z',base,'HEAD'],{encoding:'utf8'}).split('\0').filter(Boolean);
-            const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md','.github/release-notes/v0.3.1-beta.14.md']);
+            const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md','.github/release-notes/v0.3.1-beta.14.md','.github/release-notes/v0.3.1-beta.15.md','docs/dev/beta15-fix-audit.md']);
             maintenance=names.length>0&&names.every(n=>allowed.has(n));
+            // Exact Beta15 still requires complete App-input comparison and published asset binding.
+            if(fs.readFileSync('RELEASE_VERSION','utf8').trim()==='v0.3.1-beta.15')maintenance=false;
           } catch(e) { console.log(e.message); }
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\n`);
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
@@ -343,23 +345,115 @@ jobs:
           'reuse=true' >> $env:GITHUB_OUTPUT
           "Verified all nine actual Beta14 package bytes from the local Release build at $source. Application inputs are unchanged; only CI routing and the verification record differ. The owner authorized local compilation and focused checks, and waived broad regressions. This job verifies artifact identity and runtime binding; no CI compilation, App startup, installation, model request or functional tests are claimed." >> $env:GITHUB_STEP_SUMMARY
 
+      - name: Verify exact locally built Beta15 candidate for PR publication
+        id: reviewed-beta15
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((Get-Content RELEASE_VERSION -Raw).Trim() -cne 'v0.3.1-beta.15') { exit 0 }
+          $source = '734e0a96366fcffae4d3e8361745e4ba549ebf06'
+          git fetch --no-tags origin $source
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve actual Beta15 build source.' }
+          $changed = @(git diff --name-only $source HEAD)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot compare application inputs.' }
+          $allowed = @('.github/workflows/ci.yml', 'README.md', 'ROADMAP.md', 'docs/dev/beta15-fix-audit.md', 'docs/dev/corrective-release-preparation.md', '.github/release-notes/v0.3.1-beta.15.md')
+          if ($changed.Count -eq 0 -or @($changed | Where-Object { $_ -cnotin $allowed }).Count -gt 0) { exit 0 }
+          $release = gh api repos/airanluo-dot/DropSpace/releases/404561576 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read the owner-authorized Beta15 candidate.' }
+          if ($release.id -ne 404561576 -or $release.tag_name -cne 'v0.3.1-beta.15' -or $release.target_commitish -cne $source -or $release.prerelease -isnot [bool] -or $release.prerelease -ne $true -or $release.draft -isnot [bool] -or $release.draft -ne $false) { throw 'Published candidate source or channel mismatch.' }
+          $expected = @'
+          [
+            {
+              "name": "DropSpace.exe",
+              "bytes": 356373112,
+              "sha256": "a62bded3520f6e7940cbb06d023bb85bce2c593c61b6ab305a6546e55f378517"
+            },
+            {
+              "name": "DropSpaceSetup.exe",
+              "bytes": 82339856,
+              "sha256": "e18a5b61082da0ddbb24a83a931d16d608b9dcac89bc2d622ace80545c950fab"
+            },
+            {
+              "name": "DropSpace-x64.msix",
+              "bytes": 63522044,
+              "sha256": "2b07c7b0df36b696efa317e56887d79a2626ea6cdf2cf37ca7c4107fed7c6e64"
+            },
+            {
+              "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.15.zip",
+              "bytes": 540873572,
+              "sha256": "79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b"
+            },
+            {
+              "name": "cuda-runtime-download.json",
+              "bytes": 1867,
+              "sha256": "67ec144bf5bd8f3399b3549d0f3fb8c6c6f12ab9984a0265476987e09a2c17c3"
+            },
+            {
+              "name": "cuda-runtime-manifest.json",
+              "bytes": 1815,
+              "sha256": "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a"
+            },
+            {
+              "name": "runtime-publication.json",
+              "bytes": 5212,
+              "sha256": "217a1677131017e8925747782c4b633bb816b58928fa8fb33e9c3a78f0e34bec"
+            },
+            {
+              "name": "update-manifest.json",
+              "bytes": 801,
+              "sha256": "2f4e2f15a5906d56b0783c2c07a4204da567fc7090d25192fa2ebd64a7d23f2c"
+            },
+            {
+              "name": "SHA256SUMS.txt",
+              "bytes": 730,
+              "sha256": "2fba633e00f13bb373d16dad913426ee1ed65b19e8cc1f726d853265e4eeeea1"
+            }
+          ]
+          '@ | ConvertFrom-Json
+          if (@($release.assets).Count -ne $expected.Count) { throw 'Unexpected release asset list.' }
+          foreach ($identity in $expected) {
+            $asset = @($release.assets | Where-Object name -CEQ $identity.name)
+            if ($asset.Count -ne 1 -or $asset[0].state -cne 'uploaded' -or $asset[0].size -ne $identity.bytes -or $asset[0].digest -cne ('sha256:' + $identity.sha256)) { throw "Uploaded candidate identity mismatch: $($identity.name)" }
+          }
+          $directory = 'artifacts/reviewed-beta15'
+          gh release download v0.3.1-beta.15 --repo airanluo-dot/DropSpace --dir $directory
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot retrieve the actual built packages.' }
+          if (@(Get-ChildItem $directory -File).Count -ne $expected.Count) { throw 'Unexpected downloaded payload list.' }
+          foreach ($identity in $expected) {
+            $file = Join-Path $directory $identity.name
+            if ((Get-Item $file).Length -ne $identity.bytes -or (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $identity.sha256) { throw "Actual built package changed: $($identity.name)" }
+          }
+          $binding = Get-Content (Join-Path $directory 'runtime-publication.json') -Raw | ConvertFrom-Json
+          if ($binding.sourceCommit -cne $source -or $binding.installer.kind -cne 'installer-build-input' -or $binding.installer.verificationScope -cne 'compiler-input-bytes-only; installer not executed; tests waived') { throw 'Incorrect package provenance or test claim.' }
+          $checkSource = $env:GITHUB_SHA
+          try {
+            $env:GITHUB_SHA = $source
+            node scripts/test-ai-release-approval.mjs --release-bundle $directory
+            if ($LASTEXITCODE -ne 0) { throw 'Reviewed runtime and actual package binding failed.' }
+          } finally { $env:GITHUB_SHA = $checkSource }
+          'reuse=true' >> $env:GITHUB_OUTPUT
+          "Verified all nine actual Beta15 package bytes from the local Release build at $source. Application inputs are unchanged; only the explicitly listed CI and documentation inputs differ. The owner authorized local compilation and focused checks, and waived broad regressions. This job verifies artifact identity and runtime binding; no CI compilation, App startup, installation, model request or functional tests are claimed." >> $env:GITHUB_STEP_SUMMARY
+
       - name: Read exact owner test waiver
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         shell: pwsh
         run: |
-          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
+          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11','v0.3.1-beta.15') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
           "OWNER_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
           if ($waived -eq 'true') { 'Owner waived functional tests for this exact release. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
 
       - name: Verify reusable prior successful checks
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         id: prior-checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-beta2-retry.mjs
 
       - name: Install .NET 10 SDK
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.401
@@ -367,19 +461,19 @@ jobs:
           cache-dependency-path: Directory.Packages.props
 
       - name: Verify committed brand assets on clean checkout
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1 -Verify
 
       - name: Confirm brand verification did not mutate the checkout
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         shell: pwsh
         run: |
           $status = git status --short --untracked-files=all
           if ($status) { throw "Brand verification mutated the clean checkout:`n$status" }
 
       - name: Validate Stable and Beta release metadata
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         shell: pwsh
         run: |
           if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.11') {
@@ -392,39 +486,39 @@ jobs:
             ./scripts/Test-ReleaseConsistency.ps1
           }
       - name: Enforce localization resource policy
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
 
       - name: Test frozen model prompt localization exceptions
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
         run: node --test scripts/test-localization-policy.test.mjs
 
       - name: Enforce Windows 10/11 compatibility baseline
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
         shell: pwsh
         run: ./scripts/Test-WindowsCompatibility.ps1
 
       - name: Enforce hardcoding governance
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
         shell: pwsh
         run: ./scripts/Test-HardcodingGovernance.ps1
 
       - name: Enforce secret hygiene
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         shell: pwsh
         run: ./scripts/Test-SecretHygiene.ps1
 
       - name: Test CI handoff and workflow contracts
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         run: node --test scripts/ci-portable-handoff.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs scripts/ci-beta2-retry.test.mjs scripts/ci-release-promotion.test.mjs
 
       - name: Test AI semantic release gate regressions
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
 
       - name: Test packaged runtime inspection regressions
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         shell: pwsh
         run: |
           ./scripts/Test-AiRuntimePayloadInspector.ps1
@@ -432,22 +526,22 @@ jobs:
           ./scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1
 
       - name: Test expanded island scope and fullscreen behavior contracts
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
         run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
 
       - name: Test private translation helper protocol without model dependencies
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
         shell: pwsh
         run: |
           python -m unittest discover -s tools/ct2-helper -p 'test_*.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'Private translation helper protocol checks failed.' }
 
       - name: Restore locked dependency graph
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
       - name: Require exact reviewed native runtime reuse
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         id: reviewed-runtime
         shell: pwsh
         run: |
@@ -455,29 +549,29 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed runtime metadata is invalid; automatic AI engine compilation is disabled.' }
 
       - name: Retrieve exact reviewed native runtime
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (steps.reviewed-runtime.outputs.reuse == 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (steps.reviewed-runtime.outputs.reuse == 'true') }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-ReviewedAiRuntime.ps1
 
       - name: Stage exact reviewed CUDA metadata for this App checkout
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         shell: pwsh
         run: |
           python scripts/stage-reviewed-cuda-metadata.py --app-commit $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { throw 'Trusted CUDA metadata staging failed; App Release compilation is blocked.' }
 
       - name: Test core policies, SemVer, and channel selection
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core.trx"
 
       - name: Test persistence, manifests, streaming downloads, and update coordination
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true')) }}
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure.trx"
 
       - name: Test production evidence harness without native inference
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         shell: pwsh
         run: |
           dotnet restore scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -p:RestoreLockedMode=true
@@ -486,48 +580,48 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness contract tests failed.' }
 
       - name: Install locked Windows App Runtime for native tests
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         timeout-minutes: 10
         shell: pwsh
         run: ./scripts/Install-TestWindowsAppRuntime.ps1
 
       - name: Test App policies and native-boundary contracts
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         timeout-minutes: 10
         run: dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --logger "trx;LogFileName=app.trx"
 
       - name: Build WinUI application
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         run: dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false
 
       - name: Publish portable self-contained EXE
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         id: portable-publish
         shell: pwsh
         run: ./scripts/Build-PortableExe.ps1
 
       - name: Build pinned Inno Setup installer
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         shell: pwsh
         run: ./scripts/Build-Installer.ps1
 
       - name: Validate icon and brand asset chain
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         shell: pwsh
         run: ./scripts/Test-BrandAssets.ps1
 
       - name: Test install, in-place upgrade, and both uninstall modes
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         shell: pwsh
         run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
 
       - name: Bind owner-waived installer payload without lifecycle tests
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS == 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS == 'true') }}
         shell: pwsh
         run: ./scripts/Inspect-OwnerWaivedPackages.ps1 -Kind Installer
 
       - name: Upload Windows installer
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-setup-win-x64
@@ -536,22 +630,22 @@ jobs:
           retention-days: 3
 
       - name: Build unsigned MSIX package
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         shell: pwsh
         run: ./scripts/Build-UnsignedPackage.ps1 -NoRestore
 
       - name: Validate MSIX symbol policy
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         shell: pwsh
         run: ./scripts/Test-MsixSymbolPolicy.ps1 -ArtifactRoot artifacts/msix
 
       - name: Build and validate external-location identity package
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         shell: pwsh
         run: ./scripts/Build-IdentityPackage.ps1
 
       - name: Upload unsigned MSIX package
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-msix-unsigned-x64
@@ -560,7 +654,7 @@ jobs:
           retention-days: 3
 
       - name: Upload unsigned identity package for signing pipeline
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-identity-unsigned-x64
@@ -569,7 +663,7 @@ jobs:
           retention-days: 3
 
       - name: Stage immutable release parts
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         shell: pwsh
         run: |
           New-Item artifacts/release-parts -ItemType Directory -Force | Out-Null
@@ -584,7 +678,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Runtime inventory failed.' }
 
       - name: Upload this attempt's release parts
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         id: release-parts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -594,12 +688,12 @@ jobs:
           retention-days: 7
 
       - name: Record same-run portable handoff
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         id: portable-handoff
         run: node scripts/ci-portable-handoff.mjs record artifacts/release
 
       - name: Upload shared portable EXE
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         id: portable-artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -611,7 +705,7 @@ jobs:
           retention-days: 3
 
       - name: Upload test results
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (always()) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (always()) }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: test-results-windows
@@ -620,7 +714,7 @@ jobs:
           retention-days: 7
 
       - name: Upload shared installer diagnostics
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (always()) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (always()) }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: diagnostics-windows-producer
@@ -629,7 +723,7 @@ jobs:
           retention-days: 14
 
       - name: Verify portable bytes and producer identity
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' }}
         id: portable-verification
         env:
           EXPECTED_HANDOFF_SHA256: ${{ steps.portable-handoff.outputs.handoff_sha256 }}
@@ -637,23 +731,23 @@ jobs:
         run: node scripts/ci-portable-handoff.mjs verify artifacts/release
 
       - name: Smoke test portable EXE once (en-US resource context)
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS != 'true') }}
         id: smoke-en
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/release/portable-inspection.json
 
       - name: Bind owner-waived portable payload without smoke tests
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS == 'true') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (env.OWNER_SKIP_TESTS == 'true') }}
         shell: pwsh
         run: ./scripts/Inspect-OwnerWaivedPackages.ps1 -Kind Portable
 
       - name: Stage same-build validated release parts
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')) }}
         shell: pwsh
         run: Copy-Item artifacts/release-parts/* artifacts/release -Force
 
       - name: Bind packages and record immutable promotion receipt
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')) }}
         shell: pwsh
         run: |
           node scripts/ai-runtime-publication.mjs record-bundle artifacts/release reference-binding artifacts/release/runtime-reference.json artifacts/release/portable-inspection.json artifacts/release/msix-inspection.json artifacts/release/installer-inspection.json
@@ -662,7 +756,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'CI promotion receipt failed.' }
 
       - name: Upload verified release promotion bundle
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')) }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-release-promotion-${{ github.run_id }}-${{ github.run_attempt }}
@@ -677,13 +771,13 @@ jobs:
           retention-days: 7
 
       - name: Install .NET 10 SDK for isolated crash diagnostics
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (!cancelled() && steps.smoke-en.outcome == 'failure' && steps.portable-verification.outcome == 'success') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (!cancelled() && steps.smoke-en.outcome == 'failure' && steps.portable-verification.outcome == 'success') }}
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.401
 
       - name: Collect isolated native crash address evidence
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (!cancelled() && steps.smoke-en.outcome == 'failure' && steps.portable-verification.outcome == 'success') }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (!cancelled() && steps.smoke-en.outcome == 'failure' && steps.portable-verification.outcome == 'success') }}
         shell: pwsh
         run: |
           if (-not (Test-Path -LiteralPath artifacts/release/DropSpace.exe -PathType Leaf)) {
@@ -695,7 +789,7 @@ jobs:
           Remove-Item Env:DROPSPACE_TEST_DATA_ROOT
 
       - name: Upload smoke and installer diagnostics
-        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && (always()) }}
+        if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && (always()) }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: diagnostics-windows-portable

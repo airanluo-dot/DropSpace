@@ -482,6 +482,7 @@
   <data name="LyricsScrolling" xml:space="preserve"><value>滚动长歌词</value></data>
   <data name="MusicEnabled" xml:space="preserve"><value>启用音乐灵动岛</value></data>
   <data name="LyricsWidth" xml:space="preserve"><value>歌词最大宽度</value></data>
+  <data name="LyricsWidthUnlimited" xml:space="preserve"><value>无限制</value></data>
   <data name="MusicApplicationsEmpty" xml:space="preserve"><value>播放音乐后会在这里显示媒体应用。</value></data>
   <data name="WidgetCenter" xml:space="preserve"><value>中间</value></data>
   <data name="LyricsProvider" xml:space="preserve"><value>首选歌词来源</value></data>

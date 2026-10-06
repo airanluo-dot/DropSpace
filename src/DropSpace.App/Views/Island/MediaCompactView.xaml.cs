@@ -193,7 +193,7 @@ public sealed partial class MediaCompactView : UserControl
         IdealIslandHeight = showDots ? 40 : IslandGeometry.MusicCompactHeight(_primaryHeight + secondaryHeight + 12);
         LyricViewport.Height = showDots ? 28 : _primaryHeight;
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
-        var spectrum = settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback;
+        var spectrum = settings.IslandActivity.ShowSpectrum && _view.HasSpectrumPresentation;
         SpectrumBars.Visibility = spectrum ? Visibility.Visible : Visibility.Collapsed;
         var bands = new[] { Band0, Band1, Band2, Band3, Band4, Band5 };
         for (var index = 0; index < bands.Length; index++)

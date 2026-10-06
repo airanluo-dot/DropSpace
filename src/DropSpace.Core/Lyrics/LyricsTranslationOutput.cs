@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 
 namespace DropSpace.Core.Lyrics;
 
@@ -7,6 +8,52 @@ namespace DropSpace.Core.Lyrics;
 public static class LyricsTranslationOutput
 {
     public const int MaximumOutputBytes = 65_536;
+
+    public static string SourceVersion(LyricsDocument document) => Convert.ToHexStringLower(SHA256.HashData(
+        JsonSerializer.SerializeToUtf8Bytes(new { document.Provider, document.ProviderDataRevision,
+            document.Match?.TrackIdentity, document.Match?.CandidateId, document.Match?.CanonicalTitle,
+            document.Match?.Title, document.Match?.Artist, document.Match?.Album, document.Match?.DurationSeconds,
+            lines = document.Lines.Select(line => new { line.Start, line.End, line.Text, line.SourceLanguage }) })));
+
+    public static string LineIdentity(LyricsDocument document, int index) => LineIdentity(SourceVersion(document), document.Lines[index], index);
+    public static string LineIdentity(string sourceVersion, LyricsLine line, int index) => Convert.ToHexStringLower(SHA256.HashData(
+        JsonSerializer.SerializeToUtf8Bytes(new { source = sourceVersion, occurrence = index, line.Start, line.End, line.Text })));
+
+    /// <summary>Reconcile a frozen AI result against the current provider document. Text,
+    /// timestamps and repeated occurrence positions must all still refer to the same row.</summary>
+    public static LyricsDocument Reconcile(LyricsDocument current, LyricsDocument requestSource,
+        LyricsDocument generated, string targetLanguage)
+    {
+        var sourceVersion = SourceVersion(requestSource);
+        if (SourceVersion(current) != sourceVersion || SourceVersion(generated) != sourceVersion ||
+            generated.Lines.Count != requestSource.Lines.Count) return current;
+        current = LyricsLanguagePolicy.MarkTranslationStates(LyricsLanguagePolicy.IdentifyProviderTranslations(current), targetLanguage);
+        var lines = current.Lines.ToArray();
+        var segments = LyricsLanguagePolicy.EligibleSegments(current, targetLanguage);
+        for (var id = 0; id < lines.Length; id++)
+        {
+            // Index is the occurrence within this source version, not a text-only key.
+            if (id >= requestSource.Lines.Count || id >= generated.Lines.Count) continue;
+            var line = lines[id]; var before = requestSource.Lines[id]; var output = generated.Lines[id];
+            if (line.Text != before.Text || line.Start != before.Start || line.End != before.End ||
+                line.SourceLanguage != before.SourceLanguage || output.Text != before.Text ||
+                output.Start != before.Start || output.End != before.End) continue;
+            if (LyricsLanguagePolicy.HasTargetProviderTranslation(line, targetLanguage)) continue;
+            if (segments[id].Length == 0) continue;
+            if (output.TranslationOrigin == LyricsTranslationOrigin.LocalAi &&
+                !string.IsNullOrWhiteSpace(output.Secondary) &&
+                LyricsLanguagePolicy.SameSourceLanguage(output.TranslationLanguage, targetLanguage) &&
+                output.LocalAiAdmissionKey == LyricsLanguagePolicy.LocalAiAdmissionKey(line, targetLanguage, segments[id]))
+                lines[id] = line with { Secondary = output.Secondary, TranslationOrigin = output.TranslationOrigin,
+                    TranslationLanguage = output.TranslationLanguage, TranslationLanguageIsExplicit = false,
+                    LocalAiAdmissionKey = output.LocalAiAdmissionKey, TranslationState = output.TranslationState,
+                    TranslationReason = output.TranslationReason };
+            else if (output.TranslationState is LyricsLineTranslationState.Failed or LyricsLineTranslationState.Skipped &&
+                line.TranslationOrigin != LyricsTranslationOrigin.LocalAi)
+                lines[id] = line with { TranslationState = output.TranslationState, TranslationReason = output.TranslationReason };
+        }
+        return current with { Lines = lines };
+    }
 
     // Reject known runtime corruption and leaked prompt fields, not arbitrary lyric punctuation.
     // This is a structural guard; semantic translation quality still requires model evaluation.
@@ -33,6 +80,7 @@ public static class LyricsTranslationOutput
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(lineIndices);
+        source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         result = source;
         if (string.IsNullOrWhiteSpace(json) || Encoding.UTF8.GetByteCount(json) > MaximumOutputBytes ||
             lineIndices.Count is 0 or > 500 || string.IsNullOrWhiteSpace(targetLanguage)) return false;
@@ -69,6 +117,7 @@ public static class LyricsTranslationOutput
             var lines = source.Lines.ToArray();
             foreach (var replacement in replacements)
             {
+                if (LyricsLanguagePolicy.HasTargetProviderTranslation(lines[replacement.Index], targetLanguage)) continue;
                 var unchanged = string.Equals(lines[replacement.Index].Text.Trim(), replacement.Text.Trim(), StringComparison.Ordinal);
                 lines[replacement.Index] = lines[replacement.Index] with
                 {

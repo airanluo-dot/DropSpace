@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "v0.3.1-beta.15",
+  "recordedAt": "2026-10-06T08:52:58Z",
+  "timestampMeaning": "Authorization recorded during the local task; this is not an exact user-message timestamp.",
+  "ownerRequest": "Complete the current fifteen Beta15 fixes, preserve current work and user data, perform only the necessary focused investigation/verification and build, deliver new Beta15 packages without replacing published Beta14 assets.",
+  "permissions": {
+    "development": true,
+    "necessaryFocusedChecksAndCompilation": true,
+    "actualAppleMusicAndDropSpaceObservation": true,
+    "minimumInstalledModelAppChainVerification": true,
+    "beta15DeliveryAndPublicationAfterCompletion": true,
+    "repeatBroadRegression": false,
+    "modifyPublishedBeta14Assets": false
+  },
+  "releasePrerequisite": "Complete the requested repairs and necessary real playback/animation verification before publication. This preparation record is not evidence that those remaining observations have passed.",
+  "modelQualification": {
+    "existingModelAndNativeBytesReused": true,
+    "promptSamplerAndProtocolUnchanged": true,
+    "fullSemanticApproval": false,
+    "newNativeInferenceAtPreparation": "not-yet-repeated",
+    "actualPlaybackAndAnimationVerificationAtPreparation": "pending",
+    "broadHardwareModelAndFullSongMatrices": "unverified",
+    "historicalCaptures": "Retain original source, runtime, status, budgets and failures; no historical observation is relabeled as a Beta15 pass."
+  },
+  "focusedChecksActuallyReported": [
+    {
+      "kind": "model-delivery-source-fingerprint",
+      "passed": 4,
+      "command": "node --test --test-name-pattern=\"^model delivery\" scripts/test-ai-release-approval.test.mjs",
+      "modelInferenceExecuted": false
+    },
+    {
+      "kind": "coordinator-lifecycle",
+      "passed": 5,
+      "command": "dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj --no-restore --filter FullyQualifiedName~Beta15IslandLifecycleTests --verbosity minimal",
+      "realUiObserved": false
+    },
+    {
+      "kind": "focused-infrastructure-host",
+      "passed": 11,
+      "reportedBy": "Parent investigator in this task; exact run and scope to be entered in docs/dev/beta15-fix-audit.md",
+      "modelInferenceExecuted": false
+    }
+  ],
+  "sourceReview": {
+    "inputReleaseVersion": "v0.3.1-beta.14",
+    "algorithm": "sha256-source-lf-embedded-bytes-v2",
+    "reviewedInputStageSha256": "a4d0687f73a6c2e1addb0fcc9613f9676914abca3c6987e3e74bda0c1cab4e10",
+    "gateVersionPinPreparation": "The helper binds the exact prospective gate text with the Beta15 pin; these listed hashes are the reviewed inputs before that explicit metadata write.",
+    "reviewedInputs": [
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsModels.cs",
+        "sha256": "6d04ac5e2553cb3151118857890d6a1a437e7d66da4c85e58a4af888e68586eb"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs",
+        "sha256": "de1441acae75149764f569bdeadf95786e58cc70fff4866d0d43f7a197cfd4da"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCache.cs",
+        "sha256": "aab638dd015bab7718d678405d2d713f9f92d8cc278c4c6a64377aeee33aa02a"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs",
+        "sha256": "f6c5ff5ab696cd9dde0c3e91ddb16063dfc028530fda9d1f3fb19418f0d04538"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
+        "sha256": "c14474d17c2a4f03a96aa10edddaa88faa54af1a62e271c0c240a185d6013590"
+      },
+      {
+        "path": "scripts/stage-reviewed-cuda-metadata.py",
+        "sha256": "946c88aa3a988f2abd661818a1b2ba3668096f6926677de55783b7d7760dc130"
+      },
+      {
+        "path": "scripts/test-ai-release-approval.mjs",
+        "sha256": "cc43759e389e0cb49a0de76dfc19969693f30895ca3f27fb6c8822c54e34cce0"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsMatcher.cs",
+        "sha256": "b520b670456e25907cab806b644d6478d7031c54b5064ff03049d89cabb933aa"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsCandidateSelection.cs",
+        "sha256": "4877b6c1e1aa56a76eed9b80768bb320a69593731bd6d33ba6ecd28f0a887ac6"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs",
+        "sha256": "98fa1a00ee17634bbd740990f661b3f615d12bebd5074f2664177b60c7355718"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs",
+        "sha256": "cf8576165d1565c0f2b1c14aab7aa20c19d586f3a8667beeaef4ebae034fffe4"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
+        "sha256": "e6b3cc926939802fc8bdeb0b622c3cdb6434ac4f07803202b2253b5a49129ca6"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/AiModelDeliveryManifest.cs",
+        "sha256": "0128867a4671e61fb1b1650cec667046176b665c87fedbe9ca5cf05afbb58003"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj",
+        "sha256": "44a366a6ec31f01a170b8cd5760eebd46d1a55b030f1a13ef509592d2dd5fc55"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/Manifests/models-hy-mt2-q8-v1.json",
+        "sha256": "2da82e004022c52dc4315b8f6414273d13802c6c5202668e5be26a08ba6c0ef9"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
+        "sha256": "b39d07b82470ae280efd75efd40bac8ae6c6b678e6debb0d1d29dcaa906d60fa"
+      },
+      {
+        "path": "src/DropSpace.App/App.xaml.cs",
+        "sha256": "61be79966bec1f6c4fb5b5fa35a1db6152be1c99d84a3211655010dc635e59be"
+      },
+      {
+        "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+        "sha256": "dd98c42aee587eb71f6b837aa053fab79ff43789a73dff98daed88b258f75f85"
+      },
+      {
+        "path": "src/DropSpace.App/Services/SettingsApplicationCoordinator.cs",
+        "sha256": "3ade4ab06cd90c22b3b93a28ef9539fc83d6b89d0556218b111e001648d904bc"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+        "sha256": "ee49d96f24c2669b6dfbce1bab3f257fa283702c697a7798c1e23bc5e331fc6c"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/OverlayViewModel.cs",
+        "sha256": "3d06556b8716eb303158d2cb856974ddbcad5ee8b79c0860e48ac6513c92257b"
+      },
+      {
+        "path": "src/DropSpace.Core/Island/IslandExperienceCoordinator.cs",
+        "sha256": "1bee7204fee15743b58ff7669838e1712cbde3039676bc068527890232d8ead0"
+      },
+      {
+        "path": "src/DropSpace.Core/Island/IslandPresencePolicy.cs",
+        "sha256": "babdc44db4922ab864409e7ff97245be91ae30b9722d4f4e2e515a086ba670b8"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+        "sha256": "e1897ff7c8d890c29a2b8bcd4576314294c96871530a766a66b25d612f1f86f1"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/NativeSettingsEditor.cs",
+        "sha256": "2ea83e89740dcae93d94352470ebe6be34ff5031ecd92a3d6701d868ec99bb59"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
+        "sha256": "38fab544e3c46deebffae805a9d5230ea9235b1155d94254026948cb963eb248"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Settings/SettingsValueSlider.cs",
+        "sha256": "40bdea52e81d4a325db4bb3e00921c27206edefea8329f194adfdf63917057f5"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Settings/SettingsForm.cs",
+        "sha256": "50e577f00c13f997514b932cf28fbbf64561d74abe797e7e8c4c729ddd04f5f8"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+        "sha256": "f85360f272b40feb34e0db7148cec9c584a4a5c8d97c7fbfe2e9a88b7f6d8850"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs",
+        "sha256": "0e6dba7def5939d2ff0fd8dbdb6594fe22a8a8676b1482c0e8b75705dad0a1a4"
+      },
+      {
+        "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+        "sha256": "7e2a6aa6df165eeefa2d9c1096d358f49471dcef41e056bedefbf5d16bfa18c4"
+      },
+      {
+        "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+        "sha256": "b31ef613845e9860584624cf1f1945e56035ed0bfc7b9d3bf61b9c92d157b4c5"
+      },
+      {
+        "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+        "sha256": "72789d1d3fc71eb7850a0346198f924320b038aca3129f02c7a8ca259742148b"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+        "sha256": "e0b370a2be0fcf9c2ce3cb0139ed2acd2f834fdd9f77706027225d139610ce4a"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/source48-admission-v11.json",
+        "sha256": "9db8c3de79bc82023f0889e5b36cd1bb9ce8339796ccd6f87016b51eb0f9564f"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Settings/DownloadPanel.cs",
+        "sha256": "f6e9f81007d14d29dd05c2b3348e81047a9c25c8c32481b8543b0f270c4a37f6"
+      },
+      {
+        "path": "src/DropSpace.Core/Downloads/DownloadModels.cs",
+        "sha256": "466ea3a43894813bbd93a065434350d85bc7ec6732b732a3796f26beccad7242"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+        "sha256": "3b3430a7be0c1c4b2a621c169caf0371ab856b383e1046f0f7d9d61453066ac9"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Downloads/OutputReservationService.cs",
+        "sha256": "80be338eeafcb1aaec9f6faec69c1849a323b8637f35c306a9ee3ec2c4989b1a"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsRequestTrace.cs",
+        "sha256": "22606fb2d8e64328d49c851097d984f980069a9b1414ea7f475b2309f1cfdcb8"
+      },
+      {
+        "path": "scripts/ai-runtime-publication.mjs",
+        "sha256": "f66c741bb1e9076e86d1debd396090aba3215ee7524863712c0d1dbd801ce123"
+      }
+    ],
+    "fixtureAdmission": {
+      "path": "scripts/plain-hy-production-evidence/source48-admission-v11.json",
+      "sha256": "9db8c3de79bc82023f0889e5b36cd1bb9ce8339796ccd6f87016b51eb0f9564f",
+      "policyVersion": "contextual-line-admission-v11",
+      "modelInferenceExecuted": false,
+      "semanticApproved": false
+    },
+    "independentFixtureUnchanged": true
+  },
+  "audit": "docs/dev/beta15-fix-audit.md"
+}

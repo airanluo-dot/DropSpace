@@ -52,6 +52,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private sealed record SpectrumObservation(SpectrumFrame Frame, long Timestamp);
     private SpectrumObservation _spectrum = new(SpectrumFrame.Empty, 0);
     private LyricsDocument _document = LyricsDocument.Empty;
+    private LyricsDocument _sourceDocument = LyricsDocument.Empty;
     private long _generation, _artworkGeneration, _lyricPositionTicks;
     private long _reloadRequest;
     private readonly MediaLyricsRefreshRequest _sourceRefresh = new();
@@ -122,6 +123,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_initialized) return Task.CompletedTask;
         _initialized = true; _settings = settings;
+        _lyricsCache.SetMaximumBytesPolicy(settings.Lyrics.CacheMaximumBytes);
         _main.PropertyChanged += OnSettingsChanged;
         _media.Changed += OnMediaChanged; _audio.Changed += OnSpectrumChanged;
         StartRuntime();
@@ -340,7 +342,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     if (previousSettings is null) await AiLyrics.MigrateCacheAsync(token).WaitAsync(token).ConfigureAwait(false);
                     if (previousSettings?.Lyrics.CacheMaximumBytes != settings.Lyrics.CacheMaximumBytes)
                     {
-                        try { await _lyricsCache.SetMaximumBytesAsync(settings.Lyrics.CacheMaximumBytes, token).WaitAsync(token).ConfigureAwait(false); }
+                        try { await _lyricsCache.TrimToCurrentQuotaAsync(token).WaitAsync(token).ConfigureAwait(false); }
                         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
                         { _logger.LogDebug("Lyrics cache quota could not be applied ({Category}).", exception.GetType().Name); }
                     }
@@ -377,6 +379,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         if (resetLyrics)
                         {
                             _document = LyricsDocument.Empty;
+                            _sourceDocument = LyricsDocument.Empty;
                             _view.SetLyricsDocument(LyricsDocument.Empty);
                             _view.Lyrics = LyricsHighlightFrame.Empty;
                         }
@@ -386,7 +389,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
                                 ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
                         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(settings.OverlayMotion);
-                        _experience.UpdateMedia(session.IsActive && session.PlaybackState == MediaPlaybackState.Playing,
+                        _experience.UpdateMedia(session.IsActive && !string.IsNullOrWhiteSpace(session.TrackTitle),
+                            session.PlaybackState == MediaPlaybackState.Playing,
                             settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds, contentIdentity:
                             string.Join("\u001f", session.SessionId, session.SourceAppUserModelId, session.TrackTitle));
                         RenderFrame(); UpdateFrameTimer();
@@ -501,6 +505,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         var cleaned = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
                             LyricsLanguagePolicy.IdentifyProviderTranslations(original), targetLanguage);
                         _document = cleaned;
+                        _sourceDocument = cleaned;
                         _view.SetLyricsDocument(cleaned);
                         trace.Write("ui-preview", LyricsRequestTrace.Describe(cleaned));
                         _view.LyricsStatus = LyricsQueryStatus.Found;
@@ -530,6 +535,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 if (IsLyricsRequestCurrent(session, settings, generation, token))
                 {
                     _document = result.Document;
+                    _sourceDocument = result.Document;
                     _view.SetLyricsDocument(result.Document);
                     trace.Write("ui-source", LyricsRequestTrace.Describe(result.Document));
                     _view.LyricsStatus = result.Status;
@@ -555,8 +561,10 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             IsLyricsRequestCurrent(session, settings, generation, token))
                         {
                             partialApplied = true;
-                            _document = update.Document;
-                            _view.SetLyricsDocument(update.Document);
+                            _document = LyricsTranslationOutput.Reconcile(_sourceDocument, result.Document,
+                                update.Document, targetLanguage);
+                            _view.SetLyricsDocument(_document);
+                            trace.Write("ui-ai-progress", LyricsRequestTrace.Describe(_document));
                             RenderFrame();
                         }
                         return Task.CompletedTask;
@@ -578,8 +586,11 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         {
                             // Maintenance can start after inference returns but before this
                             // action runs. Restore only the source if its AI fence has retired.
-                            _document = publication.IsCurrent ? translated : result.Document;
+                            _document = publication.IsCurrent
+                                ? LyricsTranslationOutput.Reconcile(_sourceDocument, result.Document, translated, targetLanguage)
+                                : _sourceDocument;
                             _view.SetLyricsDocument(_document);
+                            trace.Write("ui-ai-final", LyricsRequestTrace.Describe(_document));
                             RenderFrame();
                         }
                         return Task.CompletedTask;
@@ -599,7 +610,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     {
                         // Translation/runtime failures must not erase a successful source
                         // result or mislabel that provider fetch as a network/load failure.
-                        _document = sourceResult?.Document ?? LyricsDocument.Empty;
+                        _document = sourceResult is null ? LyricsDocument.Empty : _sourceDocument;
                         _view.SetLyricsDocument(_document);
                         _view.LyricsStatus = sourceResult?.Status ?? LyricsQueryStatus.Failed;
                         RenderFrame();

@@ -75,6 +75,15 @@ public sealed partial class OverlayWindow : Window
     private bool _motionBlurEnabled = true;
     private IslandMotionPhase _motionBlurPhase;
     private bool _hideWhenSettled;
+    private long _dismissalGeneration;
+    // Explicit local diagnostic sessions only. No lyric, file or account text is recorded.
+    private readonly bool _islandTraceEnabled =
+        string.Equals(Environment.GetEnvironmentVariable("DROPSPACE_ISLAND_TRACE"), "1", StringComparison.Ordinal);
+    private string? _islandTracePresentation;
+    private long _islandTraceSequence;
+    private bool _islandTraceDismissalActive;
+    private long _islandTraceDismissalGeneration;
+    private int _islandTraceOpacityQuarter;
     private bool _suppressedForFullscreen;
     private bool _forceFullscreenPresentation;
     private OverlayState _presentedState = OverlayState.Hidden;
@@ -276,6 +285,7 @@ public sealed partial class OverlayWindow : Window
                 LogNativeFailure(emptyRegionFailure);
                 _nativeWindowSafeToShow = false;
             }
+            TraceIslandEvent("native-hide-initial");
             if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
             {
                 LogNativeFailure(hideFailure);
@@ -548,8 +558,8 @@ public sealed partial class OverlayWindow : Window
         MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
         var variant = _experience.Current.Variant;
         FileCompactContent.Visibility = variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? Visibility.Visible : Visibility.Collapsed;
-        EmptyWakeLogo.Visibility = variant == IslandPresentationVariant.EmptyWake ||
-            variant == IslandPresentationVariant.Idle && _mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle
+        EmptyWakeLogo.Visibility = (variant is IslandPresentationVariant.EmptyWake or IslandPresentationVariant.Idle) &&
+            _mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle
             ? Visibility.Visible : Visibility.Collapsed;
         MusicCompact.SetAvailableWidth(_monitor.EffectiveWorkWidth / _monitor.Scale /
             _mediaViewModel.Settings.IslandAppearance.CompactScale - 36);
@@ -587,7 +597,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        if (_visualPhase == OverlayVisualPhase.Exiting && snapshot.State != OverlayState.Hidden)
+        if (_visualPhase == OverlayVisualPhase.Exiting && snapshot.State is not (OverlayState.Dismissing or OverlayState.Hidden))
         {
             _visualPhase = OverlayVisualPhase.Reversing;
         }
@@ -624,7 +634,9 @@ public sealed partial class OverlayWindow : Window
         }
 
         _suppressedForFullscreen = false;
-        _hideWhenSettled = false;
+        _hideWhenSettled = snapshot.State == OverlayState.Dismissing;
+        if (_hideWhenSettled) _dismissalGeneration = _experience.HideGeneration;
+        TraceIslandPresentation(snapshot.State);
         _resolvedPlacement = ResolvePlacement(wakeMode, placement);
         if (!PositionFixedHost())
         {
@@ -915,6 +927,10 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        var fileRevision = _presentationSnapshot?.Revision;
+        var hideGeneration = _experience.HideGeneration;
+        var traceHide = _islandTraceEnabled && (_isVisible || _islandTraceDismissalActive);
+        if (traceHide) TraceIslandEvent("hide-immediate-begin");
         StopAnimationFrames();
         _glowTransfer = null;
         _presentedState = OverlayState.Hidden;
@@ -939,6 +955,12 @@ public sealed partial class OverlayWindow : Window
         _isVisible = false;
         _hideWhenSettled = false;
         _visualPhase = OverlayVisualPhase.Invisible;
+        if (traceHide) TraceIslandEvent("native-region-empty-immediate");
+        _islandTraceDismissalActive = false;
+        // Safe/direct hiding has already released the visible region. It must
+        // also settle file ownership, even when the island projected it to Hidden.
+        if (_isActiveWindow) _experience.CompleteDismissal(hideGeneration);
+        CompleteFileDismissal(fileRevision);
     }
 
     private bool TryRecoverNativeSurface()
@@ -947,6 +969,7 @@ public sealed partial class OverlayWindow : Window
         var now = Environment.TickCount64;
         if (_lastNativeRecoveryAttempt != 0 && now - _lastNativeRecoveryAttempt < 1000) return false;
         _lastNativeRecoveryAttempt = now;
+        TraceIslandEvent("native-hide-recovery");
         if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
         { LogNativeFailure(hideFailure); return false; }
         var configuration = OverlayWindowInterop.ConfigureVisualWindow(_windowHandle, _supportsModernDwmAttributes);
@@ -962,6 +985,8 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        var fileRevision = _presentationSnapshot?.Revision;
+        var hideGeneration = _experience.HideGeneration;
         StopAnimationFrames();
         _glowTransfer = null;
         _presentedState = OverlayState.Hidden;
@@ -981,6 +1006,7 @@ public sealed partial class OverlayWindow : Window
         {
             LogNativeFailure(emptyRegionFailure);
         }
+        TraceIslandEvent("native-hide-safety");
         if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
         {
             LogNativeFailure(hideFailure);
@@ -990,6 +1016,9 @@ public sealed partial class OverlayWindow : Window
         _nativeWindowShown = false;
         _isVisible = false;
         _visualPhase = OverlayVisualPhase.Invisible;
+        _islandTraceDismissalActive = false;
+        if (_isActiveWindow) _experience.CompleteDismissal(hideGeneration);
+        CompleteFileDismissal(fileRevision);
     }
 
     private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
@@ -1228,6 +1257,7 @@ public sealed partial class OverlayWindow : Window
             StopAnimationFrames();
             return;
         }
+        TraceIslandDismissalFrame();
 
         // Publish the shutter only after XAML, the AA mask and native region succeeded.
         _materialController.SetMotion(blurFrame);
@@ -1242,6 +1272,17 @@ public sealed partial class OverlayWindow : Window
         StopAnimationFrames();
         if (_hideWhenSettled)
         {
+            if (_presentedState != OverlayState.Dismissing ||
+                _experience.Current.State != OverlayState.Dismissing || _dismissalGeneration != _experience.HideGeneration)
+            {
+                // A newer display reason owns presentation now. An obsolete frame
+                // cannot release its region; retarget from current authority instead.
+                _hideWhenSettled = false;
+                ApplySnapshot(_viewModel.Snapshot with { State = _experience.Current.State }, _isActiveWindow, true,
+                    _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
+                return;
+            }
+            var fileRevision = _presentationSnapshot?.Revision;
             var current = _motion.Current.ProjectToSafeRange();
             var target = _motion.Target.ProjectToSafeRange();
             if (current.Opacity > 0.01 ||
@@ -1251,6 +1292,7 @@ public sealed partial class OverlayWindow : Window
                 StartAnimationFrames();
                 return;
             }
+            TraceIslandEvent("dismiss-settled");
             _hideWhenSettled = false;
             _motion.CompleteVisualAnimations();
             CollapseInvisibleContent(_motion.Current);
@@ -1263,23 +1305,98 @@ public sealed partial class OverlayWindow : Window
             // remains allocated for reuse.
             _isVisible = false;
             _visualPhase = OverlayVisualPhase.Invisible;
+            TraceIslandEvent("native-region-empty-settled");
+            _islandTraceDismissalActive = false;
+            _experience.CompleteDismissal(_dismissalGeneration);
+            CompleteFileDismissal(fileRevision);
             CompleteMotionWaiters();
             return;
         }
 
         _visualPhase = OverlayVisualPhase.Visible;
 
-        var state = _viewModel.Snapshot.State;
         if (!_isActiveWindow)
         {
             return;
         }
 
-        if (state == OverlayState.Dismissing && _experience.Current.State == OverlayState.Dismissing && !_experience.IsManuallyOpen)
-        {
-            _viewModel.CompleteDismissal();
-        }
+        // Files finish independently of island visibility. Music, residence or
+        // a pending hide can keep this surface Compact after the last file leaves.
+        CompleteFileDismissal(_presentationSnapshot?.Revision);
         CompleteMotionWaiters();
+    }
+
+    private void CompleteFileDismissal(long? revision)
+    {
+        if (revision is { } expected && _viewModel.Snapshot.Revision == expected &&
+            _experience.CanCompleteFileDismissal(expected))
+            _viewModel.CompleteDismissal();
+    }
+
+    private void TraceIslandPresentation(OverlayState requestedState)
+    {
+        if (!_islandTraceEnabled) return;
+        var experience = _experience.Current;
+        var signature = $"{requestedState}|{_presentedState}|{experience.State}|{experience.Variant}|" +
+            $"{_mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle}|{EmptyWakeLogo.Visibility}|" +
+            $"{FileCompactContent.Visibility}|{_experience.HideGeneration}|{_viewModel.Snapshot.State}|{_viewModel.Snapshot.Revision}";
+        if (_islandTracePresentation != signature)
+        {
+            _islandTracePresentation = signature;
+            TraceIslandEvent("presentation");
+        }
+        if (_hideWhenSettled)
+        {
+            if (_islandTraceDismissalActive && _islandTraceDismissalGeneration == _dismissalGeneration) return;
+            _islandTraceDismissalActive = true;
+            _islandTraceDismissalGeneration = _dismissalGeneration;
+            _islandTraceOpacityQuarter = 4;
+            TraceIslandEvent("dismiss-start");
+        }
+        else if (_islandTraceDismissalActive)
+        {
+            TraceIslandEvent("dismiss-cancelled");
+            _islandTraceDismissalActive = false;
+        }
+    }
+
+    private void TraceIslandDismissalFrame()
+    {
+        if (!_islandTraceEnabled || !_islandTraceDismissalActive || !_hideWhenSettled) return;
+        var opacity = Math.Clamp(_motion.Current.Opacity, 0, 1);
+        var quarter = opacity <= 0.01 ? 0 : (int)Math.Ceiling(opacity * 4);
+        if (quarter >= _islandTraceOpacityQuarter) return;
+        _islandTraceOpacityQuarter = quarter;
+        // Only actual successfully applied frames are sampled. Reduced motion can
+        // skip quarters; do not invent rendered intermediate frames in the log.
+        TraceIslandEvent("dismiss-frame");
+    }
+
+    private void TraceIslandEvent(string traceEvent)
+    {
+        if (!_islandTraceEnabled) return;
+        var values = _motion.Current.ProjectToSafeRange();
+        var compactVisible = _isVisible && CompactPanel.Visibility == Visibility.Visible &&
+            values.Opacity > 0.001 && values.CompactContent > 0.001;
+        _logger.LogInformation(
+            "IslandTrace event={TraceEvent} sequence={Sequence} ticks={Ticks} monitor={MonitorId} " +
+            "generation={Generation} dismissalGeneration={DismissalGeneration} state={State} presented={Presented} " +
+            "variant={Variant} phase={Phase} visible={Visible} nativeShown={NativeShown} " +
+            "fileState={FileState} fileRevision={FileRevision} fileCount={FileCount} " +
+            "idleLogoEnabled={IdleLogoEnabled} idleLogo={IdleLogo} fileLogo={FileLogo} fileContent={FileContent} " +
+            "idleLogoVisible={IdleLogoVisible} fileLogoVisible={FileLogoVisible} " +
+            "opacity={Opacity:F4} compactOpacity={CompactOpacity:F4} expandedOpacity={ExpandedOpacity:F4} " +
+            "quarter={Quarter} reducedMotion={ReducedMotion}",
+            traceEvent, ++_islandTraceSequence, Stopwatch.GetTimestamp(), _monitor.Id,
+            _experience.HideGeneration, _islandTraceDismissalGeneration, _experience.Current.State, _presentedState,
+            _experience.Current.Variant, _visualPhase, _isVisible, _nativeWindowShown,
+            _viewModel.Snapshot.State, _viewModel.Snapshot.Revision, _viewModel.Snapshot.TemporaryItemCount,
+            _mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle, EmptyWakeLogo.Visibility,
+            FileLogo.Visibility, FileCompactContent.Visibility,
+            compactVisible && EmptyWakeLogo.Visibility == Visibility.Visible,
+            compactVisible && FileCompactContent.Visibility == Visibility.Visible && FileLogo.Visibility == Visibility.Visible,
+            values.Opacity, values.CompactContent,
+            values.ExpandedContent, _islandTraceOpacityQuarter, IsReducedMotion());
     }
 
     private void OnSystemVisualPreferencesChanged(object? sender, EventArgs args)
@@ -1378,7 +1495,8 @@ public sealed partial class OverlayWindow : Window
             return false;
         }
 
-        if (values.Opacity <= 0.001)
+        if (values.Opacity <= 0.001 &&
+            (!_hideWhenSettled || !_motion.IsAnimating && !_pageTransition.IsAnimating))
         {
             if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
             {

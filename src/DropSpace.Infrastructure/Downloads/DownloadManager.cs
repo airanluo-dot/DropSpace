@@ -17,6 +17,8 @@ public sealed class DownloadManager : IAsyncDisposable
     private readonly IReadOnlyList<DownloadTaskSnapshot> _taskView;
     private readonly HashSet<Guid> _dirtyProgress = [];
     private readonly Timer _progressNotification;
+    private readonly Timer _cleanupRetry;
+    private Task _cleanupRun = Task.CompletedTask;
     private bool _notificationScheduled;
     private readonly object _sync = new();
     private readonly SemaphoreSlim _actions = new(1, 1);
@@ -30,6 +32,7 @@ public sealed class DownloadManager : IAsyncDisposable
         _engine = engine; _repository = repository; _persistence = new(repository); _logger = logger;
         _taskView = new TaskView(this);
         _progressNotification = new Timer(_ => PublishProgress(), null, Timeout.Infinite, Timeout.Infinite);
+        _cleanupRetry = new Timer(_ => StartCleanupRetry(), null, Timeout.Infinite, Timeout.Infinite);
     }
     public string? RecoveryError { get; private set; }
     public event EventHandler? Changed;
@@ -59,8 +62,14 @@ public sealed class DownloadManager : IAsyncDisposable
             lock (_sync) _work.TryGetValue(id, out item);
             if (item is null || item.Snapshot.State is not (DownloadTaskState.Completed or DownloadTaskState.Cancelled)) return;
             await ObserveRunAsync(item.Run).ConfigureAwait(false);
-            await _persistence.DeleteAsync(id).ConfigureAwait(false);
-            lock (_sync) { _work.Remove(id); _order.Remove(id); _dirtyProgress.Remove(id); }
+            // Record the user's removal before hiding the row. If a locked marker cannot
+            // be deleted, this small tombstone owns cleanup across process restarts.
+            var previous = item.Snapshot;
+            lock (_sync) item.Snapshot = item.Snapshot with { HistoryRemovalPending = true, UpdatedAt = DateTimeOffset.UtcNow };
+            try { await _persistence.EnqueueCriticalAsync(item.Snapshot).ConfigureAwait(false); }
+            catch { lock (_sync) item.Snapshot = previous; throw; }
+            lock (_sync) { _order.Remove(id); _dirtyProgress.Remove(id); }
+            if (await TryCleanupAsync(item).ConfigureAwait(false)) await DeleteHistoryRecordAsync(item).ConfigureAwait(false);
             Changed?.Invoke(this, EventArgs.Empty);
         }
         finally { _actions.Release(); }
@@ -95,7 +104,23 @@ public sealed class DownloadManager : IAsyncDisposable
             var item = new Work(new() { Id = request.TaskId, Request = request, OutputPath = reservation.OutputPath, State = DownloadTaskState.Queued });
             item.Reservation = reservation;
             try { await _persistence.EnqueueCriticalAsync(item.Snapshot).ConfigureAwait(false); }
-            catch { await _reservations.ReleaseAsync(reservation).ConfigureAwait(false); throw; }
+            catch
+            {
+                try { await _reservations.ReleaseAsync(reservation).ConfigureAwait(false); }
+                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    // Admission never started a transfer. Retain a hidden cleanup owner
+                    // if both journaling and releasing its marker failed, rather than
+                    // leaving a live-process marker with no Work or retry path.
+                    item.Snapshot = item.Snapshot with
+                    { State = DownloadTaskState.Cancelled, CleanupPending = true, CleanupErrorCode = error.GetType().Name, HistoryRemovalPending = true };
+                    lock (_sync) _work.Add(request.TaskId, item);
+                    _persistence.EnqueueProgress(item.Snapshot);
+                    ScheduleCleanupRetry();
+                    _logger?.LogWarning("Download {TaskId} admission cleanup deferred: {Reason}", request.TaskId, error.GetType().Name);
+                }
+                throw;
+            }
             lock (_sync) { _work.Add(request.TaskId, item); _order.Add(request.TaskId); }
             Start(item);
         }
@@ -116,20 +141,38 @@ public sealed class DownloadManager : IAsyncDisposable
             foreach (var snapshot in recovered)
             {
                 token.ThrowIfCancellationRequested();
-                var item = new Work(snapshot with { ActiveConnections = 0, BytesPerSecond = 0 });
-                lock (_sync) { if (!_work.ContainsKey(snapshot.Id)) _order.Add(snapshot.Id); _work[item.Snapshot.Id] = item; }
+                var terminal = snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled;
+                var item = new Work(snapshot with
+                {
+                    ActiveConnections = 0, BytesPerSecond = 0,
+                    // Migrate old completed journals that classified cleanup as failure.
+                    ErrorCode = terminal ? null : snapshot.ErrorCode,
+                    CleanupPending = snapshot.CleanupPending || (terminal && snapshot.ErrorCode is not null),
+                    CleanupErrorCode = snapshot.CleanupErrorCode ?? (terminal ? snapshot.ErrorCode : null),
+                    HistoryRemovalPending = terminal && snapshot.HistoryRemovalPending,
+                });
+                lock (_sync)
+                {
+                    if (!_work.ContainsKey(snapshot.Id) && !item.Snapshot.HistoryRemovalPending) _order.Add(snapshot.Id);
+                    _work[item.Snapshot.Id] = item;
+                }
                 try
                 {
                 if (snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled)
-                { TryClean(item.Snapshot.Request); await ReleaseRecoveredMarkerAsync(item.Snapshot).ConfigureAwait(false); continue; }
+                {
+                    if (await TryCleanupAsync(item).ConfigureAwait(false) && item.Snapshot.HistoryRemovalPending)
+                        await DeleteHistoryRecordAsync(item).ConfigureAwait(false);
+                    continue;
+                }
                 if (await ReconcileCommittedAsync(item, token).ConfigureAwait(false)) continue;
                 await SetAsync(item, snapshot.State == DownloadTaskState.Failed ? DownloadTaskState.Failed : DownloadTaskState.Paused).ConfigureAwait(false);
                 }
                 catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
                 {
-                    lock (_sync) item.Snapshot = item.Snapshot with
-                    { State = item.Snapshot.State == DownloadTaskState.Completed ? DownloadTaskState.Completed : DownloadTaskState.Failed,
-                      ErrorCode = "Recovery:" + error.GetType().Name };
+                    lock (_sync) item.Snapshot = item.Snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled
+                        ? item.Snapshot with { ErrorCode = null, CleanupPending = true, CleanupErrorCode = "Recovery:" + error.GetType().Name }
+                        : item.Snapshot with { State = DownloadTaskState.Failed, ErrorCode = "Recovery:" + error.GetType().Name };
+                    if (item.Snapshot.CleanupPending) ScheduleCleanupRetry();
                     _logger?.LogWarning("Download {TaskId} recovery deferred: {Reason}", snapshot.Id, error.GetType().Name);
                     // Do not attempt another throwing checkpoint while reporting a failed checkpoint.
                 }
@@ -154,19 +197,98 @@ public sealed class DownloadManager : IAsyncDisposable
         if (snapshot.TotalBytes != file.Length ||
             !string.Equals(Convert.ToHexString(await SHA256.HashDataAsync(file, token).ConfigureAwait(false)), hash, StringComparison.OrdinalIgnoreCase)) return false;
         await SetAsync(item, DownloadTaskState.Completed).ConfigureAwait(false);
-        TryClean(snapshot.Request);
-        await ReleaseRecoveredMarkerAsync(snapshot).ConfigureAwait(false);
+        await TryCleanupAsync(item).ConfigureAwait(false);
         return true;
     }
-    private async Task ReleaseRecoveredMarkerAsync(DownloadTaskSnapshot snapshot)
+    private async Task<bool> TryCleanupAsync(Work item)
+    {
+        string? cleanupError = null;
+        try
+        {
+            var snapshot = item.Snapshot;
+            var marker = DownloadStorage.Safe(snapshot.Request.OutputDirectory, snapshot.OutputPath + ".dropspace-reservation");
+            item.Reservation ??= new(snapshot.Id, snapshot.OutputPath, marker);
+            await _reservations.ReleaseAsync(item.Reservation).ConfigureAwait(false);
+            item.Reservation = null;
+            if (Directory.Exists(Path.GetDirectoryName(Staging(snapshot.Request))))
+                DownloadStorage.Clean(DownloadStorage.Safe(snapshot.Request.OutputDirectory, Staging(snapshot.Request)));
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+        {
+            cleanupError = error.GetType().Name;
+            _logger?.LogWarning("Download {TaskId} cleanup deferred: {Reason}", item.Snapshot.Id, cleanupError);
+        }
+        DownloadTaskSnapshot next;
+        bool changed;
+        lock (_sync)
+        {
+            changed = item.Snapshot.CleanupPending != (cleanupError is not null) || item.Snapshot.CleanupErrorCode != cleanupError || item.Snapshot.ErrorCode is not null;
+            item.Snapshot = next = item.Snapshot with
+            { CleanupPending = cleanupError is not null, CleanupErrorCode = cleanupError, ErrorCode = null, UpdatedAt = DateTimeOffset.UtcNow };
+        }
+        if (cleanupError is not null) ScheduleCleanupRetry();
+        if (changed)
+        {
+            try { await _persistence.EnqueueCriticalAsync(next).ConfigureAwait(false); }
+            catch
+            {
+                // A failed auxiliary checkpoint is still work to retry, even if all
+                // files were cleaned successfully. Do not clear the last retry bit.
+                lock (_sync) item.Snapshot = item.Snapshot with
+                { CleanupPending = true, CleanupErrorCode = "CleanupCheckpointDeferred", UpdatedAt = DateTimeOffset.UtcNow };
+                ScheduleCleanupRetry();
+                throw;
+            }
+            if (!next.HistoryRemovalPending) NotifyTask(next);
+        }
+        return cleanupError is null;
+    }
+    private async Task DeleteHistoryRecordAsync(Work item)
+    {
+        try { await _persistence.DeleteAsync(item.Snapshot.Id).ConfigureAwait(false); }
+        catch { ScheduleCleanupRetry(); throw; }
+        lock (_sync) { _work.Remove(item.Snapshot.Id); _order.Remove(item.Snapshot.Id); _dirtyProgress.Remove(item.Snapshot.Id); }
+        item.Stop?.Dispose(); item.Stop = null;
+    }
+    private void ScheduleCleanupRetry()
+    {
+        if (!_stopping) _cleanupRetry.Change(TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+    }
+    private void StartCleanupRetry()
+    {
+        lock (_sync)
+        {
+            if (_stopping) return;
+            if (!_cleanupRun.IsCompleted) { ScheduleCleanupRetry(); return; }
+            _cleanupRun = Task.Run(RetryDeferredCleanupAsync);
+        }
+    }
+    internal async Task RetryDeferredCleanupAsync()
     {
         try
         {
-            var marker = DownloadStorage.Safe(snapshot.Request.OutputDirectory, snapshot.OutputPath + ".dropspace-reservation");
-            await _reservations.ReleaseAsync(new(snapshot.Id, snapshot.OutputPath, marker)).ConfigureAwait(false);
+            await _actions.WaitAsync(_lifetime.Token).ConfigureAwait(false);
+            try
+            {
+                if (_stopping) return;
+                Work[] pending;
+                lock (_sync) pending = _work.Values.Where(item => item.Snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled &&
+                    (item.Snapshot.CleanupPending || item.Snapshot.HistoryRemovalPending)).ToArray();
+                foreach (var item in pending)
+                {
+                    await ObserveRunAsync(item.Run).ConfigureAwait(false);
+                    if (await TryCleanupAsync(item).ConfigureAwait(false) && item.Snapshot.HistoryRemovalPending)
+                        await DeleteHistoryRecordAsync(item).ConfigureAwait(false);
+                }
+            }
+            finally { _actions.Release(); }
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
-        { _logger?.LogWarning("Download marker cleanup deferred: {Reason}", error.GetType().Name); }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            _logger?.LogWarning("Download cleanup retry deferred: {Reason}", error.GetType().Name);
+            ScheduleCleanupRetry();
+        }
     }
     public async Task PauseAsync(Guid id) => await ControlAsync(id, resume: false, cancel: false).ConfigureAwait(false);
     public async Task ResumeAsync(Guid id) => await ControlAsync(id, resume: true, cancel: false).ConfigureAwait(false);
@@ -190,14 +312,10 @@ public sealed class DownloadManager : IAsyncDisposable
                 if (item.Stop is not null) await item.Stop.CancelAsync().ConfigureAwait(false);
                 await ObserveRunAsync(item.Run).ConfigureAwait(false);
                 if (item.Snapshot.State == DownloadTaskState.Completed) return;
-                if (cancel)
-                {
-                    // Failed cleanup remains retryable; never claim canceled until owned writes stop.
-                    var staging = DownloadStorage.Safe(item.Snapshot.Request.OutputDirectory, Staging(item.Snapshot.Request));
-                    DownloadStorage.Clean(staging);
-                    if (item.Reservation is { } reservation) await _reservations.ReleaseAsync(reservation).ConfigureAwait(false);
-                }
                 await SetAsync(item, cancel ? DownloadTaskState.Cancelled : DownloadTaskState.Paused).ConfigureAwait(false);
+                // Cancellation is terminal once all owned writes stop. Auxiliary deletion
+                // failure is retained separately and never starts another transfer.
+                if (cancel) await TryCleanupAsync(item).ConfigureAwait(false);
             }
         }
         finally { _actions.Release(); }
@@ -253,19 +371,27 @@ public sealed class DownloadManager : IAsyncDisposable
                 }
                 await _persistence.EnqueueCriticalAsync(item.Snapshot).ConfigureAwait(false);
             }, token).ConfigureAwait(false);
-            if (item.Reservation.CleanupPending)
-                lock (_sync) item.Snapshot = item.Snapshot with { ErrorCode = "MarkerCleanupDeferred" };
+            lock (_sync) item.Snapshot = item.Snapshot with
+            { ErrorCode = null, CleanupPending = item.Reservation.CleanupPending,
+                CleanupErrorCode = item.Reservation.CleanupPending ? "MarkerCleanupDeferred" : null };
             await SetAsync(item, DownloadTaskState.Completed).ConfigureAwait(false);
-            DownloadStorage.Clean(staging);
+            await TryCleanupAsync(item).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         { await SetAsync(item, DownloadTaskState.Paused).ConfigureAwait(false); }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
-            lock (_sync) item.Snapshot = item.Snapshot with { ErrorCode = error.GetType().Name };
-            if (item.Snapshot.State != DownloadTaskState.Completed) await SetAsync(item, DownloadTaskState.Failed).ConfigureAwait(false);
+            if (item.Snapshot.State != DownloadTaskState.Completed)
+            {
+                lock (_sync) item.Snapshot = item.Snapshot with { ErrorCode = error.GetType().Name };
+                await SetAsync(item, DownloadTaskState.Failed).ConfigureAwait(false);
+            }
             else
             {
+                lock (_sync) item.Snapshot = item.Snapshot with
+                { ErrorCode = null, CleanupPending = true, CleanupErrorCode = error.GetType().Name, UpdatedAt = DateTimeOffset.UtcNow };
+                ScheduleCleanupRetry();
+                _persistence.EnqueueProgress(item.Snapshot);
                 _logger?.LogWarning("Completed download {TaskId} checkpoint or cleanup deferred: {Reason}", item.Snapshot.Id, error.GetType().Name);
                 Changed?.Invoke(this, EventArgs.Empty);
             }
@@ -274,20 +400,10 @@ public sealed class DownloadManager : IAsyncDisposable
     private async Task SetAsync(Work item, DownloadTaskState state)
     {
         DownloadTaskSnapshot snapshot;
-        lock (_sync) item.Snapshot = snapshot = item.Snapshot with { State = state, ActiveConnections = 0, BytesPerSecond = 0, UpdatedAt = DateTimeOffset.UtcNow };
+        lock (_sync) item.Snapshot = snapshot = item.Snapshot with { State = state, ActiveConnections = 0, BytesPerSecond = 0,
+            ErrorCode = state is DownloadTaskState.Completed or DownloadTaskState.Cancelled ? null : item.Snapshot.ErrorCode, UpdatedAt = DateTimeOffset.UtcNow };
         try { await _persistence.EnqueueCriticalAsync(snapshot).ConfigureAwait(false); }
         finally { NotifyTask(snapshot); }
-    }
-    private static void TryClean(DownloadRequest request)
-    {
-        try
-        {
-            // Validate from the user-selected root as well as the private task root.
-            if (!Directory.Exists(Path.GetDirectoryName(Staging(request)))) return;
-            var staging = DownloadStorage.Safe(request.OutputDirectory, Staging(request));
-            DownloadStorage.Clean(staging);
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException) { }
     }
     private static async Task ObserveRunAsync(Task run)
     {
@@ -304,14 +420,32 @@ public sealed class DownloadManager : IAsyncDisposable
         {
             if (_stopping) return;
             _stopping = true;
+            _cleanupRetry.Change(Timeout.Infinite, Timeout.Infinite);
             foreach (var item in _work.Values) if (item.Stop is not null) await item.Stop.CancelAsync().ConfigureAwait(false);
             await Task.WhenAll(_work.Values.Select(w => ObserveRunAsync(w.Run))).ConfigureAwait(false);
-            await _persistence.DrainAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
-            foreach (var item in _work.Values)
+            foreach (var item in _work.Values.ToArray())
             {
-                if (item.Reservation is { } reservation) await _reservations.ReleaseAsync(reservation).ConfigureAwait(false);
+                try
+                {
+                    if (item.Snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled)
+                    {
+                        if (await TryCleanupAsync(item).ConfigureAwait(false) && item.Snapshot.HistoryRemovalPending)
+                            await DeleteHistoryRecordAsync(item).ConfigureAwait(false);
+                    }
+                    else if (item.Reservation is { } reservation)
+                    {
+                        // Unfinished transfers keep their parts; only release their marker.
+                        await _reservations.ReleaseAsync(reservation).ConfigureAwait(false);
+                        item.Reservation = null;
+                    }
+                }
+                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+                { _logger?.LogWarning("Download {TaskId} shutdown cleanup deferred: {Reason}", item.Snapshot.Id, error.GetType().Name); }
                 item.Stop?.Dispose(); item.Stop = null;
             }
+            // Cleanup checkpoints and hidden removal records must settle before closing
+            // the journal writer. Marker failures must not prevent network shutdown.
+            await _persistence.DrainAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
         }
         finally { _actions.Release(); }
     }
@@ -319,6 +453,8 @@ public sealed class DownloadManager : IAsyncDisposable
     {
         if (_disposed) return;
         await ShutdownAsync().ConfigureAwait(false); _disposed = true;
+        await _cleanupRetry.DisposeAsync().ConfigureAwait(false);
+        await _cleanupRun.ConfigureAwait(false);
         await _progressNotification.DisposeAsync().ConfigureAwait(false);
         await _persistence.DisposeAsync().ConfigureAwait(false); _reservations.Dispose(); _lifetime.Dispose();
     }

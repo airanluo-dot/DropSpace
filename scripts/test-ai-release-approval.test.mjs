@@ -5,12 +5,79 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { approvalPath, admissionPath, fixturePath, fixtureAdmissionDecision, readScope, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, publicationDecision } from './test-ai-release-approval.mjs';
+import { approvalPath, admissionPath, fixturePath, fixtureAdmissionDecision, readScope, readSourceFingerprint, modelDeliverySourcePaths, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, publicationDecision } from './test-ai-release-approval.mjs';
 import { fileIdentity, writeReleaseBinding } from './ai-runtime-publication.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const now = Date.parse('2026-10-02T00:00:00Z');
 const json = value => JSON.stringify(value, null, 2) + '\n';
+
+function fingerprintExample(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dropspace-delivery-fingerprint-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const name of sourcePaths) {
+    fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    fs.copyFileSync(path.join(repository, name), path.join(root, name));
+  }
+  return root;
+}
+
+test('model delivery fingerprint binds every current production transport input', () => {
+  const sources = readSourceFingerprint(repository);
+  for (const name of modelDeliverySourcePaths) assert.ok(sources.files.some(file => file.path === name));
+  const manifest = modelDeliverySourcePaths.find(name => name.endsWith('.json'));
+  assert.equal(sources.files.find(file => file.path === manifest).sha256, sha256(fs.readFileSync(path.join(repository, manifest))));
+});
+
+test('model delivery fingerprint invalidates trust, identity, part URL, size, hash and embedded bytes', t => {
+  const root = fingerprintExample(t);
+  const original = readSourceFingerprint(root).sha256;
+  const reader = modelDeliverySourcePaths.find(name => name.endsWith('.cs'));
+  const manifest = modelDeliverySourcePaths.find(name => name.endsWith('.json'));
+  const readerBytes = fs.readFileSync(path.join(root, reader), 'utf8');
+  const manifestBytes = fs.readFileSync(path.join(root, manifest));
+  for (const change of [
+    text => text.replace('release-assets.githubusercontent.com', 'changed.invalid'),
+    text => text.replace(/Identity = "[a-f0-9]{64}"/, `Identity = "${'0'.repeat(64)}"`),
+  ]) {
+    fs.writeFileSync(path.join(root, reader), change(readerBytes));
+    assert.notEqual(readSourceFingerprint(root).sha256, original);
+  }
+  fs.writeFileSync(path.join(root, reader), readerBytes);
+  for (const field of ['url', 'bytes', 'sha256']) {
+    const document = JSON.parse(manifestBytes);
+    const part = document.models[0].parts[0];
+    part[field] = field === 'url' ? `${part.url}?changed=1` : field === 'bytes' ? part.bytes + 1 : '0'.repeat(64);
+    fs.writeFileSync(path.join(root, manifest), json(document));
+    assert.notEqual(readSourceFingerprint(root).sha256, original, field);
+  }
+  fs.writeFileSync(path.join(root, manifest), Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), manifestBytes]));
+  assert.notEqual(readSourceFingerprint(root).sha256, original, 'embedded BOM');
+  fs.writeFileSync(path.join(root, manifest), manifestBytes.toString('utf8').replace(/\r?\n/g, '\r\n'));
+  assert.notEqual(readSourceFingerprint(root).sha256, original, 'embedded CRLF');
+});
+
+test('model delivery fingerprint fails closed for omitted, redirected or unlisted resource bindings', t => {
+  const root = fingerprintExample(t);
+  const project = modelDeliverySourcePaths.find(name => name.endsWith('.csproj'));
+  const original = fs.readFileSync(path.join(root, project), 'utf8');
+  for (const change of [
+    text => text.replace(/<EmbeddedResource[^>]+\/>/, ''),
+    text => text.replace('<EmbeddedResource Include=', '<EmbeddedResource LogicalName="wrong.resource" Include='),
+    text => text.replace('models-hy-mt2-q8-v1.json', 'different-model-layout.json'),
+    text => text.replace('models-hy-mt2-q8-v1.json', '*.json'),
+  ]) {
+    fs.writeFileSync(path.join(root, project), change(original));
+    assert.throws(() => readSourceFingerprint(root), /embedded exactly once|binding does not match|fingerprint coverage|extractor update/);
+  }
+});
+
+test('model delivery mutation rejects old approval before reused release artifact inspection', t => {
+  const x = example(t);
+  const name = modelDeliverySourcePaths.find(name => name.endsWith('.json'));
+  fs.appendFileSync(path.join(x.root, name), '\n');
+  assert.throws(() => validateApproval(x.root, { now, releaseBundleDirectory: path.join(x.root, 'absent-reused-release') }), /stale/);
+});
 
 test('fixture admission abstains from unknown language for every target', () => {
   const unknown = { detectedLanguage: null, confidence: 0 };
@@ -28,7 +95,7 @@ test('fixture admission preserves reliable Japanese evidence and the confidence 
   assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 1 }), 'Translate');
   assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 0.9 }), 'Translate');
   assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 0.65 }), 'Abstain');
-  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'mul', confidence: 1 }), 'Translate');
+  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'mul', confidence: 1 }), 'Abstain');
   assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'zh-Hant', confidence: 1 }), 'SameLanguage');
   assert.equal(fixtureAdmissionDecision('I love you', 'en', { detectedLanguage: 'en', confidence: 0.95 }), 'SameLanguage');
 });
@@ -45,11 +112,12 @@ for (const [label, target, id, eligible] of [
     const filename = path.join(x.root, admissionPath);
     const record = JSON.parse(fs.readFileSync(filename));
     const row = record.targets[target][id];
+    if (eligible) Object.assign(row, { detectedLanguage: null, confidence: 0, evidenceKind: 'Unknown' });
     row.eligible = eligible;
     row.reason = eligible ? 'unknown-language-retained' : 'no-eligible-segments';
     row.segments = eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : [];
     fs.writeFileSync(filename, json(record));
-    assert.throws(() => readScope(x.root), /v9 three-state policy/);
+    assert.throws(() => readScope(x.root), /v11 three-state policy/);
   });
 }
 
@@ -277,7 +345,7 @@ test('owner-accepted Beta preserves timeout and unexecuted evidence without sema
 });
 
 for (const [label, mutate, expected] of [
-  ['future Beta', x => { const future = experimentalBetaVersion.replace(/\d+$/, n => String(Number(n) + 1)); x.write('RELEASE_VERSION', future); x.scope.releaseVersion = future; }, /only for v0.3.1-beta.13/],
+  ['future Beta', x => { const future = experimentalBetaVersion.replace(/\d+$/, n => String(Number(n) + 1)); x.write('RELEASE_VERSION', future); x.scope.releaseVersion = future; }, new RegExp(`only for ${experimentalBetaVersion.replaceAll('.', '\\.')}`)],
   ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.13/],
   ['Stable', x => { x.write('RELEASE_VERSION', 'v0.3.1'); x.scope.releaseVersion = 'v0.3.1'; }, /only to a Beta/],
   ['missing owner acceptance', x => { delete x.report.userAcceptance; }, /Actual user acceptance/],

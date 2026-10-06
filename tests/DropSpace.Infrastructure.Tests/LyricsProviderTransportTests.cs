@@ -544,7 +544,7 @@ public sealed class LyricsProviderTransportTests
     }
 
     [TestMethod]
-    public async Task LrclibFallsBackAcrossPublisherArtistSemantics()
+    public async Task LrclibUsesAlbumArtistOnlyWhenPerformerMetadataIsMissing()
     {
         var searches = new List<string>();
         using var handler = new FixtureHandler(request =>
@@ -556,13 +556,15 @@ public sealed class LyricsProviderTransportTests
                 : Json("[]");
         });
         using var client = new HttpClient(handler);
-        var result = await new LrclibLyricsProvider(new(client)).QueryAsync(
+        var provider = new LrclibLyricsProvider(new(client));
+        var result = await provider.QueryAsync(
             new("Song", "Displayed Performer", "", TimeSpan.Zero, AlbumArtist: "Catalogue Artist"), default);
-
-        Assert.AreEqual("correct", result.Lines.Single().Text);
+        Assert.IsEmpty(result.Lines);
         Assert.HasCount(2, searches);
         Assert.IsTrue(searches[0].Contains("Displayed Performer", StringComparison.Ordinal));
-        Assert.IsTrue(searches[1].Contains("Catalogue Artist", StringComparison.Ordinal));
+        Assert.IsFalse(searches.Any(query => query.Contains("Catalogue Artist", StringComparison.Ordinal)));
+        var missing = await provider.QueryAsync(new("Song", "", "", TimeSpan.Zero, AlbumArtist: "Catalogue Artist"), default);
+        Assert.AreEqual("correct", missing.Lines.Single().Text);
     }
 
     [TestMethod]

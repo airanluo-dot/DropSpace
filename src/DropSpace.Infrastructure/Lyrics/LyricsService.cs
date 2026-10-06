@@ -91,7 +91,7 @@ public sealed class LyricsService
                     !LyricsTranslationPolicy.NeedsProviderTranslation(legacy, target) &&
                     legacy.Lines.All(line => string.IsNullOrWhiteSpace(line.Secondary))) cached = legacy;
             }
-            if (cached is not null && LyricsBodyQualityPolicy.Classify(cached) != LyricsBodyQuality.Usable)
+            if (cached is not null && !HasUsableEvidence(LyricsBodyQualityPolicy.Normalize(cached)))
             { LyricsRequestTrace.Record("cache-rejected", new { reason = "placeholder-or-empty-body", qualityVersion = LyricsBodyQualityPolicy.Version }); cached = null; }
             // Older source-v2 entries persisted both heuristic and explicit tags
             // without provenance. They cannot safely be distinguished. Refetch
@@ -112,8 +112,8 @@ public sealed class LyricsService
             if (cached is { Provider: LyricsProviderKind.QqMusic } &&
                 cached.ProviderDataRevision < QqMusicLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
-            LyricsRequestTrace.Record("cache-result", new { usable = validated.Lines.Count > 0 && !NeedsTranslationSearch(validated, target), document = LyricsRequestTrace.Describe(validated) });
-            if (validated.Lines.Count > 0 && !NeedsTranslationSearch(validated, target))
+            LyricsRequestTrace.Record("cache-result", new { usable = HasUsableEvidence(validated) && !NeedsTranslationSearch(validated, target), document = LyricsRequestTrace.Describe(validated) });
+            if (HasUsableEvidence(validated) && !NeedsTranslationSearch(validated, target))
             {
                 if (!query.CollectSelectionCandidates) return new(validated, LyricsQueryStatus.Found)
                 { SelectionCandidates = new([LyricsCandidateRules.Describe("c0", validated, target)], 0) };
@@ -182,7 +182,7 @@ public sealed class LyricsService
             // that failed transiently. Target-aware v6 retires legacy such decisions.
             var selectionComplete = document.Provider == kind || !primary.Failed &&
                 (document.Provider == backup || backup is null || !fallbackFailed);
-            if (document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc && !translationIncomplete &&
+            if (HasUsableEvidence(document) && kind != LyricsProviderKind.LocalLrc && !translationIncomplete &&
                 !NeedsTranslationSearch(document, target) && (target.Length == 0 || selectionComplete))
             {
                 try
@@ -195,14 +195,14 @@ public sealed class LyricsService
                 catch (UnauthorizedAccessException) { }
                 catch (InvalidDataException) { }
             }
-            var failed = document.Lines.Count == 0 && (primary.Failed || fallbackFailed);
+            var failed = !HasUsableEvidence(document) && (primary.Failed || fallbackFailed);
             if (failed) document = document with { BodyQuality = LyricsBodyQuality.RequestFailed };
-            return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : failed ? LyricsQueryStatus.Failed : LyricsQueryStatus.NotFound, translationIncomplete) { SelectionCandidates = candidates.Snapshot };
+            return new(document, HasUsableEvidence(document) ? LyricsQueryStatus.Found : failed ? LyricsQueryStatus.Failed : LyricsQueryStatus.NotFound, translationIncomplete) { SelectionCandidates = candidates.Snapshot };
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or IOException or InvalidDataException or XmlException or FormatException or RegexMatchTimeoutException)
-        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) { SelectionCandidates = candidates.Snapshot }; }
+        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, HasUsableEvidence(document) ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) { SelectionCandidates = candidates.Snapshot }; }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) { SelectionCandidates = candidates.Snapshot }; }
+        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, HasUsableEvidence(document) ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) { SelectionCandidates = candidates.Snapshot }; }
     }
     // Weak-only collection has a provisional bound. The first strictly validated
     // original gets the full shared three-second source window; later candidates
@@ -242,7 +242,11 @@ public sealed class LyricsService
         {
             get
             {
-                lock (_gate) return new(_collected.OrderBy(pair => pair.Value.Provider).ThenBy(pair => pair.Value.Match!.CandidateId, StringComparer.Ordinal)
+                lock (_gate) return new(_collected
+                    // The selector may review weaker cross-script metadata, but a
+                    // confirmed empty body cannot displace strictly verified lyrics.
+                    .Where(pair => pair.Value.Lines.Count > 0 || !_collected.Values.Any(document => Validate(document, _query).Lines.Count > 0))
+                    .OrderBy(pair => pair.Value.Provider).ThenBy(pair => pair.Value.Match!.CandidateId, StringComparer.Ordinal)
                     .Select((pair, index) => LyricsCandidateRules.Describe("c" + index, pair.Value, _target)).ToArray(),
                     _captureCandidates && _collected.Count > 0 ? System.Diagnostics.Stopwatch.GetTimestamp() +
                         LyricsCandidateSelectionProtocol.MaximumDecisionSeconds * System.Diagnostics.Stopwatch.Frequency : 0, _truncated);
@@ -255,18 +259,19 @@ public sealed class LyricsService
                 line.Words.Sum(word => 64 + word.Text.Length * 2)));
         public void Report(LyricsDocument candidate)
         {
+            candidate = LyricsBodyQualityPolicy.Normalize(candidate);
             var valid = Validate(candidate, _query);
-            var eligible = _query.CollectSelectionCandidates && candidate.Match is { } match &&
+            var eligible = _query.CollectSelectionCandidates && candidate.Lines.Count > 0 && candidate.Match is { } match &&
                 !string.IsNullOrWhiteSpace(match.CandidateId) &&
                 (string.IsNullOrEmpty(match.TrackIdentity) || match.TrackIdentity == _query.TrackIdentity) &&
                 LyricsMatcher.CandidateScore(_query, match.Title, match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) >= 4
                 ? candidate : valid;
-            if (eligible.Lines.Count == 0) return;
+            if (!HasUsableEvidence(eligible)) return;
             var releaseSearch = false;
             lock (_gate)
             {
                 if (_closed || Token.IsCancellationRequested) return;
-                if (!_started && valid.Lines.Count > 0 && (_captureCandidates || NeedsTranslationSearch(valid, _target)))
+                if (!_started && HasUsableEvidence(valid) && (_captureCandidates || NeedsTranslationSearch(valid, _target) || IsConfirmedInstrumental(valid)))
                 {
                     _started = true;
                     _budget.CancelAfter(TimeSpan.FromSeconds(3));
@@ -313,14 +318,20 @@ public sealed class LyricsService
             LyricsLanguagePolicy.IdentifyProviderTranslations(document), target);
 
     private static bool NeedsTranslationSearch(LyricsDocument document, string target) =>
-        document.Lines.Count == 0 || target.Length > 0 && !HasTargetTranslation(document, target) &&
-        LyricsTranslationPolicy.NeedsProviderTranslation(document, target);
+        !IsConfirmedInstrumental(document) && (document.Lines.Count == 0 || target.Length > 0 && !HasTargetTranslation(document, target) &&
+        LyricsTranslationPolicy.NeedsProviderTranslation(document, target));
+
+    private static bool IsConfirmedInstrumental(LyricsDocument document) =>
+        document.Lines.Count == 0 && document.BodyQuality == LyricsBodyQuality.ConfirmedInstrumental && document.Match is not null;
+
+    private static bool HasUsableEvidence(LyricsDocument document) => document.Lines.Count > 0 || IsConfirmedInstrumental(document);
 
     private static LyricsDocument SelectTranslation(LyricsDocument current, LyricsDocument candidate, string target,
         LyricsProviderKind primary, LyricsProviderKind? backup)
     {
-        if (candidate.Lines.Count == 0) return current;
-        if (current.Lines.Count == 0) return candidate;
+        if (!HasUsableEvidence(candidate)) return current;
+        if (!HasUsableEvidence(current)) return candidate;
+        if ((candidate.Lines.Count > 0) != (current.Lines.Count > 0)) return candidate.Lines.Count > 0 ? candidate : current;
         var left = LyricsCandidateRules.Describe("candidate", candidate, target);
         var right = LyricsCandidateRules.Describe("current", current, target);
         var rank = LyricsCandidateRules.ComparePriority(left, right, primary, backup);
@@ -394,10 +405,11 @@ public sealed class LyricsService
             LyricsRequestTrace.Record("provider-body", LyricsRequestTrace.Describe(LyricsBodyQualityPolicy.Normalize(document)));
             var validated = Validate(document, query);
             LyricsDiagnostics.Report(_diagnostic, new(kind, LyricsDiagnosticStage.Query,
-                validated.Lines.Count > 0 ? LyricsDiagnosticOutcome.Found : LyricsDiagnosticOutcome.NoMatch,
+                validated.BodyQuality == LyricsBodyQuality.RequestFailed ? LyricsDiagnosticOutcome.TransportFailure :
+                    HasUsableEvidence(validated) ? LyricsDiagnosticOutcome.Found : LyricsDiagnosticOutcome.NoMatch,
                 (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
                 validated.Lines.Count, validated.Lines.Count(line => !string.IsNullOrWhiteSpace(line.Secondary))));
-            return new(validated, false);
+            return new(validated, validated.BodyQuality == LyricsBodyQuality.RequestFailed);
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -440,7 +452,7 @@ public sealed class LyricsService
             {
                 reportCandidate(document);
                 var valid = Validate(document, query);
-                if (valid.Lines.Count > 0) available.TrySetResult(valid);
+                if (HasUsableEvidence(valid)) available.TrySetResult(valid);
             }, token);
             var admissionWindow = Task.Delay(TimeSpan.FromMilliseconds(150), token);
             await Task.WhenAny(backupTask, available.Task, admissionWindow).ConfigureAwait(false);
@@ -514,9 +526,10 @@ public sealed class LyricsService
                 var document = result.Document;
                 token.ThrowIfCancellationRequested();
                 failed |= result.Failed;
-                if (document.Lines.Count == 0) continue;
+                if (!HasUsableEvidence(document)) continue;
                 candidates.Add((document, index));
-                var bestReadyRank = candidates.Where(candidate => target.Length == 0 || HasTargetTranslation(candidate.Document, target))
+                var bestReadyRank = candidates.Where(candidate => candidate.Document.Lines.Count > 0 &&
+                    (target.Length == 0 || HasTargetTranslation(candidate.Document, target)))
                     .Select(candidate => LyricsCandidateRules.SourceRank(candidate.Document.Provider, LyricsProviderKind.LocalLrc, backup))
                     .DefaultIfEmpty(int.MaxValue).Min();
                 // A fast lower source cannot cut off a higher-priority request
@@ -527,7 +540,8 @@ public sealed class LyricsService
                         LyricsProviderKind.LocalLrc, backup) < bestReadyRank))
                     qualityWindow ??= Task.Delay(TimeSpan.FromMilliseconds(300));
             }
-            return (candidates.OrderByDescending(candidate => HasTargetTranslation(candidate.Document, target))
+            return (candidates.OrderByDescending(candidate => candidate.Document.Lines.Count > 0)
+                .ThenByDescending(candidate => HasTargetTranslation(candidate.Document, target))
                 .ThenBy(candidate => LyricsCandidateRules.SourceRank(candidate.Document.Provider, LyricsProviderKind.LocalLrc, backup))
                 .ThenByDescending(candidate => LyricsCandidateRules.WordCoverage(candidate.Document))
                 .ThenByDescending(candidate => candidate.Document.Match?.Score ?? 0)

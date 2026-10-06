@@ -11,20 +11,35 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the Stable baseline and the current Beta is v0.3.1-beta.14**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the Stable baseline and the current published Beta is v0.3.1-beta.15**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.14](.github/release-notes/v0.3.1-beta.14.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.15](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.15); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
-The **v0.3.1 Beta 14** improves island clicks, topmost recovery, file branding,
-idle logo preferences and native settings sliders. It hardens recording matching
-and fills eligible missing translation rows in both Chinese and English.
+The **v0.3.1 Beta 15** protects provider translations when AI fills missing rows,
+strengthens performer/recording matching and contextual bilingual admission,
+stabilizes settings sliders, retains paused music and restores complete hide
+animations and operation confirmations. Download cleanup and model-delivery
+approval inputs are also tracked independently.
 Downloads remain on their own Settings page; DLC manages installed components.
 Optional AI translation remains off by default. Validation is limited to focused
 checks and necessary release compilation; broad model/hardware qualification
 is not claimed.
 
+The first Beta15 candidate has real playback evidence for preserved provider
+translations, App-chain CUDA output, paused-music dismissal and empty-island
+Logo/animation behavior. The corrected final App compiled from `734e0a96`;
+actual playback retained native `My City`/`DAISIES` translations and translated
+all 38 ordinary rows of Chinese `风的来信` to English through CUDA. Portable,
+installer and MSIX packages compiled and passed their necessary artifact/update
+checks. All nine new Beta15 assets are published; the website index awaits its
+main-branch sync. Exact results and
+unverified cases are recorded in the [Beta15 audit](docs/dev/beta15-fix-audit.md).
+
+v0.3.1-beta.14 is the immediate upgrade baseline for this release.
+
 Original lyrics, provider translations and AI translations share a persistent cache:
-1 GiB (1024 MiB) by default, adjustable from 100 MiB to 5 GiB. Model downloads do
+1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables
+disk reads and writes without deleting existing cache files. Model downloads do
 not count toward that cache budget. A valid cache hit can avoid repeated provider
 lookup and inference. Music's refresh action reconnects media observation and reloads
 the current display; cache cleanup is a separate action.
@@ -38,12 +53,12 @@ Local AI is separately opt-in and does not make the whole App network-free. Beta
 drag compatibility settings card without changing drag behavior. Compatibility still
 depends on the source application's public Windows drag support.
 
-Preparing these files does not publish a release. Current downloads remain on the
-[official Releases page](https://github.com/airanluo-dot/DropSpace/releases) until
-publication. The final commit still needs complete review, resolved release-blocking
-findings, the user's glow/bug-remediation conditions and the Windows build/package gates. See the
-[issue register](docs/dev/ai-lyrics-031-issue-register.md),
-[release notes](.github/release-notes/v0.3.1-beta.12.md), and
+Beta15 was published from App source `734e0a96366fcffae4d3e8361745e4ba549ebf06`
+with new packages and an update manifest. Earlier published assets were retained.
+The release record distinguishes focused host checks, actual playback and untested
+cases; no green CI or artifact hash substitutes for those observations. See the
+[Beta15 audit](docs/dev/beta15-fix-audit.md),
+[release notes](.github/release-notes/v0.3.1-beta.15.md), and
 [lyrics/AI privacy boundary](PRIVACY.md#031-beta-1-lyrics-and-ai-boundary).
 
 Beta 29 incorporates three fresh full-project audit rounds covering shutdown and cancellation,

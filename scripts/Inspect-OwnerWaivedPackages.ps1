@@ -2,7 +2,7 @@
 param([ValidateSet('Installer','Portable')][string]$Kind)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11') -cnotcontains (Get-Content RELEASE_VERSION -Raw).Trim()) { throw 'Packaging-only exception is limited to explicitly waived releases.' }
+if (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11','v0.3.1-beta.15') -cnotcontains (Get-Content RELEASE_VERSION -Raw).Trim()) { throw 'Packaging-only exception is limited to explicitly waived releases.' }
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'Use only the isolated CI runner.' }
 function Identity([string]$Path,[string]$Name) {
     return [ordered]@{name=$Name;bytes=(Get-Item -LiteralPath $Path).Length;sha256=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()}
@@ -10,7 +10,7 @@ function Identity([string]$Path,[string]$Name) {
 $exe=[IO.Path]::GetFullPath('artifacts/release/DropSpace.exe')
 if ($Kind -eq 'Installer') {
     $installer=[IO.Path]::GetFullPath('artifacts/installer/DropSpaceSetup.exe')
-    if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.11') {
+    if (@('v0.3.1-beta.11','v0.3.1-beta.15') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()) {
         $report=[ordered]@{schemaVersion=1;kind='installer-build-input';verificationScope='compiler-input-bytes-only; installer not executed; tests waived';package=(Identity $installer 'DropSpaceSetup.exe');buildInputPortable=(Identity $exe 'DropSpace.exe')}
         New-Item artifacts/runtime-inspection -ItemType Directory -Force | Out-Null
         $report | ConvertTo-Json -Depth 10 | Set-Content artifacts/runtime-inspection/installer.json -Encoding utf8

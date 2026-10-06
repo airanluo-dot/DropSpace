@@ -43,6 +43,8 @@ public sealed class Beta14FocusedTests
         coordinator.Collapse();
         Assert.IsTrue(coordinator.Current.PendingHide);
         coordinator.DismissNow();
+        Assert.AreEqual(OverlayState.Dismissing, coordinator.Current.State);
+        Assert.IsTrue(coordinator.CompleteDismissal(coordinator.HideGeneration));
         Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
     }
 

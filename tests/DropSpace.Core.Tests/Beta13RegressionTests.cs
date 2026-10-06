@@ -32,16 +32,19 @@ public sealed class Beta13RegressionTests
         c.UpdateMedia(true, true, 3000, contentIdentity: "A");
         c.UpdateSettings(settings, false);
         var deadline = c.Current.NextDeadline!.Value; var generation = c.HideGeneration;
-        Assert.AreEqual(IslandPresentationVariant.Idle, c.Current.Variant);
+        Assert.AreEqual(IslandPresentationVariant.Music, c.Current.Variant);
         Assert.IsTrue(c.Current.PendingHide);
         time.Now += TimeSpan.FromSeconds(2);
         c.UpdateMedia(false, true, 3000, contentIdentity: "A");
         Assert.AreEqual(deadline, c.Current.NextDeadline);
         time.Now += TimeSpan.FromSeconds(1); c.OnDeadline(generation, deadline);
+        Assert.AreEqual(OverlayState.Dismissing, c.Current.State);
+        Assert.IsTrue(c.CompleteDismissal(generation));
         Assert.AreEqual(OverlayState.Hidden, c.Current.State);
         c.UpdateSettings(settings, true); // Permission itself cannot create content.
         Assert.AreEqual(OverlayState.Hidden, c.Current.State);
         c.UpdateMedia(true, true, 3000, contentIdentity: "A"); c.DismissNow();
+        Assert.IsTrue(c.CompleteDismissal(c.HideGeneration));
         c.UpdateMedia(true, true, 3000, contentIdentity: "A");
         Assert.AreEqual(OverlayState.Hidden, c.Current.State);
         c.UpdateMedia(true, true, 3000, contentIdentity: "B");

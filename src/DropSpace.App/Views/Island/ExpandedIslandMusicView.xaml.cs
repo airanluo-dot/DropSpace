@@ -171,7 +171,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
             PlaybackStatus.Visibility = TimelineStatus.Visibility == Visibility.Visible || ControlError.Visibility == Visibility.Visible
                 ? Visibility.Visible : Visibility.Collapsed;
             AutomationProperties.SetName(PlayPause, _view.PlayPauseLabel);
-            Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? Visibility.Visible : Visibility.Collapsed;
+            Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.HasSpectrumPresentation ? Visibility.Visible : Visibility.Collapsed;
             for (var index = 0; index < Spectrum.Children.Count; index++)
                 ((Rectangle)Spectrum.Children[index]).Height = 2 + 22 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
         }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Models;
 using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
@@ -9,7 +10,10 @@ namespace DropSpace.Infrastructure.Lyrics;
 
 public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
 {
-    public const int DataRevision = 2;
+    public const int DataRevision = 3;
+    private static readonly Regex VocalCredit = new(
+        @"^(?:演唱(?:\s*Artist)?|歌手|Artist|Vocals?|Singer)\s*[:：]\s*(.{1,128})$",
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     public LyricsProviderKind Kind => LyricsProviderKind.QqMusic;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
         => await QueryAsync(query, cancellationToken, _ => { }).ConfigureAwait(false);
@@ -68,16 +72,38 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
             {
                 candidate.Song, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration,
                 Score = LyricsMatcher.CandidateScore(query, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration),
-            }).Where(candidate => candidate.Score >= 4).OrderByDescending(candidate => candidate.Score);
-            foreach (var best in candidates)
+                NeedsVocalProof = CanReadMissingFeaturedCredit(query, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration),
+            }).ToArray();
+            foreach (var candidate in candidates)
+                LyricsRequestTrace.Record("candidate", new { provider = "QqMusic", id = Field(candidate.Song, "mid", "songmid"),
+                    candidate.Title, candidate.Artist, candidate.Album, candidate.Duration, candidate.Score,
+                    reason = candidate.Score >= 4 ? "recording-matched" : candidate.NeedsVocalProof
+                        ? "missing-featured-credit-requires-lyric-proof" : "canonical-recording-not-confirmed" });
+            foreach (var best in candidates.Where(candidate => candidate.Score >= 4 || candidate.NeedsVocalProof)
+                .OrderByDescending(candidate => candidate.Score))
             {
                 var songId = Field(best.Song, "mid", "songmid");
                 if (string.IsNullOrWhiteSpace(songId) || !attempted.Add(songId)) continue;
                 if (remaining == 0) break;
                 remaining--;
-                var document = await requests.TryAsync(() => ReadLyricsAsync(songId, cancellationToken));
+                string[] vocalCredits = [];
+                var document = await requests.TryAsync(() => ReadLyricsAsync(songId, cancellationToken, value => vocalCredits = value));
                 if (document.Lines.Count == 0) continue;
-                document = document.Bind(query, best.Title, best.Artist, best.Album, best.Duration, best.Score, songId);
+                // The catalogue sometimes names the production group alone. A
+                // same-ID response's explicit early vocal credit can complete it,
+                // but this read is never permission to publish an unverified body.
+                var completeArtist = vocalCredits.Length == 0 ? best.Artist : best.Artist + "; " + string.Join("; ", vocalCredits);
+                var confirmedScore = vocalCredits.Length == 0 ? best.Score :
+                    LyricsMatcher.Score(query, best.Title, completeArtist, best.Album, best.Duration);
+                if (confirmedScore < 4 || best.Score < 4 && vocalCredits.Length == 0)
+                {
+                    LyricsRequestTrace.Record("candidate-rejected", new { provider = "QqMusic", id = songId,
+                        reason = "featured-performer-not-confirmed", vocalCredits });
+                    continue;
+                }
+                document = document.Bind(query, best.Title, best.Artist, best.Album, best.Duration, confirmedScore, songId);
+                if (vocalCredits.Length > 0)
+                    document = document with { Match = document.Match! with { ArtistAliases = [completeArtist] } };
                 LyricsRequestTrace.Record("parse", new { provider = "QqMusic", id = songId, document = LyricsRequestTrace.Describe(document) });
                 reportCandidate(document);
                 if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
@@ -89,7 +115,17 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
         return original;
     }
 
-    private async Task<LyricsDocument> ReadLyricsAsync(string songId, CancellationToken token)
+    private static bool CanReadMissingFeaturedCredit(LyricsQuery query, string title, string artist, string album, double duration)
+    {
+        if (!LyricsMatcher.HasFeaturedArtistCredit(query.Title) || query.Duration <= TimeSpan.Zero ||
+            !double.IsFinite(duration) || duration <= 0 || Math.Abs(query.Duration.TotalSeconds - duration) > 3) return false;
+        // Remove only the featured-credit decoration for this bounded probe.
+        // Language, live/remix labels, base artist and duration remain mandatory.
+        var probe = query with { Title = LyricsMatcher.TitleWithoutFeaturedArtists(query.Title), CollectSelectionCandidates = false };
+        return LyricsMatcher.Score(probe, title, artist, album, duration) >= 4;
+    }
+
+    private async Task<LyricsDocument> ReadLyricsAsync(string songId, CancellationToken token, Action<string[]> reportVocalCredits)
     {
         var identity = http.QqSession?.Identity() ?? (Uin: "0", Gtk: 5381);
         var generation = http.QqSession?.Generation ?? 0;
@@ -103,7 +139,15 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
         });
         using var lyric = await http.PostAsync("https://u.y.qq.com/cgi-bin/musicu.fcg", payload, token,
             "https://y.qq.com/", LyricsDiagnosticStage.Lyric);
-        try { return ParseLyrics(lyric.RootElement, token); }
+        try
+        {
+            var document = ParseLyrics(lyric.RootElement, token);
+            var credits = document.Lines.Take(24).Where(line => line.Start <= TimeSpan.FromSeconds(10))
+                .Select(line => VocalCredit.Match(line.Text.Trim())).Where(match => match.Success)
+                .Select(match => match.Groups[1].Value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(4).ToArray();
+            reportVocalCredits(credits);
+            return document;
+        }
         catch (LyricsProviderRejectedException error)
         {
             if (error.ApiCode is 1000 or 2001 or 101010 or 401 or 429)

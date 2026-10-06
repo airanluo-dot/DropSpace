@@ -18,6 +18,7 @@ public sealed class MediaViewModel : ObservableObject
     private int _currentLyricIndex = -1;
     private LyricsQueryStatus _lyricsStatus = LyricsQueryStatus.Disabled;
     private SpectrumFrame _spectrum = SpectrumFrame.Empty;
+    private string? _spectrumPresentationTrackIdentity;
     private ImageSource? _artwork;
     private TimeSpan _position;
     private AppSettings _settings = new();
@@ -80,6 +81,7 @@ public sealed class MediaViewModel : ObservableObject
             if (!SetProperty(ref _session, value)) return;
             if (trackChanged)
             {
+                _spectrumPresentationTrackIdentity = null;
                 SetProperty(ref _currentLyricIndex, -1, nameof(CurrentLyricIndex));
                 OnPropertyChanged(nameof(LyricsLines));
             }
@@ -87,6 +89,7 @@ public sealed class MediaViewModel : ObservableObject
             NotifyLyricTextChanges();
             OnPropertyChanged(nameof(SourceDisplayName));
             OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(DurationSeconds)); OnPropertyChanged(nameof(PlaybackGlyph));
+            OnPropertyChanged(nameof(HasSpectrumPresentation));
             OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
             OnPropertyChanged(nameof(ArtistAlbum)); OnPropertyChanged(nameof(PlayPauseLabel)); OnPropertyChanged(nameof(TimelineStatus)); OnPropertyChanged(nameof(LyricsStatusText));
             PlayPauseCommand.NotifyCanExecuteChanged(); PreviousCommand.NotifyCanExecuteChanged(); NextCommand.NotifyCanExecuteChanged(); SeekCommand.NotifyCanExecuteChanged();
@@ -129,7 +132,23 @@ public sealed class MediaViewModel : ObservableObject
             NotifyLyricTextChanges(); OnPropertyChanged(nameof(LyricsStatusText));
         }
     }
-    public SpectrumFrame Spectrum { get => _spectrum; internal set => SetProperty(ref _spectrum, value); }
+    public SpectrumFrame Spectrum
+    {
+        get => _spectrum;
+        internal set
+        {
+            var previousTrack = _spectrumPresentationTrackIdentity;
+            if (IsPlaying && value.CaptureMode == AudioCaptureMode.ProcessLoopback)
+                _spectrumPresentationTrackIdentity = Session.TrackIdentity;
+            var changed = SetProperty(ref _spectrum, value);
+            if (changed || previousTrack != _spectrumPresentationTrackIdentity) OnPropertyChanged(nameof(HasSpectrumPresentation));
+        }
+    }
+    // Pausing capture may publish an empty frame. Keep the same session's
+    // existing visual bars, now silent, without claiming new audio activity.
+    public bool HasSpectrumPresentation => Session.IsActive &&
+        string.Equals(_spectrumPresentationTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal) &&
+        (Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback || Session.PlaybackState == MediaPlaybackState.Paused);
     public ImageSource? Artwork { get => _artwork; internal set => SetProperty(ref _artwork, value); }
     public AppSettings Settings
     {

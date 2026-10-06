@@ -49,14 +49,30 @@ public sealed class LyricsCache
     public long ExecutionGeneration => Interlocked.Read(ref _state.ExecutionGeneration);
     public bool AllowsExecution(long generation) => generation >= Interlocked.Read(ref _state.LastClearGeneration);
 
-    public Task SetMaximumBytesAsync(long bytes, CancellationToken token = default)
+    /// <summary>Publish persistence policy synchronously without scanning or deleting files.
+    /// Disabling invalidates in-flight cache reads/writes for every store sharing this root;
+    /// live translation execution remains valid.</summary>
+    public void SetMaximumBytesPolicy(long bytes)
     {
         lock (_state.PolicyGate)
         {
             var wasEnabled = CurrentQuota() > 0;
-            Interlocked.Exchange(ref _state.MaximumBytes, Math.Clamp(bytes, MinimumMaximumBytes, MaximumMaximumBytes));
-            if (wasEnabled != (bytes > 0)) Interlocked.Increment(ref _state.Generation);
+            var maximum = Math.Clamp(bytes, MinimumMaximumBytes, MaximumMaximumBytes);
+            Interlocked.Exchange(ref _state.MaximumBytes, maximum);
+            if (wasEnabled != (maximum > 0)) Interlocked.Increment(ref _state.Generation);
         }
+    }
+
+    public Task SetMaximumBytesAsync(long bytes, CancellationToken token = default)
+    {
+        SetMaximumBytesPolicy(bytes);
+        return TrimToCurrentQuotaAsync(token);
+    }
+
+    // A queued maintenance request must inspect the latest policy, rather than reapply
+    // the quota from an old settings snapshot and accidentally turn caching back on.
+    public Task TrimToCurrentQuotaAsync(CancellationToken token = default)
+    {
         // Directory scans and eviction are synchronous filesystem work. Never run them
         // on the settings/UI caller, even when the semaphore is immediately available.
         return Task.Run(async () =>

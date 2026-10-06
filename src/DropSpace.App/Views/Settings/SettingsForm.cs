@@ -5,6 +5,7 @@ using DropSpace.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Views.Settings;
@@ -66,17 +67,26 @@ public sealed class SettingsForm : UserControl
         Func<AppSettings, double, AppSettings> write, Func<double, string> format)
     {
         var slider = new Slider { Minimum = minimum, Maximum = maximum, StepFrequency = step, SmallChange = step,
-            LargeChange = step, MinWidth = 140, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, MinWidth = 54 };
-        var panel = new Grid { ColumnSpacing = 12, MinWidth = 210 };
-        panel.ColumnDefinitions.Add(new()); panel.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+            LargeChange = step, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+        var panel = new Grid { ColumnSpacing = 12, HorizontalAlignment = HorizontalAlignment.Stretch };
+        panel.ColumnDefinitions.Add(new()); panel.ColumnDefinitions.Add(new() { Width = new GridLength(160) });
         panel.Children.Add(slider); Grid.SetColumn(label, 1); panel.Children.Add(label);
         AutomationProperties.SetName(slider, _strings.Get(key)); AutomationProperties.SetAutomationId(slider, key);
-        AddRow(key, panel);
+        // Give the full available row to precision-sensitive ranges. A fixed
+        // readout column keeps signs, digit counts and unlimited/off wording
+        // from changing either rail endpoint while the thumb is captured.
+        var body = new StackPanel { Spacing = 4, HorizontalAlignment = HorizontalAlignment.Stretch };
+        body.Children.Add(new TextBlock { Text = _strings.Get(key), TextWrapping = TextWrapping.Wrap });
+        body.Children.Add(panel);
+        Rows.Children.Add(new Border { CornerRadius = new(8), Padding = new(14, 10, 14, 10),
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"], Child = body });
+        uint? pointer = null;
         _refresh.Add(() =>
         {
-            if (_editor.HasPendingEdit(key)) return;
+            if (pointer is not null || _editor.HasPendingEdit(key)) return;
             var value = read(_editor.Settings); slider.Value = value; label.Text = format(value);
+            ToolTipService.SetToolTip(label, label.Text); AutomationProperties.SetHelpText(slider, label.Text);
         });
         Refresh();
         slider.ValueChanged += (_, args) =>
@@ -84,8 +94,24 @@ public sealed class SettingsForm : UserControl
             if (_syncing || !double.IsFinite(args.NewValue)) return;
             var value = Math.Clamp(Math.Round(args.NewValue / step, MidpointRounding.AwayFromZero) * step, minimum, maximum);
             label.Text = format(value);
+            ToolTipService.SetToolTip(label, label.Text); AutomationProperties.SetHelpText(slider, label.Text);
             _editor.QueueEdit(key, settings => write(settings, value));
         };
+        slider.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, args) =>
+        {
+            var point = args.GetCurrentPoint(slider);
+            if (point.IsInContact || point.Properties.IsLeftButtonPressed) pointer = args.Pointer.PointerId;
+        }), true);
+        async void FinishPointer(object sender, PointerRoutedEventArgs args)
+        {
+            if (pointer != args.Pointer.PointerId) return;
+            pointer = null;
+            await _editor.FlushEditsAsync(); Refresh();
+        }
+        slider.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(FinishPointer), true);
+        slider.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler(FinishPointer), true);
+        slider.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler(FinishPointer), true);
+        slider.LostFocus += async (_, _) => { if (pointer is null) { await _editor.FlushEditsAsync(); Refresh(); } };
         return slider;
     }
     public void AddRow(string key, FrameworkElement control)

@@ -115,8 +115,11 @@ public sealed class OutputReservationService : IOutputReservationService
         if (reservation.TaskId == Guid.Empty) return Task.CompletedTask;
         try
         {
-            if (File.Exists(reservation.MarkerPath)) EnsureOwnership(reservation);
-            TryDeleteMarker(reservation.MarkerPath);
+            if (!File.Exists(reservation.MarkerPath)) return Task.CompletedTask;
+            EnsureOwnership(reservation);
+            // Release must report failure so the caller retains durable retry ownership.
+            // Commit deliberately treats the same auxiliary failure as deferred cleanup.
+            File.Delete(reservation.MarkerPath);
         }
         catch (FileNotFoundException)
         {

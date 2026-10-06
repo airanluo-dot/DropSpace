@@ -158,13 +158,19 @@ public sealed class LyricsArtistMatchingTests
     }
 
     [TestMethod]
-    public void AlbumArtistIsAPlayerAgnosticAlternativeCredit()
+    public void AlbumArtistOnlySuppliesMissingPerformerCredits()
     {
         var query = new LyricsQuery("Song", "Featured Performer", "Album", TimeSpan.FromSeconds(180),
             AlbumArtist: "Catalogue Artist");
 
-        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "Song", "Catalogue Artist", "Album", 180));
-        CollectionAssert.Contains(LyricsMatcher.SearchTerms(query).ToArray(), "Song Catalogue Artist");
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "Song", "Catalogue Artist", "Album", 180));
+        CollectionAssert.DoesNotContain(LyricsMatcher.SearchTerms(query).ToArray(), "Song Catalogue Artist");
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query with { Artist = "" }, "Song", "Catalogue Artist", "Album", 180));
+        CollectionAssert.Contains(LyricsMatcher.SearchTerms(query with { Artist = "" }).ToArray(), "Song Catalogue Artist");
+        var collaboration = query with { Artist = "Artist A; Artist B", AlbumArtist = "Artist A", CollectSelectionCandidates = true };
+        Assert.AreEqual(0d, LyricsMatcher.Score(collaboration, "Song", "Artist A", "Album", 180));
+        Assert.AreEqual(0d, LyricsMatcher.CandidateScore(collaboration, "Song", "Artist A", "Album", 180));
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(collaboration, "Song", "Artist B; Artist A", "Album", 180));
     }
 
     [TestMethod]

@@ -115,6 +115,9 @@ public sealed partial class MainPage : Page
         KeyboardAccelerators.Add(settingsAccelerator);
 
         ApplySettingsAutomationNames();
+        foreach (var slider in new[] { MaxImageMegabytesNumber, MaxImageMegapixelsNumber,
+            MaxClipboardFileMegabytesNumber, MaxClipboardFileTotalMegabytesNumber, MaxClipboardFileItemsNumber })
+            slider.InteractionCompleted += async (_, _) => await _settingsEditor.FlushEditsAsync();
         DataContext = viewModel;
         MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings);
         BuildSettingsPages(settingsEditor, dlc);
@@ -193,6 +196,7 @@ public sealed partial class MainPage : Page
             _dropLinkHost.PairingOffered += OnPairingOfferedAsync;
             _dropLinkHost.HandoffOffered += OnHandoffOfferedAsync;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _settingsEditor.PropertyChanged += OnSettingsEditorPropertyChanged;
             _subscriptionsAttached = true;
         }
 
@@ -213,6 +217,7 @@ public sealed partial class MainPage : Page
         }
 
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _settingsEditor.PropertyChanged -= OnSettingsEditorPropertyChanged;
         _dropLinkHost.TransferOffered -= OnTransferOfferedAsync;
         _dropLinkHost.PairingOffered -= OnPairingOfferedAsync;
         _dropLinkHost.HandoffOffered -= OnHandoffOfferedAsync;
@@ -253,6 +258,8 @@ public sealed partial class MainPage : Page
 
     private async Task SelectSectionAsync(string section)
     {
+        await _settingsEditor.FlushEditsAsync();
+        await _settingsEditor.FlushDownloadLimitsAsync();
         _syncingNavigation = true;
         try
         {
@@ -2088,6 +2095,15 @@ public sealed partial class MainPage : Page
         _ => SpaceNavigationItem,
     };
 
+    private void OnSettingsEditorPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (!DispatcherQueue.HasThreadAccess)
+        {
+            DispatcherQueue.TryEnqueue(() => OnSettingsEditorPropertyChanged(sender, args)); return;
+        }
+        if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) SyncSettingsControls();
+    }
+
     private void SyncSettingsControls()
     {
         _syncingSettings = true;
@@ -2106,11 +2122,11 @@ public sealed partial class MainPage : Page
             AutoCheckUpdatesToggle.IsOn = _viewModel.AutoCheckForUpdates;
             AutoDownloadUpdatesToggle.IsOn = _viewModel.AutoDownloadUpdates;
             AutoInstallUpdatesToggle.IsOn = _viewModel.AutoInstallUpdates;
-            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxImageMegabytesNumber")) MaxImageMegabytesNumber.Value = _viewModel.MaxImageMegabytes;
-            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxImageMegapixelsNumber")) MaxImageMegapixelsNumber.Value = _viewModel.MaxImageMegapixels;
-            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileMegabytesNumber")) MaxClipboardFileMegabytesNumber.Value = _viewModel.MaxClipboardFileMegabytes;
-            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileTotalMegabytesNumber")) MaxClipboardFileTotalMegabytesNumber.Value = _viewModel.MaxClipboardFileTotalMegabytes;
-            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileItemsNumber")) MaxClipboardFileItemsNumber.Value = _viewModel.MaxClipboardFileItems;
+            if (!MaxImageMegabytesNumber.IsInteracting && !_settingsEditor.HasPendingEdit("ImportLimits:MaxImageMegabytesNumber")) MaxImageMegabytesNumber.Value = _viewModel.MaxImageMegabytes;
+            if (!MaxImageMegapixelsNumber.IsInteracting && !_settingsEditor.HasPendingEdit("ImportLimits:MaxImageMegapixelsNumber")) MaxImageMegapixelsNumber.Value = _viewModel.MaxImageMegapixels;
+            if (!MaxClipboardFileMegabytesNumber.IsInteracting && !_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileMegabytesNumber")) MaxClipboardFileMegabytesNumber.Value = _viewModel.MaxClipboardFileMegabytes;
+            if (!MaxClipboardFileTotalMegabytesNumber.IsInteracting && !_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileTotalMegabytesNumber")) MaxClipboardFileTotalMegabytesNumber.Value = _viewModel.MaxClipboardFileTotalMegabytes;
+            if (!MaxClipboardFileItemsNumber.IsInteracting && !_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileItemsNumber")) MaxClipboardFileItemsNumber.Value = _viewModel.MaxClipboardFileItems;
             RetentionDaysNumber.Value = _viewModel.RetentionDays;
             RetentionCountNumber.Value = _viewModel.RetentionItemCount;
             SelectComboItem(ThemeCombo, _viewModel.Theme.ToString());

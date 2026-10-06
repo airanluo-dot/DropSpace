@@ -140,6 +140,7 @@ public partial class App : Application
             }
 
             var persistedSettings = await settingsService.LoadAsync();
+            _services.GetRequiredService<LyricsCache>().SetMaximumBytesPolicy(persistedSettings.Lyrics.CacheMaximumBytes);
             var initialSettingsRecovery = settingsService.LastLoadRecovery;
             if (string.IsNullOrEmpty(persistedSettings.DefaultDownloadDirectory))
                 persistedSettings = await settingsService.UpdateAsync(settings => settings with

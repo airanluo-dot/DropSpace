@@ -20,16 +20,20 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     private string _error = string.Empty;
     private CancellationTokenSource? _downloadDelay;
     private Task _downloadSave = Task.CompletedTask;
-    private (int Connections, long Rate, int ConcurrentDownloads)? _pendingLimits;
+    private (int? Connections, long? Rate, int? ConcurrentDownloads)? _pendingLimits;
+    private int _savingDownloadLimits;
+    public bool HasPendingDownloadLimits => _pendingLimits is not null || _savingDownloadLimits > 0;
     public DropSpace.Infrastructure.Downloads.DownloadManager Downloads { get; }
     public NativeSettingsEditor(MainViewModel main, IAppStringLocalizer strings, ILogger<NativeSettingsEditor> logger, NativeFolderPickerService folders, Services.Notifications.WindowsNotificationActivityService notifications, DropSpace.Infrastructure.Downloads.DownloadManager downloads)
     { _main = main; _strings = strings; _logger = logger; _folders = folders; _notifications = notifications; Downloads = downloads; main.PropertyChanged += OnChanged; }
     public Task<string?> PickDownloadFolderAsync(nint windowHandle) => _folders.PickAsync(windowHandle);
     public void OpenDownloadFolder(string directory) => NativeFolderPickerService.OpenDirectory(directory);
     public string DefaultDownloadDirectory => string.IsNullOrEmpty(Settings.DefaultDownloadDirectory) ? NativeFolderPickerService.GetDownloadsDirectory() : Settings.DefaultDownloadDirectory;
-    public void QueueDownloadLimits(int connections, long rate, int concurrentDownloads)
+    public void QueueDownloadLimits(int? connections, long? rate, int? concurrentDownloads)
     {
-        _pendingLimits = (connections, rate, concurrentDownloads);
+        var pending = _pendingLimits;
+        _pendingLimits = (connections ?? pending?.Connections, rate ?? pending?.Rate,
+            concurrentDownloads ?? pending?.ConcurrentDownloads);
         _downloadDelay?.Cancel();
         _downloadDelay = new();
         _downloadSave = SaveDownloadLimitsAfterDelayAsync(_downloadDelay);
@@ -42,19 +46,26 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     }
     public async Task FlushDownloadLimitsAsync()
     {
+        _downloadDelay?.Cancel();
         if (_pendingLimits is not { } limits) return;
         _pendingLimits = null;
-        await UpdateAsync(settings => settings with
+        ++_savingDownloadLimits;
+        try
         {
-            MaxDownloadConnections = limits.Connections,
-            DownloadSpeedLimitBytesPerSecond = limits.Rate,
-            MaxConcurrentDownloads = limits.ConcurrentDownloads
-        });
+            await UpdateAsync(settings => settings with
+            {
+                MaxDownloadConnections = limits.Connections ?? settings.MaxDownloadConnections,
+                DownloadSpeedLimitBytesPerSecond = limits.Rate ?? settings.DownloadSpeedLimitBytesPerSecond,
+                MaxConcurrentDownloads = limits.ConcurrentDownloads ?? settings.MaxConcurrentDownloads
+            });
+        }
+        finally { --_savingDownloadLimits; OnPropertyChanged(nameof(Settings)); }
     }
     private readonly Dictionary<string, Func<AppSettings, AppSettings>> _pendingEdits = [];
+    private readonly Dictionary<string, int> _savingEdits = [];
     private CancellationTokenSource? _editDelay;
     private Task _editSave = Task.CompletedTask;
-    public bool HasPendingEdit(string key) => _pendingEdits.ContainsKey(key);
+    public bool HasPendingEdit(string key) => _pendingEdits.ContainsKey(key) || _savingEdits.ContainsKey(key);
     public void QueueEdit(string key, Func<AppSettings, AppSettings> change)
     {
         _pendingEdits[key] = change;
@@ -70,9 +81,22 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     }
     public async Task FlushEditsAsync()
     {
+        _editDelay?.Cancel();
         if (_pendingEdits.Count == 0) return;
-        var edits = _pendingEdits.Values.ToArray(); _pendingEdits.Clear();
-        await UpdateAsync(settings => edits.Aggregate(settings, (current, edit) => edit(current)));
+        var edits = _pendingEdits.ToArray(); _pendingEdits.Clear();
+        foreach (var (key, _) in edits) _savingEdits[key] = _savingEdits.GetValueOrDefault(key) + 1;
+        try { await UpdateAsync(settings => edits.Aggregate(settings, (current, edit) => edit.Value(current))); }
+        finally
+        {
+            foreach (var (key, _) in edits)
+            {
+                if (_savingEdits[key] > 1) --_savingEdits[key]; else _savingEdits.Remove(key);
+            }
+            // A settings transaction can notify while its predecessor is still
+            // saving. Refresh once ownership retires, including a real failure
+            // rollback, but keep newer queued or in-flight values protected.
+            OnPropertyChanged(nameof(Settings));
+        }
     }
     public AppSettings Settings => _main.Settings;
     public string Error { get => _error; private set => SetProperty(ref _error, value); }

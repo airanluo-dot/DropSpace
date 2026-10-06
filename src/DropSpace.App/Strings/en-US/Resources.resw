@@ -482,6 +482,7 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsScrolling" xml:space="preserve"><value>Scroll long lyrics</value></data>
   <data name="MusicEnabled" xml:space="preserve"><value>Enable music island</value></data>
   <data name="LyricsWidth" xml:space="preserve"><value>Maximum lyric width</value></data>
+  <data name="LyricsWidthUnlimited" xml:space="preserve"><value>Unlimited</value></data>
   <data name="MusicApplicationsEmpty" xml:space="preserve"><value>Play music to discover media applications.</value></data>
   <data name="WidgetCenter" xml:space="preserve"><value>Center</value></data>
   <data name="LyricsProvider" xml:space="preserve"><value>Preferred lyrics provider</value></data>

@@ -57,7 +57,13 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                     if (exactDocument.Match is not null && exactDocument.Lines.Count == 0)
                     {
                         LyricsRequestTrace.Record("provider-body", LyricsRequestTrace.Describe(exactDocument));
-                        if (original.Lines.Count == 0) original = exactDocument;
+                        if (exactDocument.BodyQuality == LyricsBodyQuality.ConfirmedInstrumental)
+                        {
+                            // Preserve already verified evidence even if later
+                            // catalogue requests fail or exhaust their budget.
+                            reportCandidate(exactDocument);
+                            if (original.Lines.Count == 0) original = exactDocument;
+                        }
                     }
                     if (exactDocument.Lines.Count > 0 && attempted.Add(exactDocument.Match!.CandidateId!))
                     {
@@ -108,8 +114,11 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                     if (!query.CollectSelectionCandidates) return document;
                     if (original.Lines.Count == 0) original = document;
                 }
-                else if (original.Lines.Count == 0 && document.BodyQuality == LyricsBodyQuality.ConfirmedInstrumental)
-                    original = document;
+                else if (document.BodyQuality == LyricsBodyQuality.ConfirmedInstrumental)
+                {
+                    reportCandidate(document);
+                    if (original.Lines.Count == 0) original = document;
+                }
             }
         }
         requests.ThrowIfFailed();
