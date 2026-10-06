@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "v0.3.1-beta.15",
+  "recordedAt": "2026-10-06T09:43:39Z",
+  "timestampMeaning": "Continuation authorization and exact source review recorded during this task; not the exact user-message timestamp.",
+  "ownerRequest": "Complete the current Beta15 fixes and provide its new build and delivery assets, preserving current changes, installed data and published Beta14 assets. Only necessary focused checks, actual affected playback and packaging are authorized; broad regressions are not requested.",
+  "authorizationBasis": "Continuing repository-owner development and release authorization in this conversation. The latest Beta15 request requires new Beta15 installer, checksums and update manifest without replacing Beta14; publication follows completion by the parent delivery owner.",
+  "permissions": {
+    "development": true,
+    "necessaryFocusedChecksAndCompilation": true,
+    "actualAppleMusicAndDropSpaceObservation": true,
+    "minimumInstalledModelAppChainVerification": true,
+    "beta15DeliveryAndPublicationAfterCompletion": true,
+    "repeatBroadRegression": false,
+    "modifyPublishedBeta14Assets": false
+  },
+  "releasePrerequisite": "Finish the final affected App verification and necessary final build/package binding before publication. This source review does not mark the new final App or remaining physical cases passed.",
+  "precedingOwnerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.15-owner-decision.json",
+    "sha256": "9a574883cb69c303d0d7332c03e81d4f901fa93f5bc04cacfe19361a2e6512e8"
+  },
+  "precedingReview": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.15-owner-accepted-review.json",
+    "sha256": "1cafac7cb9735ccd474e823c95e5a5398b98798c63a91740d4b7ed47cecdac84"
+  },
+  "modelQualification": {
+    "existingModelAndNativeBytesReused": true,
+    "promptSamplerAndProtocolUnchanged": true,
+    "productionPerRequestSeconds": 60,
+    "fullSemanticApproval": false,
+    "broadHardwareModelAndFullSongMatrices": "unverified",
+    "historicalCaptures": "Original source/runtime/budgets/failures preserved; no prior model capture relabeled as current source approval."
+  },
+  "firstCandidateActualEvidence": {
+    "appSourceCommit": "f603e403ad57d81cd09ea35b7c44bc5c58c186b2",
+    "appVersion": "0.3.1-beta.15",
+    "successfulAppCompilation": true,
+    "her": {
+      "sourceRows": 55,
+      "nativeRowsRetained": 48,
+      "nativeTextHashesAndStableIdsPreserved": true,
+      "actualAiGapRows": 5
+    },
+    "falling": {
+      "sourceRows": 28,
+      "nativeRowsRetained": 24,
+      "pendingAiAdmission": 0,
+      "returnToTrackAndManualRefreshPreserved": true
+    },
+    "cuda": "Parent observed production CUDA worker PID10408 ready and three completed App-chain responses without CPU fallback, together with the worker in NVIDIA compute process output. This is limited real inference, not a general semantic/hardware pass.",
+    "animation": "Actual music pause and empty-capsule wait/rendered spring frames/settled zero/native region release were observed. Idle Logo stayed collapsed through empty expansion and collapse.",
+    "evidenceBoundary": "These observations belong to the first candidate. They do not compile or validate the newly changed final source."
+  },
+  "focusedChecksActuallyReported": [
+    {
+      "kind": "initial-model-delivery-fingerprint",
+      "passed": 4,
+      "modelInferenceExecuted": false
+    },
+    {
+      "kind": "initial-infrastructure-host",
+      "passed": 11,
+      "modelInferenceExecuted": false
+    },
+    {
+      "kind": "private-worker-deadline-retention",
+      "passed": 6,
+      "modelInferenceExecuted": false
+    },
+    {
+      "kind": "island-file-lifecycle",
+      "passed": 9,
+      "includesOriginalFive": true,
+      "realUiObserved": false
+    },
+    {
+      "kind": "ordinary-album-word-boundary",
+      "passed": 2,
+      "realUiObserved": false
+    },
+    {
+      "kind": "Apple-Music-credit-boundary",
+      "passed": 4,
+      "realUiObserved": false
+    },
+    {
+      "kind": "QQ-same-recording-credit-boundary",
+      "passed": 5,
+      "realUiObserved": false
+    },
+    {
+      "kind": "local-Han-and-structured-credit",
+      "passed": 7,
+      "modelInferenceExecuted": false,
+      "boundary": "Reported before the final directly related untimed-boundary adjustment; no additional broad rerun claimed."
+    },
+    {
+      "kind": "translation-boundary-before-untimed-adjustment",
+      "passed": 5,
+      "modelInferenceExecuted": false
+    },
+    {
+      "kind": "final-v12-host-snapshot-regeneration",
+      "passed": 1,
+      "modelInferenceExecuted": false,
+      "semanticApproved": false
+    }
+  ],
+  "sourceReview": {
+    "inputReleaseVersion": "v0.3.1-beta.15",
+    "algorithm": "sha256-source-lf-embedded-bytes-v2",
+    "reviewedInputStageSha256": "51fb82262bc1e7198d77ef5e952e1e3329788f98cf21936024897f54806417d8",
+    "reviewedInputs": [
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsModels.cs",
+        "sha256": "d21957344374678e3b1fd293230f84ee62afbbe376b5142f61f8318c4862740d"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs",
+        "sha256": "af4361fe27265ba3d24d54d856be7b7681c4b4488a7061f926877175f143656c"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/PersistentPlainLyricsRunner.cs",
+        "sha256": "66338b1ff5a34576e369e2f4a3200d654fd25e62219eb66227aadcd6e5d1e188"
+      },
+      {
+        "path": "scripts/test-ai-release-approval.mjs",
+        "sha256": "dfcda08fe5486ed39d85b557305d5f1c4ec6a8529437780e91f238bf95009e94"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsMatcher.cs",
+        "sha256": "6cd8fc197f9a9168b129d64b11c11bf9e888406eb9f1af0cd4dad4e14d86dd8c"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs",
+        "sha256": "d0537cdf00831d18eac2fb86352443ad4e069802a91180ef7135c7d3ba6ad2df"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs",
+        "sha256": "754a86f922f482bdf179fb282fa513d85fe6dcbae654ab887529b42260b01dec"
+      },
+      {
+        "path": "src/DropSpace.Core/Island/IslandExperienceCoordinator.cs",
+        "sha256": "2a3d92e9bcef7af6faa41d465750975da61c6633c631a2c3f7ef7a4f363f1546"
+      },
+      {
+        "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+        "sha256": "4189622c41c50b500e99fb0e9af91c6a690e30ee25cdb016d400b40acdd2d882"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
+        "sha256": "6eadbd608b3b53d9d22bf56d1b67cd3c3b142383c0096d5f061f8bbde55c21ab"
+      },
+      {
+        "path": "scripts/Inspect-OwnerWaivedPackages.ps1",
+        "sha256": "3452a1640a424f05c176dfdd7d30c1225984cf2b757a4c6065969899081f23e8"
+      }
+    ],
+    "reviewedChanges": [
+      "Retain complete title-featured performers and the strictly corroborated Fast X release entity; ordinary album words are not hard recording labels. Existing title language/version, full credit and duration safeguards stay.",
+      "QQ missing-feature candidates are bounded probes only; same-ID early explicit vocal proof must pass the strict matcher before publication. Original Match.Artist is retained; confirmed complete credits use ArtistAliases. DataRevision3 retires older response identity.",
+      "Context policy v12 uses local continuous Han evidence with explicit-language/foreign/time/blank boundaries and structured metadata/credits. Unknown language remains abstaining, native target translations remain protected, and the model prompt is unchanged.",
+      "Private request deadlines remain 60 seconds in production, shorter injection is internal and capped, caller/lifetime cancellation propagates, native cleanup completes, and failed pending rows preserve previously valid native/AI progress without partial-song cache success.",
+      "File state completion is separately revision-guarded and cannot restart island hide time or let stale settled frames release a new presentation. Additional file-state diagnostics are opt-in and contain states/counts, not user file paths.",
+      "Gate binds current v12 host computation, preserves v11 as an immutable source input, reads the same production deadline, and includes the exact Beta15 packaging-only inspector. The inspector records compiler input and does not execute installer lifecycle."
+    ]
+  },
+  "hostAdmissionReview": {
+    "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
+    "sha256": "6eadbd608b3b53d9d22bf56d1b67cd3c3b142383c0096d5f061f8bbde55c21ab",
+    "policyVersion": "contextual-line-admission-v12",
+    "policySourceSha256": "d0537cdf00831d18eac2fb86352443ad4e069802a91180ef7135c7d3ba6ad2df",
+    "independentFixtureUnchanged": true,
+    "modelInferenceExecuted": false,
+    "semanticApproved": false
+  },
+  "remainingVerification": "Final App/package compilation and directly affected final-candidate playback are pending. No broad full-song/model/hardware/installer lifecycle matrix, held drag beyond debounce, hide-wait click or reduced-motion physical observation is claimed. Parent final audit owns subsequent real results.",
+  "reviewOnly": "Exact source-input continuation, not model/semantic qualification; previous owner decisions and reviews are not rewritten."
+}

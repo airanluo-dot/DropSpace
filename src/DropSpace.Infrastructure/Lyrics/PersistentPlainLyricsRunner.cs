@@ -56,6 +56,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private CancellationTokenSource? _preparation;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly TimeSpan _idleTimeout;
+    private readonly TimeSpan _requestTimeout;
     private readonly Func<CpuMemorySnapshot?> _readMemorySnapshot;
     private Session? _session;
     private Task _cleanup = Task.CompletedTask;
@@ -128,7 +129,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     { _openCudaLease = cuda.OpenWorkerLeaseAsync; }
 
     internal PersistentPlainLyricsRunner(Func<bool, CancellationToken, Task<string>> resolve,
-        AiLyricsRuntimeOptions options, TimeSpan idleTimeout, Func<CpuMemorySnapshot?>? readMemorySnapshot = null, string gpuBackend = "vulkan")
+        AiLyricsRuntimeOptions options, TimeSpan idleTimeout, Func<CpuMemorySnapshot?>? readMemorySnapshot = null,
+        string gpuBackend = "vulkan", TimeSpan? requestTimeout = null)
     {
         _resolve = resolve ?? throw new ArgumentNullException(nameof(resolve));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -136,6 +138,9 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         _gpuBackend = gpuBackend;
         if (idleTimeout <= TimeSpan.Zero || idleTimeout > TimeSpan.FromMinutes(2)) throw new ArgumentOutOfRangeException(nameof(idleTimeout));
         _idleTimeout = idleTimeout;
+        _requestTimeout = requestTimeout ?? TimeSpan.FromSeconds(60);
+        if (_requestTimeout <= TimeSpan.Zero || _requestTimeout > TimeSpan.FromSeconds(60))
+            throw new ArgumentOutOfRangeException(nameof(requestTimeout));
         _readMemorySnapshot = readMemorySnapshot ?? CpuInferenceMemoryPolicy.ReadWindowsSnapshot;
     }
 
@@ -178,16 +183,19 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         if (Encoding.UTF8.GetByteCount(prompt) is 0 or > PlainHyLyricsProtocol.MaximumPromptBytes)
             throw new InvalidDataException("Prompt exceeds the resident runtime budget.");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
-        deadline.CancelAfter(TimeSpan.FromSeconds(70));
+        deadline.CancelAfter(_requestTimeout + TimeSpan.FromSeconds(10));
         Interlocked.Increment(ref _translationWaiters);
         try { _ = Volatile.Read(ref _preparation)?.CancelAsync(); }
         catch (ObjectDisposedException) { }
         try { await WaitForGateAsync(_operation, deadline.Token, PlainLyricsMetrics.Stage.OperationQueue).ConfigureAwait(false); }
+        catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested &&
+            !_lifetime.IsCancellationRequested && deadline.IsCancellationRequested)
+        { throw new TimeoutException("The resident translation operation queue exceeded its deadline.", error); }
         finally { Interlocked.Decrement(ref _translationWaiters); }
         try
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            deadline.CancelAfter(TimeSpan.FromSeconds(60));
+            deadline.CancelAfter(_requestTimeout);
             if (_lastGpuSettingGeneration != _options.GpuSettingGeneration)
             {
                 await StopSessionAsync().ConfigureAwait(false);
@@ -264,6 +272,14 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     gpu = false;
                 }
             }
+        }
+        catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested &&
+            !_lifetime.IsCancellationRequested && deadline.IsCancellationRequested)
+        {
+            // Caller/song and runtime-lifetime cancellation must still propagate. Only
+            // this request's private deadline is a failed line, so the song coordinator
+            // can retain already validated progressive output after native cleanup.
+            throw new TimeoutException("The resident translation request exceeded its deadline.", error);
         }
         finally { EndExecution(); _operation.Release(); }
     }

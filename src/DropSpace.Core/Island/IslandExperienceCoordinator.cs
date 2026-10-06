@@ -73,6 +73,9 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         Reconcile();
         return true;
     }
+    public bool CanCompleteFileDismissal(long revision) =>
+        _files.Revision == revision && _files.State == OverlayState.Dismissing &&
+        _files.TemporaryItemCount == 0 && !_files.ExpandedDropActive && !IsManuallyOpen;
     public void Notify() { _dismissed = false; _notification = _time.GetUtcNow() + SystemActivityPolicy.NotificationLifetime; Reconcile(); }
     public void VolumeChanged() { _dismissed = false; _volume = _time.GetUtcNow() + SystemActivityPolicy.VolumeLifetime; Reconcile(); }
     public void ClearNotifications() { _notification = null; Reconcile(); }

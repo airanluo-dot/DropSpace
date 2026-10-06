@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { compareInventory, directoryInventory, validateArtifactContract, validateInventory, validateRuntimeProducer, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 
 export const approvalPath = 'scripts/ai-model-qa/release-approval.json';
-export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v11.json';
+export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v12.json';
 export const fixturePath = 'scripts/ai-model-qa/inputs/source48.json';
 export const residentSourcePaths = Object.freeze([
   'tools/plain-lyrics-helper/CMakeLists.txt',
@@ -205,6 +205,7 @@ export const sourcePaths = Object.freeze([
   // Retain the prior reviewed computation as an immutable historical input;
   // the active host computation below has its own path and honest provenance.
   'scripts/plain-hy-production-evidence/source48-admission-v10.json',
+  'scripts/plain-hy-production-evidence/source48-admission-v11.json',
   admissionPath,
   'scripts/plain-hy-production-evidence/ContractTests.cs',
   'scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1',
@@ -217,6 +218,7 @@ export const sourcePaths = Object.freeze([
   'scripts/Build-PortableExe.ps1',
   'scripts/Build-UnsignedPackage.ps1',
   'scripts/Build-Installer.ps1',
+  'scripts/Inspect-OwnerWaivedPackages.ps1',
   'scripts/Collect-AiRuntimeNotices.ps1',
   'tools/ct2-helper/helper.py',
   'tools/ct2-helper/build.ps1',
@@ -355,9 +357,14 @@ export function readScope(root) {
   const windowsProcess = readText(root, 'src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs');
   const memoryMiB = name => Number(singleMatch(windowsProcess, new RegExp(`internal const long ${name} = ([0-9]+)L \\* 1024 \\* 1024 \\* 1024;`, 'g'), `Production ${name}`)) * 1024;
   assert.match(legacyRunner, /ExperimentalLargePlain\.Sha256, StringComparison\.OrdinalIgnoreCase\)\s*\? WindowsInferenceProcess\.Hy7BMaximumMemoryBytes : WindowsInferenceProcess\.MaximumMemoryBytes;/, 'Unrecognized model-specific process memory budgets');
+  const perLineSeconds = Number(singleMatch(runner, /_requestTimeout = requestTimeout \?\? TimeSpan\.FromSeconds\((\d+)\);/g, 'Production per-line deadline'));
+  assert.match(runner, /private readonly TimeSpan _requestTimeout;/, 'Resident request deadline must be privately owned');
+  assert.match(runner, /internal PersistentPlainLyricsRunner\([\s\S]*?TimeSpan\? requestTimeout = null\)/, 'Test deadline injection must remain internal');
+  assert.match(runner, new RegExp(`_requestTimeout <= TimeSpan\\.Zero \\|\\| _requestTimeout > TimeSpan\\.FromSeconds\\(${perLineSeconds}\\)`), 'Injected request deadline cannot exceed the production ceiling');
+  assert.match(runner, /ObjectDisposedException\.ThrowIf\(_disposed, this\);\s*deadline\.CancelAfter\(_requestTimeout\);/, 'Production request must use the reviewed deadline');
   const executionLimits = {
     wholeSongSeconds: integerConstant('WholeSongSeconds'),
-    perLineSeconds: Number(singleMatch(runner, /ObjectDisposedException\.ThrowIf\(_disposed, this\);\s*deadline\.CancelAfter\(TimeSpan\.FromSeconds\((\d+)\)\);/g, 'Production per-line deadline')),
+    perLineSeconds,
     memoryMiB: memoryMiB('MaximumMemoryBytes'),
     maximumPromptBytes: integerConstant('MaximumPromptBytes'), maximumOutputBytes: integerConstant('MaximumOutputBytes'),
   };
@@ -398,7 +405,7 @@ export function readScope(root) {
   const fixtureBytes = fs.readFileSync(path.join(root, fixturePath));
   const fixture = JSON.parse(fixtureBytes);
   assert.equal(admission.schemaVersion, 1, 'Unknown audited fixture admission schema');
-  assert.equal(admission.recordKind, 'host-fixture-admission-v11', 'Expected a current host admission computation');
+  assert.equal(admission.recordKind, 'host-fixture-admission-v12', 'Expected a current host admission computation');
   assert.equal(admission.modelInferenceExecuted, false, 'Host admission cannot claim model inference');
   assert.equal(admission.semanticApproved, false, 'Host admission cannot claim semantic approval');
   assert.equal(admission.fixtureSha256, sha256(fixtureBytes), 'Audited admission fixture is stale');
@@ -421,7 +428,7 @@ export function readScope(root) {
       // The fixture has no credits. Unknown language abstains for every target;
       // confident foreign evidence remains eligible.
       const decision = fixtureAdmissionDecision(row.sourceText, target, row);
-      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the v11 three-state policy');
+      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the current three-state policy');
       assert.equal(row.reason, decision === 'SameLanguage' ? 'same-target-language' : decision === 'Abstain' ? 'no-eligible-segments' : row.confidence >= 0.9 ? 'identified-foreign-language' : 'unknown-language-retained');
       assert.deepEqual(row.segments, row.eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : []);
     }

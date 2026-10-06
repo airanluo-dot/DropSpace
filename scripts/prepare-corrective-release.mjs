@@ -10,15 +10,18 @@ const root=process.cwd();
 const version=get('--version');
 const decision=get('--owner-decision');
 const acceptedAt=get('--accepted-at');
+const rebindCurrent=args.includes('--rebind-current');
 if(!/^v\d+\.\d+\.\d+-beta\.[1-9]\d*$/.test(version))throw new Error('Expected an exact Beta release version.');
 if(!Number.isFinite(Date.parse(acceptedAt))||Date.parse(acceptedAt)>Date.now())throw new Error('Use the actual, non-future owner authorization timestamp.');
 if(path.isAbsolute(decision)||decision.split(/[\\/]/).includes('..')||!decision.startsWith('scripts/ai-model-qa/evidence/'))throw new Error('Owner decision must be a repository evidence file.');
 const read=p=>fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n');
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const old=read('RELEASE_VERSION').trim();
-if(version===old)throw new Error('Version is already current; refusing to overwrite release evidence.');
+if(version===old&&!rebindCurrent)throw new Error('Version is already current; refusing to overwrite release evidence.');
+if(rebindCurrent&&version!==old)throw new Error('Current-release source review cannot change the release version.');
 const oldScope=readScope(root);
 const approval=JSON.parse(read('scripts/ai-model-qa/release-approval.json'));
+if(hash(fs.readFileSync(approval.review.path))!==approval.review.sha256)throw new Error('Previous review bytes do not match the active approval pointer.');
 const review=JSON.parse(read(approval.review.path));
 const reviewedPaths=new Set(args.flatMap((arg,i)=>arg==='--reviewed-source-path'&&args[i+1]?[args[i+1]]:[]));
 for(const name of reviewedPaths)if(!oldScope.sources.files.some(file=>file.path===name))throw new Error(`Reviewed source is not a current code-owned fingerprint input: ${name}`);
@@ -55,12 +58,17 @@ if(JSON.stringify(oldScope)!==JSON.stringify(reviewedScope(approval.scope))||JSO
 const decisionText=read(decision);
 if(!decisionText.includes(version))throw new Error('Owner decision must name the exact target version.');
 const notes=read(`.github/release-notes/${version}.md`);
-if(!notes.includes(`${old} is the immediate upgrade baseline`))throw new Error('Release notes must identify the current release as upgrade baseline.');
-const reviewPath=`scripts/ai-model-qa/evidence/${version}-owner-accepted-review.json`;
+if(!rebindCurrent&&!notes.includes(`${old} is the immediate upgrade baseline`))throw new Error('Release notes must identify the current release as upgrade baseline.');
+const reviewPath=rebindCurrent?get('--review-record'):`scripts/ai-model-qa/evidence/${version}-owner-accepted-review.json`;
+if(path.isAbsolute(reviewPath)||reviewPath.split(/[\\/]/).includes('..')||
+ !reviewPath.startsWith(`scripts/ai-model-qa/evidence/${version}-`)||!reviewPath.endsWith('.json'))
+ throw new Error('A fresh review record must be in the exact current Beta evidence namespace.');
 if(fs.existsSync(reviewPath))throw new Error('Target review already exists; refusing to replace evidence.');
 const n=version.split('.').at(-1);
 const previousBeta=old.split('.').at(-1);
-const edits=new Map([['RELEASE_VERSION',version+'\n']]);
+const edits=new Map();
+if(!rebindCurrent) {
+edits.set('RELEASE_VERSION',version+'\n');
 for(const file of ['README.md','ROADMAP.md']) {
  let text=read(file);
  text=text.split(old).join(version).replaceAll(`(Beta ${previousBeta})`,`(Beta ${n})`);
@@ -73,6 +81,7 @@ const next=version.replace(/\d+$/,String(Number(n)+1));
 let testText=read(gateTests).split(old).join(version);
 testText=testText.replace(/(\['future Beta', x => \{ x.write\('RELEASE_VERSION', ')[^']+('; x.scope.releaseVersion = ')[^']+(')/,`$1${next}$2${next}$3`);
 edits.set(gateTests,testText);
+}
 // Bind the exact prospective writes, including the gate's own version pin.
 // Computing this before changing the pin used to make a prepared approval stale.
 const scope={...oldScope,releaseVersion:version};
@@ -92,4 +101,4 @@ edits.set(reviewPath,reviewText);approval.review={path:reviewPath,sha256:hash(re
 edits.set('scripts/ai-model-qa/release-approval.json',JSON.stringify(approval,null,2)+'\n');
 // Inputs validated before any writes; publication remains a separate explicit action.
 for(const [file,text] of edits)fs.writeFileSync(file,text);
-console.log(`Prepared ${version}: one version updated metadata, owner acceptance and evidence hashes. No build or publication started.`);
+console.log(`${rebindCurrent?'Rebound current source review for':'Prepared'} ${version}: fresh review and evidence hashes. No build or publication started.`);

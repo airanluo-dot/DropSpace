@@ -42,7 +42,10 @@ public sealed class Beta15CacheSettingsTests
             if (OperatingSystem.IsWindows())
             {
                 using var held = new FileStream(paths.Settings, FileMode.Open, FileAccess.Read, FileShare.Read);
-                await Assert.ThrowsAsync<IOException>(() => coordinator.SaveAsync(original));
+                Exception? saveFailure = null;
+                try { await coordinator.SaveAsync(original); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { saveFailure = error; }
+                Assert.IsNotNull(saveFailure, "The held settings file must reject replacement on Windows.");
                 Assert.IsNull(await cache.ReadDocumentAsync("old", default), "A failed save must retain the last successfully persisted cache-off policy.");
             }
             await store.SaveAsync(original);

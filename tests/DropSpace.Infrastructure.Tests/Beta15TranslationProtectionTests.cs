@@ -142,13 +142,13 @@ public sealed class Beta15TranslationProtectionTests
             targets[target] = rows;
         }
         using var prior = JsonDocument.Parse(File.ReadAllText(Path.Combine(root.FullName, "scripts/plain-hy-production-evidence/source48-admission-v10.json")));
-        var snapshot = new { schemaVersion = 1, recordKind = "host-fixture-admission-v11", fixtureSha256 = Hash(File.ReadAllBytes(fixturePath)),
+        var snapshot = new { schemaVersion = 1, recordKind = "host-fixture-admission-v12", fixtureSha256 = Hash(File.ReadAllBytes(fixturePath)),
             policyVersion = LyricsLanguagePolicy.Version,
             policySourceSha256 = Hash(Encoding.UTF8.GetBytes(File.ReadAllText(Path.Combine(root.FullName, "src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs")).Replace("\r\n", "\n", StringComparison.Ordinal))),
             policySourceHashNormalization = "UTF-8 with CRLF normalized to LF", modelInferenceExecuted = false, semanticApproved = false,
             computedWith = "Beta15TranslationProtectionTests.FrozenAdmissionSnapshotBindsCurrentHostPolicyWithoutInference",
             reviewNotes = "Current host computation only; unchanged independent fixture language annotations retained. No model execution or semantic approval.",
             semanticLanguages = prior.RootElement.GetProperty("semanticLanguages"), targets };
-        File.WriteAllText(Path.Combine(root.FullName, "scripts/plain-hy-production-evidence/source48-admission-v11.json"), JsonSerializer.Serialize(snapshot, json) + "\n");
+        File.WriteAllText(Path.Combine(root.FullName, "scripts/plain-hy-production-evidence/source48-admission-v12.json"), JsonSerializer.Serialize(snapshot, json) + "\n");
     }
 }

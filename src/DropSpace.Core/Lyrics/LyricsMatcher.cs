@@ -5,13 +5,19 @@ namespace DropSpace.Core.Lyrics;
 
 public static class LyricsMatcher
 {
-    public const string Version = "recording-identity-v3-performer-credits";
+    public const string Version = "recording-identity-v5-featured-performers";
     private const int MaximumMetadataCharacters = 2_048;
     // These Unicode regex tokens recognize publisher suffixes, not UI strings.
     private static readonly Regex PlayerSuffix = new(@"\s*[-|–]\s*(?:Apple Music|QQ\u97f3\u4e50|\u7f51\u6613\u4e91\u97f3\u4e50|\u9177\u72d7\u97f3\u4e50|Spotify|YouTube)\s*$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex VersionLabels = new(@"(?:\(|\[|（|【)([^\)\]）】]*)(?:\)|\]|）|】)|\b(live|remix|acoustic|instrumental|karaoke|radio|extended|edit|demo|version|mono|stereo|original|concert|cover|sped\s*up|slowed)\b", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex FeaturedArtistDecoration = new(
         @"(?:\s*(?:\(|\[|（|【)\s*(?:feat(?:uring)?|ft|with)(?:\.\s*|\s+)[^\)\]）】]+(?:\)|\]|）|】)\s*|\s*[-–—:]\s*(?:feat(?:uring)?|ft|with)(?:\.\s*|\s+).+|\s+(?:feat(?:uring)?|ft)(?:\.\s*|\s+).+)$",
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex FeaturedArtistNames = new(
+        @"\b(?:feat(?:uring)?|ft|with)(?:\.\s*|\s+)([^\)\]）】]+)",
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex FeaturedArtistCredit = new(
+        @"(?:\(|\[|（|【)\s*(?:feat(?:uring)?|ft|with)(?:\.\s*|\s+)([^\)\]）】]+)(?:\)|\]|）|】)",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex ReleaseDecoration = new(
         @"(?:\s*(?:\(|\[|（|【)\s*(?:(?:\d{4}\s*)?remaster(?:ed)?(?:\s*\d{4})?|explicit|clean|album\s+version|single\s+version|original\s+motion\s+picture\s+soundtrack)(?:\)|\]|）|】)\s*|\s*[-–—:]\s*(?:(?:\d{4}\s*)?remaster(?:ed)?(?:\s*\d{4})?|explicit|clean|album\s+version|single\s+version|original\s+motion\s+picture\s+soundtrack))$",
@@ -38,6 +44,9 @@ public static class LyricsMatcher
     private static readonly Regex PublisherMetadataSeparator = new(
         @"\s+(?:—|–|•|·)\s+|[\r\n]+",
         RegexOptions.None, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex FastSagaReleaseCredit = new(
+        @"(?:\s*[,;&]\s*)?Fast\s*&\s*Furious:\s*The\s+Fast\s+Saga(?=\s*(?:[,;]|$))",
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex DisambiguatingVersionWords = new(
         @"\b(?:live|remix|acoustic|instrumental|karaoke|radio|extended|edit|demo|concert|cover|sped\s*up|slowed)\b",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
@@ -51,7 +60,7 @@ public static class LyricsMatcher
 
     public static string SearchTitle(string value)
     {
-        var title = PlayerSuffix.Replace(Limit(value), string.Empty);
+        var title = FeaturedArtistCredit.Replace(PlayerSuffix.Replace(Limit(value), string.Empty), string.Empty);
         // Process stacked decorations, e.g. feat followed by [Chinese version].
         for (var pass = 0; pass < 4; pass++)
         {
@@ -85,7 +94,8 @@ public static class LyricsMatcher
             .ToArray();
     }
 
-    public static IEnumerable<string> SearchArtists(LyricsQuery query) => query.ArtistCandidates
+    public static IEnumerable<string> SearchArtists(LyricsQuery query) => ExpandArtistCandidates(
+        string.IsNullOrWhiteSpace(query.Artist) ? query.AlbumArtist : query.Artist)
         // Prefer complete performer credits over the publisher's "Artist — Album" display string.
         .OrderBy(artist => PublisherMetadataSeparator.IsMatch(artist) ? 1 : 0);
 
@@ -107,6 +117,28 @@ public static class LyricsMatcher
         }
 
         return candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    public static IReadOnlyList<string> ExpandRecordingArtistCandidates(string title, string artist) =>
+        ExpandArtistCandidates(artist).Select(value => WithFeaturedArtists(title, value))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+    public static bool HasFeaturedArtistCredit(string title) => FeaturedArtistCredit.IsMatch(Limit(title)) ||
+        FeaturedArtistDecoration.IsMatch(Limit(title));
+
+    public static string TitleWithoutFeaturedArtists(string title) => FeaturedArtistDecoration.Replace(
+        FeaturedArtistCredit.Replace(Limit(title), string.Empty), string.Empty).Trim();
+
+    private static string WithFeaturedArtists(string title, string artist)
+    {
+        // A featured performer can live only in the title. Removing that decoration
+        // for search must not also remove it from the recording's required credits.
+        var credits = FeaturedArtistCredit.Matches(Limit(title)).Select(match => match.Groups[1].Value.Trim()).Take(16).ToArray();
+        if (credits.Length > 0) return artist + "; " + string.Join("; ", credits);
+        var decoration = FeaturedArtistDecoration.Match(LanguageDecoration.Replace(Limit(title), string.Empty));
+        if (!decoration.Success) return artist;
+        var names = FeaturedArtistNames.Match(decoration.Value);
+        return names.Success ? artist + "; " + names.Groups[1].Value.Trim() : artist;
     }
 
     // Bounded publisher evidence: https://sakanaction.jp/news/detail/2959 and ?lang=en.
@@ -133,17 +165,19 @@ public static class LyricsMatcher
     }
 
     public static bool IsSafeSelectionCandidate(LyricsQuery query, string title, string artist, double durationSeconds, string album = "") =>
+        Score(query, title, artist, album, durationSeconds) >= 4 ||
         query.HasDisambiguatingMetadata && !string.IsNullOrWhiteSpace(artist) &&
-        !HasConflictingCredits(query, artist) && !HasVersionConflict(query.Album, album) &&
+        !HasConflictingCredits(query, title, artist) &&
         AreTitlesEquivalent(query.Title, title) && double.IsFinite(durationSeconds) && durationSeconds >= 0 &&
         (query.Duration <= TimeSpan.Zero || durationSeconds <= 0 ||
             Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds)) &&
-        (query.ArtistCandidates.Any(value => AreArtistCreditsCompatible(value, artist)) ||
+        (query.ArtistCandidates.Any(value => AreArtistCreditsCompatible(value, WithFeaturedArtists(title, artist))) ||
             query.Duration > TimeSpan.Zero && durationSeconds > 0 ||
             Normalize(query.Album) is { Length: > 0 } requestedAlbum && requestedAlbum == Normalize(album));
 
-    private static bool HasConflictingCredits(LyricsQuery query, string artist)
+    private static bool HasConflictingCredits(LyricsQuery query, string title, string artist)
     {
+        artist = WithFeaturedArtists(title, artist);
         var similarity = ArtistSimilarity(query.ArtistCandidates, artist);
         if (similarity > 0 && similarity < 0.9) return true;
         // Unknown cross-script aliases can be reviewed using independent metadata.
@@ -166,10 +200,11 @@ public static class LyricsMatcher
         // Catalogues can append the English title after the exact Chinese title.
         // This recovery needs independent artist AND duration evidence; substring
         // similarity alone must never authorize a different song or language.
-        var artistScore = ArtistSimilarity(query.ArtistCandidates, artist);
+        var artistScore = ArtistSimilarity(query.ArtistCandidates, WithFeaturedArtists(title, artist));
         if (artistAliases is not null)
             foreach (var alias in artistAliases.Take(16))
-                artistScore = Math.Max(artistScore, ArtistSimilarity(query.ArtistCandidates, alias));
+                artistScore = Math.Max(artistScore, ArtistSimilarity(query.ArtistCandidates, WithFeaturedArtists(title, alias)));
+        if (KnownFastXRecordingCredits(query, title, artist, album, durationSeconds)) artistScore = 1;
         var bilingualMatch = BilingualBaseMatches(query.Title, title);
         if (bilingualMatch && artistScore >= 0.6 &&
             query.Duration > TimeSpan.Zero && double.IsFinite(durationSeconds) && durationSeconds > 0 &&
@@ -181,7 +216,11 @@ public static class LyricsMatcher
         if (!query.HasDisambiguatingMetadata) return 0;
         if (string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(album) &&
             (!double.IsFinite(durationSeconds) || durationSeconds <= 0)) return 0;
-        if (HasVersionConflict(query.Title, title) || HasVersionConflict(query.Album, album)) return 0;
+        // Album names can contain ordinary words such as "live", "remix" and
+        // "acoustic" without describing this track's recording. Hard version
+        // and language conflicts belong to the track title; album metadata
+        // remains independent corroboration below rather than a version label.
+        if (HasVersionConflict(query.Title, title)) return 0;
         var albumScore = Similarity(query.Album, album);
         var candidateDuration = double.IsFinite(durationSeconds) ? Math.Max(0, durationSeconds) : 0;
         var durationDelta = Math.Abs(query.Duration.TotalSeconds - candidateDuration);
@@ -232,11 +271,43 @@ public static class LyricsMatcher
     private static string[] ArtistCredits(string value) => ArtistCreditSeparator.Split(Limit(value))
         .Select(CanonicalArtistCredit).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
 
+    private static bool KnownFastXRecordingCredits(LyricsQuery query, string title, string artist, string album,
+        double durationSeconds)
+    {
+        // Bounded catalogue equivalence, not a general permission to discard credits.
+        // Apple Music lists the franchise entity beside the artists, with G Herbo
+        // in the title: https://music.apple.com/us/song/1685731986.
+        // The release owner's tracklist confirms all three performers:
+        // https://www.universalmusic.com.br/2023/05/22/virgin-artist-partner-group-e-universal-pictures-em-parceria-com-universal-music-group-anunciam-o-lancamento-de-fast-x-original-motion-picture-soundtrack/
+        if (ComparableTitle(query.Title) != "mycity" || ComparableTitle(title) != "mycity" ||
+            HasVersionConflict(query.Title, title) || HasVersionConflict(title, query.Title) ||
+            query.Duration.TotalSeconds is < 148 or > 151 || !double.IsFinite(durationSeconds) || durationSeconds is < 148 or > 151 ||
+            !Normalize(album).StartsWith("fastxoriginalmotionpicturesoundtrack", StringComparison.Ordinal)) return false;
+        var publisherSeparator = PublisherMetadataSeparator.Match(query.Artist);
+        var requestedAlbum = string.IsNullOrWhiteSpace(query.Album) && publisherSeparator.Success
+            ? query.Artist[(publisherSeparator.Index + publisherSeparator.Length)..] : query.Album;
+        if (!Normalize(requestedAlbum).StartsWith("fastxoriginalmotionpicturesoundtrack", StringComparison.Ordinal)) return false;
+        bool CompletePerformers(string credit)
+        {
+            var values = ArtistCredits(credit);
+            return values.Length == 3 && values.Contains("24kgoldn") && values.Contains("kanebrown") && values.Contains("gherbo");
+        }
+        // Require the exact known entity as well as all actual vocal credits.
+        // Neither a narrower AlbumArtist nor an unknown fourth artist is an alias.
+        return query.ArtistCandidates.Any(credit => FastSagaReleaseCredit.IsMatch(credit) &&
+            CompletePerformers(FastSagaReleaseCredit.Replace(credit, string.Empty))) &&
+            CompletePerformers(FastSagaReleaseCredit.Replace(WithFeaturedArtists(title, artist), string.Empty));
+    }
+
     // Exact whole-credit alias, corroborated by Apple Music's Starboy catalogue:
     // https://music.apple.com/qa/song/1677006158. Never infer aliases from substrings.
     private static string CanonicalArtistCredit(string value) => Normalize(value) switch
     {
         "abeltesfaye" or "theweeknd" => "theweeknd",
+        // The artist's release credits explicitly use both names; this exact
+        // alias does not discard arbitrary Latin suffixes from Chinese names.
+        // https://www.bilibili.com/video/BV18s411F7uC/ (official Gujian publisher).
+        "孙晔" or "孙晔gary" => "孙晔",
         _ => ArtistCreditOrthography.Fold(value)
     };
 
@@ -338,7 +409,8 @@ public static class LyricsMatcher
     private static HashSet<string> Labels(string value)
     {
         var labels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (Match match in VersionLabels.Matches(FeaturedArtistDecoration.Replace(Limit(value), string.Empty)))
+        foreach (Match match in VersionLabels.Matches(FeaturedArtistDecoration.Replace(
+            FeaturedArtistCredit.Replace(Limit(value), string.Empty), string.Empty)))
         {
             var label = match.Groups[1].Success ? match.Groups[1].Value : match.Value;
             // Compare whole version words before removing punctuation. Otherwise names

@@ -36,7 +36,7 @@ jobs:
             if(process.env.GITHUB_EVENT_NAME!=='pull_request'||!/^[a-f0-9]{40}$/.test(base??''))throw new Error('Full application build required');
             execFileSync('git',['fetch','--no-tags','--depth=1','origin',base]);
             const names=execFileSync('git',['diff','--name-only','-z',base,'HEAD'],{encoding:'utf8'}).split('\0').filter(Boolean);
-            const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md','.github/release-notes/v0.3.1-beta.14.md']);
+            const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md','.github/release-notes/v0.3.1-beta.14.md','.github/release-notes/v0.3.1-beta.15.md','docs/dev/beta15-fix-audit.md']);
             maintenance=names.length>0&&names.every(n=>allowed.has(n));
           } catch(e) { console.log(e.message); }
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\n`);

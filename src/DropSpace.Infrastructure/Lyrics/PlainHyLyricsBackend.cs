@@ -238,6 +238,16 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested && budget.IsCancellationRequested)
         { return Failed("translation-deadline"); }
+        catch (TimeoutException)
+        {
+            token.ThrowIfCancellationRequested();
+            if (cache.ExecutionGeneration != executionGeneration || progress?.IsCurrent == false)
+                return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
+            // A resident call has its own shorter deadline. Retain completed host-
+            // validated rows and native translations; only pending rows fail. The
+            // failure returns before the complete-song validation/cache commit.
+            return Failed(budget.IsCancellationRequested ? "translation-deadline" : "worker-deadline");
+        }
         catch (Exception error) when (error is IOException or InvalidDataException or InvalidOperationException)
         { return Failed("worker-" + error.GetType().Name); }
         finally { Interlocked.Exchange(ref finished, 1); acceptedSegments.Clear(); }
