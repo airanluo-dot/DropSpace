@@ -14,7 +14,7 @@ public sealed record IslandGeometry(double Width, double Height, double Radius)
     {
         scale = Math.Clamp(scale, 0.001, 2);
         var height = MusicCompactHeight(measuredHeight) * scale;
-        var width = Math.Clamp(measuredWidth, 180, 460) * scale;
+        var width = (double.IsFinite(measuredWidth) ? Math.Max(180, measuredWidth) : 180) * scale;
         return new(width, height, Math.Min(width, height) / 2);
     }
     public static IslandGeometry ForFiles(OverlayState state) => state switch

@@ -51,7 +51,7 @@ test('Z-order maintenance keeps geometry and foreground input unchanged', () => 
   assert.match(maintain, /SetWindowPositionNoActivate \| SetWindowPositionNoOwnerZOrder/);
   assert.doesNotMatch(maintain, /SetForegroundWindow|SetFocus|AttachThreadInput|Activate\(\)/);
   const guard = body(window, 'internal void MaintainFullscreenVisibility()', 'private void HideImmediately()');
-  assert.match(guard, /!_forceFullscreenPresentation/);
+  assert.doesNotMatch(guard, /!_forceFullscreenPresentation|ForceShowOverFullscreen/);
   assert.match(guard, /!_isActiveWindow \|\| !_isVisible/);
   assert.match(guard, /!_nativeWindowSafeToShow/);
 });

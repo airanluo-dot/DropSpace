@@ -25,8 +25,7 @@ public sealed class PlainHyLyricsPackageResolver(AiModelPackageService models, A
         var descriptor = AiLyricsModelCatalog.FindSelectable(selectionId);
         if (descriptor is null) return null;
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
-            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0) return null;
+        if (LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0) return null;
         var model = await models.GetInstalledPathAsync(selectionId, token).ConfigureAwait(false);
         if (model is null) return null;
         var executable = await runtime.EnsureExecutableAsync(token).ConfigureAwait(false);
@@ -49,7 +48,8 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         token.ThrowIfCancellationRequested();
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         source = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(source, targetLanguage);
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return null;
+        source = LyricsLanguagePolicy.MarkTranslationStates(source, targetLanguage);
+        if (LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0) return null;
         var indices = LyricsLanguagePolicy.EligibleIndices(source, targetLanguage);
         if (indices.Length == 0) return null;
         var generation = cache.Generation;
@@ -117,8 +117,9 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         token.ThrowIfCancellationRequested();
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         source = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(source, targetLanguage);
+        source = LyricsLanguagePolicy.MarkTranslationStates(source, targetLanguage);
         if (cache.Generation != generation || progress?.IsCurrent == false ||
-            LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage))
+            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
             return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var indices = LyricsLanguagePolicy.EligibleIndices(source, targetLanguage);
         if (indices.Length == 0) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
@@ -137,10 +138,20 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         var segments = LyricsLanguagePolicy.EligibleSegments(source, targetLanguage);
         var outputs = new Dictionary<int, string>(indices.Length);
         var acceptedSegments = new PlainLyricsSegmentMemo();
-        var pending = indices.ToHashSet();
+        var pending = indices.Where(id => source.Lines[id].TranslationState != LyricsLineTranslationState.Translated).ToHashSet();
+        foreach (var id in indices.Where(id => !pending.Contains(id))) outputs[id] = source.Lines[id].Secondary!;
+        LyricsRequestTrace.Record("ai-line-admission", new { policy = LyricsLanguagePolicy.Version,
+            lines = source.Lines.Select((line, id) => new { id, line.TranslationState, line.TranslationReason }) });
         var finished = 0;
         bool IsCurrent() => Volatile.Read(ref finished) == 0 && !budget.IsCancellationRequested &&
             cache.Generation == generation && (progress?.IsCurrent ?? true);
+        LyricsTranslationResult Failed(string reason)
+        {
+            result = result with { Lines = result.Lines.Select((line, id) => pending.Contains(id)
+                ? line with { TranslationState = LyricsLineTranslationState.Failed, TranslationReason = reason } : line).ToArray() };
+            LyricsRequestTrace.Record("ai-line-failure", new { reason, ids = pending.Order().ToArray() });
+            return new(result, LyricsTranslationOutcome.Failed);
+        }
         try
         {
             while (pending.Count > 0)
@@ -175,7 +186,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
                     }
                     budget.Token.ThrowIfCancellationRequested();
                     if (!IsCurrent()) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
-                    if (!PlainHyLyricsProtocol.IsCompleteLine(segmentOutput)) return new(source, LyricsTranslationOutcome.Failed);
+                    if (!PlainHyLyricsProtocol.IsCompleteLine(segmentOutput)) return Failed("invalid-worker-output");
                     segmentOutputs.Add(segmentOutput.Trim());
                     // Independent segment admission permits reuse even within a multi-segment row.
                     // A later row/song failure discards this request-local memo without persistence.
@@ -186,10 +197,10 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
                 if (!IsCurrent()) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
                 // Preserve the complete response. Never crop extra lines, explanations or broken output
                 // to manufacture a valid lyric. IDs are attached here, never generated by the model.
-                if (!PlainHyLyricsProtocol.IsCompleteLine(output)) return new(source, LyricsTranslationOutcome.Failed);
+                if (!PlainHyLyricsProtocol.IsCompleteLine(output)) return Failed("invalid-line-output");
                 var json = JsonSerializer.Serialize(new[] { new { id, text = output } });
                 if (!TryApplyEligibleOutput(json, result, [id], targetLanguage, out var next))
-                    return new(source, LyricsTranslationOutcome.Failed);
+                    return Failed("host-output-validation");
                 // Hits pass host mapping again with this row's ID, timeline and admission key.
                 if (!firstUseful && next.Lines[id].TranslationOrigin == LyricsTranslationOrigin.LocalAi)
                 {
@@ -197,7 +208,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
                     PlainLyricsMetrics.Record(PlainLyricsMetrics.Stage.FirstUseful, started, PlainLyricsMetrics.Outcome.Success);
                 }
                 result = next;
-                outputs.Add(id, output);
+                outputs[id] = output;
                 pending.Remove(id);
                 if (progress is not null)
                     await progress.WithFence(generation, IsCurrent).ReportAsync(result, id, outputs.Count,
@@ -209,7 +220,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
             // sequence again before success or persistence; a partial snapshot is never cacheable.
             var completeJson = JsonSerializer.Serialize(indices.Select(id => new { id, text = outputs[id] }));
             if (!TryApplyEligibleOutput(completeJson, source, indices, targetLanguage, out result))
-                return new(source, LyricsTranslationOutcome.Failed);
+                return Failed("complete-output-validation");
             if (!LyricsTranslationOutput.HasUsefulLocalTranslation(result, targetLanguage))
             {
                 RememberNoUseful(key, generation);
@@ -224,6 +235,10 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
             return IsCurrent() ? new(result, LyricsTranslationOutcome.Translated)
                 : new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested && budget.IsCancellationRequested)
+        { return Failed("translation-deadline"); }
+        catch (Exception error) when (error is IOException or InvalidDataException or InvalidOperationException)
+        { return Failed("worker-" + error.GetType().Name); }
         finally { Interlocked.Exchange(ref finished, 1); acceptedSegments.Clear(); }
     }
 
@@ -242,6 +257,10 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
                 ? line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
                     ? LyricsLanguagePolicy.LocalAiAdmissionKey(source.Lines[id], targetLanguage, segments[id]) : null
                 : line.LocalAiAdmissionKey,
+            TranslationState = indices.Contains(id) ? line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
+                ? LyricsLineTranslationState.Translated : LyricsLineTranslationState.Skipped : line.TranslationState,
+            TranslationReason = indices.Contains(id) ? line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
+                ? "local-ai-complete" : "copied-source-output" : line.TranslationReason,
         }).ToArray() };
         return true;
     }
@@ -290,7 +309,6 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         var model = AiLyricsModelCatalog.FindSelectable(selectionId);
         if (model is null ||
-            LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
             LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
             return Task.FromResult<LyricsTranslationResult?>(null);
         string identity;
@@ -309,8 +327,7 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
     {
         token.ThrowIfCancellationRequested();
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
-            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
+        if (LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
             return Task.FromResult(new LyricsTranslationResult(source, LyricsTranslationOutcome.NoUsefulTranslation));
         // Unannotated legacy packages remain the original 1.8B profile only. New resolutions
         // carry both catalog ID and verified bytes; neither may silently select another model.

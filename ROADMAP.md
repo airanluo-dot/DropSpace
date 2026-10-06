@@ -1,5 +1,16 @@
 # DropSpace Roadmap
 
+## Release target: v0.3.1-beta.14
+
+Complete the ten items in the owner-supplied October 6 Beta14 plan: island
+manual opening and stale callback fences, file/idle branding, visible-window
+topmost recovery, eight native sliders, pause hiding, keyboard tooltip/editing,
+recording identity and per-line bilingual translation coverage. Preserve the
+Beta13 downloader, installed resources and settings. Validation is deliberately
+focused; no full regression or repeated model downloads. See
+[implementation record](docs/dev/beta14-implementation.md) and
+[release notes](.github/release-notes/v0.3.1-beta.14.md).
+
 ## Hy-MT2 model download mirror
 
 Model distribution URLs are recorded in the dedicated

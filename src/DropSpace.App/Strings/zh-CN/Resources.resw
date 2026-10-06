@@ -207,7 +207,7 @@
   <data name="CaptureImagesTitle.Text" xml:space="preserve"><value>记录图片</value></data>
   <data name="CaptureImagesDescription.Text" xml:space="preserve"><value>大小和像素上限可在下方调整；超限图片会被跳过。</value></data>
   <data name="CaptureImagesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>记录剪贴板图片</value></data>
-  <data name="MaxImageMegabytesLabel.Text" xml:space="preserve"><value>单张图片最大大小（MB）</value></data>
+  <data name="MaxImageMegabytesLabel.Text" xml:space="preserve"><value>单张图片最大大小（MiB）</value></data>
   <data name="MaxImageMegapixelsLabel.Text" xml:space="preserve"><value>单张图片最大像素（百万）</value></data>
   <data name="CaptureFilesTitle.Text" xml:space="preserve"><value>记录文件与文件夹</value></data>
   <data name="CaptureFilesDescription.Text" xml:space="preserve"><value>资源管理器的复制操作会作为剪贴板引用记录，不会移动或复制原始文件。</value></data>
@@ -216,8 +216,8 @@
   <data name="CaptureFoldersDescription.Text" xml:space="preserve"><value>文件夹不会被递归扫描或复制；只记录外部引用。</value></data>
   <data name="CaptureFoldersToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>记录剪贴板文件夹</value></data>
   <data name="MaxClipboardFileItemsLabel.Text" xml:space="preserve"><value>单次最多项目数</value></data>
-  <data name="MaxClipboardFileMegabytesLabel.Text" xml:space="preserve"><value>单个文件最大大小（MB）</value></data>
-  <data name="MaxClipboardFileTotalMegabytesLabel.Text" xml:space="preserve"><value>单次已知总大小上限（MB）</value></data>
+  <data name="MaxClipboardFileMegabytesLabel.Text" xml:space="preserve"><value>单个文件最大大小（MiB）</value></data>
+  <data name="MaxClipboardFileTotalMegabytesLabel.Text" xml:space="preserve"><value>单次已知总大小上限（MiB）</value></data>
   <data name="MaxClipboardFileTotalMegabytesDescription.Text" xml:space="preserve"><value>必须不小于单文件上限；文件夹不递归计入。</value></data>
   <data name="ClipboardPrivacyWarning.Message" xml:space="preserve"><value>DropSpace 无法可靠识别所有剪贴板来源，也不会把“敏感内容检测”当作安全保证。需要时请暂停记录或清除历史。</value></data>
   <data name="RetentionSection.Text" xml:space="preserve"><value>保留期限</value></data>
@@ -519,7 +519,7 @@
   <data name="WidgetRemove" xml:space="preserve"><value>移除小组件</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>灵动岛</value></data>
   <data name="ClearLyricsCache" xml:space="preserve"><value>清理歌词缓存</value></data>
-  <data name="LyricsCacheSize" xml:space="preserve"><value>歌词缓存上限 (MiB)</value></data>
+  <data name="LyricsCacheSize" xml:space="preserve"><value>歌词缓存上限（GB）</value></data>
   <data name="WidgetSelect" xml:space="preserve"><value>选中小组件以编辑位置和尺寸。</value></data>
   <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
   <data name="SettingsPageGeneral" xml:space="preserve"><value>常规</value></data>
@@ -865,4 +865,6 @@
   <data name="DownloadRetryDetail" xml:space="preserve"><value>第 {0} 次重试</value></data>
   <data name="IslandResident" xml:space="preserve"><value>常驻灵动岛</value></data>
   <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} 秒</value></data>
+  <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>空闲时显示 Logo</value></data>
+  <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB（已关闭）</value></data>
 </root>

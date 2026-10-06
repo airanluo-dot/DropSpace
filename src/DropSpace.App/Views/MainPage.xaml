@@ -6,6 +6,9 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:services="using:DropSpace.App.Services"
+  xmlns:settings="using:DropSpace.App.Views.Settings"
+  KeyboardAcceleratorPlacementMode="Hidden"
+  IsTabStop="True"
   Background="Transparent"
   mc:Ignorable="d">
   <Page.KeyboardAccelerators>
@@ -411,7 +414,7 @@
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
               <TextBlock services:XamlResourceOverride.Uid="MaxImageMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
-              <NumberBox x:Name="MaxImageMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="256" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+              <settings:SettingsValueSlider x:Name="MaxImageMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="256" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
@@ -419,7 +422,7 @@
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
               <TextBlock services:XamlResourceOverride.Uid="MaxImageMegapixelsLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
-              <NumberBox x:Name="MaxImageMegapixelsNumber" Grid.Column="1" Minimum="1" Maximum="200" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+              <settings:SettingsValueSlider x:Name="MaxImageMegapixelsNumber" Grid.Column="1" Minimum="1" Maximum="200" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
@@ -449,7 +452,7 @@
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
               <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileItemsLabel" VerticalAlignment="Center" />
-              <NumberBox x:Name="MaxClipboardFileItemsNumber" Grid.Column="1" Minimum="1" Maximum="1000" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+              <settings:SettingsValueSlider x:Name="MaxClipboardFileItemsNumber" Grid.Column="1" Minimum="1" Maximum="1000" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
@@ -457,7 +460,7 @@
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
               <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
-              <NumberBox x:Name="MaxClipboardFileMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="1048576" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+              <settings:SettingsValueSlider x:Name="MaxClipboardFileMegabytesNumber" Nonlinear="True" Grid.Column="1" Minimum="1" Maximum="1048576" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
@@ -468,7 +471,7 @@
                 <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileTotalMegabytesLabel" TextWrapping="Wrap" />
                 <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileTotalMegabytesDescription" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <NumberBox x:Name="MaxClipboardFileTotalMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="4194304" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+              <settings:SettingsValueSlider x:Name="MaxClipboardFileTotalMegabytesNumber" Nonlinear="True" Grid.Column="1" Minimum="1" Maximum="4194304" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <InfoBar
  services:XamlResourceOverride.Uid="ClipboardPrivacyWarning"

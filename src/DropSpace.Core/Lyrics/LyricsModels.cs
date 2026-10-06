@@ -44,7 +44,10 @@ public sealed record LyricsMatchInfo(
     // Complete credit projections asserted by this recording's source artist records.
     // They are not global aliases and never alter the raw canonical Artist field.
     public IReadOnlyList<string> ArtistAliases { get; init; } = [];
+    public string CanonicalTitle { get; init; } = string.Empty;
+    public IReadOnlyList<string> TitleAliases { get; init; } = [];
 }
+public enum LyricsLineTranslationState { Pending, Translated, Skipped, Failed }
 public sealed record LyricsWord(string Text, TimeSpan Start, TimeSpan End);
 public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words)
 {
@@ -56,6 +59,8 @@ public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, strin
     public bool? TranslationLanguageIsExplicit { get; init; }
     // Current admitted source projection, set only after host output validation.
     public string? LocalAiAdmissionKey { get; init; }
+    public LyricsLineTranslationState TranslationState { get; init; }
+    public string? TranslationReason { get; init; }
 }
 public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProviderKind Provider, LyricsMatchInfo? Match = null)
 {

@@ -11,23 +11,17 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the Stable baseline and the current Beta is v0.3.1-beta.12**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the Stable baseline and the current Beta is v0.3.1-beta.14**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.12](.github/release-notes/v0.3.1-beta.12.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.14](.github/release-notes/v0.3.1-beta.14.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
-The **v0.3.1 Beta 12** adds ordinary file downloads below the DLC list,
-with shared segmented transfers, connection limits and total bandwidth control for
-files, App updates, AI models, CUDA and optional components. NetEase enhancement
-and its Microsoft runtime are also listed in DLC.
-Previous releases remain immutable. Download transport has focused in-memory checks;
-real large-download and cross-restart behavior remain untested.
-Existing optional on-device **AI lyrics** remain off by default. Hy-MT2 1.8B Q8_0
-(about 1.9 GB) and optional 7B Q8_0 (about 7.98 GB) require explicit download confirmation;
-no model is downloaded silently. Both models remain unverified.
-Translation follows the App language and keeps an available matching provider translation
-in preference to AI. First-time full-song generation can take several minutes, and AI
-can change meaning or omit details. The original lyrics remain available. These remain
-disclosed model limitations; they do not certify translation accuracy or waive known bugs.
+The **v0.3.1 Beta 14** improves island clicks, topmost recovery, file branding,
+idle logo preferences and native settings sliders. It hardens recording matching
+and fills eligible missing translation rows in both Chinese and English.
+Downloads remain on their own Settings page; DLC manages installed components.
+Optional AI translation remains off by default. Validation is limited to focused
+checks and necessary release compilation; broad model/hardware qualification
+is not claimed.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GiB (1024 MiB) by default, adjustable from 100 MiB to 5 GiB. Model downloads do

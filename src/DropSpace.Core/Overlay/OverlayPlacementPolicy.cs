@@ -77,7 +77,7 @@ public static class OverlayPlacementPolicy
 
         ArgumentNullException.ThrowIfNull(placement);
         var contentScale = NormalizeContentScale(request.ContentScale);
-        var hostWidth = HostWidthDips * contentScale;
+        var hostWidth = request.HostWidthDips > 0 ? request.HostWidthDips : HostWidthDips * contentScale;
 
         if (placement.Mode != OverlayPlacementMode.Custom)
         {
@@ -91,7 +91,7 @@ public static class OverlayPlacementPolicy
 
         var workWidthDips = request.WorkWidthPixels / request.Scale;
         var workHeightDips = request.WorkHeightPixels / request.Scale;
-        var halfSurface = Math.Min(MaximumSurfaceWidthDips * contentScale, workWidthDips) / 2;
+        var halfSurface = Math.Min(request.SurfaceWidthDips > 0 ? request.SurfaceWidthDips : MaximumSurfaceWidthDips * contentScale, workWidthDips) / 2;
         var clampedCenterX = Math.Clamp(placement.X, halfSurface, Math.Max(halfSurface, workWidthDips - halfSurface));
         var maxTop = Math.Max(0, workHeightDips - MaximumSurfaceHeightDips * contentScale);
         var clampedTop = Math.Clamp(placement.Y, 0, maxTop);
@@ -119,7 +119,7 @@ public static class OverlayPlacementPolicy
         int workLeftPixels,
         int workTopPixels,
         double scale,
-        double contentScale = 1)
+        double contentScale = 1, double hostWidthDips = 0)
     {
         if (!double.IsFinite(scale) || scale <= 0)
         {
@@ -127,7 +127,7 @@ public static class OverlayPlacementPolicy
         }
 
         return new OverlayCustomPlacement(
-            (resolved.HostLeftPixels - workLeftPixels) / scale + HostWidthDips * NormalizeContentScale(contentScale) / 2,
+            (resolved.HostLeftPixels - workLeftPixels) / scale + (hostWidthDips > 0 ? hostWidthDips : HostWidthDips * NormalizeContentScale(contentScale)) / 2,
             (resolved.HostTopPixels - workTopPixels) / scale + resolved.SurfaceTopOffsetDips);
     }
 
@@ -145,7 +145,7 @@ public readonly record struct OverlayPlacementRequest(
     int WorkHeightPixels,
     double Scale,
     FileDragWakeMode WakeMode,
-    double ContentScale = 1);
+    double ContentScale = 1, double HostWidthDips = 0, double SurfaceWidthDips = 0);
 
 public readonly record struct OverlayResolvedPlacement(
     int HostLeftPixels,

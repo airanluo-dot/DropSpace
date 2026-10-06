@@ -9,7 +9,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
 {
     private readonly NetEaseResponseCache _responses = new(http, timeProvider);
     private const int MaximumLyricCandidates = 3;
-    internal const int DataRevision = 2;
+    internal const int DataRevision = 3;
     public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
     public void ClearResponseCache() => _responses.Clear();
 
@@ -69,7 +69,8 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
                 rows = NestedText(root, field, "lyric").Split('\n', StringSplitOptions.RemoveEmptyEntries).Length }),
             document = LyricsRequestTrace.Describe(document) });
         token.ThrowIfCancellationRequested();
-        return document with { Match = document.Match! with { ArtistAliases = candidate.ArtistAliases } };
+        return document with { Match = document.Match! with { ArtistAliases = candidate.ArtistAliases,
+            CanonicalTitle = candidate.Title, TitleAliases = candidate.TitleAliases } };
     }
 
     internal static LyricsDocument ParseLyrics(JsonElement root)
@@ -136,13 +137,16 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             AddTitle(titles, Text(song, "name"));
             foreach (var property in new[] { "alias", "alia", "transNames", "tns" })
                 foreach (var alias in StringArray(song, property)) AddTitle(titles, alias);
-            var best = titles.Select(value => new { Title = value, Score = LyricsMatcher.CandidateScore(query, value, artist, album, duration, artistAliases) })
-                .OrderByDescending(value => value.Score).FirstOrDefault();
-            if (best is not null)
+            // Retain alias evidence, but never replace the recording's canonical title.
+            // A translated alias alone cannot distinguish a re-recorded language version.
+            var canonical = Text(song, "name");
+            var score = LyricsMatcher.CandidateScore(query, canonical, artist, album, duration, artistAliases);
+            if (!string.IsNullOrWhiteSpace(canonical))
             {
-                LyricsRequestTrace.Record("candidate", new { provider = "NetEase", id, best.Title, artist, artistAliases, album, duration, best.Score,
-                    reason = best.Score >= 4 ? "eligible" : "identity-score-below-threshold" });
-                yield return new(id, best.Title, artist, album, duration, best.Score, artistAliases);
+                LyricsRequestTrace.Record("candidate", new { provider = "NetEase", id, title = canonical, aliases = titles,
+                    artist, artistAliases, album, duration, score,
+                    reason = score >= 4 ? "eligible" : "canonical-recording-not-confirmed" });
+                yield return new(id, canonical, artist, album, duration, score, artistAliases, titles.Where(t => t != canonical).ToArray());
             }
         }
     }
@@ -182,5 +186,5 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
     }
 
     private sealed record Candidate(string Id, string Title, string Artist, string Album, double Duration, double Score,
-        string[] ArtistAliases);
+        string[] ArtistAliases, string[] TitleAliases);
 }

@@ -32,6 +32,13 @@ public sealed partial class MediaCompactView : UserControl
     private XamlRoot? _xamlRoot;
     public double IdealIslandWidth { get; private set; } = 280;
     public double IdealIslandHeight { get; private set; } = 40;
+    private double _availableWidth = 560;
+    public void SetAvailableWidth(double value)
+    {
+        value = Math.Max(1, value);
+        if (Math.Abs(value - _availableWidth) < 0.5) return;
+        _availableWidth = value; Refresh();
+    }
     // The glow asks the rendered text surface, not only whether a translation exists.
     internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
         SecondaryViewport.Visibility == Visibility.Visible && SecondaryViewport.ActualWidth > 0 && SecondaryViewport.ActualHeight > 0 &&
@@ -191,9 +198,10 @@ public sealed partial class MediaCompactView : UserControl
         var bands = new[] { Band0, Band1, Band2, Band3, Band4, Band5 };
         for (var index = 0; index < bands.Length; index++)
             bands[index].Height = 2 + 20 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
-        var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Clamp(Math.Max(_textWidth, _secondaryMeasure.DesiredSize.Width), 80, settings.Lyrics.ScrollingMaxWidth) : 180;
+        var maximum = settings.Lyrics.UnlimitedScrollingWidth ? _availableWidth : settings.Lyrics.ScrollingMaxWidth;
+        var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Min(Math.Max(_textWidth, _secondaryMeasure.DesiredSize.Width), maximum) : 180;
         var width = 28 + textWidth + (settings.IslandActivity.ShowArtwork ? 36 : 12) + (spectrum ? 45 : 12);
-        width = showDots ? 280 : Math.Clamp(width, 180, 460);
+        width = Math.Min(_availableWidth, showDots ? 280 : Math.Max(180, width));
         if (Math.Abs(width - IdealIslandWidth) > 0.5 || Math.Abs(previousHeight - IdealIslandHeight) > 0.5)
         { IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
         RefreshHighlight();

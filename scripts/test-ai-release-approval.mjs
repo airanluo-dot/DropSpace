@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { compareInventory, directoryInventory, validateArtifactContract, validateInventory, validateRuntimeProducer, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 
 export const approvalPath = 'scripts/ai-model-qa/release-approval.json';
-export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v9.json';
+export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v10.json';
 export const fixturePath = 'scripts/ai-model-qa/inputs/source48.json';
 export const residentSourcePaths = Object.freeze([
   'tools/plain-lyrics-helper/CMakeLists.txt',
@@ -127,6 +127,8 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/ViewModels/MainViewModel.cs',
   'src/DropSpace.App/ViewModels/NativeSettingsEditor.cs',
   'src/DropSpace.App/Views/Music/MusicPage.cs',
+  'src/DropSpace.App/Views/Settings/SettingsEditBehavior.cs',
+  'src/DropSpace.App/Views/Settings/SettingsValueSlider.cs',
   'src/DropSpace.App/Views/Music/LyricsRowCollection.cs',
   'src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs',
   'src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs',
@@ -249,7 +251,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.13';
+export const experimentalBetaVersion = 'v0.3.1-beta.14';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -349,7 +351,7 @@ export function readScope(root) {
   const fixtureBytes = fs.readFileSync(path.join(root, fixturePath));
   const fixture = JSON.parse(fixtureBytes);
   assert.equal(admission.schemaVersion, 1, 'Unknown audited fixture admission schema');
-  assert.equal(admission.recordKind, 'host-fixture-admission-v9', 'Expected a current host admission computation');
+  assert.equal(admission.recordKind, 'host-fixture-admission-v10', 'Expected a current host admission computation');
   assert.equal(admission.modelInferenceExecuted, false, 'Host admission cannot claim model inference');
   assert.equal(admission.semanticApproved, false, 'Host admission cannot claim semantic approval');
   assert.equal(admission.fixtureSha256, sha256(fixtureBytes), 'Audited admission fixture is stale');
@@ -372,7 +374,7 @@ export function readScope(root) {
       // The fixture has no credits. Unknown language abstains for every target;
       // confident foreign evidence remains eligible.
       const decision = fixtureAdmissionDecision(row.sourceText, target, row);
-      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the v9 three-state policy');
+      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the v10 three-state policy');
       assert.equal(row.reason, decision === 'SameLanguage' ? 'same-target-language' : decision === 'Abstain' ? 'no-eligible-segments' : row.confidence >= 0.9 ? 'identified-foreign-language' : 'unknown-language-retained');
       assert.deepEqual(row.segments, row.eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : []);
     }

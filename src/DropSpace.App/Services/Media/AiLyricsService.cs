@@ -241,7 +241,6 @@ public sealed class AiLyricsService : IDisposable
         document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(document, targetLanguage);
         Func<bool> isCurrent = () => !token.IsCancellationRequested && (progress?.IsCurrent ?? true);
         if (!settings.Enabled || !settings.AiTranslationEnabled ||
-            LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage) ||
             LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0)
         {
             if (!isCurrent()) return new(document, () => false);
@@ -305,11 +304,11 @@ public sealed class AiLyricsService : IDisposable
         lock (_stateGate) { statusGeneration = ++_statusGeneration; _presentationSettings = settings; }
         SetState(statusGeneration, AiLyricsTranslationState.Ready);
         if (!settings.Enabled || !settings.AiTranslationEnabled || document.Lines.Count == 0) return document;
-        // The approved first version never fills gaps in a source-provided translation.
+        // Native target translations keep priority on their own rows; eligible gaps can be filled.
         document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
         document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(document, targetLanguage);
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage) ||
-            LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0) return document;
+        document = LyricsLanguagePolicy.MarkTranslationStates(document, targetLanguage);
+        if (LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0) return document;
         // Validated cached data needs neither executable extraction nor a large model rehash.
         // Actual inference still verifies every model/runtime before execution.
         var cacheGeneration = _cache.Generation;
@@ -330,14 +329,15 @@ public sealed class AiLyricsService : IDisposable
                 ? AiLyricsTranslationState.Completed : AiLyricsTranslationState.Ready, fromCache: true);
             return cached.Document;
         }
-        if (!_circuit.TryBegin(out var generation)) return document;
+        if (!_circuit.TryBegin(out var generation)) return LyricsLanguagePolicy.FailPending(document, "inference-circuit-paused");
         try
         {
             // This path never downloads. Only the settings consent flow can fetch weights.
             var package = await _packageResolver.ResolveAsync(settings.AiModelId, query, document, targetLanguage, token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
-            if (!IsCurrent() || package is null ||
-                !StringComparer.Ordinal.Equals(package.BackendId, _backend.Id)) return document;
+            if (!IsCurrent()) return document;
+            if (package is null || !StringComparer.Ordinal.Equals(package.BackendId, _backend.Id))
+                return LyricsLanguagePolicy.FailPending(document, "model-or-runtime-not-ready");
             SetState(statusGeneration, AiLyricsTranslationState.Translating);
             var result = await _backend.TranslateAsync(package with { CacheGeneration = cacheGeneration },
                 query, document, targetLanguage, token, guardedProgress).ConfigureAwait(false);
@@ -365,7 +365,7 @@ public sealed class AiLyricsService : IDisposable
             // Resource admission is recoverable when host memory becomes available.
             // It is not an inference/model failure and must not trip the failure circuit.
             SetState(statusGeneration, AiLyricsTranslationState.ResourcesUnavailable);
-            return document;
+            return LyricsLanguagePolicy.FailPending(document, "inference-resources-unavailable");
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -380,7 +380,7 @@ public sealed class AiLyricsService : IDisposable
                 error.GetType().Name, (error as LocalInferenceExecutionException)?.ExitCode);
             RecordResult(generation, false);
             SetState(statusGeneration, AiLyricsTranslationState.Unavailable);
-            return document;
+            return LyricsLanguagePolicy.FailPending(document, "inference-" + error.GetType().Name);
         }
         finally { Interlocked.Exchange(ref acceptingProgress, 0); }
     }
