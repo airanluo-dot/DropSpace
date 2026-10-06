@@ -1,15 +1,33 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.15
+## Published release: v0.3.1-beta.15
 
-Complete the ten items in the owner-supplied October 6 Beta14 plan: island
-manual opening and stale callback fences, file/idle branding, visible-window
-topmost recovery, eight native sliders, pause hiding, keyboard tooltip/editing,
-recording identity and per-line bilingual translation coverage. Preserve the
-Beta13 downloader, installed resources and settings. Validation is deliberately
-focused; no full regression or repeated model downloads. See
-[implementation record](docs/dev/beta14-implementation.md) and
+Completed the fifteen items in the owner-supplied October6 Beta15 request and
+three directly related supplements:
+native translation priority and safe AI publication, bilingual row admission,
+performer/recording identity, stable slider edits, lyric-width wording, retained
+paused content and completed hide animation, idle Logo transition correctness,
+model-delivery fingerprint, instrumental fallback evidence, download cleanup
+ownership, operation confirmations and immediate cache disabling. Preserve all
+existing Beta14 features and current work. Validation is deliberately focused;
+real playback and rendered animation evidence remain separate from controlled
+host checks. No full regression or repeated model downloads. See
+[implementation record](docs/dev/beta15-fix-audit.md) and
 [release notes](.github/release-notes/v0.3.1-beta.15.md).
+
+First candidate `f603e403` compiled and has actual native-translation preservation,
+CUDA response, music-dismissal and empty-island Logo/animation observations.
+Featured-credit and v12 local language-context corrections are complete in source;
+the final App compiled from `734e0a96`. Actual final playback preserved native
+`My City`/`DAISIES` translations and translated all 38 ordinary Chinese
+`风的来信` rows to English through CUDA. Portable, installer and MSIX compilation
+and necessary artifact/update checks are complete. All nine new assets were
+published as Release404561576 on October6; the website index awaits main-branch
+sync. The specifically unobserved physical cases remain recorded in the audit.
+Separate supplementary checks passed for deadline
+failure retention (six), file-dismissal ownership (nine, including the original
+five) and ordinary album wording (two), without treating them as broad model
+or physical-animation acceptance.
 
 ## Hy-MT2 model download mirror
 

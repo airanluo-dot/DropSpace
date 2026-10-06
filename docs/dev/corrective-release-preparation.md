@@ -29,6 +29,15 @@ execution and no semantic approval can be renewed. Runtime, model, prompt or
 other scope changes still fail closed; this option does not renew historical
 model results.
 
+After directly related source corrections in the same unpublished Beta, use
+`--rebind-current --review-record FRESH_VERSION_PREFIXED_JSON_PATH` with the
+same exact current version, a new owner-decision supplement and the exact
+reviewed source paths. This mode writes a new review and updates only the
+active approval pointer/scope; it preserves the earlier review, version,
+README/roadmap and gate pin. Existing review filenames and unreviewed input
+changes still fail closed. It does not turn earlier App observations into
+proof of the corrected source or grant model semantic approval.
+
 A workflow-only maintenance PR cannot produce or promote release binaries. Its required
 jobs record a no-application-change outcome, not a functional test pass. Source/package
 changes continue through the ordinary Windows producer. Beta6's owner test waiver is exact-version only.
