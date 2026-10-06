@@ -5,6 +5,7 @@ namespace DropSpace.Core.Lyrics;
 
 public static class LyricsMatcher
 {
+    public const string Version = "recording-identity-v2";
     private const int MaximumMetadataCharacters = 2_048;
     // These Unicode regex tokens recognize publisher suffixes, not UI strings.
     private static readonly Regex PlayerSuffix = new(@"\s*[-|–]\s*(?:Apple Music|QQ\u97f3\u4e50|\u7f51\u6613\u4e91\u97f3\u4e50|\u9177\u72d7\u97f3\u4e50|Spotify|YouTube)\s*$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
@@ -133,12 +134,23 @@ public static class LyricsMatcher
 
     public static bool IsSafeSelectionCandidate(LyricsQuery query, string title, string artist, double durationSeconds, string album = "") =>
         query.HasDisambiguatingMetadata && !string.IsNullOrWhiteSpace(artist) &&
+        !HasConflictingCredits(query, artist) && !HasVersionConflict(query.Album, album) &&
         AreTitlesEquivalent(query.Title, title) && double.IsFinite(durationSeconds) && durationSeconds >= 0 &&
         (query.Duration <= TimeSpan.Zero || durationSeconds <= 0 ||
             Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds)) &&
         (query.ArtistCandidates.Any(value => AreArtistCreditsCompatible(value, artist)) ||
             query.Duration > TimeSpan.Zero && durationSeconds > 0 ||
             Normalize(query.Album) is { Length: > 0 } requestedAlbum && requestedAlbum == Normalize(album));
+
+    private static bool HasConflictingCredits(LyricsQuery query, string artist)
+    {
+        var similarity = ArtistSimilarity(query.ArtistCandidates, artist);
+        if (similarity > 0 && similarity < 0.9) return true;
+        // Unknown cross-script aliases can be reviewed using independent metadata.
+        // Different known Latin credits or a partial collaboration cannot be rescued by a model.
+        bool Latin(string text) => text.EnumerateRunes().Where(Rune.IsLetter).All(r => r.Value < 0x0250);
+        return similarity < 0.9 && Latin(artist) && query.ArtistCandidates.Any(Latin);
+    }
 
     public static double Score(LyricsQuery query, string title, string artist, string album, double durationSeconds,
         IReadOnlyList<string>? artistAliases = null)
@@ -163,18 +175,20 @@ public static class LyricsMatcher
             query.Duration > TimeSpan.Zero && double.IsFinite(durationSeconds) && durationSeconds > 0 &&
             Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds))
             titleScore = Math.Max(titleScore, 0.95);
-        if (titleScore < 0.45) return 0;
+        // Prefixes and fuzzy titles can denote a separately recorded language version.
+        // Exact normalized titles (or the bounded bilingual/recording alias above) are mandatory.
+        if (titleScore < 0.95 || titleScore < 1 && !bilingualMatch) return 0;
         if (!query.HasDisambiguatingMetadata) return 0;
         if (string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(album) &&
             (!double.IsFinite(durationSeconds) || durationSeconds <= 0)) return 0;
-        if (HasVersionConflict(query.Title, title)) return 0;
+        if (HasVersionConflict(query.Title, title) || HasVersionConflict(query.Album, album)) return 0;
         var albumScore = Similarity(query.Album, album);
         var candidateDuration = double.IsFinite(durationSeconds) ? Math.Max(0, durationSeconds) : 0;
         var durationDelta = Math.Abs(query.Duration.TotalSeconds - candidateDuration);
         var durationKnown = candidateDuration > 0 && query.Duration.TotalSeconds > 0;
         var durationMatches = durationKnown && durationDelta <= DurationTolerance(query.Duration.TotalSeconds, candidateDuration);
         var artistKnown = query.ArtistCandidates.Count > 0 && !string.IsNullOrWhiteSpace(artist);
-        var artistMatches = artistKnown && artistScore >= 0.6;
+        var artistMatches = artistKnown && artistScore >= 0.9;
         var albumMatches = !string.IsNullOrWhiteSpace(query.Album) && !string.IsNullOrWhiteSpace(album) && albumScore >= 0.6;
 
         // Provider catalogues often omit an album, use a compilation/deluxe album, or
@@ -210,10 +224,8 @@ public static class LyricsMatcher
         if (requested.Length == 0 || candidates.Length == 0) return 0;
         var exact = Normalize(left) == Normalize(right) ? 1 : 0;
         var overlap = requested.Count(candidates.Contains) / (double)Math.Max(requested.Length, candidates.Length);
-        // A single SMTC credit may be the primary artist while a provider returns
-        // the complete list (or vice versa). Do not treat substrings such as AC and
-        // AC/DC as credits; a normalized whole-credit equality is required.
-        if (requested.All(candidates.Contains) || candidates.All(requested.Contains)) overlap = 1;
+        // Extra/missing performers can identify another recording. A subset does
+        // not authorize that recording; aliases retain all individual credits.
         return Math.Max(exact, overlap);
     }
 
@@ -293,7 +305,7 @@ public static class LyricsMatcher
     {
         var requestedLanguage = LanguageVersion(requested);
         var candidateLanguage = LanguageVersion(candidate);
-        if (requestedLanguage is not null && candidateLanguage is not null && requestedLanguage != candidateLanguage)
+        if (candidateLanguage is not null && requestedLanguage != candidateLanguage)
             return true;
         var requestedLabels = Labels(requested);
         var candidateLabels = Labels(candidate);

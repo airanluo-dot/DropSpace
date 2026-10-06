@@ -19,7 +19,7 @@ public sealed record IslandActivitySettings
 
 public sealed record LyricsSettings
 {
-    public long CacheMaximumBytes { get; init; } = 1L * 1024 * 1024 * 1024;
+    public long CacheMaximumBytes { get; init; } = 1_000_000_000;
     public bool AiTranslationEnabled { get; init; }
     // AI itself remains opt-in. When enabled, prefer verified GPU acceleration with CPU fallback.
     public bool AiLyricsGpuAccelerationEnabled { get; init; } = true;
@@ -50,6 +50,7 @@ public sealed record LyricsSettings
     public int DelayMilliseconds { get; init; }
     public bool Scrolling { get; init; } = true;
     public int ScrollingMaxWidth { get; init; } = 260;
+    public bool UnlimitedScrollingWidth { get; init; }
     public string LocalLrcDirectory { get; init; } = string.Empty;
 }
 
@@ -58,6 +59,7 @@ public sealed record IslandAppearanceSettings
     // Opt-in only. Missing fields in existing settings remain false; the old
     // fullscreen suppression preference is retained and resumes when this is off.
     public bool Resident { get; init; }
+    public bool ShowLogoWhenIdle { get; init; }
     public bool ForceShowOverFullscreen { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
     public bool AutoHide { get; init; } = true;

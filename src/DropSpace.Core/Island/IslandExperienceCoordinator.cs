@@ -19,6 +19,7 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     public event EventHandler<IslandExperienceSnapshot>? Changed;
     public IslandExperienceSnapshot Current { get; private set; } = new(OverlayState.Hidden, IslandContentKind.None, IslandPage.Files, false, null, 0);
     public long HideGeneration => _generation;
+    public bool IsManuallyOpen => _manual && _expanded;
 
     public void UpdateFiles(OverlaySnapshot files)
     {
@@ -26,10 +27,10 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
             files.Transition?.Cause is OverlayTransitionCause.DropCompleted or OverlayTransitionCause.VisibleDropCompleted or OverlayTransitionCause.DragApproach)
             _dismissed = false;
         _files = files;
-        if (files.Transition?.Cause == OverlayTransitionCause.Restore) { _manual = false; _expanded = files.State == OverlayState.Expanded; }
+        if (files.Transition?.Cause == OverlayTransitionCause.Restore && !_manual) { _expanded = files.State == OverlayState.Expanded; }
         else if (files.Transition?.Cause == OverlayTransitionCause.QuickPanelOpened) { _dismissed = false; _manual = true; _expanded = true; }
         else if (files.Transition?.Cause == OverlayTransitionCause.Expanded) { _expanded = true; _page = IslandPage.Files; }
-        else if (files.Transition?.Cause is OverlayTransitionCause.Collapsed or OverlayTransitionCause.Dismissed)
+        else if (!_manual && (files.Transition?.Cause is OverlayTransitionCause.Collapsed or OverlayTransitionCause.Dismissed))
         { _expanded = false; _manual = false; }
         Reconcile();
     }
@@ -48,7 +49,11 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         Reconcile();
     }
     public void Open(IslandPage? page = null)
-    { _page = page ?? (_media ? IslandPage.Music : IslandPage.Files); _dismissed = false; _manual = true; _expanded = true; Reconcile(); }
+    {
+        _generation++; _hideStarted = null;
+        _page = page ?? (_media ? IslandPage.Music : IslandPage.Files);
+        _dismissed = false; _manual = true; _expanded = true; Reconcile();
+    }
     public void SelectPage(IslandPage page)
     { if (!Enum.IsDefined(page)) throw new ArgumentOutOfRangeException(nameof(page)); _page = page; Reconcile(); }
     public void Collapse() { _manual = false; _expanded = false; Reconcile(); }
@@ -65,7 +70,7 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         var now = _time.GetUtcNow();
         var baseState = IslandPresencePolicy.Resolve(new(_files, _media, null, _manual, _expanded, _page, _notification, _volume), now, _revision);
         var hasReason = baseState.State != OverlayState.Hidden || _resident;
-        var desired = hasReason && _allows && !_dismissed;
+        var desired = hasReason && (_allows || IsManuallyOpen) && !_dismissed;
         var state = baseState.State;
         var content = baseState.CompactContent;
         var variant = content switch

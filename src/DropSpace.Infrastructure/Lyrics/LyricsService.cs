@@ -55,13 +55,13 @@ public sealed class LyricsService
         // original-only cache cannot short-circuit the translated-source search.
         string TargetSourceKey(string version) => JsonSerializer.Serialize(new
         {
-            version, primary = kind, backup, settings.SearchRemainingProviders, target,
+            version, matcher = LyricsMatcher.Version, primary = kind, backup, settings.SearchRemainingProviders, target,
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
         });
         string OriginalSourceKey(string version) => JsonSerializer.Serialize(new
         {
-            version, primary = kind, backup, settings.SearchRemainingProviders,
+            version, matcher = LyricsMatcher.Version, primary = kind, backup, settings.SearchRemainingProviders,
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
         });
@@ -616,7 +616,8 @@ public sealed class LyricsService
         if (!string.IsNullOrEmpty(query.TrackIdentity) && !string.IsNullOrEmpty(match.TrackIdentity) && match.TrackIdentity != query.TrackIdentity)
             return LyricsDocument.Empty;
         if (string.IsNullOrWhiteSpace(match.CandidateId)) return LyricsDocument.Empty;
-        var score = LyricsMatcher.Score(query, match.Title, match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases);
+        var canonical = string.IsNullOrWhiteSpace(match.CanonicalTitle) ? match.Title : match.CanonicalTitle;
+        var score = LyricsMatcher.Score(query, canonical, match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases);
         return score < 4 ? LyricsDocument.Empty : document with { Match = match with { Score = score, TrackIdentity = query.TrackIdentity } };
     }
     public void ClearCache()

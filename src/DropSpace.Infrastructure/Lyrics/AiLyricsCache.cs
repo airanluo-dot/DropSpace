@@ -10,6 +10,8 @@ public sealed class AiLyricsCache
     public AiLyricsCache(string root) : this(new LyricsCache(root)) { }
     public AiLyricsCache(LyricsCache cache) => _cache = cache;
     public long Generation => _cache.Generation;
+    public long ExecutionGeneration => _cache.ExecutionGeneration;
+    public bool AllowsExecution(long generation) => _cache.AllowsExecution(generation);
 
     public Task<string?> ReadAsync(string key, CancellationToken token)
     {

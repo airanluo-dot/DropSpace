@@ -97,7 +97,7 @@ public sealed class OverlayStateMachine
         if (temporaryItemCount == 0)
         {
             _expandedDropActive = false;
-            if (_state is OverlayState.Compact or OverlayState.Expanded)
+            if (_state == OverlayState.Compact)
             {
                 _state = OverlayState.Dismissing;
             }
@@ -187,7 +187,7 @@ public sealed class OverlayStateMachine
 
     public void Expand()
     {
-        if (_temporaryItemCount > 0 && _state == OverlayState.Compact)
+        if (_state != OverlayState.Expanded)
         {
             _state = OverlayState.Expanded;
             Publish(OverlayTransitionCause.Expanded);

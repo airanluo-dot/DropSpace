@@ -39,6 +39,8 @@ public sealed partial class MainPage
             else groups[uid == "DevicesSharingSection" ? "Devices" : uid == "UpdatesSection" ? "Updates" : "General"].Children.Add(section);
         }
         var island = new SettingsForm(editor, _strings);
+        island.AddToggle("IslandShowLogoWhenIdle", s => s.IslandAppearance.ShowLogoWhenIdle,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { ShowLogoWhenIdle = v } });
         island.AddToggle("IslandResident", s => s.IslandAppearance.Resident,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { Resident = v } });
         var forceFullscreen = island.AddToggle("IslandForceShowOverFullscreen",
@@ -79,6 +81,7 @@ public sealed partial class MainPage
         var body = new Grid(); body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new());
         body.Children.Add(error); Grid.SetRow(pageHost, 1); body.Children.Add(pageHost); navigation.Content = body;
         var pages = groups.ToDictionary(pair => pair.Key, pair => new ScrollViewer { Content = pair.Value, Padding = new(24), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        foreach (var page in pages.Values) SettingsEditBehavior.Attach(page, this);
         foreach (var (key, page) in pages) page.SizeChanged += (_, _) => groups[key].Width = Math.Clamp(page.ActualWidth - 48, 0, 780);
         foreach (var key in groups.Keys)
         {

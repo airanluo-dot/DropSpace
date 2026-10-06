@@ -241,8 +241,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public async Task ExpandAsync(CancellationToken cancellationToken = default)
     {
+        _stateMachine.OpenQuickPanel();
         await RefreshRecentItemsAsync(cancellationToken);
-        _stateMachine.Expand();
     }
 
     public void Collapse() => _stateMachine.Collapse();

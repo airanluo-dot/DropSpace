@@ -39,7 +39,8 @@ public sealed partial class OverlayWindow : Window
         OverlayPlacementPolicy.MaximumSurfaceWidthDips, OverlayPlacementPolicy.MaximumSurfaceHeightDips,
         _mediaViewModel.Settings.IslandAppearance.ExpandedScale);
     private double HostContentScale => Math.Max(1, Math.Max(ExpandedScale, _mediaViewModel.Settings.IslandAppearance.CompactScale));
-    private double HostWidth => OverlayPlacementPolicy.HostWidthDips * HostContentScale;
+    private double _compactSurfaceWidth;
+    private double HostWidth => Math.Max(OverlayPlacementPolicy.HostWidthDips * HostContentScale, _compactSurfaceWidth + 40);
     private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
     private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale, HostContentScale);
     private readonly OverlayViewModel _viewModel;
@@ -181,6 +182,7 @@ public sealed partial class OverlayWindow : Window
 
             XamlResourceOverride.Apply(this, "OverlayWindow");
             Root.DataContext = viewModel;
+            _ = LoadBrandLogoAsync();
             _rightHoldTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
             _rightHoldTimer.Interval = OverlayPlacementEditSession.HoldDuration;
             _rightHoldTimer.IsRepeating = false;
@@ -546,13 +548,18 @@ public sealed partial class OverlayWindow : Window
         MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
         var variant = _experience.Current.Variant;
         FileCompactContent.Visibility = variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? Visibility.Visible : Visibility.Collapsed;
-        EmptyWakeLogo.Visibility = variant == IslandPresentationVariant.EmptyWake ? Visibility.Visible : Visibility.Collapsed;
+        EmptyWakeLogo.Visibility = variant == IslandPresentationVariant.EmptyWake ||
+            variant == IslandPresentationVariant.Idle && _mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle
+            ? Visibility.Visible : Visibility.Collapsed;
+        MusicCompact.SetAvailableWidth(_monitor.EffectiveWorkWidth / _monitor.Scale /
+            _mediaViewModel.Settings.IslandAppearance.CompactScale - 36);
         var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 :
             variant == IslandPresentationVariant.SingleFile ? 340 : variant == IslandPresentationVariant.MultipleFiles ? 200 : variant == IslandPresentationVariant.EmptyWake ? 88 : 180;
         var naturalHeight = mediaCompact ? MusicCompact.IdealIslandHeight : activityCompact ? 80 :
             variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? 64 : 40;
         var compactScale = OverlayPlacementPolicy.FitContentScale(_monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight,
             _monitor.Scale, naturalWidth, naturalHeight, _mediaViewModel.Settings.IslandAppearance.CompactScale);
+        _compactSurfaceWidth = naturalWidth * compactScale;
         CompactPanel.Padding = new Thickness(0);
         CompactContentRoot.Width = naturalWidth; CompactContentRoot.Height = naturalHeight;
         CompactContentRoot.Padding = new Thickness(mediaCompact ? 14 : 18, 0, mediaCompact ? 14 : 18, 0);
@@ -848,6 +855,7 @@ public sealed partial class OverlayWindow : Window
         _noActivateApplied = noActivate;
         if (_isVisible)
         {
+            MaintainFullscreenVisibility();
             return;
         }
 
@@ -888,9 +896,8 @@ public sealed partial class OverlayWindow : Window
     // Reassert only a safe, visible surface; never activate or expose an empty host.
     internal void MaintainFullscreenVisibility()
     {
-        if (_closing || !_forceFullscreenPresentation || !_isActiveWindow || !_isVisible ||
-            !_nativeWindowSafeToShow || _suppressedForFullscreen || _suppressedForPlacementEdit ||
-            _placementEditActive || !FullscreenOverlayPolicy.Allows(_mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen, true))
+        if (_closing || !_isActiveWindow || !_isVisible ||
+            !_nativeWindowSafeToShow || _suppressedForFullscreen || _suppressedForPlacementEdit)
             return;
 
         if (!OverlayWindowInterop.MaintainTopmostNoActivate(_windowHandle, out var failure))
@@ -1090,7 +1097,7 @@ public sealed partial class OverlayWindow : Window
                 _monitor.EffectiveWorkHeight,
                 _monitor.Scale,
                 wakeMode,
-                HostContentScale),
+                HostContentScale, HostWidth, Math.Max(560 * ExpandedScale, _compactSurfaceWidth)),
             placement);
 
     internal void RefreshAnimationRefreshRate() =>
@@ -1268,7 +1275,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        if (state == OverlayState.Dismissing)
+        if (state == OverlayState.Dismissing && _experience.Current.State == OverlayState.Dismissing && !_experience.IsManuallyOpen)
         {
             _viewModel.CompleteDismissal();
         }
@@ -1597,7 +1604,7 @@ public sealed partial class OverlayWindow : Window
             _monitor.EffectiveWorkLeft,
             _monitor.EffectiveWorkTop,
             _monitor.Scale,
-            HostContentScale);
+            HostContentScale, HostWidth);
     }
 
     public void SuspendForPlacementEdit()
@@ -1775,19 +1782,18 @@ public sealed partial class OverlayWindow : Window
     private async void OnCompactClicked(object sender, RoutedEventArgs args)
     {
         if (_closing) return;
+        _hideWhenSettled = false;
         try
         {
             if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music)
                 _experience.Open(DropSpace.Core.Island.IslandPage.Music);
             else
             {
+                _hideWhenSettled = false;
+                _experience.Open(DropSpace.Core.Island.IslandPage.Files);
+                var generation = _experience.HideGeneration;
                 await _viewModel.ExpandAsync();
-                if (_closing) return;
-                // An idle fullscreen surface is projected from Hidden, so the
-                // file state machine's item-only Expand cannot open it. This is
-                // an explicit click: open the ordinary manual panel instead.
-                if (_forceFullscreenPresentation && _experience.Current.State != OverlayState.Expanded)
-                    _experience.Open(DropSpace.Core.Island.IslandPage.Files);
+                if (_closing || generation != _experience.HideGeneration || !_experience.IsManuallyOpen) return;
             }
             // The await can span a display rebuild, setting change or shutdown.
             if (_closing) return;
@@ -1808,6 +1814,27 @@ public sealed partial class OverlayWindow : Window
         {
             _logger.LogInformation(exception, "Overlay expansion failed.");
         }
+    }
+
+    private async Task LoadBrandLogoAsync()
+    {
+        try
+        {
+            using var resource = typeof(OverlayWindow).Assembly.GetManifestResourceStream("DropSpace.Brand.TransparentLogo.png")
+                ?? throw new InvalidDataException("Embedded transparent logo is missing.");
+            using var bytes = new MemoryStream(); resource.CopyTo(bytes);
+            using var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+            using (var writer = new Windows.Storage.Streams.DataWriter(stream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(bytes.ToArray()); await writer.StoreAsync(); writer.DetachStream();
+            }
+            stream.Seek(0);
+            var image = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage();
+            await image.SetSourceAsync(stream);
+            if (_closing) return;
+            FileLogo.Source = image; EmptyWakeLogo.Source = image;
+        }
+        catch (Exception error) { _logger.LogWarning("Island logo decode failed ({Category}).", error.GetType().Name); }
     }
 
     private void OnIslandKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs args)

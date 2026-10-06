@@ -13,9 +13,9 @@ namespace DropSpace.Infrastructure.Lyrics;
 /// </summary>
 public sealed class LyricsCache
 {
-    public const long DefaultMaximumBytes = 1L * 1024 * 1024 * 1024;
-    public const long MinimumMaximumBytes = 100L * 1024 * 1024;
-    public const long MaximumMaximumBytes = 5L * 1024 * 1024 * 1024;
+    public const long DefaultMaximumBytes = 1_000_000_000;
+    public const long MinimumMaximumBytes = 0;
+    public const long MaximumMaximumBytes = 10_000_000_000;
     private const long MinimumFreeSpace = 16L * 1024 * 1024;
     private const int MaximumDocumentBytes = 4 * 1024 * 1024;
     private const string Extension = ".lyrics-cache";
@@ -23,7 +23,10 @@ public sealed class LyricsCache
     {
         public readonly SemaphoreSlim Gate = new(1, 1);
         public long Generation;
-        public long MaximumBytes;
+        public long ExecutionGeneration;
+        public long LastClearGeneration;
+        public long MaximumBytes = -1;
+        public readonly object PolicyGate = new();
     }
     private static readonly ConcurrentDictionary<string, RootState> Roots = new(
         OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
@@ -43,16 +46,27 @@ public sealed class LyricsCache
     }
 
     public long Generation => Interlocked.Read(ref _state.Generation);
+    public long ExecutionGeneration => Interlocked.Read(ref _state.ExecutionGeneration);
+    public bool AllowsExecution(long generation) => generation >= Interlocked.Read(ref _state.LastClearGeneration);
 
     public Task SetMaximumBytesAsync(long bytes, CancellationToken token = default)
     {
-        Interlocked.Exchange(ref _state.MaximumBytes, Math.Clamp(bytes, MinimumMaximumBytes, MaximumMaximumBytes));
+        lock (_state.PolicyGate)
+        {
+            var wasEnabled = CurrentQuota() > 0;
+            Interlocked.Exchange(ref _state.MaximumBytes, Math.Clamp(bytes, MinimumMaximumBytes, MaximumMaximumBytes));
+            if (wasEnabled != (bytes > 0)) Interlocked.Increment(ref _state.Generation);
+        }
         // Directory scans and eviction are synchronous filesystem work. Never run them
         // on the settings/UI caller, even when the semaphore is immediately available.
         return Task.Run(async () =>
         {
             await _gate.WaitAsync(token).ConfigureAwait(false);
-            try { if (Directory.Exists(_root)) Trim(CurrentQuota()); }
+            try
+            {
+                lock (_state.PolicyGate)
+                    if (CurrentQuota() > 0 && Directory.Exists(_root)) Trim(CurrentQuota());
+            }
             finally { _gate.Release(); }
         }, token);
     }
@@ -60,7 +74,7 @@ public sealed class LyricsCache
     private long CurrentQuota()
     {
         var configured = Interlocked.Read(ref _state.MaximumBytes);
-        return configured == 0 ? Math.Clamp(_quota(), MinimumMaximumBytes, MaximumMaximumBytes) : configured;
+        return configured < 0 ? Math.Clamp(_quota(), MinimumMaximumBytes, MaximumMaximumBytes) : configured;
     }
 
     public async Task<LyricsDocument?> ReadDocumentAsync(string identity, CancellationToken token)
@@ -84,11 +98,13 @@ public sealed class LyricsCache
 
     internal async Task<string?> ReadAsync(string category, string identity, int maximumBytes, CancellationToken token)
     {
+        if (CurrentQuota() == 0) return null;
+        var generation = Generation;
         var path = EntryPath(category, identity);
         await _gate.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            if (!File.Exists(path)) return null;
+            if (CurrentQuota() == 0 || generation != Generation || !File.Exists(path)) return null;
             ReparseSafePathPolicy.ResolveExistingContainedPath(_root, path);
             string payload;
             await using (var file = ReparseSafeFileOpen.OpenRead(path))
@@ -104,11 +120,15 @@ public sealed class LyricsCache
                 }
                 payload = new UTF8Encoding(false, true).GetString(memory.GetBuffer(), 0, checked((int)memory.Length));
             }
-            // A failed optional access-time update must not turn good data into a miss.
-            try { File.SetLastWriteTimeUtc(path, DateTime.UtcNow); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-            return payload;
+            lock (_state.PolicyGate)
+            {
+                if (CurrentQuota() == 0 || generation != Generation) return null;
+                // A failed optional access-time update must not turn good data into a miss.
+                try { File.SetLastWriteTimeUtc(path, DateTime.UtcNow); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                return payload;
+            }
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or JsonException or DecoderFallbackException)
         { return null; }
@@ -124,7 +144,7 @@ public sealed class LyricsCache
         try
         {
             token.ThrowIfCancellationRequested();
-            if (generation != Generation || isCurrent?.Invoke() == false || bytes.LongLength > CurrentQuota()) return;
+            if (CurrentQuota() == 0 || generation != Generation || isCurrent?.Invoke() == false || bytes.LongLength > CurrentQuota()) return;
             if (!HasSafeFreeSpace(bytes.LongLength)) return;
             var final = EntryPath(category, identity);
             Directory.CreateDirectory(_root);
@@ -132,16 +152,19 @@ public sealed class LyricsCache
                 Path.GetFileName(final) + "." + Guid.NewGuid().ToString("N") + ".tmp");
             await File.WriteAllBytesAsync(temporary, bytes, token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
-            if (generation != Generation) return;
+            if (CurrentQuota() == 0 || generation != Generation) return;
             // Reclaim the complete post-replacement budget before publishing. If an
             // old entry cannot be evicted, the new entry must not increase disk usage.
-            Trim(CurrentQuota() - bytes.LongLength, final, temporary);
-            ReparseSafePathPolicy.RevalidatePreparedDestination(_root, final);
             // Recheck at publication, after potentially slow quota scans and file writes.
             token.ThrowIfCancellationRequested();
-            if (generation != Generation || isCurrent?.Invoke() == false) return;
-            File.Move(temporary, final, true);
-            temporary = null;
+            lock (_state.PolicyGate)
+            {
+                if (CurrentQuota() == 0 || generation != Generation || isCurrent?.Invoke() == false) return;
+                Trim(CurrentQuota() - bytes.LongLength, final, temporary);
+                ReparseSafePathPolicy.RevalidatePreparedDestination(_root, final);
+                File.Move(temporary, final, true);
+                temporary = null;
+            }
         }
         finally
         {
@@ -155,7 +178,7 @@ public sealed class LyricsCache
 
     public async Task ClearAsync(CancellationToken token)
     {
-        Interlocked.Increment(ref _state.Generation); // Fence writers before waiting for one already in progress.
+        RetireForClear(); // Fence writers and inference before waiting for one already in progress.
         await _gate.WaitAsync(token).ConfigureAwait(false);
         try
         {
@@ -171,7 +194,7 @@ public sealed class LyricsCache
 
     public void Clear()
     {
-        Interlocked.Increment(ref _state.Generation);
+        RetireForClear();
         _gate.Wait();
         try
         {
@@ -180,6 +203,15 @@ public sealed class LyricsCache
                 File.Delete(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, Path.GetFileName(path)));
         }
         finally { _gate.Release(); }
+    }
+
+    private void RetireForClear()
+    {
+        lock (_state.PolicyGate)
+        {
+            Interlocked.Increment(ref _state.ExecutionGeneration);
+            Interlocked.Exchange(ref _state.LastClearGeneration, Interlocked.Increment(ref _state.Generation));
+        }
     }
 
     private string EntryPath(string category, string identity)

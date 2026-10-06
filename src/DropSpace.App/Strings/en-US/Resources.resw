@@ -207,7 +207,7 @@
   <data name="CaptureImagesTitle.Text" xml:space="preserve"><value>Record images</value></data>
   <data name="CaptureImagesDescription.Text" xml:space="preserve"><value>Adjust the size and pixel limits below; images over the limits are skipped.</value></data>
   <data name="CaptureImagesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Record clipboard images</value></data>
-  <data name="MaxImageMegabytesLabel.Text" xml:space="preserve"><value>Maximum image size (MB)</value></data>
+  <data name="MaxImageMegabytesLabel.Text" xml:space="preserve"><value>Maximum image size (MiB)</value></data>
   <data name="MaxImageMegapixelsLabel.Text" xml:space="preserve"><value>Maximum image pixels (millions)</value></data>
   <data name="CaptureFilesTitle.Text" xml:space="preserve"><value>Record files and folders</value></data>
   <data name="CaptureFilesDescription.Text" xml:space="preserve"><value>Explorer copies are recorded as Clipboard references; original files are not moved or copied.</value></data>
@@ -216,8 +216,8 @@
   <data name="CaptureFoldersDescription.Text" xml:space="preserve"><value>Folders are not scanned recursively or copied; only external references are recorded.</value></data>
   <data name="CaptureFoldersToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Record clipboard folders</value></data>
   <data name="MaxClipboardFileItemsLabel.Text" xml:space="preserve"><value>Maximum items per capture</value></data>
-  <data name="MaxClipboardFileMegabytesLabel.Text" xml:space="preserve"><value>Maximum individual file size (MB)</value></data>
-  <data name="MaxClipboardFileTotalMegabytesLabel.Text" xml:space="preserve"><value>Maximum known total size per capture (MB)</value></data>
+  <data name="MaxClipboardFileMegabytesLabel.Text" xml:space="preserve"><value>Maximum individual file size (MiB)</value></data>
+  <data name="MaxClipboardFileTotalMegabytesLabel.Text" xml:space="preserve"><value>Maximum known total size per capture (MiB)</value></data>
   <data name="MaxClipboardFileTotalMegabytesDescription.Text" xml:space="preserve"><value>Must be at least the individual file limit; folders are not counted recursively.</value></data>
   <data name="ClipboardPrivacyWarning.Message" xml:space="preserve"><value>DropSpace cannot reliably identify every clipboard source and does not treat sensitive-content detection as a safety guarantee. Pause recording or clear history when needed.</value></data>
   <data name="RetentionSection.Text" xml:space="preserve"><value>Retention</value></data>
@@ -519,7 +519,7 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Island</value></data>
   <data name="ClearLyricsCache" xml:space="preserve"><value>Clear lyrics cache</value></data>
-  <data name="LyricsCacheSize" xml:space="preserve"><value>Lyrics cache limit (MiB)</value></data>
+  <data name="LyricsCacheSize" xml:space="preserve"><value>Lyrics cache limit (GB)</value></data>
   <data name="WidgetSelect" xml:space="preserve"><value>Select a widget to edit its position and size.</value></data>
   <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
   <data name="SettingsPageGeneral" xml:space="preserve"><value>General</value></data>
@@ -865,4 +865,6 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="DownloadRetryDetail" xml:space="preserve"><value>Retry {0}</value></data>
   <data name="IslandResident" xml:space="preserve"><value>Keep Dynamic Island visible</value></data>
   <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} s</value></data>
+  <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Show logo when idle</value></data>
+  <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (disabled)</value></data>
 </root>

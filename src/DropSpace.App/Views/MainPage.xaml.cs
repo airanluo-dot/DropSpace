@@ -48,6 +48,7 @@ public sealed partial class MainPage : Page
     private readonly CrossDeviceClipboardService _crossDeviceClipboard;
     private readonly DropLinkHost _dropLinkHost;
     private readonly SharingUseCase _sharing;
+    private readonly NativeSettingsEditor _settingsEditor;
     private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
     private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
     private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
@@ -81,6 +82,7 @@ public sealed partial class MainPage : Page
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
+        _settingsEditor = settingsEditor;
         _windowHandle = windowHandle;
         _strings = strings;
         _capabilities = capabilities;
@@ -1550,7 +1552,7 @@ public sealed partial class MainPage : Page
     private async void OnCopyDragCompatibilityReportClicked(object sender, RoutedEventArgs args) =>
         await RunAsync(() => { _viewModel.CopyDragCompatibilityReport(); return Task.CompletedTask; });
 
-    private async void OnClipboardLimitsChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    private async void OnClipboardLimitsChanged(object sender, double valueChanged)
     {
         if (_syncingSettings ||
             double.IsNaN(MaxImageMegabytesNumber.Value) ||
@@ -1571,14 +1573,19 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        var imageBytes = checked((long)Math.Round(MaxImageMegabytesNumber.Value * 1024 * 1024));
+        var pixels = checked((long)Math.Round(MaxImageMegapixelsNumber.Value * 1_000_000));
+        var items = (int)Math.Round(MaxClipboardFileItemsNumber.Value);
+        if (sender is not DropSpace.App.Views.Settings.SettingsValueSlider control) return;
+        _settingsEditor.QueueEdit("ImportLimits:" + control.Name, settings => control.Name switch
         {
-            MaxImageBytes = checked((long)Math.Round(MaxImageMegabytesNumber.Value * 1024 * 1024)),
-            MaxImagePixels = checked((long)Math.Round(MaxImageMegapixelsNumber.Value * 1_000_000)),
-            MaxClipboardFileBytes = checked(singleFileMegabytes * 1024 * 1024),
-            MaxClipboardFileTotalBytes = checked(totalFileMegabytes * 1024 * 1024),
-            MaxClipboardFileItems = (int)Math.Round(MaxClipboardFileItemsNumber.Value),
-        }));
+            "MaxImageMegabytesNumber" => settings with { MaxImageBytes = imageBytes },
+            "MaxImageMegapixelsNumber" => settings with { MaxImagePixels = pixels },
+            "MaxClipboardFileMegabytesNumber" => settings with { MaxClipboardFileBytes = checked(singleFileMegabytes * 1024 * 1024) },
+            "MaxClipboardFileTotalMegabytesNumber" => settings with { MaxClipboardFileTotalBytes = checked(totalFileMegabytes * 1024 * 1024) },
+            "MaxClipboardFileItemsNumber" => settings with { MaxClipboardFileItems = items },
+            _ => settings,
+        });
     }
 
     private async void OnRetentionChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
@@ -1711,11 +1718,15 @@ public sealed partial class MainPage : Page
         if (args.Key == VirtualKey.Escape)
         {
             SyncPlacementCoordinates();
+            Focus(FocusState.Programmatic);
             args.Handled = true;
             return;
         }
         if (args.Key == VirtualKey.Enter)
         {
+            if (Settings.SettingsEditBehavior.IsComposing(XamlRoot)) return;
+            if (!CommitPlacementNumber(OverlayPlacementXNumber) || !CommitPlacementNumber(OverlayPlacementYNumber)) return;
+            Focus(FocusState.Programmatic);
             OnApplyIslandPlacementClicked(sender, args);
             args.Handled = true;
             return;
@@ -1728,6 +1739,13 @@ public sealed partial class MainPage : Page
             box.Value = (double.IsNaN(box.Value) ? 0 : box.Value) + direction * 10;
             args.Handled = true;
         }
+    }
+
+    private bool CommitPlacementNumber(NumberBox box)
+    {
+        if (!double.TryParse(box.Text, System.Globalization.NumberStyles.Float, _strings.Culture, out var value) ||
+            !double.IsFinite(value) || value < box.Minimum || value > box.Maximum) return false;
+        box.Value = value; return true;
     }
 
     private async void OnQuickPanelHotkeyTextChanged(object sender, TextChangedEventArgs args)
@@ -2088,11 +2106,11 @@ public sealed partial class MainPage : Page
             AutoCheckUpdatesToggle.IsOn = _viewModel.AutoCheckForUpdates;
             AutoDownloadUpdatesToggle.IsOn = _viewModel.AutoDownloadUpdates;
             AutoInstallUpdatesToggle.IsOn = _viewModel.AutoInstallUpdates;
-            MaxImageMegabytesNumber.Value = _viewModel.MaxImageMegabytes;
-            MaxImageMegapixelsNumber.Value = _viewModel.MaxImageMegapixels;
-            MaxClipboardFileMegabytesNumber.Value = _viewModel.MaxClipboardFileMegabytes;
-            MaxClipboardFileTotalMegabytesNumber.Value = _viewModel.MaxClipboardFileTotalMegabytes;
-            MaxClipboardFileItemsNumber.Value = _viewModel.MaxClipboardFileItems;
+            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxImageMegabytesNumber")) MaxImageMegabytesNumber.Value = _viewModel.MaxImageMegabytes;
+            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxImageMegapixelsNumber")) MaxImageMegapixelsNumber.Value = _viewModel.MaxImageMegapixels;
+            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileMegabytesNumber")) MaxClipboardFileMegabytesNumber.Value = _viewModel.MaxClipboardFileMegabytes;
+            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileTotalMegabytesNumber")) MaxClipboardFileTotalMegabytesNumber.Value = _viewModel.MaxClipboardFileTotalMegabytes;
+            if (!_settingsEditor.HasPendingEdit("ImportLimits:MaxClipboardFileItemsNumber")) MaxClipboardFileItemsNumber.Value = _viewModel.MaxClipboardFileItems;
             RetentionDaysNumber.Value = _viewModel.RetentionDays;
             RetentionCountNumber.Value = _viewModel.RetentionItemCount;
             SelectComboItem(ThemeCombo, _viewModel.Theme.ToString());

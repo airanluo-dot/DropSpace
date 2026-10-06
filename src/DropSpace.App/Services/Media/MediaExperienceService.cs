@@ -386,7 +386,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
                                 ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
                         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(settings.OverlayMotion);
-                        _experience.UpdateMedia(session.IsActive && session.PlaybackState is MediaPlaybackState.Playing or MediaPlaybackState.Paused,
+                        _experience.UpdateMedia(session.IsActive && session.PlaybackState == MediaPlaybackState.Playing,
                             settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds, contentIdentity:
                             string.Join("\u001f", session.SessionId, session.SourceAppUserModelId, session.TrackTitle));
                         RenderFrame(); UpdateFrameTimer();

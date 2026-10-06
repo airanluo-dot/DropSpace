@@ -82,14 +82,15 @@
             </StackPanel>
           </Grid>
           <Grid x:Name="FileCompactContent" ColumnSpacing="12" VerticalAlignment="Center">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <Image Source="ms-appx:///Assets/Square44x44Logo.scale-100.png" Width="32" Height="32" Stretch="Uniform"/>
-            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="SemiBold"
+            <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <Image x:Name="FileLogo" Width="24" Height="24" Stretch="Uniform"/>
+            <TextBlock Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" TextAlignment="Center" FontWeight="SemiBold"
                 Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
                 Text="{Binding CompactFileTitle}" TextTrimming="CharacterEllipsis"/>
+            <FontIcon Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Glyph="&#xE70D;" FontSize="16"/>
           </Grid>
-          <Image x:Name="EmptyWakeLogo" Source="ms-appx:///Assets/Square44x44Logo.scale-100.png"
-              Width="32" Height="32" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+          <Image x:Name="EmptyWakeLogo"
+              Width="24" Height="24" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
           </Grid>
           </Viewbox>
         </Button>

@@ -21,8 +21,7 @@ public sealed class CudaPlainHyLyricsBackend(PlainHyLyricsCoordinator coordinato
         token.ThrowIfCancellationRequested();
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         var model = AiLyricsModelCatalog.FindSelectable(selectionId);
-        if (model is null || LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
-            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
+        if (model is null || LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
             return Task.FromResult<LyricsTranslationResult?>(null);
         string identity;
         try { identity = Identity(model.Sha256); }
@@ -41,8 +40,7 @@ public sealed class CudaPlainHyLyricsBackend(PlainHyLyricsCoordinator coordinato
     {
         token.ThrowIfCancellationRequested();
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
-            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
+        if (LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
             return Task.FromResult(new LyricsTranslationResult(source, LyricsTranslationOutcome.NoUsefulTranslation));
         var model = AiLyricsModelCatalog.FindSelectable(package.ModelId ?? string.Empty);
         if (model is null || package.VerifiedModelSha256 != model.Sha256 || package.BackendId != Id ||
@@ -68,8 +66,7 @@ public sealed class CudaPlainHyLyricsPackageResolver(AiModelPackageService model
         token.ThrowIfCancellationRequested();
         var model = AiLyricsModelCatalog.FindSelectable(selectionId);
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
-        if (model is null || LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
-            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0) return null;
+        if (model is null || LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0) return null;
         var path = await models.GetInstalledPathAsync(selectionId, token).ConfigureAwait(false);
         if (path is null) return null;
         var worker = await cuda.EnsureWorkerAsync(token).ConfigureAwait(false);

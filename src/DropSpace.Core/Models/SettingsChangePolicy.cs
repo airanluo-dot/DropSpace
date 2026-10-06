@@ -65,6 +65,7 @@ public static class SettingsChangePolicy
     private static IslandAppearanceSettings MergeIsland(IslandAppearanceSettings baseline, IslandAppearanceSettings requested, IslandAppearanceSettings latest) => latest with
     {
         Resident = Pick(baseline.Resident, requested.Resident, latest.Resident),
+        ShowLogoWhenIdle = Pick(baseline.ShowLogoWhenIdle, requested.ShowLogoWhenIdle, latest.ShowLogoWhenIdle),
         ForceShowOverFullscreen = Pick(baseline.ForceShowOverFullscreen, requested.ForceShowOverFullscreen, latest.ForceShowOverFullscreen),
         HideDelayMilliseconds = Pick(baseline.HideDelayMilliseconds, requested.HideDelayMilliseconds, latest.HideDelayMilliseconds),
         CompactScale = Pick(baseline.CompactScale, requested.CompactScale, latest.CompactScale),
@@ -93,6 +94,7 @@ public static class SettingsChangePolicy
         DelayMilliseconds = Pick(baseline.DelayMilliseconds, requested.DelayMilliseconds, latest.DelayMilliseconds),
         Scrolling = Pick(baseline.Scrolling, requested.Scrolling, latest.Scrolling),
         ScrollingMaxWidth = Pick(baseline.ScrollingMaxWidth, requested.ScrollingMaxWidth, latest.ScrollingMaxWidth),
+        UnlimitedScrollingWidth = Pick(baseline.UnlimitedScrollingWidth, requested.UnlimitedScrollingWidth, latest.UnlimitedScrollingWidth),
         LocalLrcDirectory = Pick(baseline.LocalLrcDirectory, requested.LocalLrcDirectory, latest.LocalLrcDirectory),
     };
 

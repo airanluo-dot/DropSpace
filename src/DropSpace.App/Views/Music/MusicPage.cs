@@ -142,12 +142,17 @@ public sealed class MusicPage : UserControl
         form.AddToggle("LyricsSecondary", s => s.Lyrics.SecondaryLyrics, (s,v) => s with { Lyrics = s.Lyrics with { SecondaryLyrics = v } });
         form.Rows.Children.Add(new LyricsFontSizeControl(editor, strings));
         form.AddToggle("LyricsWords", s => s.Lyrics.WordSyncedHighlighting, (s,v) => s with { Lyrics = s.Lyrics with { WordSyncedHighlighting = v } });
-        form.AddNumber("LyricsDelay", -30000, 30000, 100, s => s.Lyrics.DelayMilliseconds, (s,v) => s with { Lyrics = s.Lyrics with { DelayMilliseconds = (int)v } });
+        form.AddSlider("LyricsDelay", -30000, 30000, 100, s => s.Lyrics.DelayMilliseconds, (s,v) => s with { Lyrics = s.Lyrics with { DelayMilliseconds = (int)v } }, v => v.ToString("+0;-0;0", strings.Culture) + " ms");
         form.AddToggle("LyricsScrolling", s => s.Lyrics.Scrolling, (s,v) => s with { Lyrics = s.Lyrics with { Scrolling = v } });
-        form.AddNumber("LyricsWidth", NativeIslandSettingsPolicy.MinimumWidth, NativeIslandSettingsPolicy.MaximumWidth, 10, s => s.Lyrics.ScrollingMaxWidth, (s,v) => s with { Lyrics = s.Lyrics with { ScrollingMaxWidth = (int)v } });
-        form.AddNumber("LyricsCacheSize", 100, 5120, 1,
-            s => s.Lyrics.CacheMaximumBytes / 1024d / 1024d,
-            (s,v) => s with { Lyrics = s.Lyrics with { CacheMaximumBytes = (long)v * 1024 * 1024 } });
+        form.AddSlider("LyricsWidth", 80, 610, 10,
+            s => s.Lyrics.UnlimitedScrollingWidth ? 610 : s.Lyrics.ScrollingMaxWidth,
+            (s,v) => s with { Lyrics = s.Lyrics with { UnlimitedScrollingWidth = v == 610,
+                ScrollingMaxWidth = v == 610 ? s.Lyrics.ScrollingMaxWidth : (int)v } },
+            v => v == 610 ? strings.Get("DownloadUnlimited") : v.ToString("0", strings.Culture));
+        form.AddSlider("LyricsCacheSize", 0, 10, 1,
+            s => s.Lyrics.CacheMaximumBytes / 1_000_000_000d,
+            (s,v) => s with { Lyrics = s.Lyrics with { CacheMaximumBytes = (long)v * 1_000_000_000 } },
+            v => v == 0 ? strings.Get("LyricsCacheDisabled") : v.ToString("0.#########", strings.Culture) + " GB");
         var folderButton = new Button { Content = strings.Get("ChooseFolder") };
         folderButton.Click += async (_, _) => await editor.PickLyricsFolderAsync(windowHandle);
         form.AddRow("LyricsFolder", folderButton); form.Rows.Children.Add(_folder);
@@ -171,6 +176,8 @@ public sealed class MusicPage : UserControl
         form.Rows.Children.Add(_applications);
         var scroll = new ScrollViewer { Content = _body, Padding = new(24), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         scroll.SizeChanged += (_, _) => _body.Width = Math.Clamp(scroll.ActualWidth - 48, 0, 780);
+        IsTabStop = true;
+        SettingsEditBehavior.Attach(scroll, this);
         Content = scroll;
         Loaded += OnLoaded; Unloaded += OnUnloaded;
         RegisterPropertyChangedCallback(VisibilityProperty, OnVisibilityChanged);
