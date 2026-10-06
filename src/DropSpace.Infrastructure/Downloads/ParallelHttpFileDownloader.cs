@@ -14,6 +14,7 @@ public sealed class ParallelHttpFileDownloader(DownloadRequestPolicy policy, Tim
     private readonly DownloadBandwidthLimiter _bandwidth = bandwidthLimiter ?? new();
     private readonly DownloadConnectionBudget _connections = connectionBudget ?? new();
     private readonly HttpTransferDeadline _deadline = new(idleTimeout);
+    internal Action<string, long> CheckSpace { get; init; } = DownloadStorage.CheckSpace;
     private sealed record Identity(string Url, string ETag, long Length, int Parts);
     private sealed class RangeRejectedException : Exception { }
 
@@ -96,7 +97,7 @@ public sealed class ParallelHttpFileDownloader(DownloadRequestPolicy policy, Tim
         // Reclaim only our own previous assembly, before measuring free space. Parts
         // are retained; the merge is rebuilt from their validator-bound plan.
         File.Delete(DownloadStorage.Safe(Path.GetDirectoryName(stagingPath)!, stagingPath));
-        DownloadStorage.CheckSpace(stagingPath, checked(length + (length - resumedBytes)));
+        CheckSpace(stagingPath, checked(length + (length - resumedBytes)));
         var transferClock = System.Diagnostics.Stopwatch.StartNew();
         var active = 0;
         progress?.Report(new TrackProgress(TrackType.File, resumedBytes, length));

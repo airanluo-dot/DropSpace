@@ -125,7 +125,7 @@ public sealed class DownloadManager : IAsyncDisposable
                 if (await ReconcileCommittedAsync(item, token).ConfigureAwait(false)) continue;
                 await SetAsync(item, snapshot.State == DownloadTaskState.Failed ? DownloadTaskState.Failed : DownloadTaskState.Paused).ConfigureAwait(false);
                 }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
                 {
                     lock (_sync) item.Snapshot = item.Snapshot with
                     { State = item.Snapshot.State == DownloadTaskState.Completed ? DownloadTaskState.Completed : DownloadTaskState.Failed,
@@ -135,7 +135,7 @@ public sealed class DownloadManager : IAsyncDisposable
                 }
             }
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
         {
             RecoveryError = error.GetType().Name;
             _logger?.LogWarning("Download recovery unavailable: {Reason}", RecoveryError);

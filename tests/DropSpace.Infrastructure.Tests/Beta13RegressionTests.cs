@@ -11,6 +11,130 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class Beta13RegressionTests
 {
     [TestMethod]
+    public async Task CommittedRecoveryAndPagedHistoryPreserveDeliveredFiles()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-history-" + Guid.NewGuid().ToString("N"));
+        var output = Path.Combine(root, "files"); Directory.CreateDirectory(output);
+        var repository = new DownloadTaskRepository(Path.Combine(root, "journal"));
+        var delivered = Path.Combine(output, "delivered.bin");
+        await File.WriteAllBytesAsync(delivered, [1, 2, 3]);
+        var committedId = Guid.NewGuid();
+        await repository.UpsertAsync(new() { Id = committedId, Request = new(committedId, "https://example.com/file", output + Path.DirectorySeparatorChar, "delivered.bin"),
+            OutputPath = delivered, State = DownloadTaskState.Failed, TotalBytes = 3, FinalSha256 = Convert.ToHexString(SHA256.HashData(new byte[] { 1, 2, 3 })) });
+        for (var i = 0; i < 75; i++)
+        {
+            var id = Guid.NewGuid();
+            await repository.UpsertAsync(new() { Id = id, Request = new(id, "https://example.com/file", output, $"history-{i}.bin"),
+                OutputPath = Path.Combine(output, $"history-{i}.bin"), State = DownloadTaskState.Completed });
+        }
+        var activeId = Guid.NewGuid();
+        await repository.UpsertAsync(new() { Id = activeId, Request = new(activeId, "https://example.com/file", output, "active.bin"),
+            OutputPath = Path.Combine(output, "active.bin"), State = DownloadTaskState.Paused });
+        try
+        {
+            using var engine = new HttpRangeDownloader();
+            await using var manager = new DownloadManager(engine, repository);
+            var taskView = manager.Tasks;
+            await manager.RestoreAsync();
+            Assert.AreEqual(DownloadTaskState.Completed, manager.Tasks.Single(x => x.Id == committedId).State);
+            Assert.AreSame(taskView, manager.Tasks);
+            Assert.HasCount(51, manager.GetVisibleTasks(50));
+            Assert.HasCount(77, manager.GetVisibleTasks(100));
+            Assert.IsTrue(manager.GetVisibleTasks(0).Any(x => x.Id == activeId));
+            var notifications = 0; manager.TaskChanged += (_, _) => Interlocked.Increment(ref notifications);
+            await Task.Delay(300);
+            Assert.AreEqual(0, notifications, "Idle history must not produce periodic progress refreshes.");
+            await manager.ResumeAsync(committedId);
+            await manager.RemoveHistoryAsync(committedId);
+            Assert.IsFalse(manager.Tasks.Any(x => x.Id == committedId));
+            Assert.IsFalse((await repository.GetAllAsync()).Any(x => x.Id == committedId));
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(delivered));
+            Assert.HasCount(1, Directory.GetFiles(output, "*.bin"), "Recovery/removal must neither duplicate nor remove the delivered file.");
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public async Task ResumedMergeReclaimsOnlyOwnAssemblyBeforeSpaceCheck()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-space-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        const int length = 4 * 1024 * 1024;
+        var uri = new Uri("https://example.com/space");
+        var staging = Path.Combine(root, "own.partial");
+        var cache = staging + ".ranges";
+        Directory.CreateDirectory(cache);
+        try
+        {
+            await File.WriteAllBytesAsync(Path.Combine(root, "user.bin"), [9]);
+            var ranges = HttpByteRangePlanner.Create(length, 2);
+            await DownloadStorage.WriteAsync(Path.Combine(cache, "identity.json"),
+                new { Url = DownloadStorage.Identity(uri), ETag = "\"v1\"", Length = length, Parts = ranges.Count }, default);
+            for (var i = 0; i < ranges.Count; i++)
+                await File.WriteAllBytesAsync(Path.Combine(cache, $"part-{i:D2}.bin"), Enumerable.Repeat((byte)(i + 1), (int)ranges[i].Length).ToArray());
+            await File.WriteAllBytesAsync(staging, new byte[length]);
+            var calls = 0;
+            using var client = new HttpClient(new Handler(_ =>
+            {
+                calls++;
+                var response = new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent([1]) };
+                response.Headers.ETag = new("\"v1\"");
+                response.Content.Headers.ContentRange = new(0, 0, length);
+                return response;
+            }));
+            var checks = 0;
+            var downloader = new ParallelHttpFileDownloader(new(client, _ => true))
+            {
+                CheckSpace = (path, required) =>
+                {
+                    checks++;
+                    Assert.IsFalse(File.Exists(path), "Old assembly must be reclaimed before observing free space.");
+                    Assert.AreEqual((long)length, required, "Complete retained parts need only one assembly allocation.");
+                    var available = 64L * 1024 * 1024 + length;
+                    DownloadStorage.CheckAvailableSpace(required, available);
+                    Assert.Throws<IOException>(() => DownloadStorage.CheckAvailableSpace(required, available - 1));
+                    Assert.Throws<IOException>(() => DownloadStorage.CheckAvailableSpace(2L * length, available));
+                }
+            };
+            Assert.AreEqual((long)length, await downloader.TryDownloadAsync(uri, staging, 64, new(1, TimeSpan.Zero, TimeSpan.Zero), null, default));
+            Assert.AreEqual(1, checks); Assert.AreEqual(1, calls, "Validated complete parts must not be redownloaded.");
+            var actual = await File.ReadAllBytesAsync(staging);
+            Assert.AreEqual(length, actual.Length); Assert.AreEqual((byte)1, actual[0]); Assert.AreEqual((byte)2, actual[^1]);
+            CollectionAssert.AreEqual(new byte[] { 9 }, await File.ReadAllBytesAsync(Path.Combine(root, "user.bin")));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public async Task NetworkChangeRevokesOldShareAndRebindsRealReceiver()
+    {
+        var address = DropSpace.Infrastructure.Network.LocalNetworkInterfaceResolver.Resolve();
+        IPAddress? selected = IPAddress.Loopback;
+        await using var server = new DropSpace.Infrastructure.Sharing.NearbyShareServer(null,
+            () => selected ?? throw new InvalidOperationException("Fixture has no network."));
+        var item = new DropSpace.Infrastructure.Sharing.NearbyShareItem(Guid.NewGuid(), "fixture.txt", "text/plain", 3,
+            _ => Task.FromResult<Stream>(new MemoryStream(new byte[] { 1, 2, 3 })));
+        using var client = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(5) };
+        var first = await server.CreateShareAsync([item]);
+        Assert.AreEqual(IPAddress.Loopback.ToString(), first.Url.Host);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await client.GetAsync(first.Url)).StatusCode,
+            "An injected loopback listener must not weaken the private receiver restriction.");
+        selected = address;
+        typeof(DropSpace.Infrastructure.Sharing.NearbyShareServer).GetMethod("NetworkChanged",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(server, [null, EventArgs.Empty]);
+        Assert.IsNull(server.BaseUri);
+        Assert.IsFalse(server.Revoke(first.ShareId), "Network event must revoke the old token immediately.");
+        var second = await server.CreateShareAsync([item]);
+        Assert.AreEqual(address.ToString(), second.Url.Host);
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, await client.GetByteArrayAsync(new Uri(second.Url + "/file/" + item.Id.ToString("N"))));
+        var oldOnNewListener = new Uri(server.BaseUri!, first.Url.PathAndQuery);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.GetAsync(oldOnNewListener)).StatusCode);
+        selected = null;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => server.CreateShareAsync([item]));
+        Assert.IsNull(server.BaseUri, "Offline must not advertise the previous endpoint.");
+    }
+
+    [TestMethod]
     public async Task QueuedTimeDoesNotConsumeTransferBudgetAndBothPhasesCancel()
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-budget-" + Guid.NewGuid().ToString("N"));

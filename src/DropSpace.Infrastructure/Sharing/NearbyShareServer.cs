@@ -25,17 +25,25 @@ public sealed class NearbyShareServer : IAsyncDisposable
 {
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(10);
     private readonly ShareLimits _limits;
+    private readonly Func<IPAddress> _resolveAddress;
     private long _networkRevision, _boundRevision;
     public NearbyShareServer(ShareLimits? limits = null)
+        : this(limits, DropSpace.Infrastructure.Network.LocalNetworkInterfaceResolver.Resolve) { }
+
+    internal NearbyShareServer(ShareLimits? limits, Func<IPAddress> resolveAddress)
     {
         _limits = (limits ?? new ShareLimits()).Validate();
+        _resolveAddress = resolveAddress ?? throw new ArgumentNullException(nameof(resolveAddress));
         NetworkChange.NetworkAddressChanged += NetworkChanged;
     }
     private void NetworkChanged(object? sender, EventArgs args)
     {
-        Interlocked.Increment(ref _networkRevision);
-        _baseUri = null;
-        lock (_shareGate) _shares.Clear();
+        lock (_shareGate)
+        {
+            Interlocked.Increment(ref _networkRevision);
+            _baseUri = null;
+            _shares.Clear();
+        }
     }
     private readonly ConcurrentDictionary<Guid, NearbyShare> _shares = new();
     private readonly object _shareGate = new();
@@ -315,8 +323,7 @@ public sealed class NearbyShareServer : IAsyncDisposable
         return start >= 0 && start < total && end >= start && end < total;
     }
 
-    private static string GetPrivateAddress() =>
-        DropSpace.Infrastructure.Network.LocalNetworkInterfaceResolver.Resolve().ToString();
+    private string GetPrivateAddress() => _resolveAddress().ToString();
 
 
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');

@@ -124,3 +124,35 @@ fullscreen behavior have not been fully exercised live. Source/state checks do n
 prove these hardware outcomes. The original roughly one-minute model download stall
 has not been reproduced; no claim is made that its historical cause was established.
 No full regression, fresh model download or multi-hardware performance matrix was run.
+
+## F01–F14 closure audit
+
+The reattached ZIP contains the identical planning file, SHA256
+`8382685051fa1295f02d0426b1f55968ab4bd6bd7cb9e1b9c11c11bfe51fac06`.
+Owner overrides remove model-side skip prompts and game classification; all other
+fixes remain in scope. This table distinguishes code/controlled checks from hardware
+claims. The package expressly permits the original one-minute stall to remain an
+identified live-observation limit, rather than claiming an invented cause.
+
+| Item | Implemented path and evidence |
+| --- | --- |
+| F01 | Host language v9 admission, cache version; focused Core checks and actual minimal CUDA Chinese translation. Model skip layer removed at owner's direction. |
+| F02 | Per-record repository recovery and per-task manager exception isolation. Corrupt journal check passed; safe-path InvalidDataException is now also isolated. |
+| F03 | Exact normalized directory identity including trailing separators. Additional real journal restoration exposed and fixed trailing-separator handling in DownloadStorage.Safe. |
+| F04 | Probe HTTP status is inside bounded retry; 503 then success and non-retried 403 checks passed. Cancellation uses the same retry token. |
+| F05 | Own previous assembly reclaimed before measuring space. Controlled 4 MiB retained-parts merge passed at the exact free-space threshold, rejected one byte less, and preserved unrelated files. |
+| F06 | Commit remains successful on marker cleanup failure; hash/size reconciliation covers Failed and Finalizing. Real journal restart reconciled a Failed delivered file to Completed; retry/removing history left exactly one correct output. |
+| F07 | Rebind before publishing new links; event and publication share a lock. Controlled resolver switched loopback A to actual private address B; real HTTP receiver read the correct three bytes, old token was revoked, offline resolver produced no URL. This is not a physical Wi-Fi handoff claim. |
+| F08 | Two focused actual-database undo checks passed: committed cleanup failure and already-restored record. |
+| F09 | Queued time excluded from transfer budget; both cancellation and timeout phases passed focused checks. |
+| F10 | Request 403 does not expire QQ session; explicit auth failure does; renewal and bounded 429 cooldown passed. |
+| F11 | Stable task view, incremental event updates, bounded 50-row history, virtualized 600-pixel ListView. A 77-record fixture checked pagination, paused-task retention and no idle progress notifications; removing history preserved final file bytes. Live task rendering/scrollable layout and pause/resume evidence above. |
+| F12 | Bound delivery manifest, four-part retry/corrupt-part replacement/final hash check passed with a small fixture; live ordinary byte progress and installed model reuse verified. Original user's one-minute stall remains unobserved, as permitted by the plan. |
+| F13 | Shared measured action rows; live active/pause/resume/completed download checked at a narrow window width. |
+| F14 | Both requested actual recordings successfully displayed original and NetEase Chinese lyrics; placeholder/instrumental/next-candidate checks passed. |
+
+The additional history fixture first exposed a real trailing-root bug and passed after
+its fix (77 records, 728 ms). A later attempt to inject an out-of-root journal entry was
+rejected by the repository before manager restoration; that invalid extra fixture was
+removed, preserving the already-passed history scenario. It is not reported as a
+manager fault-injection pass. Remaining physical-device limits above stay explicit.

@@ -4,7 +4,7 @@
   "verdict": "owner-accepted-experimental-beta",
   "semanticApproved": false,
   "reviewedBy": "Local Codex, repository-owner-authorized Beta13 source review",
-  "reviewedAt": "2026-10-06T05:09:07Z",
+  "reviewedAt": "2026-10-06T05:17:49Z",
   "expiresAt": "2026-10-13T05:06:33Z",
   "summary": "Owner-authorized Beta13 host language admission, island state/settings, resilient downloads and verified model parts, lyrics matching and independent Downloads page. Existing model/native bytes reused. Focused validation only; no general semantic approval.",
   "scope": {
@@ -946,7 +946,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
-          "sha256": "07d8ef3a47665eb7814c2554a0bfcdf70bc9fcf50fc5df094d122a49666aefc2"
+          "sha256": "acb3aed8f3951652c5c0bf893a78a6e5a708d4db69af0341fb0b70fd5eda1038"
         },
         {
           "path": "src/DropSpace.Infrastructure/Downloads/DownloadPersistenceQueue.cs",
@@ -958,7 +958,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Downloads/DownloadStorage.cs",
-          "sha256": "1a3c586b86743fe35c3341967011642a167f80c199c7697fd056841e5a3aa349"
+          "sha256": "2061a73e32439b5b9c7e368d1cf6f555835c3d8c10eb92c2f6b10c379cd1f7e1"
         },
         {
           "path": "src/DropSpace.Infrastructure/Downloads/DownloadTaskRepository.cs",
@@ -990,7 +990,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Downloads/ParallelHttpFileDownloader.cs",
-          "sha256": "a1b63696b21825d2bcc4dea22c18cdbe19a627ad5f966c1a71fcf4c296106778"
+          "sha256": "f4d2182808addb07d51f085352ab5710397a4ca899f15c50f9647c5af29c017f"
         },
         {
           "path": "src/DropSpace.Infrastructure/Downloads/RetryExecutor.cs",
@@ -1041,7 +1041,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "7611e896e49e4bb0b05490ff713d8704f39eba5c99e30a55b0a57963454377e6"
+      "sha256": "893c12e904422f1f114bb2fcc8a0aca2e4928341bf6ab4639ff6ae2e1c19a22b"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v9.json",
