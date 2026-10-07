@@ -903,7 +903,7 @@ jobs:
     # Only the active route owns the required check name; a skipped legacy job
     # cannot satisfy the Beta17 requirement. Owner waived all further tests;
     # PRs compile only and explicitly record that waiver; main packages.
-    name: ${{ needs.change-scope.outputs.release_version == 'v0.3.1-beta.17' && 'Build and test (x64)' || 'Beta17 focused producer (inactive)' }}
+    name: Build and test (x64)
     needs: change-scope
     if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.release_version == 'v0.3.1-beta.17'
     runs-on: windows-2025
