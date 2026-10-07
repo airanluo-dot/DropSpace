@@ -41,6 +41,9 @@ protocols and diagnostics keep actual data with narrow exceptions in `localizati
 Each content page has one canonical URL for all languages. Home and changelog may differ.
 Saved manual language wins, otherwise match browser preferences then English; never use IP.
 Switch immediately and persist across pages/reloads while tolerating unavailable storage.
+When storage rejects a manual choice, keep it in the current page's history state for refresh
+and pass it through internal links for navigation. Preserve unrelated history state, query
+parameters and fragments, and remove the temporary language hint on arrival.
 Legacy `/en/`, `/zh-cn/` and their changelog entries select the link locale and redirect to the
 corresponding unified page with query/fragment preserved. Preserve static-showcase navigation
 and resource paths. Default HTML provides usable English body, navigation and downloads without
