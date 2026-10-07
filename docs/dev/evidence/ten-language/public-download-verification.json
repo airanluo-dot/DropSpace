@@ -1,0 +1,60 @@
+{
+  "release": "v0.3.1-beta.19",
+  "releaseUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.19",
+  "publishedAt": "2026-10-07T22:17:52Z",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+    {
+      "name": "DropSpace.exe",
+      "bytes": 489178280,
+      "sha256": "1cd928ee1fda0dd71ba2b1e2eeed86fd9f9d9f5066f80c70a4d6ea9f1f1cee9f",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpace.exe",
+      "httpStatus": 200
+    },
+    {
+      "name": "DropSpaceSetup.exe",
+      "bytes": 203802058,
+      "sha256": "a46729f7a40d1dc7ffe9154664e4cf220943e1a78c90016c7255b94561c7183c",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpaceSetup.exe",
+      "httpStatus": 200
+    },
+    {
+      "name": "DropSpace-x64.msix",
+      "bytes": 187476398,
+      "sha256": "bd7069a101e9f797ec383a2915e843e7c0d15c5c3462992cefaea2db55fd35c8",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpace-x64.msix",
+      "httpStatus": 200
+    },
+    {
+      "name": "runtime-publication.json",
+      "bytes": 5229,
+      "sha256": "0af0c317e94805ef607c6f1cb7bb37b67a9a2de03dea364c93f5523b718e6053",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/runtime-publication.json",
+      "httpStatus": 200
+    },
+    {
+      "name": "cuda-runtime-download.json",
+      "bytes": 1998,
+      "sha256": "c495c8513d3782db9f6e3ccaebe3bc880f0b932bcd62cf1ed38f35d1cf8cddf4",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/cuda-runtime-download.json",
+      "httpStatus": 200
+    },
+    {
+      "name": "cuda-runtime-manifest.json",
+      "bytes": 1815,
+      "sha256": "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/cuda-runtime-manifest.json",
+      "httpStatus": 200
+    },
+    {
+      "name": "update-manifest.json",
+      "bytes": 739,
+      "sha256": "b840ab45fa22fdbae3326e17869b2079a67ee7c629893d59822c06bd5b9e9936",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/update-manifest.json",
+      "httpStatus": 200
+    }
+  ],
+  "updateChannel": "beta",
+  "scope": "Anonymous public full downloads and production hash/version/channel readback; no functional scenario execution."
+}
