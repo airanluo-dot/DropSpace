@@ -1,0 +1,23 @@
+{
+  "reviewedAt": "2026-10-07T08:06:14.417490+00:00",
+  "failure": {
+    "run": 37589681309,
+    "commit": "6ab3bf193fdd4b4d550a3ef22a81c823f51486de",
+    "code": "NETSDK1112",
+    "packages": [
+      "Microsoft.NETCore.App.Runtime.win-x64",
+      "Microsoft.AspNetCore.App.Runtime.win-x64"
+    ],
+    "appPackagesProduced": false
+  },
+  "change": "Only Beta17 CI restore configuration and fixed-hash language asset reuse for the correction PR. App/helper/locks/source gate are unchanged.",
+  "preservedWindowsValidation": {
+    "run": 37588748222,
+    "fullAppXamlBuild": "passed",
+    "infrastructure": 46,
+    "app": 39,
+    "skipped": 0
+  },
+  "languageReuse": "Restore only the existing successful PR #103 artifact on cache miss, then verify fixed model bytes/hash through the existing helper. No second Beta16 App or model-source download. Current PR still builds and tests its own tree.",
+  "localValidation": "Release-pipeline agent isolated locked App restore and ResolveFrameworkReferences passed with runtime packs 10.0.12. Global -r produced NU1004 and is absent from the actual restore commands. Three lock files unchanged. PowerShell parser and YAML conditions checked. This is not a current Windows packaging pass."
+}
