@@ -71,7 +71,7 @@ at **2,124** cases, expanded before new tests, and the actual-execution ceiling 
 **21**. No original test is deleted or counted twice to enlarge that denominator.
 Source reads, parsing and compilation are distinct from functional test cases.
 The selected producer allows eight real focused Core cases and two Infrastructure lyric-outcome cases, each executed once, plus one isolated installer payload installation/uninstallation, conservatively counted as one more scenario (planned total eleven). Repeats must be added to the ledger; skipped suites are not reported as
-passing. No case has executed at this audit draft's creation.
+passing. Final-main validation executed exactly **11 cases/scenarios** with no repeats (0.518% of the original suite). Both managed selections passed and the isolated installer payload check completed; the final ledger and private Actions receipts preserve their actual scope.
 
 This Linux session cannot observe interactive Windows light/dark transitions,
 legibility/animation frames, Shell drag-in/drag-out, real media players, monitor/DPI
@@ -84,5 +84,4 @@ prevents the prior accepted import from being canceled.
 
 The [final release-route review](round3-release-final.md) also repaired an automatic CUDA-contract job that would have exceeded the budget; exact Beta18 now checks actual component metadata binding without running the unrelated fixture suites. Original tests remain intact, including the existing receive-finalization case updated to the safe preserved-file contract.
 
-Public release, package and website verification remain pending. The next public
-App version will be checked again immediately before preparation and publication.
+[Beta18 is public](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.18), published 2026-10-07T17:53:45Z from exact main `e4d6b1b2ac22dd2a70b0bd08bcabd8d21a6d6175`. The producer, immutable publication and Pages deployment succeeded. All eight public files were actually downloaded and hash-checked; actual PE/MSIX and update versions agree. Stable remains v0.2.1 and the original independent CUDA component is reused. [Public verification evidence](public-verification.json) records downloaded identities, versions and the precise source-only scope. Final documentation updates retain the published App commit and do not claim a new App build/release.

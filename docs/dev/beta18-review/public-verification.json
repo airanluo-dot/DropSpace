@@ -1,0 +1,130 @@
+{
+  "checkedAt": "2026-10-07T17:55:46.359100+00:00",
+  "sourceCommit": "e4d6b1b2ac22dd2a70b0bd08bcabd8d21a6d6175",
+  "tag": "v0.3.1-beta.18",
+  "releaseId": 406018440,
+  "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.18",
+  "publishedAt": "2026-10-07T17:53:45Z",
+  "anonymousPublic": true,
+  "draft": false,
+  "prerelease": true,
+  "assetCount": 8,
+  "assets": [
+    {
+      "name": "cuda-runtime-download.json",
+      "bytes": 1998,
+      "sha256": "b8bd1b44a49b357bdc0ee660a0e94111fc47b4f53807a30fda9d513d462671bd",
+      "httpStatus": 200,
+      "anonymousFullGet": true,
+      "downloadHost": "release-assets.githubusercontent.com",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/cuda-runtime-download.json"
+    },
+    {
+      "name": "cuda-runtime-manifest.json",
+      "bytes": 1815,
+      "sha256": "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a",
+      "httpStatus": 200,
+      "anonymousFullGet": true,
+      "downloadHost": "release-assets.githubusercontent.com",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/cuda-runtime-manifest.json"
+    },
+    {
+      "name": "DropSpace-x64.msix",
+      "bytes": 187334343,
+      "sha256": "56100db4b13aa337ad8a6b789f33b8f141f933ee640440af708ce11ba29c6458",
+      "httpStatus": 200,
+      "anonymousFullGet": true,
+      "downloadHost": "release-assets.githubusercontent.com",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/DropSpace-x64.msix"
+    },
+    {
+      "name": "DropSpace.exe",
+      "bytes": 488330320,
+      "sha256": "9bdb44c02473a723f295e0cdc4a71ac027754e97ced9a5cef3d4b6d8c0f6c550",
+      "httpStatus": 200,
+      "anonymousFullGet": true,
+      "downloadHost": "release-assets.githubusercontent.com",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/DropSpace.exe"
+    },
+    {
+      "name": "DropSpaceSetup.exe",
+      "bytes": 203608788,
+      "sha256": "51e66570f70e2dc30e58629dcffe7a34f2907045f8a2a0f21e0874b9bb36cda9",
+      "httpStatus": 200,
+      "anonymousFullGet": true,
+      "downloadHost": "release-assets.githubusercontent.com",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/DropSpaceSetup.exe"
+    },
+    {
+      "name": "runtime-publication.json",
+      "bytes": 5229,
+      "sha256": "c58724d49b62b159c927060019fbdd8004a288be7af81e07ace98c3cd80e4937",
+      "httpStatus": 200,
+      "anonymousFullGet": true,
+      "downloadHost": "release-assets.githubusercontent.com",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/runtime-publication.json"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 621,
+      "sha256": "7fc086f1f5569f6ca8e185f0021754b3954b74410b5cdb99c0984c6b8f96afbc",
+      "httpStatus": 200,
+      "anonymousFullGet": true,
+      "downloadHost": "release-assets.githubusercontent.com",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/SHA256SUMS.txt"
+    },
+    {
+      "name": "update-manifest.json",
+      "bytes": 769,
+      "sha256": "e801f29820dde5cbb10db226bdac4ea17b7b417bbe048685f1f0e3e2d80f4743",
+      "httpStatus": 200,
+      "anonymousFullGet": true,
+      "downloadHost": "release-assets.githubusercontent.com",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/update-manifest.json"
+    }
+  ],
+  "checksumsMatchAllSevenPayloads": true,
+  "updateManifestVersion": "0.3.1-beta.18",
+  "updateManifestVersionCode": 3010018,
+  "minimumWindowsBuild": 20348,
+  "portableInstallerMsixPublicationBindingMatchesActualDownloads": true,
+  "portableInstallerPeVersions": {
+    "DropSpace.exe": [
+      {
+        "language": 1033,
+        "fileVersion": "0.3.1.18",
+        "productVersion": "0.3.1.18"
+      }
+    ],
+    "DropSpaceSetup.exe": [
+      {
+        "language": 1033,
+        "fileVersion": "0.3.1.18",
+        "productVersion": "0.3.1.18"
+      }
+    ]
+  },
+  "msixIdentity": {
+    "Name": "AiranLuo.DropSpace",
+    "Publisher": "CN=airanluo-dot",
+    "Version": "0.3.1.18",
+    "ProcessorArchitecture": "x64"
+  },
+  "cuda": {
+    "componentTag": "cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1",
+    "componentReleaseId": 405423914,
+    "componentPublishedAt": "2026-10-07T06:07:55Z",
+    "archiveBytes": 540873572,
+    "archiveSha256": "79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b",
+    "appReleaseContainsCudaZip": false,
+    "existingArchiveGet": {
+      "httpStatus": 206,
+      "bytesRead": 4096,
+      "anonymousGet": true,
+      "zipHeader": true,
+      "verificationScope": "availability and header only; existing CUDA archive not fully downloaded or executed"
+    }
+  },
+  "additionalTestCases": 0,
+  "verificationScope": "anonymous public Release and actual full App asset downloads, static hashes/metadata/PE/MSIX resource inspection; no App, installer, native runtime, browser, build, test, fixture, or CUDA inference execution"
+}
