@@ -30,19 +30,20 @@ jobs:
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           import {execFileSync} from 'node:child_process';
-          let maintenance=false;
+          let maintenance=false, websiteOnly=false;
           try {
             const base=process.env.BASE_SHA;
             if(process.env.GITHUB_EVENT_NAME!=='pull_request'||!/^[a-f0-9]{40}$/.test(base??''))throw new Error('Full application build required');
             execFileSync('git',['fetch','--no-tags','--depth=1','origin',base]);
             const names=execFileSync('git',['diff','--name-only','-z',base,'HEAD'],{encoding:'utf8'}).split('\0').filter(Boolean);
             const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md','.github/release-notes/v0.3.1-beta.14.md','.github/release-notes/v0.3.1-beta.15.md','docs/dev/beta15-fix-audit.md']);
-            maintenance=names.length>0&&names.every(n=>allowed.has(n));
+            websiteOnly=names.length>0&&names.some(n=>n.startsWith('website/'))&&names.every(n=>n.startsWith('website/')||n==='.github/workflows/ci.yml');
+            maintenance=websiteOnly||(names.length>0&&names.every(n=>allowed.has(n)));
             // Exact corrective Betas require complete App-input comparison and immutable asset binding.
-            if(['v0.3.1-beta.15','v0.3.1-beta.16'].includes(fs.readFileSync('RELEASE_VERSION','utf8').trim()))maintenance=false;
-          } catch(e) { console.log(e.message); }
+            if(!websiteOnly&&['v0.3.1-beta.15','v0.3.1-beta.16'].includes(fs.readFileSync('RELEASE_VERSION','utf8').trim()))maintenance=false;
+          } catch(e) { maintenance=false; websiteOnly=false; console.log(e.message); }
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\n`);
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,websiteOnly?'Website-only changes: no application binaries built, no application test pass claimed.\n':maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
           JS
 
   produce-windows:
