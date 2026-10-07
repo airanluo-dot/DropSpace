@@ -53,6 +53,12 @@ on:
         default: false
         type: boolean
 
+      allow_unrestricted_fallback:
+        description: Explicit manual approval to rerun unrestricted suites if no validated producer exists
+        required: false
+        default: false
+        type: boolean
+
 concurrency:
   # Validation must never occupy the publication queue. Publication remains
   # serialized and non-cancellable within its own lane.
@@ -316,6 +322,14 @@ jobs:
         run: |
           if ((Get-Content RELEASE_VERSION -Raw).Trim() -cin @('v0.3.1-beta.17','v0.3.1-beta.18') -and '${{ steps.ci-promotion.outputs.reuse }}' -cne 'true') {
             throw 'This release requires its successful exact-main isolated producer. Dispatch ci.yml on final main first; this legacy path must not repeat tests, packages or model downloads.'
+          }
+
+      - name: Forbid passive publication fallback to full suites
+        if: inputs.publish == true && inputs.allow_unrestricted_fallback != true
+        shell: pwsh
+        run: |
+          if ('${{ steps.ci-promotion.outputs.reuse }}' -cne 'true') {
+            throw 'Standard or bridged publication requires an exact validated producer bundle; unbounded fallback requires explicit manual allow_unrestricted_fallback=true.'
           }
 
       - name: Test AI semantic release gate regressions

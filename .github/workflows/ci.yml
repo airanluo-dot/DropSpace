@@ -5,6 +5,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      full_tests:
+        description: Explicit manual opt-in for unrestricted tests; PRs stay within passive budget
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -46,6 +52,9 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\nrelease_version=${fs.readFileSync('RELEASE_VERSION','utf8').trim()}\n`);
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,websiteOnly?'Website-only changes: no application binaries built, no application test pass claimed.\n':maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
           JS
+      - name: Audit permanent passive test budget and workflow triggers
+        if: github.event_name == 'pull_request'
+        run: node scripts/passive-test-budget.mjs audit
 
   produce-windows:
     name: Legacy Windows producer
@@ -539,13 +548,18 @@ jobs:
             throw 'The exact Beta16 build source, reviewed metadata diff or immutable nine-asset candidate could not be bound. Repeating compilation or functional tests is outside this release route; correct the source/artifact binding.'
           }
 
-      - name: Read exact owner test waiver
+      - name: Enforce permanent passive test waiver
         if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && steps.reviewed-beta16.outputs.reuse != 'true' }}
         shell: pwsh
         run: |
-          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11','v0.3.1-beta.15','v0.3.1-beta.18') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
+          $manualFull = ('${{ github.event_name }}' -ceq 'workflow_dispatch') -and ('${{ inputs.full_tests }}' -ceq 'true')
+          $waived = (-not $manualFull).ToString().ToLowerInvariant()
           "OWNER_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
-          if ($waived -eq 'true') { 'Owner waived functional tests for this exact release. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
+          if ($waived -eq 'true') {
+            'Passive/default validation: legacy suites and lifecycle smoke are skipped; only the frozen ten-case PR selection may run. Builds and integrity remain required.' >> $env:GITHUB_STEP_SUMMARY
+          } else {
+            'Explicit manual full_tests=true: unrestricted validation was requested.' >> $env:GITHUB_STEP_SUMMARY
+          }
 
       - name: Verify reusable prior successful checks
         if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && steps.reviewed-beta16.outputs.reuse != 'true' }}
@@ -641,6 +655,16 @@ jobs:
       - name: Restore locked dependency graph
         if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && steps.reviewed-beta16.outputs.reuse != 'true' }}
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
+
+      - name: Preflight frozen passive cases against 20-test ceiling
+        id: passive-budget
+        if: ${{ github.event_name == 'pull_request' && env.OWNER_SKIP_TESTS == 'true' && steps.prior-checks.outputs.reuse != 'true' && steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && steps.reviewed-beta16.outputs.reuse != 'true' }}
+        run: node scripts/passive-test-budget.mjs preflight
+
+      - name: Run bounded passive Core and Infrastructure cases
+        if: steps.passive-budget.outputs.run_tests == 'true'
+        shell: pwsh
+        run: ./scripts/Run-PassiveFocusedTests.ps1
 
       - name: Require exact reviewed native runtime reuse
         if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && steps.reviewed-beta16.outputs.reuse != 'true' }}

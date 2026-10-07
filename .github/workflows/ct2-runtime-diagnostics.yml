@@ -1,13 +1,5 @@
 name: Private CT2 runtime smoke (no publication)
 on:
-  push:
-    branches: [qa/ct2-runtime-031]
-    paths:
-      - scripts/ct2-runtime-qa/**
-      - tools/ct2-helper/**
-      - src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs
-      - src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs
-      - .github/workflows/ct2-runtime-diagnostics.yml
   workflow_dispatch:
 permissions:
   contents: read

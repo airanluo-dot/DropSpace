@@ -1,7 +1,5 @@
 name: Native music visual diagnostics (no publication)
 on:
-  push:
-    branches: [qa/music-visual-031]
   workflow_dispatch:
 permissions:
   contents: read
