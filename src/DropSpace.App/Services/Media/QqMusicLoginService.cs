@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services.Media;
 
-public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocalizer strings, ILogger<QqMusicLoginService> logger) : IDisposable
+public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocalizer strings, ILogger<QqMusicLoginService> logger, AppLanguageService language) : IDisposable
 {
     private LoginWindow? _window;
     private readonly CancellationTokenSource _stop = new();
@@ -19,8 +19,14 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
         if (_window is not null) { _window.Activate(); return; }
         var window = new LoginWindow(session, strings, logger, theme);
         _window = window;
-        window.Closed += (_, _) => { _window = null; if (window.Saved && !_stop.IsCancellationRequested) _ = VerifySavedAsync(verify); };
+        language.Changed += OnLanguageChanged;
+        window.Closed += (_, _) => { language.Changed -= OnLanguageChanged; _window = null; if (window.Saved && !_stop.IsCancellationRequested) _ = VerifySavedAsync(verify); };
         _window.Activate();
+    }
+    private void OnLanguageChanged(object? sender, EventArgs args)
+    {
+        var window = _window;
+        if (window is not null) window.DispatcherQueue.TryEnqueue(window.RefreshLanguage);
     }
     public async Task SignOutAsync()
     {
@@ -34,7 +40,7 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
         catch (Exception error) when (error is not OutOfMemoryException)
         { logger.LogWarning("QQ Music connection check incomplete ({Category}).", error.GetType().Name); }
     }
-    public void Dispose() { _stop.Cancel(); _window?.Close(); }
+    public void Dispose() { language.Changed -= OnLanguageChanged; _stop.Cancel(); _window?.Close(); }
 
     private sealed class LoginWindow : Window
     {
@@ -42,6 +48,9 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
         private readonly IAppStringLocalizer _strings;
         private readonly ILogger _logger;
         private readonly WebView2 _browser = new();
+        private readonly TextBlock _heading = new() { FontSize = 24, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+        private readonly TextBlock _help = new() { TextWrapping = TextWrapping.Wrap };
+        private readonly Button _close = new() { MinWidth = 96 };
         private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
         private readonly Button _save = new() { IsEnabled = false, Visibility = Visibility.Collapsed, MinWidth = 96 };
         private readonly DispatcherQueueTimer _poll;
@@ -56,14 +65,16 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
             _poll.Tick += OnCookieTick;
             Title = strings.Get("QqMusicLoginTitle");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1000, 760));
-            var layout = new Grid { RowSpacing = 16, Padding = new Thickness(24), RequestedTheme = theme,
+            var layout = new Grid { RowSpacing = 16, Padding = new Thickness(24), RequestedTheme = theme, Language = strings.Culture.Name,
                 Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"] };
             layout.RowDefinitions.Add(new() { Height = GridLength.Auto });
             layout.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
             layout.RowDefinitions.Add(new() { Height = GridLength.Auto });
             var heading = new StackPanel { Spacing = 8 };
-            heading.Children.Add(new TextBlock { Text = Title, FontSize = 24, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
-            heading.Children.Add(new TextBlock { Text = strings.Get("QqMusicLoginHelp"), TextWrapping = TextWrapping.Wrap });
+            _heading.Text = Title;
+            _help.Text = strings.Get("QqMusicLoginHelp");
+            heading.Children.Add(_heading);
+            heading.Children.Add(_help);
             layout.Children.Add(heading);
             var browserFrame = new Border { Child = _browser, CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1),
                 BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"] };
@@ -75,12 +86,24 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
             _save.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(_save, "QqMusicUseLogin");
             _save.Click += OnSave;
-            var close = new Button { Content = strings.Get("QqMusicCloseLogin"), MinWidth = 96 };
-            close.Click += (_, _) => Close(); buttons.Children.Add(close); buttons.Children.Add(_save); actions.Children.Add(buttons);
+            _close.Content = strings.Get("QqMusicCloseLogin");
+            _close.Click += (_, _) => Close(); buttons.Children.Add(_close); buttons.Children.Add(_save); actions.Children.Add(buttons);
             Grid.SetRow(actions, 2); layout.Children.Add(actions);
             Content = layout;
             layout.Loaded += OnLoaded;
             Closed += (_, _) => { _closed = true; _poll.Stop(); _stop.Cancel(); _browser.Close(); };
+        }
+
+        public void RefreshLanguage()
+        {
+            if (_closed) return;
+            Title = _strings.Get("QqMusicLoginTitle");
+            _heading.Text = Title;
+            _help.Text = _strings.Get("QqMusicLoginHelp");
+            _save.Content = _strings.Get("QqMusicUseLogin");
+            _close.Content = _strings.Get("QqMusicCloseLogin");
+            _status.Text = _strings.Relocalize(_status.Text);
+            if (Content is FrameworkElement root) root.Language = _strings.Culture.Name;
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs args)

@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Saved language beats browser; German desktop selection persists across changelog and refresh; releases stay English",
+    "result": "passed"
+  },
+  {
+    "name": "Ordered browser preferences choose Russian and long mobile text stays within viewport",
+    "result": "passed"
+  },
+  {
+    "name": "Legacy Chinese changelog preserves page/query/fragment; storage-disabled Traditional choice survives navigation",
+    "result": "passed"
+  },
+  {
+    "name": "Without JavaScript the unified page exposes English body, navigation and working download URLs",
+    "result": "passed"
+  }
+]

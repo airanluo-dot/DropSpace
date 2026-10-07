@@ -21,6 +21,13 @@ Public APIs, documented platform behavior, and high-level interaction ideas may 
 
 Keep pull requests focused. Add or update tests and documentation when behavior changes, preserve user files and privacy boundaries, and never commit signing keys, tokens, private certificates, or user data.
 
+App, installer and website UI changes follow the single
+[interface localization contract](docs/dev/interface-localization.md): shared ten-language
+definitions, incremental source/translation review records and publication gate. Lyric targets
+remain independently saved and permanently Chinese/English; preserve lyric business behavior.
+New release summaries, changelog bodies and highlights use English only. Keep one passive test
+count within 20 including repeats; a release request does not authorize full suites.
+
 For Beta 26, keep real provider responses and native execution evidence distinct
 from deterministic fixtures. On clean runners, run
 `./scripts/Install-TestWindowsAppRuntime.ps1` after locked restore; the script
@@ -39,7 +46,8 @@ For v0.3 network/preview changes, read the DropSpace maintainer skill and the co
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.29` (Beta 29). All new prereleases use
+Read the actual target from `RELEASE_VERSION`; reconcile latest main, PRs and published tags
+before incrementing. All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
 releases remain immutable. Preview.23 requires one manual installation of
 Beta 24, preserving data/settings, because its shipped parser rejects Beta

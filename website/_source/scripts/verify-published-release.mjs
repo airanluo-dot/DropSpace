@@ -219,10 +219,17 @@ do {
 } while (Date.now() <= deadline);
 if (lastError) throw lastError;
 
-const latestHome = await (await fetchOk(`${siteOrigin}/en/?verify=${Date.now()}`)).text();
+const latestHome = await (await fetchOk(`${siteOrigin}/?verify=${Date.now()}`)).text();
 const expectedLatestChangeTag = latestChangeApi.release.tagName;
-if (!latestHome.includes(`data-latest-change-tag="">${expectedLatestChangeTag}<`)) {
+const liveChangeTags = [...latestHome.matchAll(/\bdata-latest-change-tag=(?:"[^"]*"|'[^']*')[^>]*>\s*([^<]+?)\s*</g)].map(match=>match[1]);
+if (!liveChangeTags.includes(expectedLatestChangeTag)) {
   throw new Error(`The live website does not present ${expectedLatestChangeTag} in the latest-change design.`);
+}
+const canonicalElement = latestHome.match(/<link\b[^>]*\brel=(?:"canonical"|'canonical')[^>]*>/i)?.[0];
+const canonicalUrl = canonicalElement?.match(/\bhref=(?:"([^"]+)"|'([^']+)')/i);
+if ((canonicalUrl?.[1] ?? canonicalUrl?.[2]) !== `${siteOrigin}/` ||
+    !/<html\b[^>]*\blang=(?:"en(?:-US)?"|'en(?:-US)?')/i.test(latestHome)) {
+  throw new Error('The live website must publish one unified canonical homepage with usable static English content.');
 }
 
 if (!release.prerelease) {

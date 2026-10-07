@@ -19,7 +19,8 @@ public static class LyricsTranslationPolicy
         result.Status == LyricsQueryStatus.Found && LyricsBodyQualityPolicy.Classify(result.Document) == LyricsBodyQuality.Usable;
 
     public static string ResolveTarget(AppLanguagePreference preference, IEnumerable<string?> systemLanguages) =>
-        LyricsLanguagePolicy.NormalizeTarget(AppLanguagePolicy.ResolveEffectiveLanguageTag(preference, systemLanguages));
+        LyricsTranslationTargetPolicy.ToLanguageTag(
+            LyricsTranslationTargetPolicy.FromLegacyInterface(preference, systemLanguages.FirstOrDefault()));
 
     /// <summary>Model capabilities are supplied by the verified model catalog, never inferred from the file size.</summary>
     public static LyricsTranslationDecision Decide(bool enabled, bool hasOriginalLyrics,

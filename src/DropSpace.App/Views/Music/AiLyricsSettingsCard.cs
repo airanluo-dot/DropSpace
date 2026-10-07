@@ -25,6 +25,7 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly Func<CancellationToken, Task> _clearLyricsCache;
     private readonly IAppStringLocalizer _strings;
     private readonly ToggleSwitch _enabled = new();
+    private readonly ComboBox _translationTarget = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly ToggleSwitch _gpuAcceleration = new();
     private readonly ComboBox _gpuBackend = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly TextBlock _backendStatus = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
@@ -56,6 +57,15 @@ public sealed class AiLyricsSettingsCard : UserControl
         _clearLyricsCache = clearLyricsCache ?? service.ClearCacheAsync;
         var body = new StackPanel { Spacing = 12 };
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsTitle"), FontSize = 18, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        _translationTarget.Header = strings.Get("LyricsTranslationTargetTitle");
+        _translationTarget.Items.Add(new ComboBoxItem { Content = "简体中文", Tag = LyricsTranslationTarget.SimplifiedChinese });
+        _translationTarget.Items.Add(new ComboBoxItem { Content = "English", Tag = LyricsTranslationTarget.English });
+        AutomationProperties.SetName(_translationTarget, strings.Get("LyricsTranslationTargetTitle"));
+        AutomationProperties.SetHelpText(_translationTarget, strings.Get("LyricsTranslationTargetDescription"));
+        AutomationProperties.SetAutomationId(_translationTarget, "LyricsTranslationTarget");
+        _translationTarget.SelectionChanged += OnTranslationTargetChanged;
+        body.Children.Add(_translationTarget);
+        body.Children.Add(new TextBlock { Text = strings.Get("LyricsTranslationTargetDescription"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         _enabled.Header = strings.Get("AiLyricsEnabled");
         AutomationProperties.SetName(_enabled, strings.Get("AiLyricsEnabled"));
         AutomationProperties.SetAutomationId(_enabled, "AiLyricsEnabled");
@@ -190,6 +200,15 @@ public sealed class AiLyricsSettingsCard : UserControl
                 StartOperation(OfferCudaAsync);
         }); }
         catch (Exception error) { Debug.WriteLine($"DLC settings dispatcher retired: {error.GetType().Name}"); }
+    }
+
+    private void OnTranslationTargetChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (_syncing || _translationTarget.SelectedItem is not ComboBoxItem { Tag: LyricsTranslationTarget target }) return;
+        StartOperation(async (generation, _) =>
+        {
+            await SaveAsync(generation, settings => settings with { LyricsTranslationTarget = target });
+        });
     }
 
     private void OnEnabled(object sender, RoutedEventArgs args)
@@ -414,6 +433,9 @@ public sealed class AiLyricsSettingsCard : UserControl
         try
         {
             var settings = _editor.Settings.Lyrics;
+            _translationTarget.SelectedItem = _translationTarget.Items.OfType<ComboBoxItem>().FirstOrDefault(item =>
+                item.Tag is LyricsTranslationTarget target && target == _editor.Settings.LyricsTranslationTarget);
+            _translationTarget.IsEnabled = !_busy;
             _enabled.IsOn = settings.AiTranslationEnabled;
             _gpuAcceleration.IsOn = settings.AiLyricsGpuAccelerationEnabled;
             foreach (var option in _gpuBackend.Items.OfType<ComboBoxItem>().Where(item => item.Tag is LyricsGpuBackend.Cuda))

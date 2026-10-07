@@ -619,16 +619,14 @@
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="240" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock services:XamlResourceOverride.Uid="LanguageTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="LanguageTitle" TextWrapping="Wrap" />
                 <TextBlock services:XamlResourceOverride.Uid="LanguageDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ComboBox x:Name="LanguageCombo" services:XamlResourceOverride.Uid="LanguageCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnLanguageChanged">
-                <ComboBoxItem services:XamlResourceOverride.Uid="LanguageSystem" Tag="System" />
-                <ComboBoxItem services:XamlResourceOverride.Uid="LanguageEnglish" Tag="English" />
-                <ComboBoxItem services:XamlResourceOverride.Uid="LanguageSimplifiedChinese" Tag="SimplifiedChinese" />
+
               </ComboBox>
             </Grid>
             <Grid ColumnSpacing="20">

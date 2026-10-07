@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "defaultLanguage": "en-US",
+  "systemPreference": {
+    "name": "System",
+    "value": 0
+  },
+  "languages": [
+    {
+      "code": "en-US",
+      "nativeName": "English",
+      "enumName": "English",
+      "enumValue": 1,
+      "terms": {
+        "temporarySpace": "Temporary Space",
+        "dynamicIsland": "Dynamic Island",
+        "glow": "Glow"
+      }
+    },
+    {
+      "code": "zh-CN",
+      "nativeName": "简体中文",
+      "enumName": "SimplifiedChinese",
+      "enumValue": 2,
+      "terms": {
+        "temporarySpace": "临时空间",
+        "dynamicIsland": "灵动岛",
+        "glow": "辉光"
+      }
+    },
+    {
+      "code": "zh-TW",
+      "nativeName": "繁體中文",
+      "enumName": "TraditionalChinese",
+      "enumValue": 3,
+      "terms": {
+        "temporarySpace": "暫存空間",
+        "dynamicIsland": "動態島",
+        "glow": "輝光"
+      }
+    },
+    {
+      "code": "ja-JP",
+      "nativeName": "日本語",
+      "enumName": "Japanese",
+      "enumValue": 4,
+      "terms": {
+        "temporarySpace": "一時スペース",
+        "dynamicIsland": "ダイナミックアイランド",
+        "glow": "グロー"
+      }
+    },
+    {
+      "code": "ko-KR",
+      "nativeName": "한국어",
+      "enumName": "Korean",
+      "enumValue": 5,
+      "terms": {
+        "temporarySpace": "임시 공간",
+        "dynamicIsland": "다이내믹 아일랜드",
+        "glow": "광채"
+      }
+    },
+    {
+      "code": "de-DE",
+      "nativeName": "Deutsch",
+      "enumName": "German",
+      "enumValue": 6,
+      "terms": {
+        "temporarySpace": "Temporärer Bereich",
+        "dynamicIsland": "Dynamic Island",
+        "glow": "Leuchten"
+      }
+    },
+    {
+      "code": "fr-FR",
+      "nativeName": "Français",
+      "enumName": "French",
+      "enumValue": 7,
+      "terms": {
+        "temporarySpace": "Espace temporaire",
+        "dynamicIsland": "Dynamic Island",
+        "glow": "Lueur"
+      }
+    },
+    {
+      "code": "es-ES",
+      "nativeName": "Español",
+      "enumName": "Spanish",
+      "enumValue": 8,
+      "terms": {
+        "temporarySpace": "Espacio temporal",
+        "dynamicIsland": "Isla dinámica",
+        "glow": "Resplandor"
+      }
+    },
+    {
+      "code": "pt-BR",
+      "nativeName": "Português (Brasil)",
+      "enumName": "BrazilianPortuguese",
+      "enumValue": 9,
+      "terms": {
+        "temporarySpace": "Espaço temporário",
+        "dynamicIsland": "Ilha dinâmica",
+        "glow": "Brilho"
+      }
+    },
+    {
+      "code": "ru-RU",
+      "nativeName": "Русский",
+      "enumName": "Russian",
+      "enumValue": 10,
+      "terms": {
+        "temporarySpace": "Временное пространство",
+        "dynamicIsland": "Динамический остров",
+        "glow": "Свечение"
+      }
+    }
+  ],
+  "matching": {
+    "exactFirst": true,
+    "chinese": {
+      "traditional": [
+        "zh-Hant",
+        "zh-TW",
+        "zh-HK",
+        "zh-MO"
+      ],
+      "simplified": [
+        "zh-Hans",
+        "zh-CN",
+        "zh-SG"
+      ],
+      "default": "zh-CN"
+    },
+    "languageFallbacks": {
+      "en": "en-US",
+      "zh": "zh-CN",
+      "ja": "ja-JP",
+      "ko": "ko-KR",
+      "de": "de-DE",
+      "fr": "fr-FR",
+      "es": "es-ES",
+      "pt": "pt-BR",
+      "ru": "ru-RU"
+    },
+    "unmatched": "en-US"
+  }
+}

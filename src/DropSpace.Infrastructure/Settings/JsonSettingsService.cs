@@ -1,6 +1,8 @@
 using System.Text.Json;
+using System.Globalization;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using DropSpace.Core.Policies;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
@@ -70,6 +72,7 @@ public sealed class JsonSettingsService : ISettingsService
                 settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions)
                     ?? throw new JsonException("Settings must be an object.");
                 var beforePrivacyMigration = settings;
+                settings = MigrateLanguagePreferences(document.RootElement, settings);
                 settings = SettingsMigration15.Apply(settings, document.RootElement);
                 settings = IslandAppearanceMigration.Apply(settings, document.RootElement);
                 settings = MigratePrivacyChoice(document.RootElement, settings);
@@ -228,7 +231,8 @@ public sealed class JsonSettingsService : ISettingsService
         if (settings is { Version: >= 1 and < AppSettings.CurrentVersion })
             settings = SettingsMigration14.Apply(SettingsMigration15.Apply(settings, document.RootElement)) with { Version = AppSettings.CurrentVersion };
         return settings is null ? throw new JsonException("Settings must be an object.") :
-            MigratePrivacyChoice(document.RootElement, IslandAppearanceMigration.Apply(settings, document.RootElement));
+            MigratePrivacyChoice(document.RootElement, IslandAppearanceMigration.Apply(
+                MigrateLanguagePreferences(document.RootElement, settings), document.RootElement));
     }
 
     private async Task SaveCoreAsync(AppSettings settings, CancellationToken cancellationToken)
@@ -304,7 +308,26 @@ public sealed class JsonSettingsService : ISettingsService
             ? settings with { PrivacyChoicesCompleted = true } : settings;
     }
 
-    private AppSettings CreateDefaults() => new() { UpdateChannel = _freshUpdateChannel };
+    private static AppSettings MigrateLanguagePreferences(JsonElement root, AppSettings settings)
+    {
+        var language = Enum.IsDefined(settings.Language) ? settings.Language : AppLanguagePreference.System;
+        var hasTarget = root.ValueKind == JsonValueKind.Object && root.EnumerateObject().Any(property =>
+            property.Name.Equals(nameof(AppSettings.LyricsTranslationTarget), StringComparison.OrdinalIgnoreCase));
+        // This is a one-time top-level settings migration. It does not rewrite Lyrics settings,
+        // caches, or the lyric pipeline, and runs before the new interface language is applied.
+        var target = hasTarget && Enum.IsDefined(settings.LyricsTranslationTarget)
+            ? settings.LyricsTranslationTarget
+            : LyricsTranslationTargetPolicy.FromLegacyInterface(language, CultureInfo.CurrentUICulture.Name);
+        return settings.Language == language && hasTarget && settings.LyricsTranslationTarget == target
+            ? settings : settings with { Language = language, LyricsTranslationTarget = target };
+    }
+
+    private AppSettings CreateDefaults() => new()
+    {
+        UpdateChannel = _freshUpdateChannel,
+        LyricsTranslationTarget = LyricsTranslationTargetPolicy.FromLegacyInterface(
+            AppLanguagePreference.System, CultureInfo.CurrentUICulture.Name),
+    };
 
     private string QuarantineSettingsFile()
     {

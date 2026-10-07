@@ -237,7 +237,7 @@ Master toggle, retention age/count, image/file capture, size limits, duplicate p
 
 ### Appearance
 
-Display language: System default, English, or Simplified Chinese. System maps a Chinese Windows display language to Simplified Chinese and all other Windows display languages to English. Saving the choice refreshes the main window and Dynamic Island in the running process and persists it for later starts. Appearance also includes System/light/dark, System/Full/Reduced Dynamic Island motion, Automatic/Primary monitor, and material fallback. Mica is automatic preference, not a user performance promise.
+Display language: follow system plus ten native-name choices in `localization/languages.json`. Match ordered system preferences, distinct Chinese scripts/regions and English fallback; saving refreshes windows, menus, dynamic text and accessibility. The lyric target is independently persisted and permanently Simplified Chinese/English. See [interface localization](docs/dev/interface-localization.md). Appearance also includes System/light/dark, System/Full/Reduced Dynamic Island motion, Automatic/Primary monitor, and material fallback. Mica is automatic preference, not a user performance promise.
 
 Dynamic Island appearance is independent from the settings window: Follow Windows (default), Light, or Dark. Follow retains the WinUI Windows app-appearance source, including Windows Custom mode. Both compact and expanded surfaces update immediately; artwork, glow, and the main-window theme keep their own settings.
 On upgrade, a previous fixed main-window Light/Dark choice is migrated once into the independent island choice, preserving its prior appearance. Existing System choices and fresh installations use Follow.

@@ -226,6 +226,8 @@ jobs:
       prerelease: ${{ steps.version.outputs.prerelease }}
       make_latest: ${{ steps.version.outputs.make_latest }}
       signing_required: ${{ steps.version.outputs.signing_required }}
+      isolated_beta: ${{ steps.version.outputs.isolated_beta }}
+      next_beta: ${{ steps.version.outputs.next_beta }}
       ai_runtime_manifest_sha256: ${{ steps.ai-runtime-diagnostic-manifest.outputs.sha256 }}
       ai_semantic_approved: ${{ steps.ai-release-approval.outputs.semantic_approved }}
       ai_publication_authorized: ${{ steps.ai-release-approval.outputs.authorized }}
@@ -257,6 +259,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-release-promotion.mjs promote artifacts/release
 
+      - name: Verify actual ten-language package receipt
+        if: steps.ci-promotion.outputs.reuse == 'true'
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; import {isNextBetaRelease} from './scripts/next-beta-release-validation.mjs'; if (isNextBetaRelease(fs.readFileSync('RELEASE_VERSION','utf8').trim())) { const {execFileSync}=await import('node:child_process'); execFileSync(process.execPath,['scripts/check-localization.mjs','--artifacts','artifacts/release'],{stdio:'inherit'}); }"
+
       - name: Install .NET 10 SDK
         if: steps.ci-promotion.outputs.reuse != 'true'
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
@@ -281,6 +288,11 @@ jobs:
           "prerelease=$($info.GitHubPrerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "make_latest=$($info.MakeLatest.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "signing_required=$($($info.Channel -eq 'Stable').ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          $newBeta = (& node --input-type=module -e "import {isNextBetaRelease} from './scripts/next-beta-release-validation.mjs'; console.log(isNextBetaRelease(process.argv[1]));" $info.Tag).Trim()
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot classify the isolated Beta release route.' }
+          "next_beta=$newBeta" >> $env:GITHUB_OUTPUT
+          $isolatedBeta = $info.Tag -cin @('v0.3.1-beta.17','v0.3.1-beta.18') -or $newBeta -ceq 'true'
+          "isolated_beta=$($isolatedBeta.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           $info | Format-List | Out-String | Write-Host
 
       - name: Enforce explicit publication policy
@@ -320,7 +332,7 @@ jobs:
       - name: Require exact final-main isolated producer without broad-test fallback
         shell: pwsh
         run: |
-          if ((Get-Content RELEASE_VERSION -Raw).Trim() -cin @('v0.3.1-beta.17','v0.3.1-beta.18') -and '${{ steps.ci-promotion.outputs.reuse }}' -cne 'true') {
+          if ('${{ steps.version.outputs.isolated_beta }}' -ceq 'true' -and '${{ steps.ci-promotion.outputs.reuse }}' -cne 'true') {
             throw 'This release requires its successful exact-main isolated producer. Dispatch ci.yml on final main first; this legacy path must not repeat tests, packages or model downloads.'
           }
 
@@ -654,7 +666,7 @@ jobs:
 
 
       - name: Freeze unsigned bytes and generate release metadata
-        if: ${{ !contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), steps.version.outputs.tag) }}
+        if: steps.version.outputs.isolated_beta != 'true'
         shell: pwsh
         run: |
           $files = @(
@@ -716,10 +728,11 @@ jobs:
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
             artifacts/release/runtime-publication.json
-            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), steps.version.outputs.tag) && 'artifacts/release/cuda-runtime-download.json' || '' }}
-            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), steps.version.outputs.tag) && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
-            ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/DropSpace.Identity.msix' || '' }}
-            ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/ci-release-receipt.json' || '' }}
+            ${{ steps.version.outputs.isolated_beta == 'true' && 'artifacts/release/cuda-runtime-download.json' || '' }}
+            ${{ steps.version.outputs.isolated_beta == 'true' && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
+            ${{ (steps.version.outputs.tag == 'v0.3.1-beta.18' || steps.version.outputs.next_beta == 'true') && 'artifacts/release/DropSpace.Identity.msix' || '' }}
+            ${{ (steps.version.outputs.tag == 'v0.3.1-beta.18' || steps.version.outputs.next_beta == 'true') && 'artifacts/release/ci-release-receipt.json' || '' }}
+            ${{ steps.version.outputs.next_beta == 'true' && 'artifacts/release/localization-publication.json' || '' }}
             ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/focused-validation.json' || '' }}
             ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/focused.trx' || '' }}
             ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/focused-infrastructure.trx' || '' }}
@@ -991,8 +1004,8 @@ jobs:
       - name: Recheck AI publication decision
         run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
 
-      - name: Recheck exact producer and focused results immediately before publication
-        if: needs.validate-release.outputs.tag == 'v0.3.1-beta.18'
+      - name: Recheck exact producer receipt immediately before publication
+        if: needs.validate-release.outputs.tag == 'v0.3.1-beta.18' || needs.validate-release.outputs.next_beta == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-release-promotion.mjs verify-final artifacts/release
@@ -1014,9 +1027,9 @@ jobs:
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
-            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.validate-release.outputs.tag) && 'artifacts/release/runtime-publication.json' || '' }}
-            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.validate-release.outputs.tag) && 'artifacts/release/cuda-runtime-download.json' || '' }}
-            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.validate-release.outputs.tag) && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
+            ${{ needs.validate-release.outputs.isolated_beta == 'true' && 'artifacts/release/runtime-publication.json' || '' }}
+            ${{ needs.validate-release.outputs.isolated_beta == 'true' && 'artifacts/release/cuda-runtime-download.json' || '' }}
+            ${{ needs.validate-release.outputs.isolated_beta == 'true' && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
 
       - name: Refresh official website release metadata
         shell: bash

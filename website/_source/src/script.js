@@ -1,5 +1,15 @@
 import { stableRequirements } from "./release-requirements.js";
 
+const i18n = window.DropSpaceI18n;
+i18n.apply();
+function applyRequirementSnapshot() {
+  document.querySelectorAll("[data-stable-requirements]").forEach(node => {
+    if (node.dataset.requirementRelease) node.textContent = stableRequirements(JSON.parse(node.dataset.requirementRelease), i18n.language);
+    else node.textContent = i18n.t("requirements.hint");
+  });
+}
+applyRequirementSnapshot();
+addEventListener("dropspace-language-change", applyRequirementSnapshot);
 const header = document.querySelector("[data-header]");
 const demo = document.querySelector("[data-demo]");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -58,6 +68,9 @@ const releaseApiPaths = isGitHubPages
   : isLocalPreview
     ? ["/api/v1/releases.json"]
     : ["/api/v1/releases.json", "https://airanluo-dot.github.io/DropSpace/api/v1/releases.json"];
+let currentStable;
+addEventListener("dropspace-language-change", () => { if (currentStable) updateRequirementText(currentStable); });
+function updateRequirementText(stable) { document.querySelectorAll("[data-stable-requirements]").forEach(node => { node.textContent = stableRequirements(stable, i18n.language); }); }
 const latestChangeApiPaths = releaseApiPaths.map((path) => path.replace(/releases\.json$/, "latest-change.json"));
 
 void Promise.all([refreshReleaseData(), refreshLatestChangeData()]);
@@ -170,18 +183,17 @@ function isBoundedText(value, maxLength) {
 }
 
 function applyLatestChange(release) {
-  const locale = document.documentElement.lang.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
   const setText = (selector, value) => document.querySelectorAll(selector).forEach((node) => { node.textContent = value; });
-  setText("[data-latest-change-headline]", release.headline[locale]);
+  setText("[data-latest-change-headline]", release.headline.en);
   setText("[data-latest-change-tag]", release.tagName);
   setText("[data-latest-change-title]", release.title);
-  setText("[data-latest-change-date]", new Date(release.publishedAt).toLocaleDateString(locale, { dateStyle: "long", timeZone: "UTC" }));
+  setText("[data-latest-change-date]", new Date(release.publishedAt).toLocaleDateString("en-US", { dateStyle: "long", timeZone: "UTC" }));
   document.querySelectorAll("[data-latest-change-url]").forEach((link) => { link.href = release.htmlUrl; });
 
   const container = document.querySelector("[data-latest-change-highlights]");
   if (!container) return;
   const fragment = document.createDocumentFragment();
-  for (const value of release.highlights[locale]) {
+  for (const value of release.highlights.en) {
     const item = document.createElement("span");
     item.textContent = value;
     fragment.append(item);
@@ -193,6 +205,7 @@ function applyCurrentReleases(releases) {
   const stable = releases.filter((release) => !release.isDraft && !release.isPrerelease)
     .sort((left, right) => compareReleaseVersions(right.tagName, left.tagName))[0];
   if (!stable) return false;
+  currentStable = stable;
   const assets = Object.fromEntries(
     Object.entries(releaseArtifacts).map(([kind, name]) =>
       [kind, stable.assets.find((asset) => asset.name === name)?.downloadUrl]));
@@ -204,29 +217,29 @@ function applyCurrentReleases(releases) {
   }
   document.querySelectorAll("[data-release-url]").forEach((link) => { link.href = stable.htmlUrl; });
   document.querySelectorAll("[data-stable-tag]").forEach((node) => { node.textContent = stable.tagName; });
-  const zh = document.documentElement.lang.toLowerCase().startsWith("zh");
   document.querySelectorAll("[data-stable-version]").forEach((node) => {
-    node.textContent = `${zh ? "最新稳定版" : "Latest Stable"} · ${stable.tagName}`;
+    node.dataset.i18nArgs = JSON.stringify({tag:stable.tagName});
+    node.textContent = i18n.t("release.latestStable", {tag:stable.tagName});
   });
-  document.querySelectorAll("[data-stable-requirements]").forEach((node) => {
-    node.textContent = stableRequirements(stable, document.documentElement.lang);
-  });
+  updateRequirementText(stable);
 
   const container = document.querySelector("[data-release-entries]");
-  if (container) renderReleaseEntries(container, releases.filter((release) => !release.isDraft), zh);
+  if (container) renderReleaseEntries(container, releases.filter((release) => !release.isDraft));
   return true;
 }
 
-function renderReleaseEntries(container, releases, zh) {
+function renderReleaseEntries(container, releases) {
   const fragment = document.createDocumentFragment();
   for (const release of releases) {
     const article = document.createElement("article");
     article.className = "release-entry";
     const meta = document.createElement("div");
     meta.className = "release-meta";
-    for (const value of [release.tagName, release.isPrerelease ? "Beta" : "Stable", new Date(release.publishedAt).toLocaleDateString(zh ? "zh-CN" : "en-US", { dateStyle: "long", timeZone: "UTC" })]) {
+    for (const value of [release.tagName, i18n.t(release.isPrerelease ? "release.beta" : "release.stable"), new Date(release.publishedAt).toLocaleDateString(i18n.language, { dateStyle: "long", timeZone: "UTC" })]) {
       const node = document.createElement(meta.childElementCount ? "span" : "strong");
       node.textContent = value;
+      if (meta.childElementCount === 1) node.dataset.i18n = release.isPrerelease ? "release.beta" : "release.stable";
+      if (meta.childElementCount === 2) node.dataset.localizedDate = release.publishedAt;
       meta.append(node);
     }
     const body = document.createElement("div");
@@ -243,20 +256,22 @@ function renderReleaseEntries(container, releases, zh) {
     actions.className = "actions";
     const installer = release.assets.find((asset) => asset.name === releaseArtifacts.installer);
     for (const [label, href, className] of [
-      [zh ? "下载版本" : "Download release", installer?.downloadUrl ?? release.htmlUrl, "button button-primary"],
-      [zh ? "完整发布说明" : "Full release notes", release.htmlUrl, "button button-ghost"]
+      ["release.download", installer?.downloadUrl ?? release.htmlUrl, "button button-primary"],
+      ["release.notes", release.htmlUrl, "button button-ghost"]
     ]) {
       const link = document.createElement("a");
       link.className = className;
       link.href = href;
-      link.textContent = label;
+      link.dataset.i18n = label;
+      link.textContent = i18n.t(label);
       if (href === release.htmlUrl) {
         link.target = "_blank";
         link.rel = "noopener noreferrer";
       }
       actions.append(link);
     }
-    body.append(title, list, actions);
+    const releaseText = document.createElement("div"); releaseText.lang = "en"; releaseText.dataset.i18nExempt = "release-body"; releaseText.append(title, list);
+    body.append(releaseText, actions);
     article.append(meta, body);
     fragment.append(article);
   }

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using DropSpace.Core.Models;
+using DropSpace.Core.Policies;
 using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media;
@@ -69,7 +70,7 @@ public sealed class MediaViewModel : ObservableObject
             }
         }
     }
-    public string ControlError { get => _controlError; private set => SetProperty(ref _controlError, value); }
+    public string ControlError { get => _strings.Relocalize(_controlError); private set => SetProperty(ref _controlError, value); }
     public bool IsReducedMotion { get => _isReducedMotion; internal set => SetProperty(ref _isReducedMotion, value); }
     public bool PositionEstimated { get => _positionEstimated; internal set { if (SetProperty(ref _positionEstimated, value)) { OnPropertyChanged(nameof(TimelineStatus)); SeekCommand.NotifyCanExecuteChanged(); } } }
     public MediaSessionSnapshot Session
@@ -189,7 +190,7 @@ public sealed class MediaViewModel : ObservableObject
             var languageChanged = _settings.Language != value.Language;
             if (!SetProperty(ref _settings, value)) return;
             NotifyLyricTextChanges(); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
-            if (languageChanged) OnPropertyChanged(nameof(PlayPauseLabel));
+            if (languageChanged) OnPropertyChanged(string.Empty);
         }
     }
     public TimeSpan Position
@@ -229,7 +230,7 @@ public sealed class MediaViewModel : ObservableObject
     }
     public string CurrentLyricText => Settings.Lyrics.Enabled && LyricPresentation.HasLyrics
         ? LyricPresentation.Line?.Text ?? string.Empty : Title;
-    public string? SecondaryLyricText => LyricsDisplayPolicy.SecondaryPresentation(LyricPresentation.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics, Settings.Lyrics.ShowAiLyricsLabel);
+    public string? SecondaryLyricText => LyricsDisplayPolicy.SecondaryPresentation(LyricPresentation.Line, LyricsTranslationTargetPolicy.ToLanguageTag(Settings.LyricsTranslationTarget), Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics, Settings.Lyrics.ShowAiLyricsLabel);
     public string? NextLyricText => Settings.Lyrics.Enabled &&
         string.Equals(_lyricsDocumentTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal)
             ? LyricsPreviewPolicy.NextLine(LyricsLines, Lyrics, Position - Session.Timeline.Start,

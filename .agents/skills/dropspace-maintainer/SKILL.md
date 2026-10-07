@@ -13,7 +13,7 @@ over historical release notes.
 
 DropSpace is a Windows workspace for temporarily holding files and recently copied content so
 people can find, reuse, and move items before deciding where they belong. Its main surfaces are
-the native WinUI app, the Dynamic Island quick-access experience, and the bilingual static
+the native WinUI app, the Dynamic Island quick-access experience, and the ten-language static
 website.
 
 The application uses C#, .NET, WinUI 3, Windows App SDK, MVVM, SQLite, and dependency injection.
@@ -35,6 +35,10 @@ pages and JSON endpoints.
 Read only the route needed for the task. The linked references explain where things live and how
 they connect; they do not impose a fixed implementation recipe.
 
+For interface work, follow the single [localization contract](../../../docs/dev/interface-localization.md)
+and `localization/languages.json`: incremental confirmed fingerprints, independent permanent
+Chinese/English lyric target, English-only new release bodies and the shared publication gate.
+
 ## Keeping this guide useful
 
 This skill contains durable orientation only. Version numbers, beta status, individual bug fixes,
@@ -47,7 +51,9 @@ There is no personal counterpart and no synchronization gate.
 
 ## Passive test execution limit
 
-- For any passively triggered automation, the total number of executed test cases or scenarios across all workflows, including repeated runs and retries, must not exceed 20; tests explicitly requested by the user are exempt.
+- Across languages/workflows, total passive functional cases/scenarios including repeats/failures
+  must not exceed 20. Development/release requests or ordinary manual release refresh do not
+  opt into diagnostic suites. Use the canonical [budget policy](../../../docs/dev/passive-test-budget.md).
 
 ## Completion report
 

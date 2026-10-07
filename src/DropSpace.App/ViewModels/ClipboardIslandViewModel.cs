@@ -32,7 +32,7 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
         _worker = RunAsync();
     }
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
-    public string Error { get => _error; private set => SetProperty(ref _error, value); }
+    public string Error { get => _strings.Relocalize(_error); private set => SetProperty(ref _error, value); }
     public bool Empty => Items.Count == 0;
     public string PauseLabel => _strings.Get(_main.IsClipboardPaused ? "ClipboardIslandResume" : "ClipboardIslandPause");
     public void SetVisible(object owner, bool visible)
@@ -55,6 +55,11 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
     private void OnMainChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName == nameof(MainViewModel.Settings)) OnPropertyChanged(nameof(PauseLabel));
+        if (args.PropertyName == nameof(MainViewModel.Language))
+        {
+            foreach (var item in Items) item.RefreshLanguage();
+            OnPropertyChanged(nameof(Error));
+        }
         if (_visible && args.PropertyName is nameof(MainViewModel.StatusMessage) or nameof(MainViewModel.Settings)) _refresh.Writer.TryWrite(true);
     }
     private async Task RunAsync()

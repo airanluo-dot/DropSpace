@@ -5,13 +5,14 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { fileIdentity, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 import {focusedRuns,focusedUnitCaseCount,originalSuiteCaseCount,verifyFocusedResults} from './beta18-release-validation.mjs';
+import {isNextBetaRelease} from './next-beta-release-validation.mjs';
 
 const git = (...args) => execFileSync('git', args, {encoding:'utf8'}).trim();
 const payloads = ['DropSpace.exe','DropSpaceSetup.exe','DropSpace-x64.msix','runtime-publication.json','DropSpace.Identity.msix'];
-const independentCudaVersions = new Set(['v0.3.1-beta.17','v0.3.1-beta.18']);
+const usesIndependentCuda = releaseVersion => ['v0.3.1-beta.17','v0.3.1-beta.18'].includes(releaseVersion)||isNextBetaRelease(releaseVersion);
 export function promotionPayloads(releaseVersion) {
-  return independentCudaVersions.has(releaseVersion)
-    ? [...payloads,'cuda-runtime-download.json','cuda-runtime-manifest.json','update-manifest.json','SHA256SUMS.txt']
+  return usesIndependentCuda(releaseVersion)
+    ? [...payloads,'cuda-runtime-download.json','cuda-runtime-manifest.json','update-manifest.json','SHA256SUMS.txt',...(isNextBetaRelease(releaseVersion)?['localization-publication.json']:[])]
     : payloads;
 }
 const read = p => JSON.parse(fs.readFileSync(p,'utf8').replace(/^\uFEFF/,''));
@@ -20,7 +21,7 @@ export function verifyBeta17Metadata(directory, sourceCommit) {
   return verifyIndependentCudaMetadata(directory,sourceCommit,'v0.3.1-beta.17');
 }
 export function verifyIndependentCudaMetadata(directory,sourceCommit,releaseVersion) {
-  assert.ok(independentCudaVersions.has(releaseVersion),'Unreviewed independent CUDA App release');
+  assert.ok(usesIndependentCuda(releaseVersion),'Unreviewed independent CUDA App release');
   const descriptor=read(path.join(directory,'cuda-runtime-download.json'));
   const manifest=identity(path.join(directory,'cuda-runtime-manifest.json'));
   assert.equal(descriptor.schemaVersion,2,'Independent component contract required');
@@ -32,7 +33,7 @@ export function verifyIndependentCudaMetadata(directory,sourceCommit,releaseVers
   assert.deepEqual(manifest,{bytes:1815,sha256:'da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a'});
   assert.equal(descriptor.manifest?.bytes,manifest.bytes);
   assert.equal(descriptor.manifest?.sha256,manifest.sha256);
-  const names=promotionPayloads(releaseVersion).filter(name=>name!=='DropSpace.Identity.msix'&&name!=='SHA256SUMS.txt');
+  const names=promotionPayloads(releaseVersion).filter(name=>!['DropSpace.Identity.msix','SHA256SUMS.txt','localization-publication.json'].includes(name));
   const checksums=fs.readFileSync(path.join(directory,'SHA256SUMS.txt'),'utf8').trim().split(/\r?\n/);
   assert.equal(checksums.length,names.length,'Every public App asset needs one checksum');
   const seen=new Set();
@@ -75,7 +76,11 @@ export function verifyReceipt(directory, receipt, expected) {
   assert.deepEqual(Object.keys(receipt.files).sort(),[...names].sort());
   for(const name of names) assert.deepEqual(receipt.files[name],identity(path.join(directory,name)),`Promoted bytes changed: ${name}`);
   verifyReleaseBinding(directory,{expectedCommit:receipt.sourceCommit});
-  if(independentCudaVersions.has(expected.releaseVersion))verifyIndependentCudaMetadata(directory,receipt.sourceCommit,expected.releaseVersion);
+  if(usesIndependentCuda(expected.releaseVersion))verifyIndependentCudaMetadata(directory,receipt.sourceCommit,expected.releaseVersion);
+  if(isNextBetaRelease(expected.releaseVersion))assert.deepEqual(receipt.packageValidation,
+    {unitCases:0,browserScenarios:0,modelCases:0,installerScenarios:1,
+      scope:'One isolated installer payload scenario; static package, resource, runtime and hash verification'},
+    'New Beta package execution scope changed');
   if(expected.releaseVersion==='v0.3.1-beta.18') {
     const validation=verifyBeta18FocusedValidation(directory,receipt.sourceCommit);
     assert.equal(validation.sourceTree,receipt.sourceTree,'Focused execution used different reviewed source tree');
@@ -97,8 +102,10 @@ async function main() {
   assert.equal(sourceCommit,process.env.GITHUB_SHA);
   verifyReleaseBinding(directory,{expectedCommit:sourceCommit});
   const releaseVersion=fs.readFileSync('RELEASE_VERSION','utf8').trim();
-  if(independentCudaVersions.has(releaseVersion))verifyIndependentCudaMetadata(directory,sourceCommit,releaseVersion);
+  if(usesIndependentCuda(releaseVersion))verifyIndependentCudaMetadata(directory,sourceCommit,releaseVersion);
   const receipt={schemaVersion:1,repository:process.env.GITHUB_REPOSITORY,runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),sourceCommit,sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion,files:Object.fromEntries(promotionPayloads(releaseVersion).map(name=>[name,identity(path.join(directory,name))]))};
+  if(isNextBetaRelease(releaseVersion))receipt.packageValidation={unitCases:0,browserScenarios:0,modelCases:0,installerScenarios:1,
+    scope:'One isolated installer payload scenario; static package, resource, runtime and hash verification'};
   if(releaseVersion==='v0.3.1-beta.18') {
     receipt.focusedValidation=verifyBeta18FocusedValidation(directory,sourceCommit);
     assert.equal(receipt.focusedValidation.sourceTree,receipt.sourceTree);
@@ -107,7 +114,7 @@ async function main() {
  } else if(command==='verify-final') {
   const receipt=read(path.join(directory,'ci-release-receipt.json'));
   const releaseVersion=fs.readFileSync('RELEASE_VERSION','utf8').trim();
-  assert.equal(releaseVersion,'v0.3.1-beta.18','Final receipt route is exact Beta18 only');
+  assert.ok(releaseVersion==='v0.3.1-beta.18'||isNextBetaRelease(releaseVersion),'Final receipt route requires Beta18 or a new Beta');
   assert.equal(git('rev-parse','HEAD'),process.env.GITHUB_SHA);
   assert.equal(receipt.sourceCommit,process.env.GITHUB_SHA,'Final App producer differs from publication commit');
   const run=await api(`actions/runs/${receipt.runId}`);
@@ -165,7 +172,7 @@ async function main() {
   const binding=verifyReleaseBinding(directory,{expectedCommit:receipt.sourceCommit});
   // Preserve the actual build commit and receipt. Only the publication binding
   // moves to the identical-tree main commit; binaries are never rebuilt/modified.
-  if(independentCudaVersions.has(expected.releaseVersion)) {
+  if(usesIndependentCuda(expected.releaseVersion)) {
     // The CUDA descriptor is embedded in the App. Final-main packaging must
     // already match publication; retain all approved/checksummed bytes unchanged.
     assert.equal(receipt.sourceCommit,process.env.GITHUB_SHA,'Independent-CUDA App packages must come from the exact final main commit');

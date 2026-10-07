@@ -3,7 +3,8 @@
 ## v0.3.1 Beta16 native-translation priority
 
 AI lyrics retain the existing opt-in switch, model controls and progressive display.
-The app language determines the translation target. Originals already in that
+The independently saved translation target is permanently Simplified Chinese or English;
+interface switching does not change it or request translation. Originals already in that
 language start no translation-model load, download prompt, queue or inference.
 Any valid target-language native translation suppresses AI for the entire track;
 partial native coverage displays its original gaps. A late native translation
@@ -176,7 +177,7 @@ Settings keeps the precise X/Y editor and adds **Adjust Island Position…** for
 - Dangerous clear actions live in Privacy, separated from ordinary toggles.
 - “Exclude apps” (V1.1) includes the copy: “Best effort. Some clipboard changes cannot be attributed to an app.”
 - Changes apply immediately unless a restart is technically required; required restart is stated before saving.
-- Top interface settings provide Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, Automatic/Primary monitor, and display language: System default, English, or Simplified Chinese. The visual surface is always Dynamic Island. System motion follows Windows `UISettings.AnimationsEnabled`; System language uses the Windows display language, maps Chinese to Simplified Chinese, and falls back to English for the other shipped-language cases. Saving the language preference refreshes the main window and Dynamic Island live, including control accessibility names. Existing transient status/error messages and in-flight operation text can retain the previous language until replaced.
+- Top interface settings provide Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, Automatic/Primary monitor, and display language: follow system plus ten native-name choices in `localization/languages.json`. System motion follows Windows `UISettings.AnimationsEnabled`; system language matches ordered preferences, exact codes, Chinese scripts/regions, language aliases and English fallback. Language refreshes windows, menus, dynamic prompts and accessibility live; the separate lyric target remains Simplified Chinese/English. See [interface localization](docs/dev/interface-localization.md).
 
 - Island appearance offers Follow (default), Light, and Dark, applies immediately, and persists independently from the settings-window appearance. Follow uses Windows app appearance when Windows system and app modes differ.
 - Island content priority offers Music (default) and Temporary Space. It chooses compact and expanded defaults when both are available. Active user page selections are retained while available, including across expansion and collapse; losing that content falls back to the available content. Changing the setting deliberately reapplies the selected default.

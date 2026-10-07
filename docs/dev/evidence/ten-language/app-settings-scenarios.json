@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Legacy English enum 1 migrates once, independent Japanese UI",
+    "result": "passed"
+  },
+  {
+    "name": "Legacy Chinese enum 2 migrates once, independent Japanese UI",
+    "result": "passed"
+  },
+  {
+    "name": "Legacy System enum 0 on zh-TW preserves old Chinese direction",
+    "result": "passed"
+  },
+  {
+    "name": "Unknown persisted enums recover safely",
+    "result": "passed"
+  },
+  {
+    "name": "Ordered preferred languages skip unsupported primary",
+    "result": "passed"
+  },
+  {
+    "name": "Complete supported locale match",
+    "result": "passed"
+  },
+  {
+    "name": "Traditional Chinese explicit script overrides mainland region",
+    "result": "passed"
+  },
+  {
+    "name": "Simplified Chinese explicit script overrides HK region",
+    "result": "passed"
+  },
+  {
+    "name": "Unknown language list falls back to English",
+    "result": "passed"
+  },
+  {
+    "name": "UI-only switch does not reload; target switch uses existing reload decision",
+    "result": "passed"
+  }
+]

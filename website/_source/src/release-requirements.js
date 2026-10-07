@@ -10,19 +10,15 @@ export function windowsRequirement(body) {
   return Number.isSafeInteger(requirement.build) && requirement.build > 0 ? requirement : null;
 }
 
-export function stableRequirements(release, locale = "en") {
-  const zh = locale.toLowerCase().startsWith("zh");
+export function stableRequirements(release, locale = "en-US", translate = globalThis.DropSpaceI18n?.t) {
   const requirement = windowsRequirement(release.body);
-  const prefix = `${zh ? "稳定版" : "Stable"} ${release.tagName}: `;
-  if (!requirement) return prefix + releaseRequirementsHint(locale);
+  const channel = translate("release.stable");
+  if (!requirement) return translate("requirements.unknown", { channel, tag: release.tagName, hint: releaseRequirementsHint(locale, translate) });
   const windows = `Windows${requirement.version ? ` ${requirement.version}` : ""}`;
-  return prefix + (zh
-    ? `需要 64 位 ${windows} Build ${requirement.build} 或更高版本`
-    : `64-bit ${windows} build ${requirement.build} or later`);
+  const build = new Intl.NumberFormat(locale, { useGrouping: false }).format(requirement.build);
+  return translate("requirements.minimum", { channel, tag: release.tagName, windows, build });
 }
 
-export function releaseRequirementsHint(locale = "en") {
-  return locale.toLowerCase().startsWith("zh")
-    ? "64 位 Windows · 系统要求请查看发布说明"
-    : "64-bit Windows · See release notes for system requirements";
+export function releaseRequirementsHint(locale = "en-US", translate = globalThis.DropSpaceI18n?.t) {
+  return translate("requirements.hint");
 }

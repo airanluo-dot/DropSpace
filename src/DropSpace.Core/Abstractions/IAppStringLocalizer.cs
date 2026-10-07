@@ -16,6 +16,9 @@ public interface IAppStringLocalizer
     bool TryGet(string key, out string value);
 
     string Format(string key, params object?[] arguments);
+
+    // Refresh a previously rendered UI status without changing its underlying operation.
+    string Relocalize(string text) => text;
 }
 
 /// <summary>

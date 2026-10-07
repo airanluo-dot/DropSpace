@@ -1,9 +1,11 @@
 # DropSpace Product Specification
 
-## v0.3.1 Beta16 AI-lyrics rule
+## AI lyric target and interface language
 
-Translate toward the app language: English uses `en`, Chinese uses `zh`, including
-Simplified and Traditional Chinese. Identify the complete original lyric body once
+The independently saved lyric target is permanently Simplified Chinese (`zh`) or English (`en`),
+regardless of interface language. Upgrade stores the previously effective target once;
+interface switching updates UI without retranslation. Follow the
+[interface localization contract](docs/dev/interface-localization.md). Identify the complete original lyric body once
 with bundled offline fastText `lid.176.bin`. A reliable target-language original
 skips AI and can skip additional translation lookup. Other originals are Unknown.
 After normal bounded source queries, any valid native target translation disables

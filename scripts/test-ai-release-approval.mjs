@@ -192,6 +192,21 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Core/Overlay/OverlayFramePacer.cs',
   'src/DropSpace.Core/Overlay/OverlayMotionController.cs',
   'src/DropSpace.Core/Overlay/OverlayRegionSignature.cs',
+  // Offline interface catalog, independent target binding and actual package recipe.
+  'localization/languages.json',
+  'src/DropSpace.Core/Policies/AppLanguageCatalog.cs',
+  'src/DropSpace.Core/Policies/LyricsTranslationTargetPolicy.cs',
+  'scripts/Build-NextBetaCandidate.ps1',
+  'scripts/next-beta-release-validation.mjs',
+  'scripts/Test-PackagedLocalization.ps1',
+  'src/DropSpace.App/Strings/zh-TW/Resources.resw',
+  'src/DropSpace.App/Strings/ja-JP/Resources.resw',
+  'src/DropSpace.App/Strings/ko-KR/Resources.resw',
+  'src/DropSpace.App/Strings/de-DE/Resources.resw',
+  'src/DropSpace.App/Strings/fr-FR/Resources.resw',
+  'src/DropSpace.App/Strings/es-ES/Resources.resw',
+  'src/DropSpace.App/Strings/pt-BR/Resources.resw',
+  'src/DropSpace.App/Strings/ru-RU/Resources.resw',
   'src/DropSpace.App/Strings/en-US/Resources.resw',
   'src/DropSpace.App/Strings/zh-CN/Resources.resw',
   'src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs',
@@ -291,7 +306,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.18';
+export const experimentalBetaVersion = 'v0.3.1-beta.19';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));

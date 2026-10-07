@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Changing one English source leaves translations pending and blocks the gate",
+    "result": "passed",
+    "expectedFailure": "source changed; translation pending update"
+  },
+  {
+    "name": "One damaged Japanese format placeholder blocks the gate with locale/key/file",
+    "result": "passed",
+    "expectedFailure": "ja-JP LyricsTranslationTargetDescription src/DropSpace.App/Strings/ja-JP/Resources.resw: placeholder/required markup differs"
+  }
+]

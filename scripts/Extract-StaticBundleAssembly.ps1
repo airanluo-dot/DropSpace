@@ -1,6 +1,7 @@
 # Reads the .NET 10 bundle manifest and copies its single managed App assembly.
 # The target EXE is never launched. SDK tool code locates the official bundle marker.
-param([Parameter(Mandatory=$true)][string]$PortablePath,[Parameter(Mandatory=$true)][string]$OutputPath)
+param([Parameter(Mandatory=$true)][string]$PortablePath,[Parameter(Mandatory=$true)][string]$OutputPath,
+    [ValidateSet('DropSpace.dll','DropSpace.resources.pri')][string]$EntryName = 'DropSpace.dll')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $sdkVersion=(& dotnet --version).Trim()
@@ -24,7 +25,7 @@ public static class StaticBundleAssemblyV1 {
     if(bytes.Length!=length) throw new EndOfStreamException();
     return new UTF8Encoding(false,true).GetString(bytes);
   }
-  public static void Extract(string input,string output,long header) {
+  public static void Extract(string input,string output,long header,string entryName) {
     using(var stream=File.OpenRead(input))
     using(var reader=new BinaryReader(stream,new UTF8Encoding(false,true),true)) {
       if(header<=0 || header>stream.Length-24) throw new InvalidDataException("Invalid bundle header offset.");
@@ -43,12 +44,12 @@ public static class StaticBundleAssemblyV1 {
         string name=ReadString(reader);
         long stored=compressed==0?size:compressed;
         if(offset<0 || size<0 || compressed<0 || offset>header || stored>header-offset) throw new InvalidDataException("Bundle entry is outside its payload.");
-        if(name=="DropSpace.dll") {
-          if(type!=1 || compressed!=0 || size<=0 || size>536870912) throw new InvalidDataException("Unsupported App assembly entry.");
+        if(name==entryName) {
+          if((entryName=="DropSpace.dll" && type!=1) || compressed!=0 || size<=0 || size>536870912) throw new InvalidDataException("Unsupported selected bundle entry.");
           selectedCount++;selectedOffset=offset;selectedSize=size;
         }
       }
-      if(selectedCount!=1) throw new InvalidDataException("Expected exactly one App assembly.");
+      if(selectedCount!=1) throw new InvalidDataException("Expected exactly one selected App bundle entry: "+entryName);
       stream.Position=selectedOffset;
       using(var destination=new FileStream(output,FileMode.CreateNew,FileAccess.Write,FileShare.None)) {
         byte[] buffer=new byte[81920];
@@ -63,4 +64,4 @@ public static class StaticBundleAssemblyV1 {
 }}
 '@
 }
-[DropSpace.Packaging.StaticBundleAssemblyV1]::Extract([IO.Path]::GetFullPath($PortablePath),[IO.Path]::GetFullPath($OutputPath),$header)
+[DropSpace.Packaging.StaticBundleAssemblyV1]::Extract([IO.Path]::GetFullPath($PortablePath),[IO.Path]::GetFullPath($OutputPath),$header,$EntryName)

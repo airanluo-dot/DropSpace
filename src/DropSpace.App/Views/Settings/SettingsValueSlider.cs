@@ -9,7 +9,7 @@ namespace DropSpace.App.Views.Settings;
 public sealed class SettingsValueSlider : UserControl
 {
     private readonly Slider _slider = new() { MinWidth = 140 };
-    private readonly TextBlock _readout = new() { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock _readout = new() { VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
     private bool _syncing;
     private uint? _pointer;
     public bool IsInteracting => _pointer is not null;
@@ -82,7 +82,7 @@ public sealed class SettingsValueSlider : UserControl
             _slider.StepFrequency = Nonlinear ? 0.01 : 1;
             _slider.SmallChange = Nonlinear ? 0.01 : 1;
             _slider.Value = Nonlinear ? Math.Log2(Math.Clamp(Value, Math.Max(1, Minimum), Maximum)) : Value;
-            _readout.Text = Value.ToString("0.###", System.Globalization.CultureInfo.CurrentCulture);
+            _readout.Text = Value.ToString("0.###", System.Globalization.CultureInfo.GetCultureInfo(Language));
             ToolTipService.SetToolTip(_readout, _readout.Text);
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(_slider, _readout.Text);
         }

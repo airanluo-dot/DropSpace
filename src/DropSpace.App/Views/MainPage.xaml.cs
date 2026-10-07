@@ -7,6 +7,7 @@ using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
+using DropSpace.Core.Policies;
 using DropSpace.Core.Preview;
 using DropSpace.Core.Transfer;
 using DropSpace.Core.Updates;
@@ -117,6 +118,11 @@ public sealed partial class MainPage : Page
         settingsAccelerator.Invoked += OnSettingsAccelerator;
         KeyboardAccelerators.Add(settingsAccelerator);
 
+        LanguageCombo.Items.Add(new ComboBoxItem { Content = _strings.Get("LanguageSystem.Content"), Tag = AppLanguagePreference.System.ToString() });
+        foreach (var language in AppLanguageCatalog.All)
+            LanguageCombo.Items.Add(new ComboBoxItem { Content = language.NativeName, Tag = language.Preference.ToString() });
+        Language = _strings.Culture.Name;
+        LanguageCombo.MinWidth = 240;
         ApplySettingsAutomationNames();
         foreach (var slider in new[] { MaxImageMegabytesNumber, MaxImageMegapixelsNumber,
             MaxClipboardFileMegabytesNumber, MaxClipboardFileTotalMegabytesNumber, MaxClipboardFileItemsNumber })
@@ -1276,7 +1282,7 @@ public sealed partial class MainPage : Page
         });
         content.Children.Add(new TextBlock
         {
-            Text = _strings.Format("ShareExpires", descriptor.ExpiresAtUtc.ToLocalTime().ToString("g")),
+            Text = _strings.Format("ShareExpires", descriptor.ExpiresAtUtc.ToLocalTime().ToString("g", _strings.Culture)),
             TextWrapping = TextWrapping.Wrap,
         });
         ContentDialog? dialog = null;

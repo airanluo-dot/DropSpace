@@ -1,0 +1,857 @@
+{
+  "schemaVersion": 1,
+  "equalText": {
+    "app": {
+      "AppDisplayName": {
+        "value": "DropSpace",
+        "reason": "Product brand"
+      },
+      "CurrentVersion": {
+        "value": "DropSpace {0}",
+        "reason": "Brand and version identifier"
+      },
+      "MainWindow.Title": {
+        "value": "DropSpace",
+        "reason": "Product brand"
+      },
+      "MainTitleBar.Title": {
+        "value": "DropSpace",
+        "reason": "Product brand"
+      },
+      "OverlayWindow.Title": {
+        "value": "DropSpace Dynamic Island",
+        "languages": [
+          "de-DE",
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "Bytes": {
+        "value": "{0:0} B",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "Gigabytes": {
+        "value": "{0:0.00} GB",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "ImagePreview": {
+        "value": "{0} × {1} · {2}",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "ItemCreatedTodayFormat": {
+        "value": "HH:mm",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "Kilobytes": {
+        "value": "{0:0.0} KB",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "LastUpdateCheckDateFormat": {
+        "value": "yyyy-MM-dd HH:mm",
+        "languages": [
+          "zh-CN"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "Megabytes": {
+        "value": "{0:0.0} MB",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "OverlayTitle": {
+        "value": "DropSpace",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Product brand/version identity"
+      },
+      "UpdateProgress": {
+        "value": "{0:0}% · {1} / {2}",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "LanguageEnglish.Content": {
+        "value": "English",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Native language name remains invariant"
+      },
+      "LanguageSimplifiedChinese.Content": {
+        "value": "简体中文",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Native language name remains invariant"
+      },
+      "UpdateChannelBeta.Content": {
+        "value": "Beta",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "QuickActionFormatPng": {
+        "value": "PNG",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "QuickActionFormatJpeg": {
+        "value": "JPEG",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "QuickActionFormatBmp": {
+        "value": "BMP",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "LyricsProviderAmll": {
+        "value": "AMLL TTML",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "LyricsProviderLrclib": {
+        "value": "LRCLIB",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "LyricsOriginalFontPreview": {
+        "value": "The song goes on through the quiet night.",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Original lyric sample is fixed content and excluded from UI translation"
+      },
+      "AiLyricsPlainBetaModel": {
+        "value": "Hy-MT2 1.8B Q8_0",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "AiLyricsLargePlainBetaModel": {
+        "value": "Hy-MT2 7B Q8_0",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "SettingsPageDlc": {
+        "value": "DLC",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "DlcTitle": {
+        "value": "DLC",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "IslandPlacementX.Header": {
+        "value": "X (DIP)",
+        "languages": [
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "IslandPlacementY.Header": {
+        "value": "Y (DIP)",
+        "languages": [
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "HandoffUrlKind": {
+        "value": "URL",
+        "languages": [
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "LyricsProviderKugou": {
+        "value": "Kugou",
+        "languages": [
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "LyricsProviderNetEase": {
+        "value": "NetEase Cloud Music",
+        "languages": [
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "LyricsProviderQqMusic": {
+        "value": "QQ Music",
+        "languages": [
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "DlcVisualCppTitle": {
+        "value": "Microsoft Visual C++ Runtime",
+        "languages": [
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "DlcPackageAction": {
+        "value": "{0}: {1}",
+        "languages": [
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "IslandDelaySeconds": {
+        "value": "{0} s",
+        "languages": [
+          "ja-JP",
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling ja-JP UI term; not a fallback copy"
+      },
+      "ItemKindCode": {
+        "value": "Code",
+        "languages": [
+          "de-DE",
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "ItemKindText": {
+        "value": "Text",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "ItemKindUrl": {
+        "value": "Link",
+        "languages": [
+          "de-DE",
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "QuickActionUrls": {
+        "value": "URLs",
+        "languages": [
+          "de-DE",
+          "pt-BR"
+        ],
+        "reason": "Provider/model/API/channel/format identifier or coordinate axis"
+      },
+      "MediaPauseLabel": {
+        "value": "Pause",
+        "languages": [
+          "de-DE",
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "LyricsOnline": {
+        "value": "Online",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "SettingsPageWidgets": {
+        "value": "Widgets",
+        "languages": [
+          "de-DE",
+          "fr-FR",
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "StopwatchPause": {
+        "value": "Pause",
+        "languages": [
+          "de-DE",
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "SettingsPageDownloads": {
+        "value": "Downloads",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "DownloadPause": {
+        "value": "Pause",
+        "languages": [
+          "de-DE",
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling de-DE UI term; not a fallback copy"
+      },
+      "UpdateChannelStable.Content": {
+        "value": "Stable",
+        "languages": [
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling fr-FR UI term; not a fallback copy"
+      },
+      "QuickActionImages": {
+        "value": "Images",
+        "languages": [
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling fr-FR UI term; not a fallback copy"
+      },
+      "LyricsMode": {
+        "value": "Mode",
+        "languages": [
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling fr-FR UI term; not a fallback copy"
+      },
+      "ItemKindColor": {
+        "value": "Color",
+        "languages": [
+          "es-ES"
+        ],
+        "reason": "Independently reviewed natural same-spelling es-ES UI term; not a fallback copy"
+      },
+      "MonitorTitle.Text": {
+        "value": "Monitor",
+        "languages": [
+          "es-ES",
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling es-ES UI term; not a fallback copy"
+      },
+      "ClipboardSyncModeManual.Content": {
+        "value": "Manual",
+        "languages": [
+          "es-ES",
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling es-ES UI term; not a fallback copy"
+      },
+      "SettingsPageGeneral": {
+        "value": "General",
+        "languages": [
+          "es-ES"
+        ],
+        "reason": "Independently reviewed natural same-spelling es-ES UI term; not a fallback copy"
+      },
+      "AiLyricsModelSize": {
+        "value": "{0} GB ({1} bytes)",
+        "languages": [
+          "es-ES",
+          "pt-BR"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "DlcSizeFormat": {
+        "value": "{0} GB ({1} bytes)",
+        "languages": [
+          "es-ES",
+          "pt-BR"
+        ],
+        "reason": "Unit/interpolation/culture format with no translated prose; exact locale-specific confirmation"
+      },
+      "ActivityVolume": {
+        "value": "Volume",
+        "languages": [
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling pt-BR UI term; not a fallback copy"
+      }
+    },
+    "website": {
+      "release.beta": {
+        "value": "Beta",
+        "languages": [
+          "zh-CN",
+          "zh-TW",
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Stable/Beta channel identity"
+      },
+      "requirements.unknown": {
+        "value": "{channel} {tag}: {hint}",
+        "languages": [
+          "ja-JP",
+          "ko-KR",
+          "de-DE",
+          "es-ES",
+          "pt-BR",
+          "ru-RU"
+        ],
+        "reason": "Interpolation-only template, no prose"
+      },
+      "ui.desktop": {
+        "value": "Desktop",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.downloads": {
+        "value": "Downloads",
+        "languages": [
+          "de-DE",
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.name": {
+        "value": "Name",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.dynamic.island": {
+        "value": "Dynamic Island",
+        "languages": [
+          "de-DE",
+          "fr-FR"
+        ],
+        "reason": "Shared product name"
+      },
+      "ui.widgets": {
+        "value": "Widgets",
+        "languages": [
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.04.widgets": {
+        "value": "04 / WIDGETS",
+        "languages": [
+          "de-DE",
+          "fr-FR",
+          "es-ES",
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.text": {
+        "value": "Text",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.links": {
+        "value": "Links",
+        "languages": [
+          "de-DE",
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.explorer.desktop": {
+        "value": "Explorer / Desktop",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.15.open.source": {
+        "value": "15 / OPEN SOURCE",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "release.stable": {
+        "value": "Stable",
+        "languages": [
+          "de-DE",
+          "fr-FR",
+          "es-ES"
+        ],
+        "reason": "Stable/Beta channel identity"
+      },
+      "ui.september.short": {
+        "value": "SEP",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.documents": {
+        "value": "Documents",
+        "languages": [
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.capture": {
+        "value": "Capture",
+        "languages": [
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.images": {
+        "value": "Images",
+        "languages": [
+          "fr-FR"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      },
+      "ui.10.download": {
+        "value": "10 / DOWNLOAD",
+        "languages": [
+          "pt-BR"
+        ],
+        "reason": "Independently reviewed natural same-spelling UI term for these locales"
+      }
+    }
+  },
+  "websiteLiteralText": [
+    "DropSpace",
+    "GitHub",
+    "PDF",
+    "IMG",
+    "DOC",
+    "MSIX",
+    "AI",
+    "A",
+    "B",
+    "P",
+    "I",
+    "D",
+    "T",
+    "Project Brief.pdf",
+    "Design Notes.png",
+    "Client Deck.pptx",
+    "DropSpaceSetup.exe",
+    "DropSpace.exe",
+    "DropSpace-x64.msix",
+    "Room to breathe",
+    "DropSpace · a small instrumental",
+    "Apache-2.0 · Copyright 2026 Airan Luo",
+    "© 2026 Airan Luo.",
+    "Apache-2.0",
+    "Design is not just what it looks like…",
+    "github.com/airanluo-dot/DropSpace",
+    "Screenshot 2026-08-11.png",
+    "Release Notes.md"
+  ],
+  "sourceLiterals": {
+    "src/DropSpace.App/Views/MainPage.xaml": [
+      {
+        "expression": "Header=\"X\"",
+        "reason": "Cartesian coordinate axis"
+      },
+      {
+        "expression": "Header=\"Y\"",
+        "reason": "Cartesian coordinate axis"
+      }
+    ],
+    "src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs": [
+      {
+        "expression": "Content = \"简体中文\"",
+        "reason": "Native name of the permanent Chinese lyric target"
+      },
+      {
+        "expression": "Content = \"English\"",
+        "reason": "Native name of the permanent English lyric target"
+      },
+      {
+        "expression": "Content = \"Vulkan\"",
+        "reason": "Graphics API identifier"
+      },
+      {
+        "expression": "Content = \"CUDA\"",
+        "reason": "Graphics API identifier"
+      }
+    ]
+  },
+  "englishReleaseContent": {
+    "paths": [
+      ".github/release-notes/*.md",
+      "website/_source/data/releases.json"
+    ],
+    "htmlMarker": "data-i18n-exempt=release-body with lang=en",
+    "reason": "New version summaries, changelog bodies and highlights are maintained only in English; surrounding UI remains translated"
+  },
+  "excludedInternalDomains": [
+    {
+      "path": "src/DropSpace.Core/Lyrics/**",
+      "reason": "Lyrics bodies, model instructions, protocol and classification vocabulary are not interface resources; exact frozen protocol/vocabulary guards remain enabled"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/**",
+      "reason": "Existing lyric business logic is outside interface translation"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/**",
+      "reason": "Synthetic diagnostic fixture text and diagnostic field identifiers"
+    }
+  ]
+}

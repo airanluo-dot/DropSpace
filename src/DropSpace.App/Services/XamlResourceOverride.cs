@@ -19,6 +19,7 @@ public sealed class XamlResourceOverride : DependencyObject
     private static readonly string[] LocalizedPropertyNames =
     [
         "Content",
+        "Header",
         "Message",
         "PlaceholderText",
         "Subtitle",
@@ -63,6 +64,14 @@ public sealed class XamlResourceOverride : DependencyObject
         if (strings is null)
         {
             return;
+        }
+
+        if (target is FrameworkElement element)
+        {
+            element.Language = strings.Culture.Name;
+            // Localized labels grow vertically instead of losing longer translations.
+            if (element is Microsoft.UI.Xaml.Controls.TextBlock label)
+                label.TextWrapping = TextWrapping.Wrap;
         }
 
         foreach (var propertyName in LocalizedPropertyNames)

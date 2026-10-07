@@ -98,7 +98,7 @@ export function createLatestChangeApi(releaseApi) {
 
   const title = releaseDisplayTitle(release);
   const englishHighlights = releaseHighlights(release.body);
-  const chineseHighlights = releaseHighlights(release.body, "中文说明");
+  const headline = release.isPrerelease ? "Latest Beta." : "Current Stable.";
   const payload = {
     schemaVersion: LATEST_CHANGE_API_SCHEMA_VERSION,
     generatedAt: releaseApi.generatedAt,
@@ -107,15 +107,15 @@ export function createLatestChangeApi(releaseApi) {
       tagName: release.tagName,
       channel: release.isPrerelease ? "beta" : "stable",
       headline: {
-        en: release.isPrerelease ? "Latest Beta." : "Current Stable.",
-        "zh-CN": release.isPrerelease ? "最新 Beta。" : "当前稳定版。"
+        en: headline,
+        "zh-CN": headline
       },
       title,
       publishedAt: release.publishedAt,
       htmlUrl: release.htmlUrl,
       highlights: {
         en: englishHighlights,
-        "zh-CN": chineseHighlights.length > 0 ? chineseHighlights : englishHighlights
+        "zh-CN": englishHighlights
       }
     }
   };
