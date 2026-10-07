@@ -928,7 +928,7 @@ jobs:
       needs.validate-release.outputs.ai_publication_authorized == 'true' &&
       (needs.validate-release.outputs.signing_required != 'true' || needs.sign-release.result == 'success')
     needs: [validate-release, sign-release]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       actions: write
