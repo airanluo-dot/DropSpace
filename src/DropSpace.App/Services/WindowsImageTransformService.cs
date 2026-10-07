@@ -13,8 +13,38 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
     private const int MaximumDimension = 16_384;
     private const long MaximumPixels = 64L * 1024 * 1024;
     private const int MaximumEncodedBytes = 256 * 1024 * 1024;
+    private readonly SemaphoreSlim _sourceInspectionSlots = new(4, 4);
 
-    public Task<ItemActionResult> ResizeAsync(
+    private async Task<ResolvedItemContent> ResolveImageForExecutionAsync(
+        DropItemSnapshot item, CancellationToken cancellationToken)
+    {
+        var owned = InspectOwnedAsync();
+        _ = owned.ContinueWith(static failed => { _ = failed.Exception; }, CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        return await owned.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        async Task<ResolvedItemContent> InspectOwnedAsync()
+        {
+            await _sourceInspectionSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                // A network open/read can outlast cancellation. Keep its admission
+                // slot until the actual filesystem/codec inspection has completed.
+                return await Task.Run(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var content = contentResolver.Resolve(item);
+                    if (content.IsImage && content.HasReadablePath &&
+                        WindowsImageCodecPreflight.CanDecode(content.ReadablePath!, content.Extension, content.MimeType))
+                        return content;
+                    return content with { IsAvailable = false, UnavailableReason = "The image codec or source is unavailable." };
+                }, CancellationToken.None).ConfigureAwait(false);
+            }
+            finally { _sourceInspectionSlots.Release(); }
+        }
+    }
+
+    public async Task<ItemActionResult> ResizeAsync(
         DropItemSnapshot item,
         string destinationDirectory,
         int width,
@@ -25,17 +55,17 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        var content = contentResolver.Resolve(item);
+        var content = await ResolveImageForExecutionAsync(item, cancellationToken);
         var validation = ValidateImage(content, destinationDirectory, width, height, outputFormat, requireFormat: false);
         if (validation is not null)
         {
-            return Task.FromResult(validation);
+            return validation;
         }
 
         // A new SoftwareBitmap is encoded, so source metadata is not copied. Keep the flag in
         // the interface for callers that explicitly request the privacy-preserving path.
         _ = stripMetadata;
-        return TransformAsync(
+        return await TransformAsync(
             item,
             content,
             destinationDirectory,
@@ -47,7 +77,7 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
             cancellationToken);
     }
 
-    public Task<ItemActionResult> ConvertAsync(
+    public async Task<ItemActionResult> ConvertAsync(
         DropItemSnapshot item,
         string destinationDirectory,
         string outputFormat,
@@ -57,7 +87,7 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        var content = contentResolver.Resolve(item);
+        var content = await ResolveImageForExecutionAsync(item, cancellationToken);
         var validation = ValidateImage(
             content,
             destinationDirectory,
@@ -67,10 +97,10 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
             requireFormat: true);
         if (validation is not null)
         {
-            return Task.FromResult(validation);
+            return validation;
         }
 
-        return TransformAsync(
+        return await TransformAsync(
             item,
             content,
             destinationDirectory,
@@ -82,21 +112,21 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
             cancellationToken);
     }
 
-    public Task<ItemActionResult> StripMetadataAsync(
+    public async Task<ItemActionResult> StripMetadataAsync(
         DropItemSnapshot item,
         string destinationDirectory,
         string? outputFormat = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        var content = contentResolver.Resolve(item);
+        var content = await ResolveImageForExecutionAsync(item, cancellationToken);
         var validation = ValidateImage(content, destinationDirectory, null, null, outputFormat, requireFormat: false);
         if (validation is not null)
         {
-            return Task.FromResult(validation);
+            return validation;
         }
 
-        return TransformAsync(
+        return await TransformAsync(
             item,
             content,
             destinationDirectory,
@@ -134,8 +164,8 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         }
 
         var target = width.HasValue && height.HasValue
-            ? CalculateSize(decoder.PixelWidth, decoder.PixelHeight, width.Value, height.Value, keepAspectRatio)
-            : (Width: (int)decoder.PixelWidth, Height: (int)decoder.PixelHeight);
+            ? CalculateSize(decoder.OrientedPixelWidth, decoder.OrientedPixelHeight, width.Value, height.Value, keepAspectRatio)
+            : (Width: (int)decoder.OrientedPixelWidth, Height: (int)decoder.OrientedPixelHeight);
         if ((long)target.Width * target.Height > MaximumPixels)
         {
             throw new InvalidDataException("The requested image dimensions are not supported.");
@@ -158,7 +188,10 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
 
             var outputFile = await StorageFile.GetFileFromPathAsync(outputPath!);
             using var destination = await outputFile.OpenAsync(FileAccessMode.ReadWrite);
-            using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+            using var bitmap = await decoder.GetSoftwareBitmapAsync(
+                BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
+                new BitmapTransform(), ExifOrientationMode.RespectExifOrientation,
+                ColorManagementMode.ColorManageToSRgb);
             cancellationToken.ThrowIfCancellationRequested();
             var imageEncoder = await BitmapEncoder.CreateAsync(encoder.EncoderId, destination);
             imageEncoder.SetSoftwareBitmap(bitmap);
@@ -191,8 +224,7 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         string? outputFormat,
         bool requireFormat)
     {
-        if (!content.IsImage || !content.HasReadablePath ||
-            !WindowsImageCodecPreflight.CanDecode(content.ReadablePath!, content.Extension, content.MimeType))
+        if (!content.IsImage || !content.HasReadablePath)
         {
             return ItemActionResult.Failure("image-codec-unavailable", "ActionSourceUnavailable");
         }
@@ -292,13 +324,16 @@ public sealed class ImageTransformActionService(
 
     internal static bool IsAvailableImage(ItemSelectionSnapshot selection, IItemContentResolver contentResolver)
     {
-        if (!selection.IsSingle || contentResolver.Resolve(selection.Single) is not
-            { IsImage: true, HasReadablePath: true, ReadablePath: not null } content)
-        {
-            return false;
-        }
-
-        return WindowsImageCodecPreflight.CanDecode(content.ReadablePath, content.Extension, content.MimeType);
+        _ = contentResolver; // Execution resolves the live source; presentation uses its snapshot.
+        if (!selection.IsSingle) return false;
+        var item = selection.Single;
+        var extension = ItemContentPolicy.NormalizeExtension(item.Extension ?? item.Payload?.RelativePath ?? item.OriginalPath);
+        var image = string.Equals(item.Payload?.Kind, "images", StringComparison.OrdinalIgnoreCase) ||
+            ItemContentPolicy.IsImage(item.Kind, extension, item.MimeType);
+        // Availability evaluation runs for every projected card on the dispatcher.
+        // It must not open a file or synchronously resolve an external/network path.
+        return image && item.Status == ItemStatus.Available &&
+            (item.Payload is not null || !string.IsNullOrWhiteSpace(item.OriginalPath));
     }
 
     public Task<ItemActionResult> ExecuteAsync(ItemActionContext context, CancellationToken cancellationToken = default)

@@ -120,8 +120,8 @@ public sealed partial class OverlayWindow : Window
     private OverlaySnapshot? _presentationSnapshot;
     private bool _mediaGeometryRefreshPending;
     private bool _preparingMediaGeometry;
-    private readonly long _compactPanelVisibilityToken;
-    private readonly long _expandedPanelVisibilityToken;
+    private readonly long? _compactPanelVisibilityToken;
+    private readonly long? _expandedPanelVisibilityToken;
     private MediaSessionSnapshot? _lastGlowSession;
     private IslandGlowTransfer? _glowTransfer;
 
@@ -305,10 +305,9 @@ public sealed partial class OverlayWindow : Window
         }
         catch
         {
-            StopAnimationFrames();
-            Closed -= OnTransparentHostClosed;
-            try { _transparentHost?.Dispose(); }
-            catch (Win32Exception exception) { _logger.LogError(exception, "Overlay erase-hook cleanup failed during construction."); }
+            RetireWindowResources();
+            try { Closed -= OnTransparentHostClosed; }
+            catch (Exception exception) { _logger.LogError(exception, "Overlay close-observer cleanup failed during construction."); }
             try { Close(); }
             catch (Exception exception) { _logger.LogError(exception, "Failed to close an incompletely initialized overlay."); }
             throw;
@@ -732,45 +731,74 @@ public sealed partial class OverlayWindow : Window
     public void CloseForShutdown()
     {
         if (_shutdownStarted) return;
+        RetireWindowResources();
+        if (!_windowClosed) Close();
+    }
+
+    private void RetireWindowResources()
+    {
+        if (_shutdownStarted) return;
         _shutdownStarted = true;
         _glowTransfer = null;
+        // Construction can fail after installing global observers but before every
+        // resource exists. Fence callbacks first and retire each initialized owner.
         _closing = true;
-        StopAnimationFrames();
-        _animationTimer.Tick -= _animationTimerHandler;
-        _windowLifetime.Cancel();
-        Views.ContentDialogLifetime.RetireRoot(Root.XamlRoot);
-        _mediaViewModel.PropertyChanged -= OnGlowMediaChanged;
-        MusicCompact.TranslationVisibilityChanged -= OnGlowTranslationVisibilityChanged;
-        MusicExpanded.TranslationVisibilityChanged -= OnGlowTranslationVisibilityChanged;
-        _mediaViewModel.SetIslandGlowActive(this, false);
-        _glow.Dispose();
         _presentationSnapshot = null;
-        _rightHoldTimer.Stop();
         _rightHoldPointer = null;
-        if (_placementEditActive)
+        if (_visualPreferences is { } preferences)
+            Cleanup("visual preference observer", () => preferences.Changed -= OnSystemVisualPreferencesChanged);
+        if (_mediaViewModel is { } media)
+            Cleanup("media observer", () => media.PropertyChanged -= OnGlowMediaChanged);
+        if (Root is { } root) Cleanup("theme observer", () => root.ActualThemeChanged -= OnIslandThemeChanged);
+        if (MusicCompact is { } compact)
         {
-            EndPlacementEditVisuals();
+            Cleanup("compact translation observer", () => compact.TranslationVisibilityChanged -= OnGlowTranslationVisibilityChanged);
+            Cleanup("compact geometry observer", () => compact.IdealWidthChanged -= OnMediaGeometryChanged);
         }
+        if (MusicExpanded is { } expanded)
+            Cleanup("expanded translation observer", () => expanded.TranslationVisibilityChanged -= OnGlowTranslationVisibilityChanged);
+        Cleanup("motion blur", ResetMotionBlur);
+        Cleanup("animation timer", () => _animationTimer?.Stop());
+        if (_displayAnimationFrames)
+            Cleanup("display frame observer", () => CompositionTarget.Rendering -= OnDisplayAnimationFrame);
+        _displayAnimationFrames = false;
+        _hasFrameSubscription = false;
+        _framePacer.Reset();
+        if (_animationTimer is { } animationTimer) Cleanup("animation timer observer", () => animationTimer.Tick -= _animationTimerHandler);
+        Cleanup("window cancellation", _windowLifetime.Cancel);
+        Cleanup("content dialogs", () => Views.ContentDialogLifetime.RetireRoot(Root?.XamlRoot));
+        Cleanup("right-hold timer", () => _rightHoldTimer?.Stop());
+        if (_placementEditActive) Cleanup("placement editing", EndPlacementEditVisuals);
         _suppressedForPlacementEdit = false;
-        RevokeNativeDropTarget();
-        _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
-        Root.ActualThemeChanged -= OnIslandThemeChanged;
-        _motion.Dispose();
-        _materialController.Dispose();
-        MusicCompact.IdealWidthChanged -= OnMediaGeometryChanged;
-        CompactPanel.UnregisterPropertyChangedCallback(UIElement.VisibilityProperty, _compactPanelVisibilityToken);
-        MusicCompact.SetActive(false);
-        ExpandedPanel.UnregisterPropertyChangedCallback(UIElement.VisibilityProperty, _expandedPanelVisibilityToken);
-        MusicExpanded.SetActive(false);
-        _presentationSnapshot = null;
-        WidgetsExpanded.SetActive(false);
-        ClipboardExpanded.SetActive(false);
-        _mediaViewModel.SetPresentationVisible(this, false);
-        if (!_windowClosed) Close();
+        Cleanup("native drop target", RevokeNativeDropTarget);
+        if (_compactPanelVisibilityToken is { } compactToken)
+            Cleanup("compact visibility observer", () => CompactPanel.UnregisterPropertyChangedCallback(UIElement.VisibilityProperty, compactToken));
+        if (_expandedPanelVisibilityToken is { } expandedToken)
+            Cleanup("expanded visibility observer", () => ExpandedPanel.UnregisterPropertyChangedCallback(UIElement.VisibilityProperty, expandedToken));
+        Cleanup("compact media", () => MusicCompact?.SetActive(false));
+        Cleanup("expanded media", () => MusicExpanded?.SetActive(false));
+        Cleanup("widgets", () => WidgetsExpanded?.SetActive(false));
+        Cleanup("clipboard", () => ClipboardExpanded?.SetActive(false));
+        Cleanup("media presentation", () => _mediaViewModel?.SetPresentationVisible(this, false));
+        Cleanup("media glow", () => _mediaViewModel?.SetIslandGlowActive(this, false));
+        Cleanup("glow resources", () => _glow?.Dispose());
+        Cleanup("motion resources", () => _motion?.Dispose());
+        // Motion construction itself can fail after the compositor was assigned.
+        Cleanup("composition resources", () => _compositionAnimator?.Dispose());
+        Cleanup("material resources", () => _materialController?.Dispose());
+        Cleanup("transparent host hook", () => _transparentHost?.Dispose());
+        Cleanup("window cancellation resources", _windowLifetime.Dispose);
+
+        void Cleanup(string stage, Action action)
+        {
+            try { action(); }
+            catch (Exception exception) { _logger.LogError(exception, "Overlay retirement failed at {Stage}; remaining cleanup will continue.", stage); }
+        }
     }
 
     private void OnGlowMediaChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (_closing) return;
         if (args.PropertyName == nameof(MediaViewModel.IsIslandGlowActive)) return;
         if (_lastGlowSession is { } previous && !previous.IsSameTrack(_mediaViewModel.Session))
             _glow.InvalidateFrameCapture();

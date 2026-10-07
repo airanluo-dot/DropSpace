@@ -59,6 +59,8 @@ public sealed partial class MainPage : Page
     private bool _syncingSettings;
     private bool _quickActionsSettingsBuilt;
     private bool _subscriptionsAttached;
+    private bool _presentationActive;
+    private long _navigationRevision;
 
     public MainPage(
         MainViewModel viewModel,
@@ -210,11 +212,23 @@ public sealed partial class MainPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs args) => Retire();
 
-    internal void SetMusicPresentationActive(bool active) => _musicPage.SetActive(active);
+    internal void SetPresentationActive(bool active)
+    {
+        _presentationActive = active;
+        UpdatePresentationActivity();
+    }
+
+    private void UpdatePresentationActivity()
+    {
+        var active = _presentationActive && !_dialogLifetime.IsCancellationRequested;
+        _musicPage.SetActive(active && _viewModel.IsMusicVisible);
+        UpdateSettingsPresentationActivity(active && _viewModel.CurrentSection == "Settings");
+    }
 
     internal void Retire()
     {
-        _musicPage.SetActive(false);
+        SetPresentationActive(false);
+        Interlocked.Increment(ref _navigationRevision);
         _dialogLifetime.Cancel();
         if (!_subscriptionsAttached)
         {
@@ -263,8 +277,14 @@ public sealed partial class MainPage : Page
 
     private async Task SelectSectionAsync(string section)
     {
+        var revision = Interlocked.Increment(ref _navigationRevision);
+        var ownerToken = _dialogLifetime.Token;
         await _settingsEditor.FlushEditsAsync();
+        if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return;
         await _settingsEditor.FlushDownloadLimitsAsync();
+        // A newer request may bypass a flush that already drained its pending queue.
+        // Only the latest live request may publish its destination after that save.
+        if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return;
         _syncingNavigation = true;
         try
         {
@@ -2192,6 +2212,7 @@ public sealed partial class MainPage : Page
 
     private void UpdateSectionChrome()
     {
+        UpdatePresentationActivity();
         var section = _viewModel.CurrentSection;
         HeaderDescription.HorizontalAlignment = section is "Settings" or "Music" ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
         AddButton.Visibility = section == "Space" ? Visibility.Visible : Visibility.Collapsed;

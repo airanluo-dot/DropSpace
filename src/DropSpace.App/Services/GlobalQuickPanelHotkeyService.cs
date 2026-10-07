@@ -118,6 +118,9 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
     private void StartCore(string gesture)
     {
         _definition = Parse(gesture);
+        // Track the thread's actual target before it can register. If readiness is
+        // cancelled or times out, compensation must not mistake it for the old key.
+        _gesture = gesture;
         _readySignal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _exitSignal = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         _thread = new Thread(MessageThreadMain)

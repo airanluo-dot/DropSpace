@@ -202,7 +202,7 @@ public sealed class DeviceHandoffService(
             {
                 secret = await secrets.GetAsync(peer.Id, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or CryptographicException)
+            catch (Exception exception) when (exception is InvalidDataException or CryptographicException)
             {
                 // Invalid protected material cannot authorize the peer. Retain the
                 // pending row until both sides of the cleanup have settled so restart
@@ -236,9 +236,9 @@ public sealed class DeviceHandoffService(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            // A durable secret plus a failed metadata commit is still recoverable:
-            // leave the PairingPending row and secret in place for the next startup.
-            logger.LogWarning(exception, "Peer pairing reconciliation could not commit trust for {PeerId}; the row remains non-authorizing.", peer.Id);
+            // Read/access failures do not prove protected material is invalid. Leave
+            // the pending row and secret intact so later reconciliation can retry.
+            logger.LogWarning(exception, "Peer pairing reconciliation remains retryable for {PeerId}; the row remains non-authorizing.", peer.Id);
         }
         finally
         {
@@ -257,7 +257,7 @@ public sealed class DeviceHandoffService(
                 await transfers.UpdatePeerTrustStateAsync(peer.Id, PeerTrustState.PairingPending, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or CryptographicException)
+        catch (Exception exception) when (exception is InvalidDataException or CryptographicException)
         {
             logger.LogWarning(exception, "Peer trust reconciliation failed for {PeerId}.", peer.Id);
             try
@@ -271,6 +271,12 @@ public sealed class DeviceHandoffService(
             {
                 logger.LogWarning(stateException, "Peer {PeerId} could not be reconciled after secret validation failed.", peer.Id);
             }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Native request authentication still reads this secret independently.
+            // Preserve valid pairing state when local storage is temporarily unreadable.
+            logger.LogWarning(exception, "Peer secret read remains retryable for {PeerId}.", peer.Id);
         }
         finally
         {

@@ -1496,8 +1496,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
 
         using var bitmap = await decoder.GetSoftwareBitmapAsync(
-            BitmapPixelFormat.Bgra8,
-            BitmapAlphaMode.Premultiplied);
+            BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
+            new BitmapTransform(), ExifOrientationMode.RespectExifOrientation,
+            ColorManagementMode.ColorManageToSRgb);
         using var encodedStream = new InMemoryRandomAccessStream();
         var encoder = await BitmapEncoder.CreateAsync(
             BitmapEncoder.PngEncoderId,
@@ -1528,8 +1529,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             bytes,
             null,
             FingerprintService.ForBytes(bytes),
-            checked((int)decoder.PixelWidth),
-            checked((int)decoder.PixelHeight),
+            checked((int)decoder.OrientedPixelWidth),
+            checked((int)decoder.OrientedPixelHeight),
             decoder.BitmapAlphaMode != BitmapAlphaMode.Ignore,
             "image/png");
     }

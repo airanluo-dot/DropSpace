@@ -343,7 +343,7 @@ public sealed class QuickActionDialogService(
         using var stream = await file.OpenReadAsync();
         var decoder = await ImageDecoderPreflight.ValidateAsync(stream, 256L * 1024 * 1024,
             ImageSizePresetPolicy.MaximumPixels, cancellationToken);
-        return ImageSizePresetPolicy.Scale(checked((int)decoder.PixelWidth), checked((int)decoder.PixelHeight), 100);
+        return ImageSizePresetPolicy.Scale(checked((int)decoder.OrientedPixelWidth), checked((int)decoder.OrientedPixelHeight), 100);
     }
 
     private ComboBox CreateFormatSelector(DropItemSnapshot item, ItemActionId actionId)

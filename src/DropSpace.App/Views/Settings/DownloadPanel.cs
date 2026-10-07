@@ -33,7 +33,9 @@ public sealed class DownloadPanel : UserControl
     private readonly TextBlock _speedLabel = new() { TextWrapping = TextWrapping.Wrap };
     private readonly ComboBox _concurrentDownloads = new() { ItemsSource = new[] { 1, 2, 3 }, MinWidth = 100, HorizontalAlignment = HorizontalAlignment.Left };
     private bool _syncing;
-    private bool _loaded;
+    private volatile bool _loaded;
+    private volatile bool _active;
+    private bool CanRefresh => _loaded && _active;
     private readonly HashSet<uint> _limitPointers = [];
     private string _lastDefaultDirectory;
     private bool _defaultDirectoryDirty;
@@ -93,7 +95,7 @@ public sealed class DownloadPanel : UserControl
         NameControl(_connections, "DownloadConnections"); NameControl(_connectionsNumber, "DownloadConnections");
         NameControl(_speed, "DownloadSpeed"); NameControl(_speedNumber, "DownloadSpeed");
         _directory.Text = editor.DefaultDownloadDirectory;
-        RefreshSettings();
+        RefreshSettings(force: true);
         _concurrentDownloads.SelectionChanged += (_, _) =>
         {
             if (_concurrentDownloads.SelectedIndex >= 0)
@@ -128,7 +130,8 @@ public sealed class DownloadPanel : UserControl
         {
             if (_loaded) return; _loaded = true;
             editor.PropertyChanged += SettingsChanged; editor.Downloads.Changed += DownloadsChanged;
-            editor.Downloads.TaskChanged += TaskChanged; RefreshSettings(); Render();
+            editor.Downloads.TaskChanged += TaskChanged;
+            if (CanRefresh) { RefreshSettings(); Render(); }
         };
         Unloaded += async (_, _) =>
         {
@@ -138,6 +141,12 @@ public sealed class DownloadPanel : UserControl
             await editor.FlushDownloadLimitsAsync();
             await SaveDirectoryAsync();
         };
+    }
+    internal void SetActive(bool active)
+    {
+        if (_active == active) return;
+        _active = active;
+        if (CanRefresh) { RefreshSettings(); Render(); }
     }
     private async void FinishLimitPointer(object sender, PointerRoutedEventArgs args)
     {
@@ -189,8 +198,9 @@ public sealed class DownloadPanel : UserControl
     }
     private void SettingsChanged(object? sender, PropertyChangedEventArgs args)
     { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) RefreshSettings(); }
-    private void RefreshSettings()
+    private void RefreshSettings(bool force = false)
     {
+        if (!force && !CanRefresh) return;
         _syncing = true;
         var directory = _editor.DefaultDownloadDirectory;
         if (_directory.Text == _lastDefaultDirectory) _directory.Text = directory;
@@ -208,6 +218,7 @@ public sealed class DownloadPanel : UserControl
     private void UpdateSpeedLabel() => _speedLabel.Text = _speed.Value == 0 ? _strings.Get("DownloadUnlimited") : $"{_speed.Value:0} MiB/s";
     private void Render()
     {
+        if (!CanRefresh) return;
         var tasks = _editor.Downloads.GetVisibleTasks(_historyLimit);
         var visible = new HashSet<Guid>();
         for (var index = 0; index < tasks.Count; index++)
@@ -221,13 +232,21 @@ public sealed class DownloadPanel : UserControl
         { _rows.Remove(row); _rowsById.Remove(row.Snapshot.Id); }
         if (_editor.Downloads.RecoveryError is not null) _error.Text = _strings.Get("DownloadRecoveryWarning");
     }
-    private void DownloadsChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() => { if (_loaded) Render(); });
-    private void TaskChanged(object? sender, DownloadTaskSnapshot item) => DispatcherQueue.TryEnqueue(() =>
+    private void DownloadsChanged(object? sender, EventArgs args)
     {
-        if (!_loaded) return;
-        if (!_rowsById.TryGetValue(item.Id, out var row) || row.Snapshot.State != item.State) Render();
-        else row.Update(item);
-    });
+        if (!CanRefresh) return;
+        DispatcherQueue.TryEnqueue(() => { if (CanRefresh) Render(); });
+    }
+    private void TaskChanged(object? sender, DownloadTaskSnapshot item)
+    {
+        if (!CanRefresh) return;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!CanRefresh) return;
+            if (!_rowsById.TryGetValue(item.Id, out var row) || row.Snapshot.State != item.State) Render();
+            else row.Update(item);
+        });
+    }
     private void UpdateRow(DownloadTaskSnapshot item)
     {
         if (_rowsById.TryGetValue(item.Id, out var row)) row.Update(item);

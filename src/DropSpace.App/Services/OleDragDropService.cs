@@ -911,16 +911,17 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     public int DragEnter(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
     {
-        try { return DragEnterCore(dataObject, keyState, point, ref effect); }
+        var generation = _dragGeneration;
+        try { return DragEnterCore(dataObject, keyState, point, ref effect, ref generation); }
         catch (Exception exception)
         {
             effect = DropEffectNone;
-            RejectCallbackFailure(exception, "DragEnter");
+            RejectCallbackFailure(exception, "DragEnter", generation);
             return Success;
         }
     }
 
-    private int DragEnterCore(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
+    private int DragEnterCore(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect, ref long generation)
     {
         if (_disposed) { effect = DropEffectNone; return Success; }
         if (Volatile.Read(ref _dropCancellation) is not null)
@@ -932,16 +933,22 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             return Success;
         }
         _rejectedWhileVirtualDropPending = false;
-        ++_dragGeneration;
+        generation = ++_dragGeneration;
         _currentDataObject = dataObject;
         var discoveredWindow = WindowFromPoint(point);
         try
         {
-            _classification = _fileDataClassifier.Classify(dataObject);
-            _classification = _fileDataClassifier.ResolveAcceptance(dataObject, _classification);
+            // Foreign COM calls can pump this STA and retire or supersede the target.
+            // Keep results local until the originating callback still owns publication.
+            var classification = _fileDataClassifier.Classify(dataObject);
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
+            classification = _fileDataClassifier.ResolveAcceptance(dataObject, classification);
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
+            _classification = classification;
         }
         catch (Exception exception)
         {
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
             _classification = OleFileDataClassification.None;
             _logger.LogWarning(
                 exception,
@@ -950,6 +957,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 _monitorId);
         }
 
+        if (RejectRetiredCallback(generation, ref effect)) return Success;
         _canAccept = _classification.CanAuthorizeVisual;
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         _logger.LogInformation(
@@ -961,12 +969,17 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             _canAccept,
             discoveredWindow,
             discoveredWindow == _windowHandle);
+        if (RejectRetiredCallback(generation, ref effect)) return Success;
         if (_canAccept)
         {
             _callbacks.DragApproaching(_monitorId);
-            _lastReady = _isReady(point);
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
+            var ready = _isReady(point);
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
+            _lastReady = ready;
             _dragOverCount = 0;
-            _callbacks.DragReadyChanged(_monitorId, _lastReady);
+            _callbacks.DragReadyChanged(_monitorId, ready);
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
         }
 
         return Success;
@@ -974,24 +987,27 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     public int DragOver(uint keyState, NativePoint point, ref uint effect)
     {
-        try { return DragOverCore(keyState, point, ref effect); }
+        var generation = _dragGeneration;
+        try { return DragOverCore(keyState, point, ref effect, generation); }
         catch (Exception exception)
         {
             effect = DropEffectNone;
-            RejectCallbackFailure(exception, "DragOver");
+            RejectCallbackFailure(exception, "DragOver", generation);
             return Success;
         }
     }
 
-    private int DragOverCore(uint keyState, NativePoint point, ref uint effect)
+    private int DragOverCore(uint keyState, NativePoint point, ref uint effect, long generation)
     {
         if (_disposed || _rejectedWhileVirtualDropPending) { effect = DropEffectNone; return Success; }
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         if (_canAccept)
         {
             var ready = _isReady(point);
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
             var count = Interlocked.Increment(ref _dragOverCount);
             _callbacks.DragReadyChanged(_monitorId, ready);
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
             if (count == 1 || ready != _lastReady)
             {
                 _logger.LogInformation(
@@ -1000,6 +1016,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                     _monitorId,
                     ready,
                     count);
+                if (RejectRetiredCallback(generation, ref effect)) return Success;
                 _lastReady = ready;
             }
         }
@@ -1009,15 +1026,16 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     public int DragLeave()
     {
-        try { return DragLeaveCore(); }
+        var generation = _dragGeneration;
+        try { return DragLeaveCore(generation); }
         catch (Exception exception)
         {
-            RejectCallbackFailure(exception, "DragLeave");
+            RejectCallbackFailure(exception, "DragLeave", generation);
             return Success;
         }
     }
 
-    private int DragLeaveCore()
+    private int DragLeaveCore(long generation)
     {
         if (_disposed) return Success;
         if (_rejectedWhileVirtualDropPending)
@@ -1030,10 +1048,11 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             _surfaceKind,
             _monitorId,
             Interlocked.Read(ref _dragOverCount));
+        if (!IsCallbackCurrent(generation)) return Success;
         _currentDataObject = null;
         _canAccept = false;
         _classification = OleFileDataClassification.None;
-        NotifyDragLeft();
+        NotifyDragLeft(generation);
         return Success;
     }
 
@@ -1046,6 +1065,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             effect = DropEffectNone;
             return Success;
         }
+        var generation = _dragGeneration;
         try
         {
             if (_classification.Kind == OleFileDataKind.VirtualFiles)
@@ -1054,18 +1074,22 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 if (effect == DropEffectCopy)
                 {
                     var current = CaptureCompletionGuard();
+                    if (RejectRetiredCallback(generation, ref effect)) return Success;
                     var cancellation = new CancellationTokenSource();
                     _dropCancellation = cancellation;
-                    _lastDropCompletion = CompleteVirtualDropAsync(dataObject, cancellation, current);
+                    var completion = CompleteVirtualDropAsync(dataObject, cancellation, current);
+                    if (RejectRetiredCallback(generation, ref effect)) return Success;
+                    _lastDropCompletion = completion;
                 }
                 else
                 {
-                    NotifyDragLeft();
+                    NotifyDragLeft(generation);
                 }
                 return Success;
             }
 
             var paths = _fileDataClassifier.ReadFileSystemPaths(dataObject, _classification);
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
             // Once OLE selected this HWND and CF_HDROP was accepted, keep target ownership through
             // Drop. Re-evaluating a smaller visual-ready rectangle here made a valid Explorer drop
             // fail with DROPEFFECT_NONE when the final cursor sample landed on an animated edge.
@@ -1078,33 +1102,51 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 paths.Count,
                 effect == DropEffectCopy,
                 Interlocked.Read(ref _dragOverCount));
+            if (RejectRetiredCallback(generation, ref effect)) return Success;
             if (effect == DropEffectCopy)
             {
-                _lastDropCompletion = CompleteDropAsync(paths, CaptureCompletionGuard());
-                _ = _lastDropCompletion;
+                var current = CaptureCompletionGuard();
+                if (RejectRetiredCallback(generation, ref effect)) return Success;
+                var completion = CompleteDropAsync(paths, current);
+                if (RejectRetiredCallback(generation, ref effect)) return Success;
+                _lastDropCompletion = completion;
             }
             else
             {
-                NotifyDragLeft();
+                NotifyDragLeft(generation);
             }
         }
         catch (Exception exception)
         {
             effect = DropEffectNone;
-            RejectCallbackFailure(exception, "Drop");
+            RejectCallbackFailure(exception, "Drop", generation);
         }
         finally
         {
-            _currentDataObject = null;
-            _canAccept = false;
-            _classification = OleFileDataClassification.None;
+            if (IsCallbackCurrent(generation))
+            {
+                _currentDataObject = null;
+                _canAccept = false;
+                _classification = OleFileDataClassification.None;
+            }
         }
 
         return Success;
     }
 
-    private void RejectCallbackFailure(Exception exception, string operation)
+    private bool IsCallbackCurrent(long generation) => !_disposed && generation == _dragGeneration;
+
+    private bool RejectRetiredCallback(long generation, ref uint effect)
     {
+        if (IsCallbackCurrent(generation)) return false;
+        effect = DropEffectNone;
+        return true;
+    }
+
+    private void RejectCallbackFailure(Exception exception, string operation, long generation)
+    {
+        // A retired callback must not clear a newer drag or publish its cleanup.
+        if (!IsCallbackCurrent(generation)) return;
         // Native callbacks must fail closed even when both the visual callback and its
         // cleanup fail. Clear ownership before reporting or attempting that cleanup.
         _currentDataObject = null;
@@ -1112,11 +1154,12 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         _classification = OleFileDataClassification.None;
         _lastReady = false;
         ReportCallbackFailure(exception, operation);
-        NotifyDragLeft();
+        NotifyDragLeft(generation);
     }
 
-    private void NotifyDragLeft()
+    private void NotifyDragLeft(long? generation = null)
     {
+        if (generation is { } originatingGeneration && !IsCallbackCurrent(originatingGeneration)) return;
         try { _callbacks.DragLeft(_monitorId); }
         catch (Exception exception) { ReportCallbackFailure(exception, "DragLeft cleanup"); }
     }

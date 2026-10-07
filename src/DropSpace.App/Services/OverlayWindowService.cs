@@ -708,10 +708,6 @@ public sealed class OverlayWindowService : IDisposable
         {
             ApplySnapshot(_viewModel.Snapshot);
         }
-        else if (args.PropertyName == nameof(OverlayViewModel.QuickPanelHotkey))
-        {
-            _ = RestartQuickPanelHotkeyAsync(_viewModel.QuickPanelHotkey);
-        }
         else if (args.PropertyName == nameof(OverlayViewModel.SmartDragExcludedProcesses))
         {
             _dragSessionDetector.SetExcludedProcesses(_viewModel.SmartDragExcludedProcesses);
@@ -858,21 +854,6 @@ public sealed class OverlayWindowService : IDisposable
         foreach (var window in _windows)
         {
             window.ResumeAfterPlacementEdit();
-        }
-    }
-
-    private async Task RestartQuickPanelHotkeyAsync(string gesture)
-    {
-        try
-        {
-            if (!await _quickPanelHotkey.TryStartAsync(gesture).ConfigureAwait(false))
-            {
-                _logger.LogWarning("Quick Panel retained its previous registered hotkey after a registration conflict.");
-            }
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            _logger.LogWarning(exception, "Quick Panel hotkey restart failed safely.");
         }
     }
 

@@ -113,6 +113,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         RootContent.Content = _mainPage;
         AppWindow.Changed += OnWindowPresentationChanged;
         _viewModel.PropertyChanged += OnMediaSectionChanged;
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateMediaVisibility();
     }
 
@@ -139,10 +140,10 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     }
     private void UpdateMediaVisibility()
     {
-        var active = !_allowClose && _viewModel.IsMusicVisible && AppWindow.IsVisible &&
+        var hostActive = !_allowClose && AppWindow.IsVisible &&
             AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized };
-        _media.SetPresentationVisible(this, active);
-        _mainPage.SetMusicPresentationActive(active);
+        _media.SetPresentationVisible(this, hostActive && _viewModel.IsMusicVisible);
+        _mainPage.SetPresentationActive(hostActive);
     }
 
     public void InitializeTray(ILogger<NativeTrayService> logger)
@@ -163,7 +164,6 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
                 await _mainPage.ConfirmClearAsync(ClearRange.All);
             });
             _tray.ExitRequested += (_, _) => DispatcherQueue.TryEnqueue(() => ExitRequested?.Invoke(this, EventArgs.Empty));
-            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
             _tray.Add();
             _tray.SetPaused(_viewModel.IsClipboardPaused);
         }

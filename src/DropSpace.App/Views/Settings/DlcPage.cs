@@ -27,6 +27,7 @@ public sealed class DlcPage : UserControl
     private CancellationTokenSource? _pageStop;
     private bool _confirming;
     private int _renderQueued;
+    private volatile bool _active;
 
     public DlcPage(DlcManagerService manager, IAppStringLocalizer strings, ViewModels.NativeSettingsEditor editor)
     {
@@ -73,6 +74,13 @@ public sealed class DlcPage : UserControl
         };
     }
 
+    internal void SetActive(bool active)
+    {
+        if (_active == active) return;
+        _active = active;
+        if (active && _pageStop is not null) Render();
+    }
+
     private TextBlock Heading(string key) => new()
     {
         Text = _strings.Get(key), FontSize = 18, FontWeight = FontWeights.SemiBold,
@@ -81,13 +89,14 @@ public sealed class DlcPage : UserControl
 
     private void OnChanged(object? sender, EventArgs args)
     {
+        if (!_active) return;
         if (Interlocked.Exchange(ref _renderQueued, 1) != 0) return;
         try
         {
             if (!DispatcherQueue.TryEnqueue(() =>
             {
                 Interlocked.Exchange(ref _renderQueued, 0);
-                if (_pageStop is not null) Render();
+                if (_active && _pageStop is not null) Render();
             })) Interlocked.Exchange(ref _renderQueued, 0);
         }
         catch (Exception error)
@@ -99,6 +108,7 @@ public sealed class DlcPage : UserControl
 
     private void Render()
     {
+        if (!_active || _pageStop is null) return;
         var snapshots = _manager.Packages;
         var ids = snapshots.Select(item => item.Package.Id).ToHashSet(StringComparer.Ordinal);
         foreach (var obsolete in _cards.Keys.Where(id => !ids.Contains(id)).ToArray())
@@ -199,6 +209,7 @@ public sealed class DlcPage : UserControl
             var actions = new DownloadActionPanel();
             foreach (var button in new[] { _download, _delete, _retry, _cancel })
             {
+                button.Content = new TextBlock { TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
                 button.MinHeight = 36; button.Padding = new(12, 6, 12, 6); button.FontSize = 14;
                 button.VerticalContentAlignment = VerticalAlignment.Center;
                 actions.Children.Add(button);
@@ -266,7 +277,9 @@ public sealed class DlcPage : UserControl
         private void UpdateButton(Button button, string key, bool visible, bool enabled, string name)
         {
             var label = _strings.Get(key);
-            button.Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center }; button.Visibility = visible ? Visibility.Visible : Visibility.Collapsed; button.IsEnabled = enabled;
+            var content = (TextBlock)button.Content;
+            if (content.Text != label) content.Text = label;
+            button.Visibility = visible ? Visibility.Visible : Visibility.Collapsed; button.IsEnabled = enabled;
             AutomationProperties.SetName(button, _strings.Format("DlcPackageAction", label, name));
         }
 

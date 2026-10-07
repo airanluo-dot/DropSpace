@@ -46,15 +46,21 @@ public sealed class DeviceSecretStore(AppStoragePaths paths)
     public async Task<byte[]?> GetAsync(Guid peerId, CancellationToken cancellationToken = default)
     {
         var path = GetPath(Path.Combine(paths.Data, "secrets"), peerId);
-        if (!File.Exists(path)) return null;
-
-        var info = new FileInfo(path);
-        if (info.Length is <= 0 or > MaximumProtectedSecretBytes)
+        byte[] protectedBytes;
+        try
         {
-            throw new InvalidDataException("The protected device secret exceeds the bounded storage policy.");
-        }
+            // File.Exists hides access/I/O failures as false. Only an established
+            // missing path may represent an absent secret to trust reconciliation.
+            var info = new FileInfo(path);
+            if (info.Length is <= 0 or > MaximumProtectedSecretBytes)
+            {
+                throw new InvalidDataException("The protected device secret exceeds the bounded storage policy.");
+            }
 
-        var protectedBytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+            protectedBytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        }
+        catch (FileNotFoundException) { return null; }
+        catch (DirectoryNotFoundException) { return null; }
         try
         {
             if (protectedBytes.Length is <= 0 or > MaximumProtectedSecretBytes)
