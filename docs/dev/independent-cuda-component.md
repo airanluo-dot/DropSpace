@@ -55,7 +55,10 @@ per-Beta allowlist of CUDA reuploads. The exact App tag/commit, component identi
 ABI/profile, trusted URL, sizes and hashes still fail closed in the build checker
 and runtime. The downloaded descriptor never supplies its own trust anchor.
 Explicit download consent, allowed redirect hosts, bounded extraction and file
-verification remain unchanged.
+verification remain unchanged. App releases may publish the two small JSON files
+for audit without duplicating the ZIP. The published-release verifier retains
+historical schema 1 validation and checks schema 2 metadata against the separate
+published component asset.
 
 ## Publication order and next App release
 
