@@ -7,6 +7,9 @@ permissions:
   contents: read
   actions: read
   pages: read
+defaults:
+  run:
+    shell: bash
 concurrency:
   group: ubuntu-runner-compat-${{ github.ref }}
   cancel-in-progress: false
@@ -54,9 +57,10 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/releases/tags/v0.3.1-beta.17" --jq '{id,tag_name,target_commitish,draft,prerelease,assets:[.assets[]|{id,name,size,digest}]}' > runner-compat/evidence/beta17.json
           gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v0.3.1-beta.17" --jq '.object' > runner-compat/evidence/beta17-tag.json
-          gh workflow view deploy-website.yml --ref main > runner-compat/evidence/gh-workflow.txt
+          gh workflow view deploy-website.yml --yaml --ref main > runner-compat/evidence/gh-workflow.txt
           gh workflow run --help >/dev/null
           node website/_source/scripts/verify-published-release.mjs v0.3.1-beta.17 180 release 2>&1 | tee runner-compat/evidence/live.log
+          node website/_source/scripts/verify-published-release.mjs v0.2.1 180 live 2>&1 | tee runner-compat/evidence/live-stable.log
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: 24
@@ -143,7 +147,7 @@ jobs:
         env:
           COMPAT_KIND: pages
           COMPAT_ARTIFACT: compat-pages-${{ matrix.os }}
-      - name: Exercise exact release bundle on Actions Node20 (API mutations isolated)
+      - name: Exercise Node20-declared release bundle on actual Actions runtime (API mutations isolated)
         id: release-action
         continue-on-error: true
         uses: ./runner-compat/actions/release
@@ -171,44 +175,8 @@ jobs:
         if: always()
         run: |
           node -e "const r=require('./runner-compat/evidence/outcomes.json');const bad=Object.entries(r.outcomes).filter(([,v])=>v!=='success');if(bad.length){console.error(bad);process.exit(1)}"
-  patch-candidates:
-    name: Prepare minimal runner-only patch candidates (no refs changed)
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        with:
-          ref: 00d07b3773dc614587b75fbcf1affd45a136535b
-          persist-credentials: false
-      - name: Create unreferenced Git blobs for the two possible runner decisions
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          node --input-type=module - <<'JS'
-          import fs from 'node:fs';
-          const result={};
-          for(const runner of ['ubuntu-24.04','ubuntu-26.04']) {
-            result[runner]=[];
-            for(const [path,count] of [['.github/workflows/deploy-website.yml',3],['.github/workflows/release.yml',1],['.github/workflows/ci.yml',1]]) {
-              const old=fs.readFileSync(path,'utf8');
-              if(old.split('runs-on: ubuntu-latest').length-1!==count) throw new Error('Unexpected runner count '+path);
-              const content=old.replaceAll('runs-on: ubuntu-latest','runs-on: '+runner);
-              const response=await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/blobs`,{method:'POST',headers:{authorization:`Bearer ${process.env.GH_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({content,encoding:'utf-8'})});
-              if(!response.ok)throw new Error(`${response.status}: ${await response.text()}`);
-              result[runner].push({path,mode:'100644',type:'blob',sha:(await response.json()).sha});
-            }
-          }
-          console.log('PATCH_CANDIDATES='+JSON.stringify(result));
-          fs.writeFileSync('runner-patch-candidates.json',JSON.stringify(result,null,2));
-          JS
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        with:
-          name: runner-patch-candidates
-          path: runner-patch-candidates.json
-          retention-days: 7
   compare:
-    name: Compare identical-source outputs
+    name: Compare outputs and disclose identical pre-existing test failures
     runs-on: ubuntu-24.04
     needs: linux
     if: always()
@@ -223,3 +191,29 @@ jobs:
           b=$(find comparison/compat-evidence-ubuntu-26.04 -name fixture.sha256)
           test -n "$a" && test -n "$b"
           diff -u "$a" "$b"
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          const expected=[
+            'actual workflow routes website-only changes without claiming application validation',
+            'website changes mixed with application, packaging, update, or other workflow inputs require Windows validation',
+            'corrective Beta application and CI-only changes retain the exact release route',
+            'unknown events, invalid base identities, and incomplete Git inspection fail closed'
+          ].sort();
+          const reports=[];
+          for(const os of ['ubuntu-24.04','ubuntu-26.04']) {
+            const dir=path.join('comparison','compat-evidence-'+os,'runner-compat/evidence');
+            const {outcomes}=JSON.parse(fs.readFileSync(path.join(dir,'outcomes.json'),'utf8'));
+            assert.deepEqual(Object.entries(outcomes).filter(([,v])=>v!=='success'),[['static','failure']]);
+            const log=fs.readFileSync(path.join(dir,'static.log'),'utf8');
+            const names=[...new Set([...log.matchAll(/^✖ (.+) \([\d.]+ms\)$/gm)].map(m=>m[1]))].sort();
+            assert.deepEqual(names,expected);
+            assert.match(log,/ℹ tests 107/); assert.match(log,/ℹ pass 103/); assert.match(log,/ℹ fail 4/);
+            assert.match(log,/ci-website-scope\.test\.mjs:39:10/);
+            const report={os,static:{tests:107,pass:103,fail:4,failures:names},otherRecordedPaths:'success',fixtureFiles:'identical',classification:'same existing single-line GITHUB_OUTPUT assertion mismatch; static suite NOT passing'};
+            reports.push(report);
+          }
+          console.log(JSON.stringify(reports,null,2));
+          fs.writeFileSync(process.env.GITHUB_STEP_SUMMARY,'## Runner differential comparison\n\nBoth images have the same four pre-existing static-test failures (103/107 passed); the suite is NOT passing. All other recorded paths succeeded and fixture file hashes are identical. No new Ubuntu 26.04 failure was detected.\n');
+          JS
