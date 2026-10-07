@@ -55,7 +55,7 @@ if(cmd==='preflight'){
   assert.deepEqual(actual,expected,'Unclassified workflow added; review passive case budget');
   for(const file of diag){
     const content=read(path.join(root,file));
-    assert.match(content,/^on:\n  workflow_dispatch:/,'Manual trigger missing: '+file);
+    assert.match(content,/^on:\n  workflow_dispatch:/m,'Manual trigger missing: '+file);
     assert.doesNotMatch(content,/^  (push|pull_request|release|schedule|create|workflow_run):/m,'Automatic model/visual tests detected: '+file);
   }
   const ci=read(path.join(root,'ci.yml'));
