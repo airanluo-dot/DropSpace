@@ -1,0 +1,6 @@
+{
+  "scenario": 20,
+  "name": "Blocked localStorage retains manual German across refresh, preserving unified URL/query/hash and other history state",
+  "result": "passed",
+  "scope": "One new functional browser scenario; no prior scenario rerun"
+}

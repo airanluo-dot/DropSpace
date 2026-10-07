@@ -3,6 +3,7 @@
   if (window.DropSpaceI18n) { window.DropSpaceI18n.apply(); return; }
   const { catalog, resources } = __LOCALIZATION_PAYLOAD__;
   const storageKey = 'dropspace.interfaceLanguage';
+  const historyKey = 'dropspace.interfaceLanguageFallback';
   const root = document.documentElement;
   const supported = new Map(catalog.languages.map(language => [language.code.toLowerCase(), language.code]));
   function matchLanguage(value) {
@@ -28,9 +29,23 @@
   const linkedLanguage = supported.get((parameters.get('ds-language') || '').toLowerCase());
   let saved, storageAvailable = true;
   try { saved = supported.get((localStorage.getItem(storageKey) || '').toLowerCase()); } catch { storageAvailable = false; }
-  let language = linkedLanguage || saved || preferredLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]);
+  let pageChoice;
+  try { pageChoice = supported.get(String(history.state?.[historyKey] || '').toLowerCase()); } catch { /* Browser preferences remain available. */ }
+  let language = linkedLanguage || pageChoice || saved || preferredLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]);
+  function rememberLanguage(choice) {
+    try { localStorage.setItem(storageKey, choice); } catch { storageAvailable = false; }
+    try {
+      const previous = history.state;
+      // Preserve other page state; opaque states keep the existing navigation fallback.
+      if (previous !== null && (typeof previous !== 'object' || Array.isArray(previous))) return;
+      if (storageAvailable && !Object.hasOwn(previous || {}, historyKey)) return;
+      const next = { ...(previous || {}) };
+      if (storageAvailable) delete next[historyKey]; else next[historyKey] = choice;
+      history.replaceState(next, '', location.href);
+    } catch { /* Internal links still carry the choice when browser state is unavailable. */ }
+  }
   if (linkedLanguage) {
-    try { localStorage.setItem(storageKey, linkedLanguage); } catch { storageAvailable = false; }
+    rememberLanguage(linkedLanguage);
     parameters.delete('ds-language');
     try { history.replaceState(history.state, '', location.pathname + (parameters.size ? '?' + parameters.toString() : '') + location.hash); } catch { /* The page remains usable. */ }
   }
@@ -58,7 +73,7 @@
         selector.dataset.initialized = 'true';
         selector.addEventListener('change', () => {
           language = supported.get(selector.value.toLowerCase()) || catalog.defaultLanguage;
-          try { localStorage.setItem(storageKey, language); } catch { storageAvailable = false; }
+          rememberLanguage(language);
           apply();
         });
       }

@@ -2,12 +2,14 @@
   "release": "v0.3.1-beta.19",
   "sourceCommit": "20a1dded565d39003795204009f591e79b2e04e4",
   "originalMain": "f2588100162176ad6740b9550bfc4058a9893b5c",
-  "functionalScenarios": 19,
+  "functionalScenarios": 20,
+  "functionalScenarioLimit": 20,
+  "functionalRemaining": 0,
   "functionalFailures": 0,
   "functionalRetries": 0,
   "executionBreakdown": {
     "settingsMatchingAndBinding": 11,
-    "representativeWebsite": 4,
+    "representativeWebsite": 5,
     "completenessNegativeCases": 3,
     "installerPayload": 1
   },
@@ -33,6 +35,15 @@
     "latestChangeTag": "v0.3.1-beta.19",
     "highlightsEnglishCompatibilityFieldsEqual": true,
     "releaseDataGeneratedAt": "2026-10-07T22:18:32.227Z"
+  },
+  "postPublicationWebsiteMaintenance": {
+    "scenario": 20,
+    "result": "passed",
+    "evidence": "storage-refresh-scenario.json",
+    "scope": "One new browser scenario confirms manual language survives refresh when localStorage is denied, preserving unified URL/query/fragment and unrelated history state.",
+    "releasedAppTagUnchanged": true,
+    "publicReleaseAssetsUnchanged": true,
+    "deploymentEvidence": "The pagesWorkflow above records the original publication; a later maintenance deployment must be recorded separately."
   },
   "checksClassifiedAsProductionIntegrity": [
     "compilation",
