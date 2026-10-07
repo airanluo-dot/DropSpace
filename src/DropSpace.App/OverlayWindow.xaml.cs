@@ -119,6 +119,9 @@ public sealed partial class OverlayWindow : Window
     private readonly WidgetViewModel _widgetViewModel;
     private OverlaySnapshot? _presentationSnapshot;
     private bool _mediaGeometryRefreshPending;
+    private bool _preparingMediaGeometry;
+    private readonly long _compactPanelVisibilityToken;
+    private readonly long _expandedPanelVisibilityToken;
     private MediaSessionSnapshot? _lastGlowSession;
     private IslandGlowTransfer? _glowTransfer;
 
@@ -208,7 +211,13 @@ public sealed partial class OverlayWindow : Window
                 if (_placementEditActive) return;
                 _rightHoldTimer.Stop(); _rightHoldPointer = null;
             }), true);
+            MusicCompact.SetActive(false);
+            _compactPanelVisibilityToken = CompactPanel.RegisterPropertyChangedCallback(
+                UIElement.VisibilityProperty, OnCompactPanelVisibilityChanged);
             MusicCompact.ViewModel = mediaViewModel;
+            MusicExpanded.SetActive(false);
+            _expandedPanelVisibilityToken = ExpandedPanel.RegisterPropertyChangedCallback(
+                UIElement.VisibilityProperty, OnExpandedPanelVisibilityChanged);
             MusicExpanded.ViewModel = mediaViewModel;
             WidgetsExpanded.ViewModel = widgetViewModel;
             WidgetsExpanded.PinnedRequested += (_, _) => { _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
@@ -563,6 +572,17 @@ public sealed partial class OverlayWindow : Window
             ? Visibility.Visible : Visibility.Collapsed;
         MusicCompact.SetAvailableWidth(_monitor.EffectiveWorkWidth / _monitor.Scale /
             _mediaViewModel.Settings.IslandAppearance.CompactScale - 36);
+        // Hidden islands retain dirty media state without doing presentation work.
+        // Resolve it before selecting the first visible compact geometry.
+        if (isActiveWindow && activationEnabled && mediaCompact && snapshot.State == OverlayState.Compact)
+        {
+            var wasPreparingMediaGeometry = _preparingMediaGeometry;
+            _preparingMediaGeometry = true;
+            try { MusicCompact.RefreshForPresentation(); }
+            finally { _preparingMediaGeometry = wasPreparingMediaGeometry; }
+        }
+        if (isActiveWindow && activationEnabled && snapshot.State == OverlayState.Expanded && page == IslandPage.Music)
+            MusicExpanded.RefreshForPresentation();
         var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 :
             variant == IslandPresentationVariant.SingleFile ? 340 : variant == IslandPresentationVariant.MultipleFiles ? 200 : variant == IslandPresentationVariant.EmptyWake ? 88 : 180;
         var naturalHeight = mediaCompact ? MusicCompact.IdealIslandHeight : activityCompact ? 80 :
@@ -721,6 +741,10 @@ public sealed partial class OverlayWindow : Window
         _motion.Dispose();
         _materialController.Dispose();
         MusicCompact.IdealWidthChanged -= OnMediaGeometryChanged;
+        CompactPanel.UnregisterPropertyChangedCallback(UIElement.VisibilityProperty, _compactPanelVisibilityToken);
+        MusicCompact.SetActive(false);
+        ExpandedPanel.UnregisterPropertyChangedCallback(UIElement.VisibilityProperty, _expandedPanelVisibilityToken);
+        MusicExpanded.SetActive(false);
         _presentationSnapshot = null;
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
@@ -824,7 +848,9 @@ public sealed partial class OverlayWindow : Window
 
     private void OnMediaGeometryChanged(object? sender, EventArgs args)
     {
-        if (_closing || _mediaGeometryRefreshPending || _presentationSnapshot is null) return;
+        // This synchronous preparation is already followed by fresh geometry reads.
+        // Existing queued invalidations still own their callback and remain pending.
+        if (_closing || _preparingMediaGeometry || _mediaGeometryRefreshPending || _presentationSnapshot is null) return;
         _mediaGeometryRefreshPending = true;
         DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
         {
@@ -833,6 +859,12 @@ public sealed partial class OverlayWindow : Window
             ApplySnapshot(snapshot, _isActiveWindow, _isActiveWindow, _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
         });
     }
+
+    private void OnCompactPanelVisibilityChanged(DependencyObject sender, DependencyProperty property) =>
+        MusicCompact.SetActive(!_closing && CompactPanel.Visibility == Visibility.Visible);
+
+    private void OnExpandedPanelVisibilityChanged(DependencyObject sender, DependencyProperty property) =>
+        MusicExpanded.SetActive(!_closing && ExpandedPanel.Visibility == Visibility.Visible);
 
     private void EnsureVisualHostShown(bool allowActivation)
     {
@@ -1595,6 +1627,9 @@ public sealed partial class OverlayWindow : Window
         {
             CompactPanel.IsHitTestVisible = false;
         }
+        // The initial XAML panel can already be Visible, so assigning Visible
+        // above need not raise a property callback on the first presentation.
+        OnCompactPanelVisibilityChanged(CompactPanel, UIElement.VisibilityProperty);
 
         if (target.DragContent > 0)
         {
@@ -1615,6 +1650,7 @@ public sealed partial class OverlayWindow : Window
         {
             ExpandedPanel.IsHitTestVisible = false;
         }
+        OnExpandedPanelVisibilityChanged(ExpandedPanel, UIElement.VisibilityProperty);
     }
 
     private void CollapseInvisibleContent(OverlayMotionValues values)

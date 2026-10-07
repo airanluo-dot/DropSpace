@@ -1,0 +1,435 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-10-07 06:35:31 UTC",
+  "scope": "Read-only compatibility audit, local integration comparison and focused non-native contract checks. No ZIP/model download, native CUDA run, metadata staging, approval rewrite, commit, merge, or publication.",
+  "pullRequest": {
+    "url": "https://github.com/airanluo-dot/DropSpace/pull/102",
+    "number": 102,
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "headSha": "b9bfde8f9d2473b16aa155266af64de3ea4198b6",
+    "baseSha": "3192f14876f6c8351c21f79096969eb44974df0f",
+    "changedFiles": 13
+  },
+  "latestMain": {
+    "sha": "6a1586a01e769c8b71492bcb18fb970047753434",
+    "includesWebsitePr100AndResourceFilterPr101": true
+  },
+  "integration": {
+    "head": "6a1586a01e769c8b71492bcb18fb970047753434",
+    "branch": "work",
+    "files": [
+      {
+        "path": ".github/workflows/cuda-component-contracts.yml",
+        "verifiedPrLfSha256": "67d1c7b5d9136e77dcc8760d983a6f150236bb814457c7efa987d4f847400f4f",
+        "workingLfSha256": "67d1c7b5d9136e77dcc8760d983a6f150236bb814457c7efa987d4f847400f4f",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "docs/dev/independent-cuda-component.md",
+        "verifiedPrLfSha256": "76039e995ab5d54201dee5ef0db5884fbdfefa7cef177024eff8cfb4b4d5ed58",
+        "workingLfSha256": "76039e995ab5d54201dee5ef0db5884fbdfefa7cef177024eff8cfb4b4d5ed58",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "scripts/Test-CudaBuildBinding.ps1",
+        "verifiedPrLfSha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5",
+        "workingLfSha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "scripts/cuda_runtime_contract.py",
+        "verifiedPrLfSha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962",
+        "workingLfSha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "scripts/package-cuda-runtime.py",
+        "verifiedPrLfSha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e",
+        "workingLfSha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "scripts/stage-reviewed-cuda-metadata.py",
+        "verifiedPrLfSha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d",
+        "workingLfSha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "scripts/test-ai-release-approval.mjs",
+        "verifiedPrLfSha256": "b2a3b98ffb53e936e817905aa0883e0b7789f2cffe695119f979969dc8986748",
+        "workingLfSha256": "b2a3b98ffb53e936e817905aa0883e0b7789f2cffe695119f979969dc8986748",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "scripts/test-ai-release-approval.test.mjs",
+        "verifiedPrLfSha256": "3b0a462dfae237ba72e005790561ab979529fb73a97e5dcf20f74cd55e298efa",
+        "workingLfSha256": "3b0a462dfae237ba72e005790561ab979529fb73a97e5dcf20f74cd55e298efa",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "scripts/test_cuda_component_delivery.py",
+        "verifiedPrLfSha256": "2be9a0fd3fef9836d55e36d92b0f7e6412ab140b74d6ba3d63791796430f0215",
+        "workingLfSha256": "2be9a0fd3fef9836d55e36d92b0f7e6412ab140b74d6ba3d63791796430f0215",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+        "verifiedPrLfSha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d",
+        "workingLfSha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs",
+        "verifiedPrLfSha256": "e9e96e8b4d5c4c2618d16d402840a239ffefa057c56a9aa4f504647f3bd24ddb",
+        "workingLfSha256": "e9e96e8b4d5c4c2618d16d402840a239ffefa057c56a9aa4f504647f3bd24ddb",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "website/_source/scripts/verify-published-release.mjs",
+        "verifiedPrLfSha256": "12846a992d25e4f6fc44ce6c27459c9f7d8749e72bf81106e82249f95a610a94",
+        "workingLfSha256": "12846a992d25e4f6fc44ce6c27459c9f7d8749e72bf81106e82249f95a610a94",
+        "matchesVerifiedPrHead": true
+      },
+      {
+        "path": "website/_source/scripts/verify-published-release.test.mjs",
+        "verifiedPrLfSha256": "e1b7abb13406998aa29034bd5f576539d7506a6a9b0a914df60b3aebbb2f47ce",
+        "workingLfSha256": "e1b7abb13406998aa29034bd5f576539d7506a6a9b0a914df60b3aebbb2f47ce",
+        "matchesVerifiedPrHead": true
+      }
+    ],
+    "releaseGuardAndWebsiteFilterUnchanged": true,
+    "protectedPaths": [
+      "RELEASE_VERSION",
+      "scripts/ai-model-qa/release-approval.json",
+      "scripts/ci-release-promotion.mjs",
+      ".github/workflows/ci.yml",
+      ".github/workflows/website.yml",
+      "website/_source/scripts/release-contract.mjs",
+      "website/_source/scripts/release-contract.test.mjs",
+      "website/_source/scripts/sync-releases.mjs",
+      "website/_source/scripts/sync-releases.test.mjs",
+      "website/_source/src/release-requirements.js",
+      "website/_source/scripts/release-requirements.test.mjs"
+    ],
+    "noNewCommitOrPublishedChange": true,
+    "localCudaContractResults": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "docs/dev/evidence/performance-continuation-2026-10-07/r1-sqlite-cuda.trx.xml",
+      "buildLog": "docs/dev/evidence/performance-continuation-2026-10-07/r1-sqlite-cuda-build.txt"
+    },
+    "generatedCacheFilesRemoved": [
+      "scripts/__pycache__/stage-reviewed-cuda-metadata.cpython-312.pyc",
+      "scripts/__pycache__/cuda_runtime_contract.cpython-312.pyc",
+      "scripts/__pycache__/test_cuda_component_delivery.cpython-312.pyc",
+      "scripts/__pycache__/package-cuda-runtime.cpython-312.pyc"
+    ]
+  },
+  "independentRelease": {
+    "tag": "cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1",
+    "draft": false,
+    "prerelease": true,
+    "targetCommitish": "6a1586a01e769c8b71492bcb18fb970047753434",
+    "publishedAt": "2026-10-07T06:07:55Z",
+    "assets": [
+      {
+        "name": "cuda-runtime-component.json",
+        "bytes": 1883,
+        "digest": "sha256:79fd734e0ea8a48ee79ce8a55e7771b2af0cc9cdb7692689ad39478ec6273e86",
+        "url": "https://github.com/airanluo-dot/DropSpace/releases/download/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1/cuda-runtime-component.json"
+      },
+      {
+        "name": "cuda-runtime-manifest.json",
+        "bytes": 1815,
+        "digest": "sha256:da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a",
+        "url": "https://github.com/airanluo-dot/DropSpace/releases/download/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1/cuda-runtime-manifest.json"
+      },
+      {
+        "name": "DropSpace-CUDA-llama-cpp-v0.5.0-cuda13-win-x64-v1.zip",
+        "bytes": 540873572,
+        "digest": "sha256:79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b",
+        "url": "https://github.com/airanluo-dot/DropSpace/releases/download/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1/DropSpace-CUDA-llama-cpp-v0.5.0-cuda13-win-x64-v1.zip"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "bytes": 307,
+        "digest": "sha256:6460275b43359cc596246b58ed91828b90f019d6d30b79bd6104f3709d2aaf62",
+        "url": "https://github.com/airanluo-dot/DropSpace/releases/download/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1/SHA256SUMS.txt"
+      }
+    ]
+  },
+  "smallPublishedMetadataRead": {
+    "limitPerFile": 16384,
+    "files": [
+      {
+        "name": "cuda-runtime-component.json",
+        "bytes": 1883,
+        "sha256": "79fd734e0ea8a48ee79ce8a55e7771b2af0cc9cdb7692689ad39478ec6273e86"
+      },
+      {
+        "name": "cuda-runtime-manifest.json",
+        "bytes": 1815,
+        "sha256": "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "bytes": 307,
+        "sha256": "6460275b43359cc596246b58ed91828b90f019d6d30b79bd6104f3709d2aaf62"
+      }
+    ],
+    "downloadedManifestEqualsOriginalEvidenceRestoredToCrLf": true,
+    "componentDescriptorHasNoAppBinding": true,
+    "protocol": 1,
+    "profile": "hy-q8-plain-resident-v1",
+    "descriptorFilesAgreeWithManifest": true,
+    "descriptorZipIdentityEqualsGithubAssetMetadata": true,
+    "zipWasNotDownloadedOrRehashedByThisAudit": true
+  },
+  "historicalBeta16": {
+    "tag": "v0.3.1-beta.16",
+    "draft": false,
+    "existingCudaAssets": [
+      {
+        "id": 615458310,
+        "name": "cuda-runtime-download.json",
+        "bytes": 1867,
+        "digest": "sha256:4e083b69a03af83dca543433e2e1256555fa2622fe2736e16c182138b74e8937",
+        "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/cuda-runtime-download.json"
+      },
+      {
+        "id": 615458363,
+        "name": "cuda-runtime-manifest.json",
+        "bytes": 1815,
+        "digest": "sha256:da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a",
+        "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/cuda-runtime-manifest.json"
+      },
+      {
+        "id": 615458324,
+        "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.16.zip",
+        "bytes": 540873572,
+        "digest": "sha256:79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b",
+        "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/DropSpace-CUDA-win-x64-v0.3.1-beta.16.zip"
+      }
+    ],
+    "zipMetadataEqualsIndependentComponent": true
+  },
+  "checks": [
+    {
+      "name": "Python metadata and packaging contracts",
+      "command": "python -m unittest discover -s scripts -p test_cuda_component_delivery.py -v",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 1,
+      "limitation": "PowerShell is absent in this Linux environment; actual build-binding execution remains covered by remote exact-PR-head Windows CI, not local execution.",
+      "log": "cuda-python-contracts.txt"
+    },
+    {
+      "name": "Independent CUDA source fingerprint regression",
+      "command": "node --test --test-name-pattern='independent CUDA' scripts/test-ai-release-approval.test.mjs",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "log": "cuda-source-fingerprint-regression.txt"
+    },
+    {
+      "name": "Historical/independent publication metadata and exact resource filtering",
+      "command": "node --test website/_source/scripts/verify-published-release.test.mjs website/_source/scripts/release-contract.test.mjs",
+      "passed": 71,
+      "failed": 0,
+      "skipped": 0,
+      "log": "cuda-publication-and-resource-filter.txt"
+    },
+    {
+      "name": "CUDA descriptor and installed-cache reuse contracts",
+      "execution": "Run once by root in the consolidated R1 SQLite/CUDA C# verification; this final audit only parsed existing TRX results. No native inference or model execution.",
+      "filter": "FullyQualifiedName~CudaLyricsRuntimePackageTests",
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "r1-sqlite-cuda.trx.xml",
+      "buildLog": "r1-sqlite-cuda-build.txt"
+    }
+  ],
+  "actualOldApprovalCheck": {
+    "algorithm": "sha256-source-lf-embedded-bytes-v2",
+    "currentWorkingSourceFingerprint": "a81cf9c895215b29c0c6f92056ca4b84a3f22cbc5dad737d7742cd22364e7b4d",
+    "oldApprovalSourceFingerprint": "7825817f3aa105648e45bc7d4e2106e15df872c4ef271bde689d2b335b6861b6",
+    "oldApprovalStatus": "owner-accepted-experimental-beta",
+    "oldApprovalRelease": "v0.3.1-beta.16",
+    "matchesOldApproval": false,
+    "actualValidationRejection": {
+      "name": "AssertionError",
+      "message": "AI approval is stale: shipping model, runtime, prompt/parser sources, release or fixture changed"
+    },
+    "changedSourceInputs": [
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+        "sha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d"
+      },
+      {
+        "path": "scripts/cuda_runtime_contract.py",
+        "sha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962"
+      },
+      {
+        "path": "scripts/package-cuda-runtime.py",
+        "sha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e"
+      },
+      {
+        "path": "scripts/stage-reviewed-cuda-metadata.py",
+        "sha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d"
+      },
+      {
+        "path": "scripts/test-ai-release-approval.mjs",
+        "sha256": "b2a3b98ffb53e936e817905aa0883e0b7789f2cffe695119f979969dc8986748"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+        "sha256": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+        "sha256": "0e880ffe7cb00023534d7ed34caa87b9108fe9fff28f78bdc2f3b58e9698170f"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+        "sha256": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+        "sha256": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
+      },
+      {
+        "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+        "sha256": "6291c42f59519a5bb138f5202d2b3d11d7a9eb394b598a11625c86b74994d234"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+        "sha256": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+        "sha256": "d7312200a6ca79aced25f4d2e9e811657956c1e674aa7e44f96a203a3eeab49c"
+      },
+      {
+        "path": "scripts/Test-CudaBuildBinding.ps1",
+        "sha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5"
+      }
+    ],
+    "releaseReady": false,
+    "scope": "Final production LF source worktree audit; uncommitted code is not a new release approval or exact commit binding.",
+    "auditedAt": "2026-10-07 07:06:45 UTC"
+  },
+  "remoteExactPrHeadWindowsChecks": {
+    "headSha": "b9bfde8f9d2473b16aa155266af64de3ea4198b6",
+    "contracts": {
+      "id": 37581080469,
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/37581080469",
+      "conclusion": "success",
+      "steps": [
+        "Python metadata and actual PowerShell build binding",
+        "Source fingerprint rejection",
+        "Historical and independent publication metadata",
+        "Locked Infrastructure restore and CudaLyricsRuntimePackageTests"
+      ]
+    },
+    "standardWindowsCi": {
+      "id": 37581080477,
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/37581080477",
+      "conclusion": "failure",
+      "failedStep": "Reject unmatched Beta16 inputs without repeating producer tests",
+      "fullAppCiSuccessClaimed": false
+    }
+  },
+  "compatibilityConclusions": [
+    "Independent CUDA version, URL, size and hash are source-owned by the new contract and reused across App versions.",
+    "RuntimeId plus unchanged inner manifest identity preserves installed cache reuse.",
+    "Embedded App descriptor retains exact tag/source-commit binding, protocol/profile, trusted component URL, sizes/hashes and file agreement.",
+    "Existing consent, redirect-host restrictions, bounded extraction and executable validation remain.",
+    "Published release verifier retains historical schema 1 and new schema 2 validation; old assets/URLs remain available.",
+    "Website PR #100/#101 changes and App version parser continue excluding independent resources from App update entries.",
+    "Old immutable approval is stale for current working source and rejects it; no release readiness is claimed."
+  ],
+  "pendingValidation": [
+    "Local PowerShell App build binding and actual WinUI rendering require Windows. Exact PR head PowerShell CI passed, which does not establish a complete App build or Windows responsiveness for final uncommitted optimization code."
+  ],
+  "earlierOldApprovalChecks": [
+    {
+      "auditedAt": "2026-10-07 06:35:31 UTC",
+      "algorithm": "sha256-source-lf-embedded-bytes-v2",
+      "currentWorkingSourceFingerprint": "0f2ded31e62061c9aa5b5fdd3a9a80c4c03d776989dfebebe01b64928cd93847",
+      "oldApprovalSourceFingerprint": "7825817f3aa105648e45bc7d4e2106e15df872c4ef271bde689d2b335b6861b6",
+      "oldApprovalStatus": "owner-accepted-experimental-beta",
+      "oldApprovalRelease": "v0.3.1-beta.16",
+      "matchesOldApproval": false,
+      "actualValidationRejection": {
+        "name": "AssertionError",
+        "message": "AI approval is stale: shipping model, runtime, prompt/parser sources, release or fixture changed"
+      },
+      "changedSourceInputs": [
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+          "sha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d"
+        },
+        {
+          "path": "scripts/cuda_runtime_contract.py",
+          "sha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962"
+        },
+        {
+          "path": "scripts/package-cuda-runtime.py",
+          "sha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e"
+        },
+        {
+          "path": "scripts/stage-reviewed-cuda-metadata.py",
+          "sha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d"
+        },
+        {
+          "path": "scripts/test-ai-release-approval.mjs",
+          "sha256": "b2a3b98ffb53e936e817905aa0883e0b7789f2cffe695119f979969dc8986748"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+          "sha256": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+          "sha256": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+          "sha256": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
+        },
+        {
+          "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+          "sha256": "57fdc335627c4d329f954a544d66e1e339c2880d43b92d19176226cf5bc8b2c2"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+          "sha256": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
+        },
+        {
+          "path": "scripts/Test-CudaBuildBinding.ps1",
+          "sha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5"
+        }
+      ],
+      "releaseReady": false,
+      "scope": "Current uncommitted worktree at audit time; this is not a new release approval or exact commit binding."
+    }
+  ],
+  "finalAuditedAt": "2026-10-07 07:06:45 UTC",
+  "finalPrHead": "b9bfde8f9d2473b16aa155266af64de3ea4198b6",
+  "finalPullRequest": {
+    "url": "https://github.com/airanluo-dot/DropSpace/pull/102",
+    "number": 102,
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "headSha": "b9bfde8f9d2473b16aa155266af64de3ea4198b6",
+    "baseSha": "3192f14876f6c8351c21f79096969eb44974df0f",
+    "changedFiles": 13
+  },
+  "finalAuditRepeatedTests": false,
+  "finalAuditDownloadedAssets": false
+}

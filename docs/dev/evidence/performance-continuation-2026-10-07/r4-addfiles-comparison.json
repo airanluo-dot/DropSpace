@@ -1,0 +1,170 @@
+{
+  "method": "Two separate processes, non-interleaved. Original before DLL and root-built after DLL were copied to separate /tmp projects; neither probe references repository projects or uses shared build output. Same runtime, filesystem root, prepared-candidate counts, 3-call warmup and operation order. Each process creates its own fresh initialized SQLite fixture with newly generated IDs/paths of equivalent shape.",
+  "interpretation": "The raw field uninterruptedCallerOccupationMs is a sum of invocation durations. Before samples completed 100/100 synchronously with all continuations on the initial thread, establishing continuous caller occupation for the 100-call loops. After sums are aggregate invocation costs across released continuations, not a continuous UI stall duration. No Windows dispatcher, UI frame, source inspection, actual file copy or native rendering was measured.",
+  "limitations": "One representative pass each, not an interleaved throughput benchmark. Batch time/CPU differences include OS scheduling, provider warmup and measurement overhead; no SQLite throughput improvement or CPU reduction is claimed. Small operations can finish before the caller observes the returned task; zero synchronous completions is observed for this pass, not a contract.",
+  "compatibilityCost": "Owned-file import already executes on a worker; the shared boundary adds a scheduling hop. The owned 10-row sample batch rose from 8.4051 to 9.2672 ms and CPU from 8.434 to 9.809 ms. Duplicate-return batch rose from 19.174 to 23.5423 ms. Production clipboard uses its existing worker and AddClipboardFilesAsync; the single-file API sample verifies a supported compatibility path only and is not a clipboard UI benefit claim.",
+  "beforeAssemblyHashes": {
+    "DropSpace.Core.dll": "50b44c91b6b4b4024c984f449219d254f468919c14de064a680033c2666be274",
+    "DropSpace.Infrastructure.dll": "12e77ee2b4f5ccdc7cb6d31342ddb8c0a7dfd6182611ed0863370f9cd5b2732e"
+  },
+  "afterAssemblyHashes": {
+    "DropSpace.Core.dll": "50b44c91b6b4b4024c984f449219d254f468919c14de064a680033c2666be274",
+    "DropSpace.Infrastructure.dll": "1fa502ad52faba7005f314899eed902bd9bc057ebb520b3fabbfc039693fd0e1"
+  },
+  "correctness": {
+    "duplicateIdentityPreserved": {
+      "before": true,
+      "after": true
+    },
+    "duplicateMetadataPreserved": {
+      "before": true,
+      "after": true
+    },
+    "ownedPayloadIdentityPreserved": {
+      "before": true,
+      "after": true
+    },
+    "rowCountVerified": {
+      "before": true,
+      "after": true
+    }
+  },
+  "comparisons": [
+    {
+      "scenario": "space-new-100-prepared-references",
+      "count": 100,
+      "callerCallDurationSumMs": {
+        "before": 63.61360000000002,
+        "after": 1.8132
+      },
+      "callerCallMedianMs": {
+        "before": 0.6114,
+        "after": 0.0212
+      },
+      "callerCallP95Ms": {
+        "before": 0.9619,
+        "after": 0.0267
+      },
+      "synchronouslyCompletedAtReturnCount": {
+        "before": 100,
+        "after": 0
+      },
+      "batchElapsedMs": {
+        "before": 63.9721,
+        "after": 45.5765
+      },
+      "processCpuMs": {
+        "before": 70.474,
+        "after": 54.369
+      },
+      "processAllocatedBytes": {
+        "before": 5031896,
+        "after": 5078640
+      },
+      "allocationDifferenceBytesPerCall": 467.44
+    },
+    {
+      "scenario": "space-duplicate-existing-100",
+      "count": 100,
+      "callerCallDurationSumMs": {
+        "before": 19.09809999999999,
+        "after": 0.9613000000000006
+      },
+      "callerCallMedianMs": {
+        "before": 0.1689,
+        "after": 0.0026
+      },
+      "callerCallP95Ms": {
+        "before": 0.3291,
+        "after": 0.0215
+      },
+      "synchronouslyCompletedAtReturnCount": {
+        "before": 100,
+        "after": 0
+      },
+      "batchElapsedMs": {
+        "before": 19.174,
+        "after": 23.5423
+      },
+      "processCpuMs": {
+        "before": 19.24,
+        "after": 25.712
+      },
+      "processAllocatedBytes": {
+        "before": 3793320,
+        "after": 3841008
+      },
+      "allocationDifferenceBytesPerCall": 476.88
+    },
+    {
+      "scenario": "owned-space-10-database-records-only",
+      "count": 10,
+      "callerCallDurationSumMs": {
+        "before": 8.396799999999999,
+        "after": 0.38449999999999995
+      },
+      "callerCallMedianMs": {
+        "before": 0.4641,
+        "after": 0.0219
+      },
+      "callerCallP95Ms": {
+        "before": 3.864,
+        "after": 0.1195
+      },
+      "synchronouslyCompletedAtReturnCount": {
+        "before": 10,
+        "after": 0
+      },
+      "batchElapsedMs": {
+        "before": 8.4051,
+        "after": 9.2672
+      },
+      "processCpuMs": {
+        "before": 8.434,
+        "after": 9.809
+      },
+      "processAllocatedBytes": {
+        "before": 814560,
+        "after": 819416
+      },
+      "allocationDifferenceBytesPerCall": 485.6
+    },
+    {
+      "scenario": "single-clipboard-api-10-prepared-references",
+      "count": 10,
+      "callerCallDurationSumMs": {
+        "before": 3.1449999999999996,
+        "after": 0.3824
+      },
+      "callerCallMedianMs": {
+        "before": 0.2852,
+        "after": 0.0219
+      },
+      "callerCallP95Ms": {
+        "before": 0.5536,
+        "after": 0.1853
+      },
+      "synchronouslyCompletedAtReturnCount": {
+        "before": 10,
+        "after": 0
+      },
+      "batchElapsedMs": {
+        "before": 3.1518,
+        "after": 3.5664
+      },
+      "processCpuMs": {
+        "before": 3.17,
+        "after": 4.083
+      },
+      "processAllocatedBytes": {
+        "before": 222952,
+        "after": 227808
+      },
+      "allocationDifferenceBytesPerCall": 485.6
+    }
+  ],
+  "commands": {
+    "before": "/tmp/dropspace-dotnet/dotnet run --project /tmp/dropspace-addfiles-probe/AddFilesProbe.csproj -c Release",
+    "after": "/tmp/dropspace-dotnet/dotnet run --project /tmp/dropspace-addfiles-after-probe/AddFilesProbe.csproj -c Release --no-restore"
+  }
+}

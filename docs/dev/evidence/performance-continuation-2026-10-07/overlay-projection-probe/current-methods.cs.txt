@@ -1,0 +1,266 @@
+// Generated verbatim from the selected source snapshot by extract.py.
+using DropSpace.Core.Island;
+using DropSpace.Core.Models;
+using DropSpace.Core.Overlay;
+using Microsoft.Extensions.Logging;
+namespace ProjectionProbe;
+partial class ServiceFixture
+{
+private void OnSnapshotChanged(object? sender, OverlaySnapshot snapshot)
+    {
+        _experience.UpdateFiles(snapshot);
+        _logger.LogInformation(
+            "Overlay state transition: {State}, temporary item count {TemporaryItemCount}, monitor {MonitorId}, revision {Revision}, cause {Cause}, motion {MotionPreference}.",
+            snapshot.State,
+            snapshot.TemporaryItemCount,
+            _viewModel.ActiveMonitorId ?? "unselected",
+            snapshot.Revision,
+            snapshot.Transition?.Cause,
+            snapshot.Transition?.MotionPreference);
+        ApplySnapshot(snapshot);
+    }
+
+private void OnExperienceChanged(object? sender, DropSpace.Core.Island.IslandExperienceSnapshot snapshot)
+    {
+        _experienceExpiry.Stop();
+        _expiryGeneration = _experience.HideGeneration; _expiryDeadline = snapshot.NextDeadline;
+        if (_expiryDeadline is { } deadline)
+        { _experienceExpiry.Interval = TimeSpan.FromMilliseconds(Math.Max(1, (deadline - DateTimeOffset.UtcNow).TotalMilliseconds)); _experienceExpiry.Start(); }
+        ApplySnapshot(_viewModel.Snapshot);
+    }
+
+private void ApplySnapshot(OverlaySnapshot snapshot)
+    {
+        if (_disposed || _rebuildingSurfaces || _applyingSnapshot) return;
+        _applyingSnapshot = true;
+        try
+        {
+        var foreground = _monitorLayout.CaptureForeground(_surfaceMonitors);
+        snapshot = snapshot with { State = _experience.Current.State };
+        if (_primaryMonitor is null)
+        {
+            return;
+        }
+
+        // An explicit smart-drag session follows the pointer display even when passive Compact
+        // presentation is pinned to Primary. The user's monitor preference resumes after Drop or
+        // cancellation; only the temporary interaction is pointer-local.
+        var smartPointerDisplay = _viewModel.FileDragWakeMode == FileDragWakeMode.SmartExperimental &&
+                                  (snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady);
+        var primaryOnly = _viewModel.MonitorPreference == OverlayMonitorPreference.Primary &&
+                          !smartPointerDisplay;
+        var activeMonitorId = primaryOnly ? _primaryMonitor.Id : _viewModel.ActiveMonitorId;
+        _lastFullscreenMonitorId = GetForegroundFullscreenMonitorId();
+        var appearance = _mediaViewModel.Settings.IslandAppearance;
+        var forceFullscreen = foreground.IsFullscreen && FullscreenOverlayPolicy.Allows(appearance.ForceShowOverFullscreen, true) &&
+            (_experience.Current.State is not (OverlayState.Hidden or OverlayState.Dismissing)) && !_experience.Current.PendingHide;
+        var isDragging = snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady;
+        activeMonitorId = FullscreenOverlayPolicy.ResolveMonitorId(activeMonitorId,
+            _viewModel.MonitorPreference, forceFullscreen, _lastFullscreenMonitorId, isDragging);
+        var onFullscreenMonitor = foreground.IsFullscreen && activeMonitorId == foreground.MonitorId;
+        _experience.UpdateSettings(appearance, FullscreenOverlayPolicy.Allows(appearance.ForceShowOverFullscreen, onFullscreenMonitor));
+        snapshot = snapshot with { State = _experience.Current.State };
+        var activePresentation = FullscreenOverlayPolicy.Resolve(snapshot.State, appearance.ForceShowOverFullscreen, onFullscreenMonitor);
+        foreach (var host in _activationHosts)
+        {
+            var monitorEnabled = !primaryOnly || host.MonitorId == _primaryMonitor.Id;
+            var visualSurfaceOwnsStableInput = activePresentation.State is OverlayState.Compact or OverlayState.Expanded;
+            var activationEnabled = _activeDragOwner == DragTargetOwner.ActivationHost ||
+                                    _activeDragOwner == DragTargetOwner.None && !visualSurfaceOwnsStableInput;
+            host.SetEnabled(monitorEnabled && activationEnabled);
+        }
+
+        foreach (var window in _windows)
+        {
+            var activationEnabled = !primaryOnly || window.MonitorId == _primaryMonitor.Id;
+            window.ApplySnapshot(
+                snapshot,
+                string.Equals(window.MonitorId, activeMonitorId, StringComparison.Ordinal),
+                activationEnabled,
+                _viewModel.FileDragWakeMode,
+                _viewModel.GetOverlayPlacement(window.MonitorId));
+        }
+        }
+        finally { _applyingSnapshot = false; }
+    }
+}
+partial class WindowFixture
+{
+public void ApplySnapshot(
+        OverlaySnapshot snapshot,
+        bool isActiveWindow,
+        bool activationEnabled,
+        FileDragWakeMode wakeMode,
+        OverlayMonitorPlacement placement)
+    {
+        if (_closing) return;
+        _presentationSnapshot = snapshot;
+        var page = _experience.Current.Page;
+        _pageReducedMotion = IsReducedMotion();
+        _pageTransition.Select(page, _pageReducedMotion || snapshot.State != OverlayState.Expanded || _motion.Current.ExpandedContent < 0.01);
+        ApplyPageTransition();
+        PreviousPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Collapsed : Visibility.Visible;
+        NextPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Clipboard ? Visibility.Collapsed : Visibility.Visible;
+        OtherPageCollapse.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Collapsed : Visibility.Visible;
+        var mediaCompact = _experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music;
+        var activityCompact = _experience.Current.CompactContent is DropSpace.Core.Island.IslandContentKind.Notification or DropSpace.Core.Island.IslandContentKind.Volume;
+        ActivityCompact.Visibility = activityCompact ? Visibility.Visible : Visibility.Collapsed;
+        MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
+        var variant = _experience.Current.Variant;
+        FileCompactContent.Visibility = variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? Visibility.Visible : Visibility.Collapsed;
+        EmptyWakeLogo.Visibility = (variant is IslandPresentationVariant.EmptyWake or IslandPresentationVariant.Idle) &&
+            _mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle
+            ? Visibility.Visible : Visibility.Collapsed;
+        MusicCompact.SetAvailableWidth(_monitor.EffectiveWorkWidth / _monitor.Scale /
+            _mediaViewModel.Settings.IslandAppearance.CompactScale - 36);
+        // Hidden islands retain dirty media state without doing presentation work.
+        // Resolve it before selecting the first visible compact geometry.
+        if (isActiveWindow && activationEnabled && mediaCompact && snapshot.State == OverlayState.Compact)
+        {
+            var wasPreparingMediaGeometry = _preparingMediaGeometry;
+            _preparingMediaGeometry = true;
+            try { MusicCompact.RefreshForPresentation(); }
+            finally { _preparingMediaGeometry = wasPreparingMediaGeometry; }
+        }
+        if (isActiveWindow && activationEnabled && snapshot.State == OverlayState.Expanded && page == IslandPage.Music)
+            MusicExpanded.RefreshForPresentation();
+        var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 :
+            variant == IslandPresentationVariant.SingleFile ? 340 : variant == IslandPresentationVariant.MultipleFiles ? 200 : variant == IslandPresentationVariant.EmptyWake ? 88 : 180;
+        var naturalHeight = mediaCompact ? MusicCompact.IdealIslandHeight : activityCompact ? 80 :
+            variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? 64 : 40;
+        var compactScale = OverlayPlacementPolicy.FitContentScale(_monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight,
+            _monitor.Scale, naturalWidth, naturalHeight, _mediaViewModel.Settings.IslandAppearance.CompactScale);
+        _compactSurfaceWidth = naturalWidth * compactScale;
+        CompactPanel.Padding = new Thickness(0);
+        CompactContentRoot.Width = naturalWidth; CompactContentRoot.Height = naturalHeight;
+        CompactContentRoot.Padding = new Thickness(mediaCompact ? 14 : 18, 0, mediaCompact ? 14 : 18, 0);
+        CompactContentScaleHost.Width = naturalWidth * compactScale; CompactContentScaleHost.Height = naturalHeight * compactScale;
+        MusicCompact.Width = MusicCompact.IdealIslandWidth - 28;
+        MusicCompact.Height = MusicCompact.IdealIslandHeight;
+        MusicCompact.HorizontalAlignment = HorizontalAlignment.Center;
+        MusicCompact.RenderTransform = null;
+        if (_suppressedForPlacementEdit)
+        {
+            HideImmediately();
+            return;
+        }
+
+        if (_placementEditActive)
+        {
+            _resolvedPlacement = ResolvePlacement(wakeMode, new OverlayMonitorPlacement(
+                OverlayPlacementMode.Custom,
+                _placementEdit.Preview.X,
+                _placementEdit.Preview.Y));
+            if (!PositionFixedHost())
+            {
+                HideForNativeFailure();
+            }
+            return;
+        }
+
+        if (_visualPhase == OverlayVisualPhase.Exiting && snapshot.State is not (OverlayState.Dismissing or OverlayState.Hidden))
+        {
+            _visualPhase = OverlayVisualPhase.Reversing;
+        }
+        else if (snapshot.State is OverlayState.Dismissing or OverlayState.Hidden)
+        {
+            _visualPhase = OverlayVisualPhase.Exiting;
+        }
+        else if (!_isVisible)
+        {
+            _visualPhase = OverlayVisualPhase.Entering;
+        }
+
+        _isActiveWindow = isActiveWindow && activationEnabled;
+        if (!_isActiveWindow)
+        {
+            HideImmediately();
+            return;
+        }
+
+        var settings = _mediaViewModel.Settings;
+        var fullscreen = FullscreenOverlayPolicy.Resolve(snapshot.State,
+            settings.IslandAppearance.ForceShowOverFullscreen,
+            _monitorLayout.IsForegroundFullscreen(_monitor));
+        _forceFullscreenPresentation = fullscreen.KeepTopmost;
+        snapshot = snapshot with { State = fullscreen.State };
+        _presentedState = fullscreen.State;
+        // The coordinator has already applied permission and the unified hide delay.
+
+        if (_suppressedForFullscreen)
+        {
+            _logger.LogInformation(
+                "Full-screen suppression ended on monitor {MonitorId}; restoring the overlay with its current spring state.",
+                _monitor.Id);
+        }
+
+        _suppressedForFullscreen = false;
+        _hideWhenSettled = snapshot.State == OverlayState.Dismissing;
+        if (_hideWhenSettled) _dismissalGeneration = _experience.HideGeneration;
+        TraceIslandPresentation(snapshot.State);
+        _resolvedPlacement = ResolvePlacement(wakeMode, placement);
+        if (!PositionFixedHost())
+        {
+            HideForNativeFailure();
+            return;
+        }
+
+        if (snapshot.State == OverlayState.Hidden)
+        {
+            HideImmediately();
+            _previousState = snapshot.State;
+            return;
+        }
+
+        var topOffset = _resolvedPlacement.SurfaceTopOffsetDips;
+        var target = CreateMotionTarget(snapshot.State, topOffset);
+        if (snapshot.State == OverlayState.Compact)
+            target = Create(naturalWidth * compactScale, naturalHeight * compactScale, topOffset,
+                Math.Min(naturalWidth, naturalHeight) * compactScale / 2, 1, 0, 0);
+
+        // Hidden has TopOffset=0 because it is independent of monitor placement.
+        // Anchor it while the body is still transparent; otherwise opacity can lead
+        // the top-offset spring and expose a clipped halo during the first frames.
+        var anchored = OverlayPlacementPolicy.AnchorInvisibleSurface(_motion.Current, _resolvedPlacement);
+        if (anchored != _motion.Current) _motion.SnapTo(anchored);
+        EnsureVisualHostShown(fullscreen.AllowActivation);
+        MaintainFullscreenVisibility();
+        _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Music));
+        WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Widgets);
+        ClipboardExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
+        PrepareContentForTarget(target);
+        if (_previousState == OverlayState.DragReady && snapshot.State == OverlayState.Compact)
+        {
+            _motion.PulseDropTarget(OverlayMotionTokens.DropConfirmationScale);
+        }
+
+        var reducedMotion = IsReducedMotion();
+        var expandedTransition = (_previousState == OverlayState.Expanded) != (snapshot.State == OverlayState.Expanded);
+        if (expandedTransition && !reducedMotion)
+        {
+            ResetMotionBlur();
+            if (_motionBlurEnabled) _materialController.PrepareMotion();
+            _motionBlurPhase = snapshot.State == OverlayState.Expanded
+                ? IslandMotionPhase.Opening : IslandMotionPhase.Closing;
+        }
+        else if (reducedMotion) ResetMotionBlur();
+        _motion.SetTarget(target, reducedMotion);
+        StartAnimationFrames(preferDisplayCadence: !reducedMotion && expandedTransition);
+        _previousState = snapshot.State;
+        UpdateGlowTarget();
+    }
+
+private void OnMediaGeometryChanged(object? sender, EventArgs args)
+    {
+        // This synchronous preparation is already followed by fresh geometry reads.
+        // Existing queued invalidations still own their callback and remain pending.
+        if (_closing || _preparingMediaGeometry || _mediaGeometryRefreshPending || _presentationSnapshot is null) return;
+        _mediaGeometryRefreshPending = true;
+        DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+        {
+            _mediaGeometryRefreshPending = false;
+            if (_presentationSnapshot is not { } snapshot) return;
+            ApplySnapshot(snapshot, _isActiveWindow, _isActiveWindow, _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
+        });
+    }
+}

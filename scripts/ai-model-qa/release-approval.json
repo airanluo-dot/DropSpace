@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "status": "owner-accepted-experimental-beta",
-  "reason": "Owner-authorized corrective release v0.3.1-beta.16; model inputs and historical evidence unchanged. See exact owner decision.",
+  "reason": "Owner-authorized corrective release v0.3.1-beta.17; model inputs and historical evidence unchanged. See exact owner decision.",
   "scope": {
-    "releaseVersion": "v0.3.1-beta.16",
+    "releaseVersion": "v0.3.1-beta.17",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -269,7 +269,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
-          "sha256": "c54d14a47bfd8c3f186ed1402abfa7b072ad84b72c9ddc68d5caaaf3e2164129"
+          "sha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/CudaPlainHyLyricsBackend.cs",
@@ -316,12 +316,16 @@
           "sha256": "39f16651805ba1814f30c8b15aea018d82c425c152516581e3446a941b3a7a9f"
         },
         {
+          "path": "scripts/cuda_runtime_contract.py",
+          "sha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962"
+        },
+        {
           "path": "scripts/package-cuda-runtime.py",
-          "sha256": "6921736e61c06f0e3069e6cd33a9df59c86a46065309aebe02b28b99ef605d8b"
+          "sha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e"
         },
         {
           "path": "scripts/stage-reviewed-cuda-metadata.py",
-          "sha256": "aa93f149e9d1b6cfb41cc4480cf62373bfcb2fb1f651f236ff0e8be98e87339d"
+          "sha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d"
         },
         {
           "path": "docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json",
@@ -333,7 +337,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "51d7154c1c2d2dfe24666a5cb28f6785e88d08c4c23248a018efc18fefe1bbe3"
+          "sha256": "b9dd0c56a4f9b470be32732dbbfdafd924aa7245b54330478f80f1e25b569b91"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -593,7 +597,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
-          "sha256": "ece33876cbc43190dfac0e9cb5fd0ec87e3a165fc972c4b30a8871ab419bd57f"
+          "sha256": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
         },
         {
           "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs",
@@ -621,7 +625,7 @@
         },
         {
           "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
-          "sha256": "ee49d96f24c2669b6dfbce1bab3f257fa283702c697a7798c1e23bc5e331fc6c"
+          "sha256": "0e880ffe7cb00023534d7ed34caa87b9108fe9fff28f78bdc2f3b58e9698170f"
         },
         {
           "path": "src/DropSpace.App/ViewModels/OverlayViewModel.cs",
@@ -669,7 +673,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
-          "sha256": "f85360f272b40feb34e0db7148cec9c584a4a5c8d97c7fbfe2e9a88b7f6d8850"
+          "sha256": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml",
@@ -681,7 +685,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
-          "sha256": "6229438979a7be880765b66555f2356c4640476069b1fac42afe921e02d1726b"
+          "sha256": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml",
@@ -717,7 +721,7 @@
         },
         {
           "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
-          "sha256": "4189622c41c50b500e99fb0e9af91c6a690e30ee25cdb016d400b40acdd2d882"
+          "sha256": "6291c42f59519a5bb138f5202d2b3d11d7a9eb394b598a11625c86b74994d234"
         },
         {
           "path": "src/DropSpace.App/Services/AcrylicCoverageBackdropTarget.cs",
@@ -833,7 +837,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
-          "sha256": "e0b370a2be0fcf9c2ce3cb0139ed2acd2f834fdd9f77706027225d139610ce4a"
+          "sha256": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs",
@@ -952,6 +956,22 @@
           "sha256": "6fcc0737185cbc9b8d604b5c8cc25feb98767572a2f824e81fae97e5dbc87800"
         },
         {
+          "path": "scripts/Build-Beta17Candidate.ps1",
+          "sha256": "755b64d3ef37900cc1aa2f86f72cf0ce0288e4d3171fb41b5b3b90326b049562"
+        },
+        {
+          "path": "scripts/Reuse-BundledLyricsLanguageModel.ps1",
+          "sha256": "2d1ced492c9f235280dc7225e1158010fadc7312e39a11309bd4688fc311c184"
+        },
+        {
+          "path": "scripts/beta17-release-validation.mjs",
+          "sha256": "505c092ef16d510228fd5dbf675e4986cf7d5349eeaa3cb4247de4d1a0199ed1"
+        },
+        {
+          "path": "scripts/ci-release-promotion.mjs",
+          "sha256": "2a1dbbe072107e8e89a40ea8b7122b2c291dc2925f356ba5b4b56c297e72d15b"
+        },
+        {
           "path": "scripts/Inspect-OwnerWaivedPackages.ps1",
           "sha256": "04c356f3db53d467f1dd0a1d9f52a3d6e9d3f59da0599cf29e191b4660df53a5"
         },
@@ -1037,7 +1057,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
-          "sha256": "3b3430a7be0c1c4b2a621c169caf0371ab856b383e1046f0f7d9d61453066ac9"
+          "sha256": "d7312200a6ca79aced25f4d2e9e811657956c1e674aa7e44f96a203a3eeab49c"
         },
         {
           "path": "src/DropSpace.Infrastructure/Downloads/DownloadPersistenceQueue.cs",
@@ -1113,7 +1133,7 @@
         },
         {
           "path": "scripts/Test-CudaBuildBinding.ps1",
-          "sha256": "7a0f59f4dbba70711a5efe92dc76d78b8a4d75674697c75cb9ac66d08f8c66c9"
+          "sha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5"
         },
         {
           "path": "scripts/ai-runtime-publication.mjs",
@@ -1132,7 +1152,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "7825817f3aa105648e45bc7d4e2106e15df872c4ef271bde689d2b335b6861b6"
+      "sha256": "c41231e4e865b0c64800932e2148ea43e62d9b328af82e5748c487373e25cdcc"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2575,7 +2595,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.16-publication-scope-review.json",
-    "sha256": "f40fd942769c2cf219d7396a95c8862758bd804e61c89380f03e2e1dc0a7b3b9"
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-source-review.json",
+    "sha256": "09dc7d7e16cf6155ea4a5521be68e06fe0572b8adf3d6ec01ad9d4324d6d6f6d"
   }
 }

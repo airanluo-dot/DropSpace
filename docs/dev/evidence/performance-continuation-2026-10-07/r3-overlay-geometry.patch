@@ -1,0 +1,35 @@
+--- a/src/DropSpace.App/OverlayWindow.xaml.cs
++++ b/src/DropSpace.App/OverlayWindow.xaml.cs
+@@ -119,6 +119,7 @@
+     private readonly WidgetViewModel _widgetViewModel;
+     private OverlaySnapshot? _presentationSnapshot;
+     private bool _mediaGeometryRefreshPending;
++    private bool _preparingMediaGeometry;
+     private readonly long _compactPanelVisibilityToken;
+     private readonly long _expandedPanelVisibilityToken;
+     private MediaSessionSnapshot? _lastGlowSession;
+@@ -574,7 +575,12 @@
+         // Hidden islands retain dirty media state without doing presentation work.
+         // Resolve it before selecting the first visible compact geometry.
+         if (isActiveWindow && activationEnabled && mediaCompact && snapshot.State == OverlayState.Compact)
+-            MusicCompact.RefreshForPresentation();
++        {
++            var wasPreparingMediaGeometry = _preparingMediaGeometry;
++            _preparingMediaGeometry = true;
++            try { MusicCompact.RefreshForPresentation(); }
++            finally { _preparingMediaGeometry = wasPreparingMediaGeometry; }
++        }
+         if (isActiveWindow && activationEnabled && snapshot.State == OverlayState.Expanded && page == IslandPage.Music)
+             MusicExpanded.RefreshForPresentation();
+         var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 :
+@@ -842,7 +848,9 @@
+ 
+     private void OnMediaGeometryChanged(object? sender, EventArgs args)
+     {
+-        if (_closing || _mediaGeometryRefreshPending || _presentationSnapshot is null) return;
++        // This synchronous preparation is already followed by fresh geometry reads.
++        // Existing queued invalidations still own their callback and remain pending.
++        if (_closing || _preparingMediaGeometry || _mediaGeometryRefreshPending || _presentationSnapshot is null) return;
+         _mediaGeometryRefreshPending = true;
+         DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+         {

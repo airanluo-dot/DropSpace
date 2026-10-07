@@ -1,0 +1,47 @@
+{
+  "evidenceKind": "managed-real-source-queue-scheduling-with-synthetic-notifications",
+  "environment": {
+    "os": "Linux",
+    "sdk": "10.0.401",
+    "target": "net10.0",
+    "windowsNativeExecution": false
+  },
+  "scenario": {
+    "displayTicksPerVisibilityState": 300,
+    "notificationsPerTick": 3,
+    "notificationNames": [
+      "Position",
+      "Lyrics",
+      "Spectrum"
+    ],
+    "notificationsPerVisibilityState": 900
+  },
+  "baseline": {
+    "commit": "3192f14876f6c8351c21f79096969eb44974df0f",
+    "source": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+    "sourceSha256": "f85360f272b40feb34e0db7148cec9c584a4a5c8d97c7fbfe2e9a88b7f6d8850",
+    "countBasis": "Source-derived: HEAD OnChanged invokes Refresh synchronously for each of the three notifications, with no ancestor-visibility gate. Native control callbacks were not executed.",
+    "visibleSynchronousRefreshCalls": 900,
+    "hiddenSynchronousRefreshCalls": 900
+  },
+  "current": {
+    "source": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+    "sourceSha256": "0e294725dd66c8938b7626318fcb68f102f7f4232e2769ecc1eee98b7d5d4bbd",
+    "countBasis": "Measured by invoking the real queue source once per synthetic notification and consuming one display frame after each group.",
+    "visibleScheduledCallbacks": 300,
+    "visibleRenderedCallbacks": 300,
+    "hiddenScheduledCallbacks": 0,
+    "hiddenRenderedCallbacks": 0
+  },
+  "validation": {
+    "test": "EachPlaybackTickCoalescesPositionLyricsAndSpectrumAndHiddenTicksRenderNothing",
+    "outcome": "Passed",
+    "command": "/tmp/dropspace-dotnet/dotnet test /tmp/dropspace-performance-checks/PerformanceChecks.csproj --no-restore --nologo --filter 'FullyQualifiedName~EachPlaybackTickCoalescesPositionLyricsAndSpectrumAndHiddenTicksRenderNothing' --logger 'trx;LogFileName=media-scheduling-check.trx' --results-directory /tmp/dropspace-performance-checks/TestResults -m:1",
+    "trx": "/tmp/dropspace-performance-checks/TestResults/media-scheduling-check.trx"
+  },
+  "limitations": [
+    "Managed scheduling counts only; no complete WinUI/XAML build or Windows graphics execution.",
+    "No measurements of frame time, UI response, CPU, memory, graphics/GPU or long-running native resource use.",
+    "The old synchronous counts are source-derived; they are not a measured native baseline."
+  ]
+}

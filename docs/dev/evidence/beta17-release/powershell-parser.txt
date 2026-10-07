@@ -1,0 +1,4 @@
+System.Management.Automation 7.5.4 Parser.ParseFile under .NET 10.0.401
+PowerShell syntax passed: scripts/Reuse-BundledLyricsLanguageModel.ps1
+PowerShell syntax passed: scripts/Build-Beta17Candidate.ps1
+No scripts were executed. This does not establish Windows build, download, model or App behavior.

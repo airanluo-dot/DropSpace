@@ -1,18 +1,37 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.16
+## Release target: v0.3.1-beta.17
 
-Use the owner's final October 6 Beta16 plan over conflicting earlier AI-lyric
-plans. Bundle fastText `lid.176.bin` for one offline whole-original prediction,
-then protect any valid target-language provider translation for the entire track.
-Partial native coverage leaves gaps empty. Only Unknown originals without valid
-target translations enter the unchanged opt-in Hy-MT2 progressive flow. Cache,
-resource resolution, progress and final publication share that whole-track gate.
-Preserve Beta15's other features and effective worktree changes. Run only required
-focused correctness checks and necessary compilation/package inspection, then
-publish a fresh Beta16 without changing old release assets. Actual results are in
-[the Beta16 audit](docs/dev/beta16-lyrics-audit.md) and
-[release notes](.github/release-notes/v0.3.1-beta.16.md).
+The current Beta target is `v0.3.1-beta.17` (Beta 17).
+v0.3.1-beta.16 is the immediate upgrade baseline for this release.
+
+Stop expanding the optimization scope and deliver all completed effective work:
+SQL calling-thread boundaries, music notification/render deduplication, hidden
+presentation lifecycle, current preference reuse, download cancellation-source
+retirement and bounded first-frame geometry cleanup. Include the already
+verified CUDA PR #102 with fixed independent component delivery and installed
+reuse. Preserve existing features and the Beta16 whole-track translation policy.
+Do not develop DLC/Bilibili, change native model bytes or repeat unchanged GPU
+inference, large CUDA downloads or unrelated broad suites.
+
+The owner's explicit release request authorizes commit, merge and a fresh Beta
+after a complete Windows App/XAML build, minimum affected-path checks and exact
+final artifact/update/source bindings. Reuse existing focused evidence honestly;
+calling-thread occupation does not equal total query speed or native frame rate.
+The [Beta17 release audit](docs/dev/beta17-release-audit.md) and
+[release notes](.github/release-notes/v0.3.1-beta.17.md) record preparation and limitations;
+actual results belong to the same-source-tree producer's immutable Actions receipt
+and final release attachments, with no post-producer source edit required.
+
+## Published baseline: v0.3.1-beta.16
+
+Beta16 bundled fastText `lid.176.bin` for one offline whole-original prediction
+and protected any valid target-language provider translation for the entire
+track. Partial native coverage retains gaps; only Unknown originals without
+valid target translations enter the unchanged opt-in Hy-MT2 progressive flow.
+Its focused controlled and pinned-native checks and exact local Release package
+bindings remain historical Beta16 evidence. See [the Beta16 audit](docs/dev/beta16-lyrics-audit.md)
+and [release notes](.github/release-notes/v0.3.1-beta.16.md).
 
 ## Published release: v0.3.1-beta.15
 
@@ -151,7 +170,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.16
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.17
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
@@ -815,9 +834,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.16` (Beta 16). All new prereleases use
+All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.15 is the immediate upgrade baseline and
+releases remain immutable. Upgrading from v0.3.1-beta.16
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

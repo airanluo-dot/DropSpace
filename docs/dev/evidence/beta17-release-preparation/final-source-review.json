@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-07T07:36:26.941Z",
+  "releaseVersion": "v0.3.1-beta.17",
+  "scope": "Final source authorization only; current complete Windows App/XAML build and actual package/runtime/commit validation remain producer prerequisites.",
+  "sourceFingerprint": "98ab6d6bc0187e85353225e474079f94c6944408f60a3733f2f9a42529ee0704",
+  "sourceInputCount": 253,
+  "approvalStatus": "owner-accepted-experimental-beta",
+  "semanticApproved": false,
+  "modelVerdicts": [
+    {
+      "id": "hy-mt2-18-q8-plain-beta",
+      "verdict": "unverified"
+    },
+    {
+      "id": "hy-mt2-7b-q8-plain-beta",
+      "verdict": "unverified"
+    }
+  ],
+  "review": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-source-review.json",
+    "sha256": "54a954511674b62d2a342bba643f90d59302ac9d983e168d71cdfe1eb7fd6572"
+  },
+  "ownerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-owner-decision.json",
+    "sha256": "9c8243765c183f5b6230cdb2e26002135365c7bac861343109e2e36294d82dcd"
+  },
+  "reviewedRebindSources": [
+    {
+      "path": "scripts/test-ai-release-approval.mjs",
+      "sha256": "b9dd0c56a4f9b470be32732dbbfdafd924aa7245b54330478f80f1e25b569b91"
+    },
+    {
+      "path": "scripts/Build-Beta17Candidate.ps1",
+      "sha256": "755b64d3ef37900cc1aa2f86f72cf0ce0288e4d3171fb41b5b3b90326b049562"
+    },
+    {
+      "path": "scripts/Reuse-BundledLyricsLanguageModel.ps1",
+      "sha256": "0ecc2babe32dbe34c7d63de9a46967ca979fb734daf381169b747fea6fdaa63b"
+    },
+    {
+      "path": "scripts/beta17-release-validation.mjs",
+      "sha256": "505c092ef16d510228fd5dbf675e4986cf7d5349eeaa3cb4247de4d1a0199ed1"
+    },
+    {
+      "path": "scripts/ci-release-promotion.mjs",
+      "sha256": "2a1dbbe072107e8e89a40ea8b7122b2c291dc2925f356ba5b4b56c297e72d15b"
+    }
+  ],
+  "preservedPreparationByteIdentities": {
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-decision.json": "e1fe28c3ed6e5ca0ce5b351e9b0b8651890c71852c4a1a6d7254f0e560f0c1da",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-accepted-review.json": "a114aa063b4b8fbd044628447879c6d88df3705ab57ab4ef5637534afc51a3cf",
+    "docs/dev/evidence/beta17-release-preparation/approval-preparation.json": "b2e3a6abe26d3db5d340ce47dc3731745755122eb74e9c5f8b9e1c113b3347fb"
+  },
+  "priorPreparationBytesPreserved": true,
+  "checks": [
+    {
+      "command": "node scripts/test-ai-release-approval.mjs",
+      "outcome": "passed",
+      "meaning": "Current actual source/model/runtime/review bindings, not semantic approval or Windows execution."
+    },
+    {
+      "command": "node scripts/test-release-metadata.mjs",
+      "outcome": "passed"
+    },
+    {
+      "command": "node --test --test-name-pattern='Beta17 publisher input remains source-bound' scripts/test-ai-release-approval.test.mjs",
+      "outcome": "passed",
+      "tests": 4,
+      "passed": 4,
+      "failed": 0,
+      "meaning": "Each newly fingerprinted publisher input mutation invalidates prior source approval."
+    },
+    {
+      "command": "git diff --check",
+      "outcome": "passed"
+    }
+  ],
+  "pipelineManagedContractEvidence": "docs/dev/evidence/beta17-release/pipeline-contracts.txt",
+  "windowsExecutionClaimed": false
+}

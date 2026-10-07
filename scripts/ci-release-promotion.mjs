@@ -1,16 +1,42 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { verifyReleaseBinding } from './ai-runtime-publication.mjs';
+import { fileIdentity, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const git = (...args) => execFileSync('git', args, {encoding:'utf8'}).trim();
 const payloads = ['DropSpace.exe','DropSpaceSetup.exe','DropSpace-x64.msix','runtime-publication.json','DropSpace.Identity.msix'];
+export function promotionPayloads(releaseVersion) {
+  return releaseVersion==='v0.3.1-beta.17'
+    ? [...payloads,'cuda-runtime-download.json','cuda-runtime-manifest.json','update-manifest.json','SHA256SUMS.txt']
+    : payloads;
+}
 const read = p => JSON.parse(fs.readFileSync(p,'utf8').replace(/^\uFEFF/,''));
-const identity = p => ({bytes:fs.statSync(p).size,sha256:hash(fs.readFileSync(p))});
+const identity = p => {const {bytes,sha256}=fileIdentity(p);return {bytes,sha256};};
+export function verifyBeta17Metadata(directory, sourceCommit) {
+  const descriptor=read(path.join(directory,'cuda-runtime-download.json'));
+  const manifest=identity(path.join(directory,'cuda-runtime-manifest.json'));
+  assert.equal(descriptor.schemaVersion,2,'Beta17 requires the independent component contract');
+  assert.deepEqual(descriptor.appRelease,{tag:'v0.3.1-beta.17',sourceCommit},'CUDA metadata differs from the actual App build commit');
+  assert.equal(descriptor.componentRelease?.tag,'cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1');
+  assert.equal(descriptor.download?.url,'https://github.com/airanluo-dot/DropSpace/releases/download/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1/DropSpace-CUDA-llama-cpp-v0.5.0-cuda13-win-x64-v1.zip');
+  assert.equal(descriptor.download.bytes,540873572);
+  assert.equal(descriptor.download.sha256,'79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b');
+  assert.deepEqual(manifest,{bytes:1815,sha256:'da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a'});
+  assert.equal(descriptor.manifest?.bytes,manifest.bytes);
+  assert.equal(descriptor.manifest?.sha256,manifest.sha256);
+  const names=promotionPayloads('v0.3.1-beta.17').filter(name=>name!=='DropSpace.Identity.msix'&&name!=='SHA256SUMS.txt');
+  const checksums=fs.readFileSync(path.join(directory,'SHA256SUMS.txt'),'utf8').trim().split(/\r?\n/);
+  assert.equal(checksums.length,names.length,'Every public App asset needs one checksum');
+  const seen=new Set();
+  for(const line of checksums) {
+    const match=line.match(/^([a-f0-9]{64})  ([A-Za-z0-9_.-]+)$/);
+    assert.ok(match&&names.includes(match[2])&&!seen.has(match[2]),'Unexpected or duplicate checksum asset');
+    seen.add(match[2]);
+    assert.equal(match[1],identity(path.join(directory,match[2])).sha256,'Final public asset checksum mismatch');
+  }
+}
 export function validateProducer(run, repository) {
   assert.equal(run.repository?.full_name, repository, 'CI repository mismatch');
   assert.equal(run.head_repository?.full_name, repository, 'CI head repository mismatch');
@@ -26,9 +52,11 @@ export function verifyReceipt(directory, receipt, expected) {
   for(const field of ['repository','runId','runAttempt','sourceTree','releaseVersion'])
     assert.equal(receipt[field],expected[field],`Promotion ${field} mismatch`);
   assert.match(receipt.sourceCommit ?? '',/^[a-f0-9]{40}$/);
-  assert.deepEqual(Object.keys(receipt.files).sort(),[...payloads].sort());
-  for(const name of payloads) assert.deepEqual(receipt.files[name],identity(path.join(directory,name)),`Promoted bytes changed: ${name}`);
+  const names=promotionPayloads(expected.releaseVersion);
+  assert.deepEqual(Object.keys(receipt.files).sort(),[...names].sort());
+  for(const name of names) assert.deepEqual(receipt.files[name],identity(path.join(directory,name)),`Promoted bytes changed: ${name}`);
   verifyReleaseBinding(directory,{expectedCommit:receipt.sourceCommit});
+  if(expected.releaseVersion==='v0.3.1-beta.17')verifyBeta17Metadata(directory,receipt.sourceCommit);
   return receipt;
 }
 async function api(route) {
@@ -44,7 +72,9 @@ async function main() {
   const sourceCommit=git('rev-parse','HEAD');
   assert.equal(sourceCommit,process.env.GITHUB_SHA);
   verifyReleaseBinding(directory,{expectedCommit:sourceCommit});
-  const receipt={schemaVersion:1,repository:process.env.GITHUB_REPOSITORY,runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),sourceCommit,sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion:fs.readFileSync('RELEASE_VERSION','utf8').trim(),files:Object.fromEntries(payloads.map(name=>[name,identity(path.join(directory,name))]))};
+  const releaseVersion=fs.readFileSync('RELEASE_VERSION','utf8').trim();
+  if(releaseVersion==='v0.3.1-beta.17')verifyBeta17Metadata(directory,sourceCommit);
+  const receipt={schemaVersion:1,repository:process.env.GITHUB_REPOSITORY,runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),sourceCommit,sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion,files:Object.fromEntries(promotionPayloads(releaseVersion).map(name=>[name,identity(path.join(directory,name))]))};
   fs.writeFileSync(path.join(directory,'ci-release-receipt.json'),JSON.stringify(receipt,null,2)+'\n');
  } else if(command==='find') {
   // Explicit publication is allowed to reuse only a successful complete CI run
@@ -94,10 +124,17 @@ async function main() {
   const binding=verifyReleaseBinding(directory,{expectedCommit:receipt.sourceCommit});
   // Preserve the actual build commit and receipt. Only the publication binding
   // moves to the identical-tree main commit; binaries are never rebuilt/modified.
-  binding.buildSourceCommit=receipt.sourceCommit;
-  binding.buildSourceTree=receipt.sourceTree;
-  binding.sourceCommit=process.env.GITHUB_SHA;
-  fs.writeFileSync(path.join(directory,'runtime-publication.json'),JSON.stringify(binding,null,2)+'\n');
+  if(expected.releaseVersion==='v0.3.1-beta.17') {
+    // The CUDA descriptor is embedded in the App. Final-main packaging must
+    // already match publication; retain all approved/checksummed bytes unchanged.
+    assert.equal(receipt.sourceCommit,process.env.GITHUB_SHA,'Beta17 packages must come from the exact final main commit');
+    verifyBeta17Metadata(directory,process.env.GITHUB_SHA);
+  } else {
+    binding.buildSourceCommit=receipt.sourceCommit;
+    binding.buildSourceTree=receipt.sourceTree;
+    binding.sourceCommit=process.env.GITHUB_SHA;
+    fs.writeFileSync(path.join(directory,'runtime-publication.json'),JSON.stringify(binding,null,2)+'\n');
+  }
   verifyReleaseBinding(directory,{expectedCommit:process.env.GITHUB_SHA});
   fs.mkdirSync('artifacts/identity',{recursive:true});
   fs.copyFileSync(path.join(directory,'DropSpace.Identity.msix'),'artifacts/identity/DropSpace.Identity.msix');

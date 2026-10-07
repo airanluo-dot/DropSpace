@@ -43,8 +43,21 @@ public sealed class SystemVisualPreferenceService : IDisposable
 
     public OverlayVisualPreferences Current { get; private set; }
 
-    public OverlayVisualPreferences Resolve(OverlayMotionPreference preference) =>
-        ReadPreferences(preference);
+    public OverlayVisualPreferences Resolve(OverlayMotionPreference preference)
+    {
+        // Events and the fallback poll own native preference reads. Animation frames
+        // only project the requested motion mode over their latest shared snapshot.
+        var current = Current;
+        return current with
+        {
+            Motion = preference switch
+            {
+                OverlayMotionPreference.Reduced => OverlayVisualPreferenceMode.Reduced,
+                OverlayMotionPreference.Full => OverlayVisualPreferenceMode.Full,
+                _ => current.Motion,
+            },
+        };
+    }
 
     public bool IsReducedMotion(OverlayMotionPreference preference) =>
         Resolve(preference).ReducedMotion;

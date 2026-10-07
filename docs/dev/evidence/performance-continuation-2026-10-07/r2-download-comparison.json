@@ -1,0 +1,49 @@
+{
+  "scenario": "100 sequential tiny real loopback HTTP downloads; real DownloadManager, HttpRangeDownloader and DownloadTaskRepository; each Work.Run awaited before next admission; history retained; one forced full GC after all runs",
+  "conditions": {
+    "platform": "Linux x64",
+    "sdk": "10.0.401",
+    "runtime": "10.0.12",
+    "bytesPerDownload": 3,
+    "externalNetworkTraffic": false,
+    "beforeDownloads": 100,
+    "afterDownloads": 100
+  },
+  "results": {
+    "completedHistory": [
+      100,
+      100
+    ],
+    "retainedWorkStopSources": [
+      100,
+      0
+    ],
+    "activeLifetimeCallbackNodes": [
+      100,
+      0
+    ],
+    "capturedWeakReferencesAliveAfterFullGc": [
+      100,
+      1
+    ]
+  },
+  "measurementLimits": [
+    "This counts managed cancellation owners and active registrations, not App RSS, CPU or Windows UI responsiveness.",
+    "One captured source remained weak-reference reachable in the after probe; its remaining probe/runtime reference was not identified. Do not report all 100 objects as collected.",
+    "Sequential batch wall time was 349.4154 ms before and 388.0049 ms after; a single pair is not a latency or speed claim.",
+    "Reflection over .NET CancellationTokenSource registration internals is diagnostic evidence for this runtime, not a production contract."
+  ],
+  "sourceIdentity": {
+    "baselineHead": "6a1586a01e769c8b71492bcb18fb970047753434",
+    "baselineDownloadManagerSha256": "3b3430a7be0c1c4b2a621c169caf0371ab856b383e1046f0f7d9d61453066ac9",
+    "currentDownloadManagerSha256": "1ca797428cbd10e8b85bfeba31494b68405f87c64d62a12992e584892b01a540",
+    "currentLifetimeTestsSha256": "cf72de4cb7f295defb96c94d2598c826aa4e6c0aa0526ea35e006735aedf66a6",
+    "measuredInfrastructureDllSha256": "12e77ee2b4f5ccdc7cb6d31342ddb8c0a7dfd6182611ed0863370f9cd5b2732e",
+    "probeSourceSha256": "894a1f8ac079879bdc42f66b8bf09e1a0447518b5427e4522ad6eb762b747ad8"
+  },
+  "execution": {
+    "beforeCommand": "/tmp/dropspace-dotnet/dotnet run --project /tmp/dropspace-download-lifetime-probe/DownloadLifetimeProbe.csproj -c Release",
+    "afterCommand": "/tmp/dropspace-dotnet/dotnet run --project /tmp/dropspace-download-lifetime-probe/DownloadLifetimeProbe.csproj -c Release --no-restore -p:BuildProjectReferences=false",
+    "focusedChecks": "Root ran 5 new lifetime cases and the existing committed-recovery/history case; initial callback-failure test assumed Timer.Change throws after disposal, corrected to false per .NET 10 contract and that case rerun only."
+  }
+}

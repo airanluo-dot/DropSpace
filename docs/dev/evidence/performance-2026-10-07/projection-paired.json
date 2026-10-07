@@ -1,0 +1,148 @@
+{
+  "label": "paired",
+  "platform": "Unix 6.18.44.0",
+  "runtime": "10.0.12",
+  "fixtureRows": 10000,
+  "pageSize": 200,
+  "note": "HEAD baseline and current production source in one process; warmup 5; 30 paired samples alternate variant order. CPU and allocation are process-wide and include measurement overhead; invocation is caller occupation, not Windows UI frame latency.",
+  "reports": [
+    {
+      "search": "",
+      "nextPage": false,
+      "iterationsPerVariant": 30,
+      "before": {
+        "synchronousCount": 30,
+        "invocationMedianMs": 1.4809,
+        "invocationP95Ms": 2.6674,
+        "totalMedianMs": 1.4812,
+        "totalP95Ms": 2.6679,
+        "allocatedBytes": 25814432,
+        "cpuMs": 49.64600000000001
+      },
+      "after": {
+        "synchronousCount": 0,
+        "invocationMedianMs": 0.0158,
+        "invocationP95Ms": 0.02,
+        "totalMedianMs": 1.5272,
+        "totalP95Ms": 1.9602,
+        "allocatedBytes": 25823296,
+        "cpuMs": 49.99799999999999
+      }
+    },
+    {
+      "search": "",
+      "nextPage": true,
+      "iterationsPerVariant": 30,
+      "before": {
+        "synchronousCount": 30,
+        "invocationMedianMs": 1.8069,
+        "invocationP95Ms": 2.6138,
+        "totalMedianMs": 1.8074,
+        "totalP95Ms": 2.6143,
+        "allocatedBytes": 25836928,
+        "cpuMs": 60.144000000000005
+      },
+      "after": {
+        "synchronousCount": 0,
+        "invocationMedianMs": 0.0163,
+        "invocationP95Ms": 0.03,
+        "totalMedianMs": 1.8043,
+        "totalP95Ms": 2.6284,
+        "allocatedBytes": 25845664,
+        "cpuMs": 61.647
+      }
+    },
+    {
+      "search": "do",
+      "nextPage": false,
+      "iterationsPerVariant": 30,
+      "before": {
+        "synchronousCount": 30,
+        "invocationMedianMs": 16.4033,
+        "invocationP95Ms": 17.1475,
+        "totalMedianMs": 16.4051,
+        "totalP95Ms": 17.1505,
+        "allocatedBytes": 25842456,
+        "cpuMs": 676.5669999999998
+      },
+      "after": {
+        "synchronousCount": 0,
+        "invocationMedianMs": 0.0331,
+        "invocationP95Ms": 0.0547,
+        "totalMedianMs": 16.1541,
+        "totalP95Ms": 17.3217,
+        "allocatedBytes": 25853120,
+        "cpuMs": 636.2860000000001
+      }
+    },
+    {
+      "search": "do",
+      "nextPage": true,
+      "iterationsPerVariant": 30,
+      "before": {
+        "synchronousCount": 30,
+        "invocationMedianMs": 17.5847,
+        "invocationP95Ms": 19.9316,
+        "totalMedianMs": 17.5856,
+        "totalP95Ms": 19.935,
+        "allocatedBytes": 25892928,
+        "cpuMs": 613.5039999999999
+      },
+      "after": {
+        "synchronousCount": 0,
+        "invocationMedianMs": 0.0241,
+        "invocationP95Ms": 0.045,
+        "totalMedianMs": 17.8496,
+        "totalP95Ms": 20.3285,
+        "allocatedBytes": 25899824,
+        "cpuMs": 621.7579999999999
+      }
+    },
+    {
+      "search": "architecture",
+      "nextPage": false,
+      "iterationsPerVariant": 30,
+      "before": {
+        "synchronousCount": 30,
+        "invocationMedianMs": 21.2078,
+        "invocationP95Ms": 26.4971,
+        "totalMedianMs": 21.2085,
+        "totalP95Ms": 26.4978,
+        "allocatedBytes": 25920064,
+        "cpuMs": 668.7949999999998
+      },
+      "after": {
+        "synchronousCount": 0,
+        "invocationMedianMs": 0.0204,
+        "invocationP95Ms": 0.0815,
+        "totalMedianMs": 21.5064,
+        "totalP95Ms": 27.8095,
+        "allocatedBytes": 25928048,
+        "cpuMs": 667.4920000000001
+      }
+    },
+    {
+      "search": "architecture",
+      "nextPage": true,
+      "iterationsPerVariant": 30,
+      "before": {
+        "synchronousCount": 30,
+        "invocationMedianMs": 23.1458,
+        "invocationP95Ms": 25.6412,
+        "totalMedianMs": 23.1464,
+        "totalP95Ms": 25.6443,
+        "allocatedBytes": 25974480,
+        "cpuMs": 702.9399999999999
+      },
+      "after": {
+        "synchronousCount": 0,
+        "invocationMedianMs": 0.0212,
+        "invocationP95Ms": 0.0328,
+        "totalMedianMs": 23.2018,
+        "totalP95Ms": 25.0477,
+        "allocatedBytes": 25979712,
+        "cpuMs": 700.9749999999999
+      }
+    }
+  ]
+}

@@ -1,0 +1,1315 @@
+diff --git a/.github/workflows/cuda-component-contracts.yml b/.github/workflows/cuda-component-contracts.yml
+new file mode 100644
+index 0000000..659d208
+--- /dev/null
++++ b/.github/workflows/cuda-component-contracts.yml
+@@ -0,0 +1,44 @@
++name: CUDA component contracts
++
++on:
++  pull_request:
++    branches: [main]
++    paths:
++      - '.github/workflows/cuda-component-contracts.yml'
++      - 'scripts/cuda_runtime_contract.py'
++      - 'scripts/package-cuda-runtime.py'
++      - 'scripts/stage-reviewed-cuda-metadata.py'
++      - 'scripts/Test-CudaBuildBinding.ps1'
++      - 'scripts/test_cuda_component_delivery.py'
++      - 'scripts/test-ai-release-approval*.mjs'
++      - 'src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs'
++      - 'tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs'
++      - 'website/_source/scripts/verify-published-release*.mjs'
++  workflow_dispatch:
++
++permissions:
++  contents: read
++
++jobs:
++  component-contracts:
++    name: Metadata, binding, and cache contracts only
++    runs-on: windows-2025
++    timeout-minutes: 15
++    steps:
++      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
++      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
++        with:
++          node-version: 24
++      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
++        with:
++          dotnet-version: 10.0.401
++      - name: Test Python metadata and PowerShell build binding
++        run: python -m unittest discover -s scripts -p test_cuda_component_delivery.py -v
++      - name: Verify changed component inputs invalidate old approval
++        run: node --test --test-name-pattern="independent CUDA" scripts/test-ai-release-approval.test.mjs
++      - name: Test historical and independent CUDA publication metadata
++        run: node --test website/_source/scripts/verify-published-release.test.mjs
++      - name: Restore locked Infrastructure test dependencies
++        run: dotnet restore tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -p:RestoreLockedMode=true
++      - name: Test CUDA descriptor and installed-cache reuse without native inference
++        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --filter FullyQualifiedName~CudaLyricsRuntimePackageTests
+diff --git a/docs/dev/independent-cuda-component.md b/docs/dev/independent-cuda-component.md
+new file mode 100644
+index 0000000..d43e23a
+--- /dev/null
++++ b/docs/dev/independent-cuda-component.md
+@@ -0,0 +1,81 @@
++# Independently versioned CUDA component
++
++The CUDA package now has its own immutable release alongside the AI model resource
++release in `airanluo-dot/DropSpace`. An App release does not rename or republish the
++same 540.9 MB archive. `RELEASE_VERSION` is unchanged by this work.
++
++## Identities and compatibility
++
++- Component release: `cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1`
++- Asset: `DropSpace-CUDA-llama-cpp-v0.5.0-cuda13-win-x64-v1.zip`
++- ZIP: 540873572 bytes; SHA256
++  `79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b`
++- Inner manifest: 1815 bytes; SHA256
++  `da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a`
++- Runtime: `llama-cpp-v0.5.0-cuda13-win-x64-v1`; protocol 1;
++  profile `hy-q8-plain-resident-v1`
++- Engine source: `7fe450e19305b828c199d602c23a8337aaa1f03b`
++- CUDA producer source: `806f3e3e40c11a6e7d3d50648a9de8708b16b4ac`
++
++The initial standalone ZIP is the verified Beta16 asset, renamed without repacking.
++The worker, two cuBLAS DLLs, inner manifest and two license notices are unchanged.
++The cache path still uses RuntimeId plus the exact inner manifest hash. Existing
++verified installations are reused; changing the App version does not trigger a
++new CUDA download. Old App assets must remain available to already shipped Apps.
++No GGUF, CPU/Vulkan runtime, or NVIDIA driver is included.
++
++## Packaging and App binding
++
++`scripts/cuda_runtime_contract.py` owns the reviewed component identity and pinned
++archive/manifest hashes. It participates in the AI release source fingerprint.
++Changed package bytes require a newly reviewed identity, not an overwrite.
++
++The component producer takes no App version or App commit:
++
++```sh
++python scripts/package-cuda-runtime.py --payload <real-producer-payload> \
++  --license-directory <real-producer-notices> \
++  --component-commit 806f3e3e40c11a6e7d3d50648a9de8708b16b4ac \
++  --output <fresh-component-output>
++```
++
++It produces the ZIP, original manifest and `cuda-runtime-component.json` (schema 2).
++The component descriptor has `componentRelease.tag` and no App binding. Existing
++bytes should be reused directly rather than rebuilt/recompressed.
++
++For each future App checkout, run the existing CI staging command:
++
++```sh
++python scripts/stage-reviewed-cuda-metadata.py --app-commit <exact-HEAD-SHA>
++```
++
++This writes only the manifest and `cuda-runtime-download.json` build inputs. The
++latter adds `appRelease.tag` and `appRelease.sourceCommit` to schema 2. There is no
++per-Beta allowlist of CUDA reuploads. The exact App tag/commit, component identity,
++ABI/profile, trusted URL, sizes and hashes still fail closed in the build checker
++and runtime. The downloaded descriptor never supplies its own trust anchor.
++Explicit download consent, allowed redirect hosts, bounded extraction and file
++verification remain unchanged. App releases may publish the two small JSON files
++for audit without duplicating the ZIP. The published-release verifier retains
++historical schema 1 validation and checks schema 2 metadata against the separate
++published component asset.
++
++## Publication order and next App release
++
++1. Merge the separate narrow website resource-tag filter before making the
++   component release public. Unknown non-App tags remain errors in website sync.
++2. Verify the existing ZIP's real size/SHA256 and each inner file; publish the
++   renamed ZIP, component descriptor, original manifest and checksums in the
++   independent resource release. Do not mark it as the latest App release.
++3. Keep the runtime/packaging PR in draft until reviewed for the next Beta. No App
++   version bump, App release, or overwrite/deletion of older release assets is
++   part of this change.
++4. Rebind the next App's exact checkout metadata. The old AI source approval is
++   intentionally stale after delivery-code changes and must not be copied,
++   edited to pass, or treated as an approval of the new source. A new applicable
++   review/authorization is required by the existing release gate.
++
++Focused tests exercise metadata, rejection cases, exact App binding and cache
++reuse. They do not execute a CUDA worker, load a model, benchmark a GPU or claim
++model quality. The separate `CUDA component contracts` workflow runs only these
++contracts; it does not publish an App or change the existing release gates.
+diff --git a/scripts/Test-CudaBuildBinding.ps1 b/scripts/Test-CudaBuildBinding.ps1
+index 034a24e..ef32edb 100644
+--- a/scripts/Test-CudaBuildBinding.ps1
++++ b/scripts/Test-CudaBuildBinding.ps1
+@@ -12,16 +12,30 @@ if ($version.Count -ne 2 -or $version[1] -cnotmatch '^[0-9a-f]{40}$') {
+ $descriptor = Get-Content -LiteralPath (Join-Path $MetadataDirectory 'cuda-runtime-download.json') -Raw | ConvertFrom-Json
+ $manifest = Get-Item -LiteralPath (Join-Path $MetadataDirectory 'cuda-runtime-manifest.json')
+ $tag = 'v' + $version[0]
+-$asset = 'DropSpace-CUDA-win-x64-' + $tag + '.zip'
++$runtimeId = 'llama-cpp-v0.5.0-cuda13-win-x64-v1'
++$componentTag = 'cuda-' + $runtimeId
++$asset = 'DropSpace-CUDA-' + $runtimeId + '.zip'
++$inner = Get-Content -LiteralPath $manifest.FullName -Raw | ConvertFrom-Json
+ $hashProvider = [System.Security.Cryptography.SHA256]::Create()
+ $manifestStream = [System.IO.File]::OpenRead($manifest.FullName)
+ try { $manifestHash = [BitConverter]::ToString($hashProvider.ComputeHash($manifestStream)).Replace('-', '').ToLowerInvariant() }
+ finally { $manifestStream.Dispose(); $hashProvider.Dispose() }
+-if ($descriptor.appRelease.tag -cne $tag -or $descriptor.appRelease.sourceCommit -cne $version[1] -or
++if ($descriptor.schemaVersion -ne 2 -or $descriptor.repository -cne 'airanluo-dot/DropSpace' -or
++    $descriptor.runtimeId -cne $runtimeId -or $descriptor.componentRelease.tag -cne $componentTag -or
++    $descriptor.componentSourceCommit -cne '806f3e3e40c11a6e7d3d50648a9de8708b16b4ac' -or
++    $descriptor.backend -cne 'cuda' -or $descriptor.platform -cne 'win-x64' -or
++    $descriptor.protocol -ne 1 -or $descriptor.profile -cne 'hy-q8-plain-resident-v1' -or
++    $descriptor.engineSourceCommit -cne '7fe450e19305b828c199d602c23a8337aaa1f03b' -or
++    $descriptor.workerSourceSha256 -cne $inner.workerSourceSha256 -or
++    $inner.runtimeId -cne $runtimeId -or $inner.protocol -ne 1 -or
++    $inner.profile -cne $descriptor.profile -or $inner.sourceCommit -cne $descriptor.engineSourceCommit -or
++    $descriptor.download.bytes -le 0 -or $descriptor.download.bytes -gt 1073741824 -or
++    $descriptor.download.sha256 -cnotmatch '^[0-9a-f]{64}$' -or
++    $descriptor.appRelease.tag -cne $tag -or $descriptor.appRelease.sourceCommit -cne $version[1] -or
+     $descriptor.download.name -cne $asset -or
+-    $descriptor.download.url -cne ('https://github.com/airanluo-dot/DropSpace/releases/download/' + $tag + '/' + $asset) -or
++    $descriptor.download.url -cne ('https://github.com/airanluo-dot/DropSpace/releases/download/' + $componentTag + '/' + $asset) -or
+     $descriptor.manifest.bytes -ne $manifest.Length -or
+     $descriptor.manifest.sha256 -cne $manifestHash) {
+     throw 'CUDA metadata does not match this App build. Stage metadata for the current tag and exact source commit; never reuse another release descriptor.'
+ }
+-Write-Host "CUDA metadata bound to $InformationalVersion."
++Write-Host "CUDA component $componentTag bound to App $InformationalVersion."
+diff --git a/scripts/cuda_runtime_contract.py b/scripts/cuda_runtime_contract.py
+new file mode 100644
+index 0000000..0a86031
+--- /dev/null
++++ b/scripts/cuda_runtime_contract.py
+@@ -0,0 +1,58 @@
++"""Source-owned identity of the independently versioned CUDA resource release.
++
++These inputs participate in the AI release source fingerprint. Changing a component
++requires new review; an App version alone never creates a new CUDA archive identity.
++"""
++import re
++
++REPOSITORY = "airanluo-dot/DropSpace"
++RUNTIME_ID = "llama-cpp-v0.5.0-cuda13-win-x64-v1"
++COMPONENT_TAG = "cuda-" + RUNTIME_ID
++ARCHIVE_NAME = "DropSpace-CUDA-" + RUNTIME_ID + ".zip"
++ARCHIVE_URL = "https://github.com/" + REPOSITORY + "/releases/download/" + COMPONENT_TAG + "/" + ARCHIVE_NAME
++ARCHIVE_SHA256 = "79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b"
++ARCHIVE_BYTES = 540873572
++MANIFEST_SHA256 = "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a"
++MANIFEST_BYTES = 1815
++COMPONENT_COMMIT = "806f3e3e40c11a6e7d3d50648a9de8708b16b4ac"
++ENGINE_COMMIT = "7fe450e19305b828c199d602c23a8337aaa1f03b"
++PROFILE = "hy-q8-plain-resident-v1"
++MANIFEST = "cuda-runtime-manifest.json"
++DESCRIPTOR = "cuda-runtime-download.json"
++COMPONENT_DESCRIPTOR = "cuda-runtime-component.json"
++COMPONENTS = ("plain-lyrics-worker-cuda.exe", "cublas64_13.dll", "cublasLt64_13.dll")
++NOTICES = ("LICENSE-llama.cpp", "LICENSE-CUDA.txt")
++HASH = re.compile(r"[a-f0-9]{64}\Z")
++COMMIT = re.compile(r"[a-f0-9]{40}\Z")
++TAG = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-beta\.([1-9][0-9]*))?\Z")
++
++
++def require(condition, message):
++    if not condition:
++        raise ValueError(message)
++
++
++def component_descriptor(manifest, manifest_identity, archive, notices, component_commit):
++    require(component_commit == COMPONENT_COMMIT, "CUDA component source requires a new reviewed identity")
++    require(manifest["runtimeId"] == RUNTIME_ID and manifest["backend"] == "cuda" and
++            type(manifest["protocol"]) is int and manifest["protocol"] == 1 and
++            manifest["profile"] == PROFILE and manifest["sourceCommit"] == ENGINE_COMMIT,
++            "CUDA component ABI/profile/engine mismatch")
++    require(archive["name"] == ARCHIVE_NAME and HASH.fullmatch(archive["sha256"]) and
++            type(archive["bytes"]) is int and 0 < archive["bytes"] <= 1_073_741_824,
++            "Invalid independent CUDA archive identity")
++    require(archive["sha256"] == ARCHIVE_SHA256 and archive["bytes"] == ARCHIVE_BYTES and
++            manifest_identity["name"] == MANIFEST and
++            manifest_identity["sha256"] == MANIFEST_SHA256 and manifest_identity["bytes"] == MANIFEST_BYTES,
++            "Changed CUDA bytes require a new reviewed component identity; never overwrite an existing release")
++    return {
++        "schemaVersion": 2, "repository": REPOSITORY,
++        "componentRelease": {"tag": COMPONENT_TAG},
++        "componentSourceCommit": component_commit,
++        "runtimeId": RUNTIME_ID, "backend": "cuda", "platform": "win-x64",
++        "protocol": 1, "profile": PROFILE,
++        "engineSourceCommit": ENGINE_COMMIT,
++        "workerSourceSha256": manifest["workerSourceSha256"],
++        "download": dict(archive, url=ARCHIVE_URL), "manifest": manifest_identity,
++        "files": manifest["files"], "notices": notices,
++    }
+diff --git a/scripts/package-cuda-runtime.py b/scripts/package-cuda-runtime.py
+index 6f1b762..ae56cb5 100644
+--- a/scripts/package-cuda-runtime.py
++++ b/scripts/package-cuda-runtime.py
+@@ -1,38 +1,27 @@
+ """Package actual CUDA producer files without loading a worker or model.
+ 
+ No tests, inference, network requests, publication, or source/version edits occur here.
+-The small download descriptor must be pinned in the matching App build; the ZIP is
+-a separate asset of that exact release. This tool does not authenticate a reviewer.
++The ZIP and component descriptor belong to an immutable component release. App
++build metadata is bound separately by stage-reviewed-cuda-metadata.py. This tool
++does not authenticate a reviewer.
+ """
+ import argparse
+ import hashlib
+ import json
+ import os
+ from pathlib import Path
+-import re
+ import shutil
+ import stat
+ import tempfile
+ import zipfile
+ 
+ 
+-REPOSITORY = "airanluo-dot/DropSpace"
+-RUNTIME_ID = "llama-cpp-v0.5.0-cuda13-win-x64-v1"
+-ENGINE_COMMIT = "7fe450e19305b828c199d602c23a8337aaa1f03b"
+-PROFILE = "hy-q8-plain-resident-v1"
+-MANIFEST = "cuda-runtime-manifest.json"
+-DESCRIPTOR = "cuda-runtime-download.json"
+-COMPONENTS = ("plain-lyrics-worker-cuda.exe", "cublas64_13.dll", "cublasLt64_13.dll")
+-NOTICES = ("LICENSE-llama.cpp", "LICENSE-CUDA.txt")
+-HASH = re.compile(r"[a-f0-9]{64}\Z")
+-COMMIT = re.compile(r"[a-f0-9]{40}\Z")
+-TAG = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-beta\.([1-9][0-9]*))?\Z")
+-CHUNK = 1024 * 1024
+-
++from cuda_runtime_contract import (
++    ARCHIVE_NAME, COMPONENT_DESCRIPTOR, COMPONENTS, ENGINE_COMMIT, HASH, MANIFEST,
++    NOTICES, PROFILE, RUNTIME_ID, component_descriptor, require,
++)
+ 
+-def require(condition, message):
+-    if not condition:
+-        raise ValueError(message)
++CHUNK = 1024 * 1024
+ 
+ 
+ def ordinary_path(path, directory=False):
+@@ -116,13 +105,6 @@ def write_member(archive, path, expected):
+ 
+ 
+ def package(args):
+-    match = TAG.fullmatch(args.app_tag)
+-    require(match is not None, "Expected an exact stable/Beta App release tag")
+-    major, minor, patch = (int(match[n]) for n in (1, 2, 3))
+-    require(major <= 20 and minor <= 99 and patch <= 99 and
+-            (match[4] is None or int(match[4]) <= 9998), "App tag exceeds the release version range")
+-    require(COMMIT.fullmatch(args.app_commit) and COMMIT.fullmatch(args.component_commit),
+-            "Exact App/component source commits are required")
+     payload = ordinary_path(args.payload, directory=True)
+     notices = ordinary_path(args.license_directory, directory=True)
+     require({p.name for p in payload.iterdir()} == {*COMPONENTS, MANIFEST},
+@@ -132,7 +114,7 @@ def package(args):
+     output = Path(os.path.abspath(args.output))
+     ordinary_path(output.parent, directory=True)
+     require(not os.path.lexists(output), "Output must be fresh; existing artifacts are preserved")
+-    archive_name = "DropSpace-CUDA-win-x64-" + args.app_tag + ".zip"
++    archive_name = ARCHIVE_NAME
+     staging = Path(tempfile.mkdtemp(prefix=".dropspace-cuda-package-", dir=output.parent))
+     try:
+         archive_path = staging / archive_name
+@@ -144,22 +126,12 @@ def package(args):
+             for entry in notice_identities:
+                 write_member(archive, notices / entry["name"], entry)
+         archive_identity = identity(archive_path, 1_073_741_824)
+-        download = dict(archive_identity, url="https://github.com/" + REPOSITORY +
+-                        "/releases/download/" + args.app_tag + "/" + archive_name)
+-        descriptor = {
+-            "schemaVersion": 1, "repository": REPOSITORY,
+-            "appRelease": {"tag": args.app_tag, "sourceCommit": args.app_commit},
+-            "componentSourceCommit": args.component_commit,
+-            "runtimeId": RUNTIME_ID, "backend": "cuda", "platform": "win-x64",
+-            "protocol": 1, "profile": PROFILE,
+-            "engineSourceCommit": ENGINE_COMMIT,
+-            "workerSourceSha256": manifest["workerSourceSha256"],
+-            "download": download, "manifest": manifest_identity,
+-            "files": manifest["files"], "notices": notice_identities,
+-        }
++        descriptor = component_descriptor(manifest, manifest_identity, archive_identity,
++                                          notice_identities, args.component_commit)
++        download = descriptor["download"]
+         descriptor_bytes = (json.dumps(descriptor, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+         require(len(descriptor_bytes) <= 16_384, "Download descriptor exceeds its App resource bound")
+-        (staging / DESCRIPTOR).write_bytes(descriptor_bytes)
++        (staging / COMPONENT_DESCRIPTOR).write_bytes(descriptor_bytes)
+         # Only tiny metadata is copied for the App build. CUDA binary files stay in the ZIP.
+         (staging / MANIFEST).write_bytes(manifest_bytes)
+         # mkdir fails atomically if another process created the target; never replace
+@@ -171,15 +143,13 @@ def package(args):
+         if staging.exists():
+             shutil.rmtree(staging)
+     print(json.dumps({"output": str(output), "archive": download,
+-                      "descriptor": DESCRIPTOR, "appRelease": descriptor["appRelease"]}, indent=2))
++                      "descriptor": COMPONENT_DESCRIPTOR, "componentRelease": descriptor["componentRelease"]}, indent=2))
+ 
+ 
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--payload", type=Path, required=True)
+     parser.add_argument("--license-directory", type=Path, required=True)
+-    parser.add_argument("--app-tag", required=True)
+-    parser.add_argument("--app-commit", required=True)
+     parser.add_argument("--component-commit", required=True)
+     parser.add_argument("--output", type=Path, required=True)
+     package(parser.parse_args())
+diff --git a/scripts/stage-reviewed-cuda-metadata.py b/scripts/stage-reviewed-cuda-metadata.py
+index 847f019..e99cd7c 100644
+--- a/scripts/stage-reviewed-cuda-metadata.py
++++ b/scripts/stage-reviewed-cuda-metadata.py
+@@ -1,59 +1,78 @@
+-"""Stage tiny CUDA build metadata from the recorded real producer artifacts.
++"""Bind reviewed independent CUDA metadata to one exact App checkout.
+ 
+-No runtime binary/model downloads, compilation, executable loading or tests.
+-The real separate ZIP was already produced and fingerprinted by the local producer.
++No runtime/model downloads, compilation, executable loading or inference occurs.
++Only the tiny App descriptor changes between App releases; the ZIP/manifest/cache
++identity is reused until a new component is reviewed.
+ """
+-import argparse, hashlib, json, os, pathlib, re, subprocess
+-
+-parser = argparse.ArgumentParser()
+-parser.add_argument('--app-commit', required=True)
+-args = parser.parse_args()
+-root = pathlib.Path(__file__).resolve().parent.parent
+-assert re.fullmatch('[0-9a-f]{40}', args.app_commit), 'Exact final App source SHA required'
+-head = subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True).strip()
+-assert head == args.app_commit, 'Build metadata must match the actual checkout'
+-tag = (root/'RELEASE_VERSION').read_text(encoding='utf-8').strip()
+-assert re.fullmatch(r'v\d+\.\d+\.\d+(?:-beta\.\d+)?', tag)
+-evidence = root/'docs/dev/evidence/beta11-local-cuda'
+-report = json.loads((evidence/'cuda13-producer-report.json').read_text(encoding='utf-8'))
+-raw = (evidence/'cuda13-runtime-manifest.json').read_bytes()
+-manifest_identity = report['manifest']
+-# Git normalizes this text evidence on non-Windows checkouts. Restore the
+-# producer's exact CRLF bytes before checking its recorded binary identity.
+-if hashlib.sha256(raw).hexdigest() != manifest_identity['sha256']:
+-    raw = raw.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
+-assert len(raw) == manifest_identity['bytes']
+-assert hashlib.sha256(raw).hexdigest() == manifest_identity['sha256']
+-inner = json.loads(raw)
+-assert inner['runtimeId'] == report['runtimeId'] == 'llama-cpp-v0.5.0-cuda13-win-x64-v1'
+-assert inner['backend'] == 'cuda' and inner['protocol'] == 1
+-assert inner['sourceCommit'] == report['engineSourceCommit'] == '7fe450e19305b828c199d602c23a8337aaa1f03b'
+-assert inner['workerSourceSha256'] == report['workerSourceSha256']
+-assert inner['files'] == report['files']
+-archive = dict(report['archive'])
+-assert tag in ('v0.3.1-beta.11', 'v0.3.1-beta.12', 'v0.3.1-beta.13', 'v0.3.1-beta.14', 'v0.3.1-beta.15', 'v0.3.1-beta.16'), 'Exact approved component reuse releases only'
+-assert archive['name'] == 'DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip'
+-# Corrective Betas reuse the byte-identical Beta11 component. Its manifest/cache identity stays
+-# stable, while its new asset name and descriptor bind to the actual App build.
+-archive['name'] = 'DropSpace-CUDA-win-x64-' + tag + '.zip'
+-assert archive['bytes'] == 540873572
+-assert archive['sha256'] == '79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b'
+-archive['url'] = 'https://github.com/airanluo-dot/DropSpace/releases/download/'+tag+'/'+archive['name']
+-outer = {
+-    'schemaVersion':1, 'repository':'airanluo-dot/DropSpace',
+-    'appRelease':{'tag':tag,'sourceCommit':head},
+-    'componentSourceCommit':report['componentSourceCommit'],
+-    'runtimeId':inner['runtimeId'],'backend':'cuda','platform':'win-x64',
+-    'protocol':inner['protocol'],'profile':inner['profile'],
+-    'engineSourceCommit':inner['sourceCommit'],'workerSourceSha256':inner['workerSourceSha256'],
+-    'download':archive,'manifest':manifest_identity,'files':inner['files'],'notices':report['notices']}
+-data = (json.dumps(outer,ensure_ascii=False,indent=2)+'\n').encode('utf-8')
+-assert len(data) <= 16384
+-destination = root/'artifacts/cuda-runtime/win-x64'
+-assert not os.path.lexists(destination), 'Metadata destination must be fresh; existing files are preserved'
+-destination.mkdir(parents=True)
+-(destination/'cuda-runtime-manifest.json').write_bytes(raw)
+-(destination/'cuda-runtime-download.json').write_bytes(data)
+-print(json.dumps({'appRelease':outer['appRelease'],'archive':archive,
+-                  'metadataDirectory':str(destination),'nativeRebuilt':False,'testsRun':False},indent=2))
++import argparse
++import hashlib
++import json
++import os
++from pathlib import Path
++import subprocess
+ 
++from cuda_runtime_contract import (
++    ARCHIVE_BYTES, ARCHIVE_NAME, ARCHIVE_SHA256, COMMIT, COMPONENT_COMMIT,
++    DESCRIPTOR, MANIFEST, MANIFEST_BYTES, MANIFEST_SHA256, TAG,
++    component_descriptor, require,
++)
++
++
++def stage(root, app_commit):
++    require(COMMIT.fullmatch(app_commit), 'Exact final App source SHA required')
++    head = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
++    require(head == app_commit, 'Build metadata must match the actual checkout')
++    tag = (root / 'RELEASE_VERSION').read_text(encoding='utf-8').strip()
++    match = TAG.fullmatch(tag)
++    require(match is not None and int(match[1]) <= 20 and int(match[2]) <= 99 and
++            int(match[3]) <= 99 and (match[4] is None or int(match[4]) <= 9998),
++            'Expected an exact supported App release tag')
++    evidence = root / 'docs/dev/evidence/beta11-local-cuda'
++    report = json.loads((evidence / 'cuda13-producer-report.json').read_text(encoding='utf-8'))
++    raw = (evidence / 'cuda13-runtime-manifest.json').read_bytes()
++    manifest_identity = report['manifest']
++    # Git normalizes text evidence on non-Windows checkouts. Restore the exact
++    # producer CRLF bytes before checking the immutable component/cache identity.
++    if hashlib.sha256(raw).hexdigest() != manifest_identity['sha256']:
++        raw = raw.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
++    require(len(raw) == manifest_identity['bytes'] == MANIFEST_BYTES and
++            hashlib.sha256(raw).hexdigest() == manifest_identity['sha256'] ==
++            MANIFEST_SHA256,
++            'Reviewed CUDA manifest bytes changed')
++    inner = json.loads(raw)
++    require(inner['runtimeId'] == report['runtimeId'] and
++            inner['sourceCommit'] == report['engineSourceCommit'] and
++            inner['workerSourceSha256'] == report['workerSourceSha256'] and
++            inner['files'] == report['files'] and
++            report['componentSourceCommit'] == COMPONENT_COMMIT,
++            'Reviewed CUDA producer provenance changed')
++    archive = dict(report['archive'])
++    require(archive['name'] == 'DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip' and
++            archive['bytes'] == ARCHIVE_BYTES and archive['sha256'] ==
++            ARCHIVE_SHA256,
++            'Reviewed CUDA archive bytes changed')
++    # Initial standalone publication renames the verified existing ZIP, never repacks it.
++    archive['name'] = ARCHIVE_NAME
++    outer = component_descriptor(inner, manifest_identity, archive, report['notices'], COMPONENT_COMMIT)
++    outer['appRelease'] = {'tag': tag, 'sourceCommit': head}
++    data = (json.dumps(outer, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
++    require(len(data) <= 16384, 'App metadata exceeds its resource bound')
++    destination = root / 'artifacts/cuda-runtime/win-x64'
++    require(not os.path.lexists(destination), 'Metadata destination must be fresh; existing files are preserved')
++    destination.mkdir(parents=True)
++    (destination / MANIFEST).write_bytes(raw)
++    (destination / DESCRIPTOR).write_bytes(data)
++    return {'appRelease': outer['appRelease'], 'componentRelease': outer['componentRelease'],
++            'archive': outer['download'], 'metadataDirectory': str(destination),
++            'nativeRebuilt': False, 'testsRun': False}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--app-commit', required=True)
++    args = parser.parse_args()
++    print(json.dumps(stage(Path(__file__).resolve().parent.parent, args.app_commit), indent=2))
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/scripts/test-ai-release-approval.mjs b/scripts/test-ai-release-approval.mjs
+index 1a63e72..0357f93 100644
+--- a/scripts/test-ai-release-approval.mjs
++++ b/scripts/test-ai-release-approval.mjs
+@@ -82,6 +82,7 @@ export const sourcePaths = Object.freeze([
+   'tools/cuda-lyrics-helper/adapt_worker.py',
+   'tools/cuda-lyrics-helper/cuda-device.h',
+   'scripts/Build-CudaLyricsExperiment.ps1',
++  'scripts/cuda_runtime_contract.py',
+   'scripts/package-cuda-runtime.py',
+   'scripts/stage-reviewed-cuda-metadata.py',
+   'docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json',
+diff --git a/scripts/test-ai-release-approval.test.mjs b/scripts/test-ai-release-approval.test.mjs
+index 688cebb..3c18c76 100644
+--- a/scripts/test-ai-release-approval.test.mjs
++++ b/scripts/test-ai-release-approval.test.mjs
+@@ -943,3 +943,13 @@ test('CI tests every PR while Release gates explicit publication with a second p
+   assert.match(sign, /Inspect-AiRuntimePayload.ps1 -MsixPath artifacts\/release\/DropSpace-x64.msix/);
+   assert.equal((workflow.match(/artifacts\/release\/runtime-publication.json\n          if-no-files-found/g) ?? []).length, 2);
+ });
++
++test('independent CUDA delivery contract is fingerprinted and invalidates prior approvals', t => {
++  const x = example(t);
++  const name = 'scripts/cuda_runtime_contract.py';
++  assert.ok(sourcePaths.includes(name), 'Component identity must participate in source approval');
++  const before = readSourceFingerprint(x.root).sha256;
++  fs.appendFileSync(path.join(x.root, name), '\n# changed component identity\n');
++  assert.notEqual(readSourceFingerprint(x.root).sha256, before);
++  assert.throws(() => validateApproval(x.root, { now }), /stale/);
++});
+diff --git a/scripts/test_cuda_component_delivery.py b/scripts/test_cuda_component_delivery.py
+new file mode 100644
+index 0000000..8b465e8
+--- /dev/null
++++ b/scripts/test_cuda_component_delivery.py
+@@ -0,0 +1,155 @@
++"""Focused metadata/packaging contracts; never executes a native worker or model."""
++import hashlib
++import importlib.util
++import json
++from pathlib import Path
++import shutil
++import subprocess
++import tempfile
++import unittest
++
++import cuda_runtime_contract as contract
++
++ROOT = Path(__file__).resolve().parent.parent
++EVIDENCE = Path('docs/dev/evidence/beta11-local-cuda')
++
++
++def load_script(name):
++    spec = importlib.util.spec_from_file_location(name, ROOT / 'scripts' / (name + '.py'))
++    value = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(value)
++    return value
++
++
++stage = load_script('stage-reviewed-cuda-metadata').stage
++packager = load_script('package-cuda-runtime')
++
++
++class CudaComponentDeliveryTests(unittest.TestCase):
++    def setUp(self):
++        self.temporary = tempfile.TemporaryDirectory()
++        self.addCleanup(self.temporary.cleanup)
++        self.root = Path(self.temporary.name)
++        shutil.copytree(ROOT / EVIDENCE, self.root / EVIDENCE)
++        (self.root / 'RELEASE_VERSION').write_text('v0.3.1-beta.16\n')
++        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
++        self.commit()
++
++    def commit(self):
++        subprocess.run(['git', '-C', str(self.root), 'add', 'RELEASE_VERSION'], check=True)
++        subprocess.run(['git', '-C', str(self.root), '-c', 'user.name=Fixture', '-c',
++                        'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'], check=True)
++        self.sha = subprocess.check_output(['git', '-C', str(self.root), 'rev-parse', 'HEAD'], text=True).strip()
++
++    def descriptor(self):
++        return json.loads((self.root / 'artifacts/cuda-runtime/win-x64' / contract.DESCRIPTOR).read_text())
++
++    def test_app_releases_reuse_exact_component_and_manifest(self):
++        first = stage(self.root, self.sha)
++        descriptor = self.descriptor()
++        metadata = Path(first['metadataDirectory'])
++        raw = (metadata / contract.MANIFEST).read_bytes()
++        self.assertEqual(hashlib.sha256(raw).hexdigest(), contract.MANIFEST_SHA256)
++        self.assertEqual(len(raw), contract.MANIFEST_BYTES)
++        shutil.rmtree(metadata)
++        (self.root / 'RELEASE_VERSION').write_text('v0.3.1-beta.17\n')
++        self.commit()
++        stage(self.root, self.sha)
++        next_descriptor = self.descriptor()
++        self.assertNotEqual(descriptor.pop('appRelease'), next_descriptor.pop('appRelease'))
++        self.assertEqual(descriptor, next_descriptor)
++        self.assertEqual(raw, (metadata / contract.MANIFEST).read_bytes())
++        self.assertEqual(next_descriptor['download']['url'], contract.ARCHIVE_URL)
++        self.assertEqual(next_descriptor['download']['sha256'], contract.ARCHIVE_SHA256)
++        self.assertEqual(next_descriptor['schemaVersion'], 2)
++        self.assertFalse(any(path.suffix == '.zip' for path in metadata.iterdir()))
++
++    def test_exact_app_commit_is_still_required(self):
++        for invalid in ['0' * 40, 'main', '']:
++            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
++                stage(self.root, invalid)
++        self.assertFalse((self.root / 'artifacts').exists())
++
++    def test_existing_metadata_is_not_overwritten(self):
++        result = stage(self.root, self.sha)
++        descriptor = self.descriptor()
++        with self.assertRaisesRegex(ValueError, 'must be fresh'):
++            stage(self.root, self.sha)
++        self.assertEqual(descriptor, self.descriptor())
++
++    def test_bad_app_tags_fail_closed(self):
++        for tag in ['main', contract.COMPONENT_TAG, 'v0.3.1-beta.0', 'v0.3.1-beta.9999', 'v21.0.0', 'v0.3.1?x=1']:
++            (self.root / 'RELEASE_VERSION').write_text(tag)
++            with self.subTest(tag=tag), self.assertRaises(ValueError):
++                stage(self.root, self.sha)
++
++    def test_manifest_mutation_fails_before_staging(self):
++        path = self.root / EVIDENCE / 'cuda13-runtime-manifest.json'
++        path.write_bytes(path.read_bytes() + b' ')
++        with self.assertRaisesRegex(ValueError, 'manifest bytes changed'):
++            stage(self.root, self.sha)
++        self.assertFalse((self.root / 'artifacts').exists())
++
++    def test_archive_mutation_fails_before_staging(self):
++        path = self.root / EVIDENCE / 'cuda13-producer-report.json'
++        value = json.loads(path.read_text())
++        value['archive']['sha256'] = '0' * 64
++        path.write_text(json.dumps(value))
++        with self.assertRaisesRegex(ValueError, 'archive bytes changed'):
++            stage(self.root, self.sha)
++
++    def test_independent_descriptor_has_no_app_binding(self):
++        report = json.loads((self.root / EVIDENCE / 'cuda13-producer-report.json').read_text())
++        manifest = json.loads((self.root / EVIDENCE / 'cuda13-runtime-manifest.json').read_text())
++        archive = dict(report['archive'], name=contract.ARCHIVE_NAME)
++        descriptor = contract.component_descriptor(manifest, report['manifest'], archive,
++                                                   report['notices'], contract.COMPONENT_COMMIT)
++        self.assertNotIn('appRelease', descriptor)
++        self.assertEqual(descriptor['componentRelease']['tag'], contract.COMPONENT_TAG)
++        self.assertNotIn('v0.3.1-beta.', descriptor['download']['url'])
++        for key, bad in [('sha256', '0' * 64), ('bytes', archive['bytes'] + 1), ('name', '../bad.zip')]:
++            changed = dict(archive, **{key: bad})
++            with self.subTest(key=key), self.assertRaises(ValueError):
++                contract.component_descriptor(manifest, report['manifest'], changed,
++                                              report['notices'], contract.COMPONENT_COMMIT)
++        for key, bad in [('profile', 'changed'), ('protocol', 2), ('runtimeId', 'other')]:
++            with self.subTest(key=key), self.assertRaises(ValueError):
++                contract.component_descriptor(dict(manifest, **{key: bad}), report['manifest'], archive,
++                                              report['notices'], contract.COMPONENT_COMMIT)
++
++    @unittest.skipUnless(shutil.which('pwsh'), 'PowerShell is not installed')
++    def test_build_binding_checker_rejects_changed_app_or_component(self):
++        result = stage(self.root, self.sha)
++        metadata = Path(result['metadataDirectory'])
++        descriptor = self.descriptor()
++        command = ['pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-File',
++                   str(ROOT / 'scripts/Test-CudaBuildBinding.ps1'), '-MetadataDirectory', str(metadata),
++                   '-InformationalVersion', '0.3.1-beta.16+' + self.sha]
++        checked = subprocess.run(command, capture_output=True, text=True)
++        self.assertEqual(checked.returncode, 0, checked.stderr)
++        for parent, key, value in [
++            ('appRelease', 'tag', 'v0.3.1-beta.17'),
++            ('appRelease', 'sourceCommit', '0' * 40),
++            ('componentRelease', 'tag', 'cuda-other-v1'),
++            ('download', 'url', contract.ARCHIVE_URL + '?other=1'),
++            ('download', 'name', 'DropSpace-CUDA-win-x64-v0.3.1-beta.16.zip'),
++            ('download', 'sha256', 'invalid'),
++            ('manifest', 'sha256', '0' * 64),
++        ]:
++            changed = json.loads(json.dumps(descriptor))
++            changed[parent][key] = value
++            (metadata / contract.DESCRIPTOR).write_text(json.dumps(changed))
++            with self.subTest(parent=parent, key=key):
++                self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
++
++    def test_packager_cli_is_component_only(self):
++        result = subprocess.run(['python', str(ROOT / 'scripts/package-cuda-runtime.py'), '--help'],
++                                check=True, capture_output=True, text=True)
++        self.assertNotIn('--app-tag', result.stdout)
++        self.assertNotIn('--app-commit', result.stdout)
++        self.assertIn('--component-commit', result.stdout)
++        self.assertEqual(packager.ARCHIVE_NAME, contract.ARCHIVE_NAME)
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs b/src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs
+index 629947e..9359b29 100644
+--- a/src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs
++++ b/src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs
+@@ -10,6 +10,10 @@ namespace DropSpace.Infrastructure.Lyrics;
+ public sealed class CudaLyricsRuntimePackage
+ {
+     public const string RuntimeId = "llama-cpp-v0.5.0-cuda13-win-x64-v1";
++    public const string ComponentReleaseTag = "cuda-" + RuntimeId;
++    public const string ArchiveName = "DropSpace-CUDA-" + RuntimeId + ".zip";
++    private const string ComponentSourceCommit = "806f3e3e40c11a6e7d3d50648a9de8708b16b4ac";
++    private const string ArchiveUrl = "https://github.com/airanluo-dot/DropSpace/releases/download/" + ComponentReleaseTag + "/" + ArchiveName;
+     public const string ResourcePrefix = "DropSpace.CudaLyricsRuntime.";
+     public const string ManifestResourceName = ResourcePrefix + "cuda-runtime-manifest.json";
+     public const string DownloadResourceName = ResourcePrefix + "cuda-runtime-download.json";
+@@ -30,10 +34,13 @@ public sealed class CudaLyricsRuntimePackage
+         _appCommit = version is { Length: 2 } ? version[1] : null;
+     }
+ 
+-    internal CudaLyricsRuntimePackage(Func<string, Stream?> openResource, string cacheRoot, HttpRangeDownloader? downloads = null)
++    internal CudaLyricsRuntimePackage(Func<string, Stream?> openResource, string cacheRoot, HttpRangeDownloader? downloads = null,
++        string? appTag = null, string? appCommit = null)
+     {
+         ArgumentNullException.ThrowIfNull(openResource);
+         ArgumentException.ThrowIfNullOrWhiteSpace(cacheRoot);
++        _appTag = appTag;
++        _appCommit = appCommit;
+         _openResource = openResource;
+         _root = Path.GetFullPath(cacheRoot);
+         _downloads = downloads ?? new();
+@@ -70,8 +77,10 @@ public sealed class CudaLyricsRuntimePackage
+             var hash = Convert.ToHexStringLower(SHA256.HashData(stream)); stream.Position = 0;
+             using var manifest = JsonDocument.Parse(stream);
+             var component = manifest.RootElement;
+-            if (root.GetProperty("schemaVersion").GetInt32() != 1 || root.GetProperty("repository").GetString() != "airanluo-dot/DropSpace" ||
++            if (root.GetProperty("schemaVersion").GetInt32() != 2 || root.GetProperty("repository").GetString() != "airanluo-dot/DropSpace" ||
+                 root.GetProperty("runtimeId").GetString() != RuntimeId || root.GetProperty("backend").GetString() != "cuda" ||
++                root.GetProperty("componentRelease").GetProperty("tag").GetString() != ComponentReleaseTag ||
++                root.GetProperty("componentSourceCommit").GetString() != ComponentSourceCommit ||
+                 root.GetProperty("platform").GetString() != "win-x64" || root.GetProperty("protocol").GetInt32() != 1 ||
+                 root.GetProperty("profile").GetString() != PersistentPlainLyricsRunner.ResidentProfileId ||
+                 root.GetProperty("engineSourceCommit").GetString() != AiLyricsRuntimePackage.SourceCommit ||
+@@ -82,6 +91,15 @@ public sealed class CudaLyricsRuntimePackage
+                 root.GetProperty("appRelease").GetProperty("tag").GetString() != _appTag ||
+                 _appCommit is not { Length: 40 } || root.GetProperty("appRelease").GetProperty("sourceCommit").GetString() != _appCommit)
+                 throw new InvalidDataException("CUDA descriptor is not bound to this App and engine.");
++            // The source-owned component identity is independent of the App release.
++            // Exact URI comparison rejects other repositories/hosts, query/fragment/port
++            // additions and legacy per-App assets before any network request.
++            var download = root.GetProperty("download");
++            if (download.GetProperty("name").GetString() != ArchiveName ||
++                download.GetProperty("url").GetString() != ArchiveUrl ||
++                download.GetProperty("bytes").GetInt64() is <= 0 or > 1_073_741_824 ||
++                !IsHash(download.GetProperty("sha256").GetString()))
++                throw new InvalidDataException("Invalid independent CUDA archive identity.");
+             var outer = root.GetProperty("files").EnumerateArray().ToArray();
+             var inner = component.GetProperty("files").EnumerateArray().ToArray();
+             if (outer.Length != Names.Length || inner.Length != Names.Length) throw new InvalidDataException("CUDA descriptor component count changed.");
+@@ -288,13 +306,6 @@ public sealed class CudaLyricsRuntimePackage
+             using var descriptor = ReadDownloadDescriptor();
+             var download = descriptor.RootElement.GetProperty("download");
+             var uri = new Uri(download.GetProperty("url").GetString()!);
+-            if (uri.Scheme != Uri.UriSchemeHttps || uri.Host != "github.com" ||
+-                !uri.AbsolutePath.StartsWith("/airanluo-dot/DropSpace/releases/download/", StringComparison.Ordinal))
+-                throw new InvalidDataException("Unrecognized CUDA component release source.");
+-            var assetName = "DropSpace-CUDA-win-x64-" + _appTag + ".zip";
+-            if (download.GetProperty("name").GetString() != assetName || uri.AbsoluteUri !=
+-                "https://github.com/airanluo-dot/DropSpace/releases/download/" + _appTag + "/" + assetName)
+-                throw new InvalidDataException("CUDA asset does not belong to this exact release.");
+             var archiveBytes = download.GetProperty("bytes").GetInt64();
+             var archiveHash = download.GetProperty("sha256").GetString();
+             if (archiveBytes is <= 0 or > 1_073_741_824 || !IsHash(archiveHash))
+diff --git a/tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs b/tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs
+index 5d190a3..4e88162 100644
+--- a/tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs
++++ b/tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs
+@@ -44,7 +44,7 @@ public sealed class CudaLyricsRuntimePackageTests
+     [DataRow("name", "\"../outside.dll\"")]
+     [DataRow("name", "\"plain-lyrics-worker-vulkan.exe\"")]
+     [DataRow("sha256", "null")]
+-    [DataRow("bytes", "536870913")]
++    [DataRow("bytes", "805306369")]
+     public async Task RejectsUntrustedDependencyBeforeOpeningWorker(string key, string value)
+     {
+         using var fixture = new Fixture();
+@@ -57,9 +57,9 @@ public sealed class CudaLyricsRuntimePackageTests
+     public async Task CorruptOrMissingDllCannotReturnAnExecutableOrLeavePartials()
+     {
+         using var fixture = new Fixture();
+-        fixture.Files["cublasLt64_12.dll"] = [9, 9, 9];
++        fixture.Files["cublasLt64_13.dll"] = [9, 9, 9];
+         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => fixture.Package.EnsureWorkerAsync(default));
+-        fixture.Files.Remove("cublasLt64_12.dll");
++        fixture.Files.Remove("cublasLt64_13.dll");
+         await Assert.ThrowsExactlyAsync<FileNotFoundException>(() => fixture.Package.EnsureWorkerAsync(default));
+         Assert.HasCount(0, Directory.GetFiles(fixture.Root, "*.partial", SearchOption.AllDirectories));
+     }
+@@ -74,15 +74,68 @@ public sealed class CudaLyricsRuntimePackageTests
+         Assert.HasCount(0, fixture.Opened);
+     }
+ 
++    [TestMethod]
++    public async Task IndependentComponentIsReusedAcrossExactAppBindings()
++    {
++        using var fixture = new Fixture();
++        Assert.AreEqual(123L, fixture.Package.DownloadBytes);
++        var installed = await fixture.Package.EnsureWorkerAsync(default);
++        var identity = fixture.Package.GetManifestCacheIdentity();
++        fixture.Opened.Clear();
++        fixture.Descriptor["appRelease"]!["tag"] = "v0.3.1-beta.17";
++        fixture.Descriptor["appRelease"]!["sourceCommit"] = new string('b', 40);
++        var next = fixture.CreatePackage("v0.3.1-beta.17", new string('b', 40));
++        Assert.AreEqual(123L, next.DownloadBytes);
++        Assert.AreEqual(identity, next.GetManifestCacheIdentity());
++        Assert.AreEqual(installed, await next.EnsureWorkerAsync(default));
++        Assert.IsTrue(fixture.Opened.All(name => name == CudaLyricsRuntimePackage.ManifestResourceName ||
++            name == CudaLyricsRuntimePackage.DownloadResourceName));
++    }
++
++    [TestMethod]
++    [DataRow("schemaVersion", "1")]
++    [DataRow("componentRelease.tag", "\"cuda-other-v1\"")]
++    [DataRow("componentSourceCommit", "\"0000000000000000000000000000000000000000\"")]
++    [DataRow("appRelease.tag", "\"v0.3.1-beta.17\"")]
++    [DataRow("appRelease.sourceCommit", "\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"")]
++    [DataRow("protocol", "2")]
++    [DataRow("profile", "\"changed-profile\"")]
++    [DataRow("download.name", "\"DropSpace-CUDA-win-x64-v0.3.1-beta.16.zip\"")]
++    [DataRow("download.url", "\"https://github.com/other/DropSpace/releases/download/cuda-other/asset.zip\"")]
++    [DataRow("download.sha256", "\"bad\"")]
++    [DataRow("download.bytes", "0")]
++    [DataRow("download.bytes", "1073741825")]
++    [DataRow("manifest.sha256", "\"0000000000000000000000000000000000000000000000000000000000000000\"")]
++    [DataRow("manifest.bytes", "1")]
++    public void RejectsUntrustedDescriptorBeforeAnyDownload(string key, string value)
++    {
++        using var fixture = new Fixture();
++        var keys = key.Split('.');
++        var target = keys.Length == 1 ? fixture.Descriptor : fixture.Descriptor[keys[0]]!.AsObject();
++        target[keys[^1]] = JsonNode.Parse(value);
++        Assert.ThrowsExactly<InvalidDataException>(() => _ = fixture.Package.DownloadBytes);
++    }
++
++    [TestMethod]
++    [DataRow("?redirect=1")]
++    [DataRow("#fragment")]
++    public void RejectsModifiedOfficialComponentUrl(string suffix)
++    {
++        using var fixture = new Fixture();
++        fixture.Descriptor["download"]!["url"] = fixture.Descriptor["download"]!["url"]!.GetValue<string>() + suffix;
++        Assert.ThrowsExactly<InvalidDataException>(() => _ = fixture.Package.DownloadBytes);
++    }
++
+     private sealed class Fixture : IDisposable
+     {
+         internal Dictionary<string, byte[]> Files { get; } = new(StringComparer.Ordinal)
+         {
+             [CudaLyricsRuntimePackage.ExecutableName] = [1, 2, 3],
+-            ["cublas64_12.dll"] = [4, 5, 6],
+-            ["cublasLt64_12.dll"] = [7, 8, 9],
++            ["cublas64_13.dll"] = [4, 5, 6],
++            ["cublasLt64_13.dll"] = [7, 8, 9],
+         };
+         internal JsonObject Manifest { get; }
++        internal JsonObject Descriptor { get; }
+         internal List<string> Opened { get; } = [];
+         internal string Root { get; } = Path.Combine(Path.GetTempPath(), "DropSpace-cuda-" + Guid.NewGuid().ToString("N"));
+         internal CudaLyricsRuntimePackage Package { get; }
+@@ -102,15 +155,46 @@ public sealed class CudaLyricsRuntimePackageTests
+                     ["sha256"] = Convert.ToHexStringLower(SHA256.HashData(x.Value)),
+                 }).ToArray()),
+             };
+-            Package = new CudaLyricsRuntimePackage(name =>
++            var raw = System.Text.Encoding.UTF8.GetBytes(Manifest.ToJsonString());
++            Descriptor = new JsonObject
+             {
+-                Opened.Add(name);
+-                if (name == CudaLyricsRuntimePackage.ManifestResourceName)
+-                    return new MemoryStream(System.Text.Encoding.UTF8.GetBytes(Manifest.ToJsonString()));
+-                return Files.TryGetValue(name[CudaLyricsRuntimePackage.ResourcePrefix.Length..], out var bytes)
+-                    ? new MemoryStream(bytes) : null;
+-            }, Root);
++                ["schemaVersion"] = 2, ["repository"] = "airanluo-dot/DropSpace",
++                ["componentRelease"] = new JsonObject { ["tag"] = CudaLyricsRuntimePackage.ComponentReleaseTag },
++                ["componentSourceCommit"] = "806f3e3e40c11a6e7d3d50648a9de8708b16b4ac",
++                ["appRelease"] = new JsonObject { ["tag"] = "v0.3.1-beta.16", ["sourceCommit"] = new string('a', 40) },
++                ["runtimeId"] = CudaLyricsRuntimePackage.RuntimeId,
++                ["backend"] = "cuda", ["platform"] = "win-x64", ["protocol"] = 1,
++                ["profile"] = PersistentPlainLyricsRunner.ResidentProfileId,
++                ["engineSourceCommit"] = AiLyricsRuntimePackage.SourceCommit,
++                ["workerSourceSha256"] = new string('a', 64),
++                ["download"] = new JsonObject
++                {
++                    ["name"] = CudaLyricsRuntimePackage.ArchiveName, ["bytes"] = 123,
++                    ["sha256"] = new string('c', 64),
++                    ["url"] = "https://github.com/airanluo-dot/DropSpace/releases/download/" +
++                        CudaLyricsRuntimePackage.ComponentReleaseTag + "/" + CudaLyricsRuntimePackage.ArchiveName,
++                },
++                ["manifest"] = new JsonObject
++                {
++                    ["name"] = "cuda-runtime-manifest.json", ["bytes"] = raw.Length,
++                    ["sha256"] = Convert.ToHexStringLower(SHA256.HashData(raw)),
++                },
++                ["files"] = Manifest["files"]!.DeepClone(),
++                ["notices"] = new JsonArray(new[] { "LICENSE-llama.cpp", "LICENSE-CUDA.txt" }.Select(name =>
++                    (JsonNode)new JsonObject { ["name"] = name, ["bytes"] = 1, ["sha256"] = new string('d', 64) }).ToArray()),
++            };
++            Package = CreatePackage("v0.3.1-beta.16", new string('a', 40));
+         }
++        internal CudaLyricsRuntimePackage CreatePackage(string appTag, string appCommit) => new(name =>
++        {
++            Opened.Add(name);
++            if (name == CudaLyricsRuntimePackage.ManifestResourceName)
++                return new MemoryStream(System.Text.Encoding.UTF8.GetBytes(Manifest.ToJsonString()));
++            if (name == CudaLyricsRuntimePackage.DownloadResourceName)
++                return new MemoryStream(System.Text.Encoding.UTF8.GetBytes(Descriptor.ToJsonString()));
++            return Files.TryGetValue(name[CudaLyricsRuntimePackage.ResourcePrefix.Length..], out var bytes)
++                ? new MemoryStream(bytes) : null;
++        }, Root, appTag: appTag, appCommit: appCommit);
+         public void Dispose() => Directory.Delete(Root, true);
+     }
+ }
+diff --git a/website/_source/scripts/verify-published-release.mjs b/website/_source/scripts/verify-published-release.mjs
+index dbcb438..98420c4 100644
+--- a/website/_source/scripts/verify-published-release.mjs
++++ b/website/_source/scripts/verify-published-release.mjs
+@@ -14,6 +14,18 @@ if (!["release", "live"].includes(verificationMode)) throw new Error("Verificati
+ 
+ const repository = "airanluo-dot/DropSpace";
+ const siteOrigin = "https://airanluo-dot.github.io/DropSpace";
++// Reviewed immutable identity from scripts/cuda_runtime_contract.py. A matching
++// source fingerprint is not permission to replace this component's published bytes.
++const cudaComponent = {
++  runtimeId: "llama-cpp-v0.5.0-cuda13-win-x64-v1",
++  sourceCommit: "806f3e3e40c11a6e7d3d50648a9de8708b16b4ac",
++  engineSourceCommit: "7fe450e19305b828c199d602c23a8337aaa1f03b",
++  profile: "hy-q8-plain-resident-v1",
++  archiveBytes: 540873572,
++  archiveSha256: "79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b",
++  manifestBytes: 1815,
++  manifestSha256: "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a",
++};
+ const expectedAssets = ["DropSpace-x64.msix", "DropSpace.exe", "DropSpaceSetup.exe", "SHA256SUMS.txt", "update-manifest.json"];
+ const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
+ const headers = { Accept: "application/vnd.github+json", "User-Agent": "DropSpace-release-verifier" };
+@@ -50,7 +62,7 @@ if (assets.size !== release.assets.length || expectedAssets.some((name) => !asse
+     [...assets.keys()].some(name => !expectedAssets.includes(name) && !optionalAssets.has(name)) ||
+     (assets.has(cudaAsset) && !assets.has("runtime-publication.json")) ||
+     (cudaMetadata.some(name => assets.has(name)) &&
+-      (!assets.has(cudaAsset) || cudaMetadata.some(name => !assets.has(name))))) {
++      (!assets.has("runtime-publication.json") || cudaMetadata.some(name => !assets.has(name))))) {
+   throw new Error(`${tag} does not expose the exact public asset contract.`);
+ }
+ for (const [name, asset] of assets) {
+@@ -104,6 +116,10 @@ if (checksumMap.has("update-manifest.json") &&
+ if (assets.has(cudaMetadata[0])) {
+   const metadata = new Map();
+   for (const name of cudaMetadata) {
++    if (assets.get(name).size > 16_384 ||
++        assets.get(name).browser_download_url !== `https://github.com/${repository}/releases/download/${tag}/${name}`) {
++      throw new Error(`Invalid published CUDA metadata asset: ${name}.`);
++    }
+     const bytes = Buffer.from(await (await fetchOk(assets.get(name).browser_download_url)).arrayBuffer());
+     if (bytes.length !== assets.get(name).size ||
+         createHash("sha256").update(bytes).digest("hex") !== checksumMap.get(name)) {
+@@ -112,15 +128,58 @@ if (assets.has(cudaMetadata[0])) {
+     metadata.set(name, bytes);
+   }
+   const descriptor = JSON.parse(metadata.get(cudaMetadata[0]).toString("utf8"));
+-  if (descriptor.appRelease?.tag !== tag || descriptor.appRelease?.sourceCommit !== release.target_commitish ||
+-      descriptor.download?.name !== cudaAsset || descriptor.download?.bytes !== assets.get(cudaAsset).size ||
+-      descriptor.download?.url !== assets.get(cudaAsset).browser_download_url ||
+-      descriptor.download?.sha256 !== checksumMap.get(cudaAsset) ||
++  if (![1, 2].includes(descriptor.schemaVersion) ||
++      descriptor.appRelease?.tag !== tag || !/^[0-9a-f]{40}$/.test(descriptor.appRelease?.sourceCommit ?? "") ||
++      descriptor.appRelease.sourceCommit !== release.target_commitish ||
+       descriptor.manifest?.name !== cudaMetadata[1] ||
+       descriptor.manifest?.bytes !== metadata.get(cudaMetadata[1]).length ||
+       descriptor.manifest?.sha256 !== checksumMap.get(cudaMetadata[1])) {
+     throw new Error("Published CUDA metadata does not bind the release and runtime assets.");
+   }
++  if (descriptor.schemaVersion === 1) {
++    if (!assets.has(cudaAsset) || descriptor.download?.name !== cudaAsset ||
++        descriptor.download?.bytes !== assets.get(cudaAsset).size ||
++        descriptor.download?.url !== assets.get(cudaAsset).browser_download_url ||
++        descriptor.download?.sha256 !== checksumMap.get(cudaAsset)) {
++      throw new Error("Published CUDA metadata does not bind the release and runtime assets.");
++    }
++  } else {
++    const componentTag = `cuda-${cudaComponent.runtimeId}`;
++    const archiveName = `DropSpace-CUDA-${cudaComponent.runtimeId}.zip`;
++    const componentUrl = `https://github.com/${repository}/releases/download/${componentTag}/`;
++    const inner = JSON.parse(metadata.get(cudaMetadata[1]).toString("utf8"));
++    if (assets.has(cudaAsset) || descriptor.repository !== repository ||
++        descriptor.componentRelease?.tag !== componentTag || descriptor.runtimeId !== cudaComponent.runtimeId ||
++        descriptor.componentSourceCommit !== cudaComponent.sourceCommit || descriptor.backend !== "cuda" ||
++        descriptor.platform !== "win-x64" || descriptor.protocol !== 1 || descriptor.profile !== cudaComponent.profile ||
++        descriptor.engineSourceCommit !== cudaComponent.engineSourceCommit ||
++        descriptor.workerSourceSha256 !== inner.workerSourceSha256 ||
++        inner.schemaVersion !== 1 || inner.runtimeId !== cudaComponent.runtimeId || inner.backend !== "cuda" ||
++        inner.protocol !== 1 || inner.profile !== cudaComponent.profile ||
++        inner.sourceRepository !== "https://github.com/ggml-org/llama.cpp" || inner.sourceCommit !== cudaComponent.engineSourceCommit ||
++        !Array.isArray(descriptor.files) || descriptor.files.length !== inner.files.length ||
++        descriptor.files.some((file, index) => ["name", "bytes", "sha256"].some(key => file?.[key] !== inner.files[index][key])) ||
++        descriptor.download?.name !== archiveName || descriptor.download?.url !== `${componentUrl}${archiveName}` ||
++        descriptor.download?.bytes !== cudaComponent.archiveBytes || descriptor.download?.sha256 !== cudaComponent.archiveSha256 ||
++        descriptor.manifest.bytes !== cudaComponent.manifestBytes || descriptor.manifest.sha256 !== cudaComponent.manifestSha256) {
++      throw new Error("Published CUDA metadata does not bind the reviewed independent component.");
++    }
++    // Inspect GitHub's uploaded asset identities; never fetch the large ZIP.
++    const component = await (await fetchOk(`https://api.github.com/repos/${repository}/releases/tags/${componentTag}`, { headers })).json();
++    // Resource releases are prereleases so they never replace the latest App.
++    if (component.draft !== false || component.prerelease !== true || component.tag_name !== componentTag ||
++        component.html_url !== `https://github.com/${repository}/releases/tag/${componentTag}` ||
++        !Array.isArray(component.assets) || new Set(component.assets.map(asset => asset.name)).size !== component.assets.length) {
++      throw new Error("Independent CUDA component release identity disagrees with the reviewed component.");
++    }
++    for (const identity of [descriptor.download, descriptor.manifest]) {
++      const asset = component.assets.find(candidate => candidate.name === identity.name);
++      if (asset?.browser_download_url !== `${componentUrl}${identity.name}` ||
++          asset?.size !== identity.bytes || asset?.digest !== `sha256:${identity.sha256}`) {
++        throw new Error(`Published independent CUDA asset identity disagrees: ${identity.name}.`);
++      }
++    }
++  }
+ }
+ 
+ let api;
+diff --git a/website/_source/scripts/verify-published-release.test.mjs b/website/_source/scripts/verify-published-release.test.mjs
+index fd5b6cc..fbbdd6c 100644
+--- a/website/_source/scripts/verify-published-release.test.mjs
++++ b/website/_source/scripts/verify-published-release.test.mjs
+@@ -1,5 +1,6 @@
+ import assert from "node:assert/strict";
+ import { spawn } from "node:child_process";
++import { createHash } from "node:crypto";
+ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+ import { tmpdir } from "node:os";
+ import path from "node:path";
+@@ -13,34 +14,62 @@ const release = fixture.api.releases.find(item => item.tagName === fixture.stabl
+ const installerHash = "01".repeat(32);
+ const portableHash = "02".repeat(32);
+ const msixHash = "03".repeat(32);
++const appCommit = "ab".repeat(20);
++const repository = "airanluo-dot/DropSpace";
++const runtimeId = "llama-cpp-v0.5.0-cuda13-win-x64-v1";
++const componentTag = `cuda-${runtimeId}`;
++const componentApiUrl = `https://api.github.com/repos/${repository}/releases/tags/${componentTag}`;
++const componentBaseUrl = `https://github.com/${repository}/releases/download/${componentTag}/`;
++const producer = JSON.parse(await readFile(new URL("../../../docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json", import.meta.url), "utf8"));
++// Restore the original producer's CRLF manifest, without touching native files.
++const cudaManifest = (await readFile(new URL("../../../docs/dev/evidence/beta11-local-cuda/cuda13-runtime-manifest.json", import.meta.url), "utf8"))
++  .replace(/\r?\n/g, "\r\n");
++const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
+ 
+-async function verify(t, checksums, extraAssets = []) {
++async function verify(t, checksums, extraAssets = [], options = {}) {
++  const appTag = options.appTag ?? release.tagName;
++  const appUrl = `https://github.com/${repository}/releases/tag/${appTag}`;
++  const prerelease = /-(?:preview|beta)\./.test(appTag);
+   const directory = await mkdtemp(path.join(tmpdir(), "dropspace-published-verifier-"));
+   t.after(() => rm(directory, { recursive: true, force: true }));
+   const bootstrap = path.join(directory, "fetch-fixture.mjs");
++  const requestsFile = path.join(directory, "requests.json");
+   const published = {
+-    draft: false, prerelease: false, html_url: release.htmlUrl,
+-    assets: release.assets.map(asset => ({ name: asset.name, size: asset.size, browser_download_url: asset.downloadUrl })),
++    draft: false, prerelease, html_url: appUrl, target_commitish: appCommit,
++    assets: release.assets.map(asset => ({ name: asset.name, size: asset.size, browser_download_url: asset.downloadUrl.replace(release.tagName, appTag) })),
+   };
+   const api = structuredClone(fixture.api);
++  const siteRelease = api.releases.find(item => item.tagName === release.tagName);
++  Object.assign(siteRelease, { tagName: appTag, htmlUrl: appUrl, isPrerelease: prerelease });
++  for (const asset of siteRelease.assets) asset.downloadUrl = asset.downloadUrl.replace(release.tagName, appTag);
++  const bodies = {};
+   for (const asset of extraAssets) {
+-    const downloadUrl = `https://github.com/airanluo-dot/DropSpace/releases/download/${release.tagName}/${asset.name}`;
+-    published.assets.push({ name: asset.name, size: 10, digest: `sha256:${asset.hash}`, browser_download_url: downloadUrl });
+-    api.releases.find(item => item.tagName === release.tagName).assets.push({ name: asset.name, size: 10, kind: null, downloadUrl });
++    const downloadUrl = asset.url ?? `https://github.com/${repository}/releases/download/${appTag}/${asset.name}`;
++    const size = asset.size ?? (asset.body === undefined ? 10 : Buffer.byteLength(asset.body));
++    published.assets.push({ name: asset.name, size, digest: `sha256:${asset.hash}`, browser_download_url: downloadUrl });
++    siteRelease.assets.push({ name: asset.name, size, kind: null, downloadUrl });
++    if (asset.body !== undefined) bodies[downloadUrl] = asset.body;
+   }
++  Object.assign(published, options.published);
+   const manifest = {
+-    version: release.tagName.slice(1), channel: "stable", summary: "Published Stable release",
++    version: appTag.slice(1), channel: prerelease ? "beta" : "stable", summary: "Published release",
+     installer: { assetName: "DropSpaceSetup.exe", sha256: installerHash },
+     portable: { assetName: "DropSpace.exe", sha256: portableHash },
+   };
+-  const latest = createLatestChangeApi(fixture.api);
+-  const home = `<span data-latest-change-tag="">${latest.release.tagName}</span> Latest Stable · ${release.tagName} ${fixture.stable.assets.installer}`;
+-  await writeFile(bootstrap, `const responses = ${JSON.stringify({
+-    published, manifest, checksums, api, latest, home,
++  const latest = createLatestChangeApi(api);
++  const home = `<span data-latest-change-tag="">${latest.release.tagName}</span> Latest Stable · ${appTag} ${fixture.stable.assets.installer.replace(release.tagName, appTag)}`;
++  await writeFile(bootstrap, `import { writeFileSync } from "node:fs";
++const requests = [];
++process.on("exit", () => writeFileSync(${JSON.stringify(requestsFile)}, JSON.stringify(requests)));
++const responses = ${JSON.stringify({
++    published, manifest, checksums, api, latest, home, bodies, component: options.component,
+   })};
+ globalThis.fetch = async url => {
+   const parsed = new URL(url);
+-  if (parsed.hostname === "api.github.com") return Response.json(responses.published);
++  requests.push(parsed.href);
++  if (parsed.href === ${JSON.stringify(`https://api.github.com/repos/${repository}/releases/tags/${appTag}`)}) return Response.json(responses.published);
++  if (parsed.href === ${JSON.stringify(componentApiUrl)} && responses.component) return Response.json(responses.component);
++  if (Object.hasOwn(responses.bodies, parsed.href)) return new Response(responses.bodies[parsed.href]);
+   if (parsed.pathname.endsWith("update-manifest.json")) return Response.json(responses.manifest);
+   if (parsed.pathname.endsWith("SHA256SUMS.txt")) return new Response(responses.checksums);
+   if (parsed.pathname.endsWith("/api/v1/releases.json")) return Response.json(responses.api);
+@@ -50,7 +79,7 @@ globalThis.fetch = async url => {
+ };
+ `);
+   return await new Promise((resolve, reject) => {
+-    const child = spawn(process.execPath, ["--import", pathToFileURL(bootstrap).href, script, release.tagName, "0", "live"], {
++    const child = spawn(process.execPath, ["--import", pathToFileURL(bootstrap).href, script, appTag, "0", "live"], {
+       env: { ...process.env, GITHUB_TOKEN: "", GH_TOKEN: "" }, stdio: ["ignore", "pipe", "pipe"],
+     });
+     let stdout = "";
+@@ -58,7 +87,10 @@ globalThis.fetch = async url => {
+     child.stdout.on("data", chunk => { stdout += chunk; });
+     child.stderr.on("data", chunk => { stderr += chunk; });
+     child.on("error", reject);
+-    child.on("close", code => resolve({ code, stdout, stderr }));
++    child.on("close", async code => {
++      try { resolve({ code, stdout, stderr, requests: JSON.parse(await readFile(requestsFile, "utf8")) }); }
++      catch (error) { reject(error); }
++    });
+   });
+ }
+ 
+@@ -99,3 +131,191 @@ test("published verification rejects an uploaded CUDA digest mismatch", async t
+   assert.notEqual(result.code, 0);
+   assert.match(result.stderr, /digest disagree/);
+ });
++
++function cudaPublication(schemaVersion = 2) {
++  const archiveName = schemaVersion === 1 ? `DropSpace-CUDA-win-x64-${release.tagName}.zip` : `DropSpace-CUDA-${runtimeId}.zip`;
++  const descriptor = {
++    schemaVersion, repository, appRelease: { tag: release.tagName, sourceCommit: appCommit },
++    componentRelease: { tag: componentTag }, componentSourceCommit: producer.componentSourceCommit,
++    runtimeId, backend: "cuda", platform: "win-x64", protocol: 1, profile: "hy-q8-plain-resident-v1",
++    engineSourceCommit: producer.engineSourceCommit, workerSourceSha256: producer.workerSourceSha256,
++    download: { ...producer.archive, name: archiveName,
++      url: schemaVersion === 1 ? `https://github.com/${repository}/releases/download/${release.tagName}/${archiveName}` : `${componentBaseUrl}${archiveName}` },
++    manifest: producer.manifest, files: producer.files, notices: producer.notices,
++  };
++  if (schemaVersion === 1) delete descriptor.componentRelease;
++  return {
++    descriptor, manifestBody: cudaManifest,
++    // Public release 405423914 is a prerelease to avoid becoming the latest App.
++    // Its publication source differs from the reviewed native producer source.
++    component: { draft: false, prerelease: true, tag_name: componentTag, target_commitish: "6a1586a01e769c8b71492bcb18fb970047753434",
++      html_url: `https://github.com/${repository}/releases/tag/${componentTag}`,
++      assets: [descriptor.download, descriptor.manifest].map(identity => ({ name: identity.name,
++        size: identity.bytes, digest: `sha256:${identity.sha256}`, browser_download_url: `${componentBaseUrl}${identity.name}` })) },
++  };
++}
++
++async function verifyCuda(t, setup = () => {}, schemaVersion = 2) {
++  const publication = cudaPublication(schemaVersion);
++  setup(publication);
++  const descriptorBody = JSON.stringify(publication.descriptor);
++  const extraAssets = [
++    additionalRuntimeAssets[0],
++    { name: "cuda-runtime-download.json", body: descriptorBody, hash: sha256(descriptorBody) },
++    { name: "cuda-runtime-manifest.json", body: publication.manifestBody, hash: sha256(publication.manifestBody) },
++  ];
++  if (schemaVersion === 1 || publication.duplicateZip) {
++    extraAssets.push({ name: `DropSpace-CUDA-win-x64-${release.tagName}.zip`, size: producer.archive.bytes, hash: producer.archive.sha256 });
++  }
++  if (publication.adjustAssets) publication.adjustAssets(extraAssets);
++  const checksums = validChecksums + extraAssets.map(asset => `${asset.hash}  ${asset.name}\n`).join("");
++  return verify(t, checksums, extraAssets, publication);
++}
++
++test("published verification preserves schema-1 same-release CUDA metadata", async t => {
++  const result = await verifyCuda(t, () => {}, 1);
++  assert.equal(result.code, 0, result.stderr);
++  assert.match(result.stdout, /9 public assets/);
++  assert.ok(!result.requests.includes(componentApiUrl));
++  assert.ok(result.requests.every(url => !url.endsWith(".zip")), "verification must never download CUDA binaries");
++});
++
++test("published verification accepts schema-2 metadata without a per-App CUDA ZIP", async t => {
++  const result = await verifyCuda(t);
++  assert.equal(result.code, 0, result.stderr);
++  assert.match(result.stdout, /8 public assets/);
++  assert.equal(result.requests.filter(url => url === componentApiUrl).length, 1);
++  assert.ok(result.requests.every(url => !url.endsWith(".zip")), "component verification must use GitHub asset metadata only");
++});
++
++test("published verification reuses the independent component for a future Beta App", async t => {
++  const result = await verifyCuda(t, p => {
++    p.appTag = "v0.3.1-beta.31";
++    p.descriptor.appRelease = { tag: p.appTag, sourceCommit: "cd".repeat(20) };
++    p.published = { target_commitish: p.descriptor.appRelease.sourceCommit };
++  });
++  assert.equal(result.code, 0, result.stderr);
++  assert.match(result.stdout, /Verified v0\.3\.1-beta\.31:.*8 public assets/);
++  assert.ok(result.requests.includes(componentApiUrl));
++  assert.ok(result.requests.every(url => !url.endsWith(".zip")));
++});
++
++test("published verification compares component file identities independently of JSON property order", async t => {
++  const result = await verifyCuda(t, p => {
++    p.descriptor.files = p.descriptor.files.map(({ name, bytes, sha256 }) => ({ bytes, sha256, name }));
++  });
++  assert.equal(result.code, 0, result.stderr);
++});
++
++for (const [name, mutate] of [
++  ["unknown schema", p => { p.descriptor.schemaVersion = 3; }],
++  ["App tag", p => { p.descriptor.appRelease.tag = "v9.9.9-beta.1"; }],
++  ["App source", p => { p.descriptor.appRelease.sourceCommit = "cd".repeat(20); }],
++  ["non-exact App source", p => { p.descriptor.appRelease.sourceCommit = "main"; p.published = { target_commitish: "main" }; }],
++  ["repository", p => { p.descriptor.repository = "other/DropSpace"; }],
++  ["component tag", p => { p.descriptor.componentRelease.tag = "cuda-unreviewed"; }],
++  ["component source", p => { p.descriptor.componentSourceCommit = "cd".repeat(20); }],
++  ["engine source", p => { p.descriptor.engineSourceCommit = "cd".repeat(20); }],
++  ["worker source", p => { p.descriptor.workerSourceSha256 = "cd".repeat(32); }],
++  ["runtime", p => { p.descriptor.runtimeId = "unreviewed"; }],
++  ["backend", p => { p.descriptor.backend = "vulkan"; }],
++  ["platform", p => { p.descriptor.platform = "win-arm64"; }],
++  ["protocol", p => { p.descriptor.protocol = 2; }],
++  ["string protocol", p => { p.descriptor.protocol = "1"; }],
++  ["profile", p => { p.descriptor.profile = "unreviewed"; }],
++  ["file identity", p => { p.descriptor.files = structuredClone(p.descriptor.files); p.descriptor.files[0].sha256 = "cd".repeat(32); }],
++  ["archive name", p => { p.descriptor.download.name = "other.zip"; }],
++  ["archive size", p => { p.descriptor.download.bytes++; }],
++  ["archive digest", p => { p.descriptor.download.sha256 = "cd".repeat(32); }],
++  ["manifest name", p => { p.descriptor.manifest = { ...p.descriptor.manifest, name: "other.json" }; }],
++  ["manifest size", p => { p.descriptor.manifest = { ...p.descriptor.manifest, bytes: 1 }; }],
++  ["manifest digest", p => { p.descriptor.manifest = { ...p.descriptor.manifest, sha256: "cd".repeat(32) }; }],
++  ["duplicate per-App ZIP", p => { p.duplicateZip = true; }],
++]) {
++  test(`published verification rejects schema-2 ${name} mismatch before component lookup`, async t => {
++    const result = await verifyCuda(t, mutate);
++    assert.notEqual(result.code, 0);
++    assert.match(result.stderr, /Published CUDA metadata/);
++    assert.ok(!result.requests.includes(componentApiUrl));
++  });
++}
++
++for (const [name, change] of [
++  ["host", url => url.replace("github.com", "github.com.attacker.example")],
++  ["repository", url => url.replace(repository, "other/DropSpace")],
++  ["tag", url => url.replace(componentTag, "cuda-other")],
++  ["protocol", url => url.replace("https:", "http:")],
++  ["port", url => url.replace("github.com", "github.com:443")],
++  ["query", url => `${url}?download=1`],
++  ["fragment", url => `${url}#other`],
++]) {
++  test(`published verification rejects independent CUDA URL ${name} mismatch`, async t => {
++    const result = await verifyCuda(t, p => { p.descriptor.download.url = change(p.descriptor.download.url); });
++    assert.notEqual(result.code, 0);
++    assert.match(result.stderr, /reviewed independent component/);
++    assert.ok(!result.requests.includes(componentApiUrl));
++  });
++}
++
++for (const [name, mutate] of [
++  ["draft", c => { c.draft = true; }],
++  ["prerelease", c => { c.prerelease = false; }],
++  ["tag", c => { c.tag_name = "cuda-other"; }],
++  ["release URL", c => { c.html_url += "?other"; }],
++  ["missing archive", c => { c.assets.shift(); }],
++  ["duplicate archive", c => { c.assets.push(c.assets[0]); }],
++  ["archive name", c => { c.assets[0].name = "other.zip"; }],
++  ["archive size", c => { c.assets[0].size++; }],
++  ["archive digest", c => { c.assets[0].digest = `sha256:${"cd".repeat(32)}`; }],
++  ["missing archive digest", c => { delete c.assets[0].digest; }],
++  ["archive host", c => { c.assets[0].browser_download_url = c.assets[0].browser_download_url.replace("github.com", "attacker.example"); }],
++  ["archive tag", c => { c.assets[0].browser_download_url = c.assets[0].browser_download_url.replace(componentTag, "cuda-other"); }],
++  ["archive protocol", c => { c.assets[0].browser_download_url = c.assets[0].browser_download_url.replace("https:", "http:"); }],
++  ["manifest size", c => { c.assets[1].size++; }],
++  ["manifest digest", c => { c.assets[1].digest = `sha256:${"cd".repeat(32)}`; }],
++  ["missing manifest", c => { c.assets.pop(); }],
++]) {
++  test(`published verification rejects published component ${name} mismatch`, async t => {
++    const result = await verifyCuda(t, p => mutate(p.component));
++    assert.notEqual(result.code, 0);
++    assert.match(result.stderr, /[Ii]ndependent CUDA/);
++    assert.ok(result.requests.includes(componentApiUrl));
++    assert.ok(result.requests.every(url => !url.endsWith(".zip")));
++  });
++}
++
++test("published verification rejects coordinated archive changes despite a source fingerprint", async t => {
++  const result = await verifyCuda(t, p => {
++    p.descriptor.download.sha256 = "cd".repeat(32);
++    p.component.assets[0].digest = `sha256:${p.descriptor.download.sha256}`;
++    p.descriptor.sourceFingerprint = "ef".repeat(32);
++  });
++  assert.notEqual(result.code, 0);
++  assert.match(result.stderr, /reviewed independent component/);
++});
++
++test("published verification rejects changed manifest bytes even when all published hashes agree", async t => {
++  const result = await verifyCuda(t, p => {
++    const inner = JSON.parse(p.manifestBody);
++    inner.protocol = 2;
++    p.manifestBody = JSON.stringify(inner);
++    p.descriptor.manifest = { ...p.descriptor.manifest, bytes: Buffer.byteLength(p.manifestBody), sha256: sha256(p.manifestBody) };
++    Object.assign(p.component.assets[1], { size: p.descriptor.manifest.bytes, digest: `sha256:${p.descriptor.manifest.sha256}` });
++  });
++  assert.notEqual(result.code, 0);
++  assert.match(result.stderr, /reviewed independent component/);
++});
++
++for (const missing of ["runtime-publication.json", "cuda-runtime-download.json", "cuda-runtime-manifest.json"]) {
++  test(`published verification rejects CUDA metadata missing ${missing}`, async t => {
++    const result = await verifyCuda(t, p => { p.adjustAssets = assets => assets.splice(assets.findIndex(asset => asset.name === missing), 1); });
++    assert.notEqual(result.code, 0);
++    assert.match(result.stderr, /exact public asset contract/);
++  });
++}
++
++test("published verification keeps schema-1 dependent on its same-release ZIP", async t => {
++  const result = await verifyCuda(t, p => { p.adjustAssets = assets => assets.pop(); }, 1);
++  assert.notEqual(result.code, 0);
++  assert.match(result.stderr, /Published CUDA metadata/);
++});

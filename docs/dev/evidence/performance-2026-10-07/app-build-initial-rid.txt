@@ -1,0 +1,15 @@
+  Determining projects to restore...
+/workspace/DropSpace/src/DropSpace.Core/DropSpace.Core.csproj : error NU1004: The project's runtime identifiers have changed from. Project's runtime identifiers: win-x64, lock file's runtime identifiers .The packages lock file is inconsistent with the project dependencies so restore can't be run in locked mode. Disable the RestoreLockedMode MSBuild property or pass an explicit --force-evaluate option to run restore to update the lock file. [/workspace/DropSpace/src/DropSpace.App/DropSpace.App.csproj]
+/workspace/DropSpace/src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj : error NU1004: The project's runtime identifiers have changed from. Project's runtime identifiers: win-x64, lock file's runtime identifiers .The packages lock file is inconsistent with the project dependencies so restore can't be run in locked mode. Disable the RestoreLockedMode MSBuild property or pass an explicit --force-evaluate option to run restore to update the lock file. [/workspace/DropSpace/src/DropSpace.App/DropSpace.App.csproj]
+  Failed to restore /workspace/DropSpace/src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj (in 170 ms).
+  Failed to restore /workspace/DropSpace/src/DropSpace.Core/DropSpace.Core.csproj (in 170 ms).
+  Restored /workspace/DropSpace/src/DropSpace.App/DropSpace.App.csproj (in 19.31 sec).
+
+Build FAILED.
+
+/workspace/DropSpace/src/DropSpace.Core/DropSpace.Core.csproj : error NU1004: The project's runtime identifiers have changed from. Project's runtime identifiers: win-x64, lock file's runtime identifiers .The packages lock file is inconsistent with the project dependencies so restore can't be run in locked mode. Disable the RestoreLockedMode MSBuild property or pass an explicit --force-evaluate option to run restore to update the lock file. [/workspace/DropSpace/src/DropSpace.App/DropSpace.App.csproj]
+/workspace/DropSpace/src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj : error NU1004: The project's runtime identifiers have changed from. Project's runtime identifiers: win-x64, lock file's runtime identifiers .The packages lock file is inconsistent with the project dependencies so restore can't be run in locked mode. Disable the RestoreLockedMode MSBuild property or pass an explicit --force-evaluate option to run restore to update the lock file. [/workspace/DropSpace/src/DropSpace.App/DropSpace.App.csproj]
+    0 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:00:20.32

@@ -129,6 +129,80 @@ public sealed class MusicUiPressureTests
         Assert.IsTrue(queue.BeginRender(true));
     }
 
+    [TestMethod]
+    public void RetiredCallbackCannotConsumeAReplacementFrame()
+    {
+        var queue = new MediaRenderQueue();
+        Assert.IsTrue(queue.Request(true, out var oldGeneration));
+        queue.Cancel();
+        Assert.IsTrue(queue.Request(true, out var currentGeneration));
+        Assert.IsFalse(queue.BeginRender(true, oldGeneration));
+        Assert.IsFalse(queue.Request(true), "The replacement frame must remain queued after the old callback runs.");
+        Assert.IsTrue(queue.BeginRender(true, currentGeneration));
+        Assert.IsFalse(queue.BeginRender(true, currentGeneration));
+    }
+
+    [TestMethod]
+    public void HiddenNotificationsPrepareLatestGeometryOnceAndRetirePendingFrames()
+    {
+        var queue = new MediaRenderQueue();
+        for (var index = 0; index < 1000; index++) Assert.IsFalse(queue.Request(false));
+        Assert.IsTrue(queue.BeginImmediateRender(), "Showing a host can consume hidden invalidation before sizing it.");
+        Assert.IsFalse(queue.BeginImmediateRender(), "Reading unchanged geometry cannot repeat presentation work.");
+        Assert.IsTrue(queue.Request(true, out var oldGeneration));
+        Assert.IsTrue(queue.BeginImmediateRender());
+        Assert.IsTrue(queue.Request(true, out var currentGeneration));
+        Assert.IsFalse(queue.BeginRender(true, oldGeneration));
+        Assert.IsTrue(queue.BeginRender(true, currentGeneration));
+    }
+
+    [TestMethod]
+    public void EachPlaybackTickCoalescesPositionLyricsAndSpectrumAndHiddenTicksRenderNothing()
+    {
+        const int ticks = 300;
+        var queue = new MediaRenderQueue();
+        var visibleNotifications = 0; var visibleScheduled = 0; var visibleRenders = 0;
+        for (var tick = 0; tick < ticks; tick++)
+        {
+            // RenderFrame publishes Position, Lyrics and Spectrum before the next display frame.
+            for (var notification = 0; notification < 3; notification++)
+            {
+                visibleNotifications++;
+                if (queue.Request(true)) visibleScheduled++;
+            }
+            if (queue.BeginRender(true)) visibleRenders++;
+        }
+        Assert.AreEqual(900, visibleNotifications);
+        Assert.AreEqual(ticks, visibleScheduled);
+        Assert.AreEqual(ticks, visibleRenders);
+        queue.Cancel();
+        var hiddenNotifications = 0; var hiddenScheduled = 0; var hiddenRenders = 0;
+        for (var tick = 0; tick < ticks; tick++)
+        {
+            for (var notification = 0; notification < 3; notification++)
+            {
+                hiddenNotifications++;
+                if (queue.Request(false)) hiddenScheduled++;
+            }
+            if (queue.BeginRender(false)) hiddenRenders++;
+        }
+        Assert.AreEqual(900, hiddenNotifications);
+        Assert.AreEqual(0, hiddenScheduled);
+        Assert.AreEqual(0, hiddenRenders);
+        Assert.IsTrue(queue.BeginImmediateRender(), "The latest hidden state still prepares the first visible geometry.");
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+        {
+            evidence = "Managed queue scheduling only; three synthetic notifications per display tick, no WinUI rendering or CPU measurement.",
+            ticks,
+            visibleNotifications,
+            visibleScheduled,
+            visibleRenders,
+            hiddenNotifications,
+            hiddenScheduled,
+            hiddenRenders,
+        }));
+    }
+
     private static LyricsLine Line(int index) => new(TimeSpan.FromSeconds(index), TimeSpan.FromSeconds(index + 1), $"Line {index}", null, []);
     private sealed class Row(LyricsLine line) { public LyricsLine Line { get; set; } = line; }
 }

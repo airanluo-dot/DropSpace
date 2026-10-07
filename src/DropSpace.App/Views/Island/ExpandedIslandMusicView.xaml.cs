@@ -14,7 +14,7 @@ namespace DropSpace.App.Views.Island;
 
 public sealed partial class ExpandedIslandMusicView : UserControl
 {
-    internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
+    internal bool IsTranslationActuallyVisible => _presentationActive && IsLoaded && Visibility == Visibility.Visible &&
         LyricsArea.Visibility == Visibility.Visible && TranslatedLyric.Visibility == Visibility.Visible &&
         TranslatedLyric.Opacity > 0.01 && TranslationIntersectsViewport() &&
         !string.IsNullOrWhiteSpace(TranslatedLyric.Text) &&
@@ -32,6 +32,11 @@ public sealed partial class ExpandedIslandMusicView : UserControl
 
     private MediaViewModel? _view;
     private readonly MediaRenderQueue _renderQueue = new();
+    private EventHandler<object>? _renderHandler;
+    private bool _presentationActive = true;
+    internal long RenderCount { get; private set; }
+    internal bool HasPendingSeekWork => _seekCommitTimer.IsRunning || _seekAcknowledgementTimer.IsRunning ||
+        _queuedSeekSeconds is not null || _activePointerId is not null || _seekInteraction.HeldSeconds is not null;
     private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekCommitTimer;
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekAcknowledgementTimer;
@@ -56,7 +61,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
         _seekAcknowledgementTimer.IsRepeating = false;
         _seekAcknowledgementTimer.Tick += (_, _) =>
         {
-            if (!IsLoaded) return;
+            if (!CanRender) return;
             _seekInteraction.RejectPending();
             RequestRender();
         };
@@ -99,19 +104,41 @@ public sealed partial class ExpandedIslandMusicView : UserControl
         NotifyTranslationVisibility();
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args) => RequestRender();
-    private bool CanRender => IsLoaded && Visibility == Visibility.Visible;
+    internal void SetActive(bool active)
+    {
+        if (_presentationActive == active) return;
+        _presentationActive = active;
+        if (CanRender) RequestRender();
+        else
+        {
+            CancelRender();
+            CancelSeekInteraction();
+        }
+        NotifyTranslationVisibility();
+    }
+    internal void RefreshForPresentation()
+    {
+        CancelRender();
+        if (_renderQueue.BeginImmediateRender()) Render();
+    }
+    private bool CanRender => _presentationActive && IsLoaded && Visibility == Visibility.Visible;
     private void RequestRender()
     {
-        if (_renderQueue.Request(CanRender)) CompositionTarget.Rendering += OnRendering;
-    }
-    private void OnRendering(object? sender, object args)
-    {
-        CompositionTarget.Rendering -= OnRendering;
-        if (_renderQueue.BeginRender(CanRender)) Render();
+        if (!_renderQueue.Request(CanRender, out var generation)) return;
+        EventHandler<object>? handler = null;
+        handler = (_, _) =>
+        {
+            CompositionTarget.Rendering -= handler;
+            if (ReferenceEquals(_renderHandler, handler)) _renderHandler = null;
+            if (_renderQueue.BeginRender(CanRender, generation)) Render();
+        };
+        _renderHandler = handler;
+        CompositionTarget.Rendering += handler;
     }
     private void CancelRender()
     {
-        CompositionTarget.Rendering -= OnRendering;
+        if (_renderHandler is not null) CompositionTarget.Rendering -= _renderHandler;
+        _renderHandler = null;
         _renderQueue.Cancel();
     }
     private void OnVisibilityChanged(DependencyObject sender, DependencyProperty property)
@@ -127,6 +154,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
     private void Render()
     {
         if (_view is null) return;
+        RenderCount++;
         OriginalLyric.FontSize = _view.Settings.Lyrics.OriginalFontSize;
         TranslatedLyric.FontSize = _view.Settings.Lyrics.TranslationFontSize;
         NextLyric.FontSize = _view.Settings.Lyrics.OriginalFontSize * (13d / 16d);
@@ -211,7 +239,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
 
     private void OnSeekChanged(object sender, RangeBaseValueChangedEventArgs args)
     {
-        if (_updating || !double.IsFinite(args.NewValue)) return;
+        if (!CanRender || _updating || !double.IsFinite(args.NewValue)) return;
         var value = Math.Clamp(args.NewValue, Progress.Minimum, Progress.Maximum);
         if (_seekInteraction.IsPendingTarget(value)) return;
         _seekAcknowledgementTimer.Stop();
@@ -230,7 +258,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
     private void OnSeekPointerPressed(object sender, PointerRoutedEventArgs args)
     {
         var point = args.GetCurrentPoint(Progress);
-        if (!Progress.IsEnabled || (!point.IsInContact && !point.Properties.IsLeftButtonPressed)) return;
+        if (!CanRender || !Progress.IsEnabled || (!point.IsInContact && !point.Properties.IsLeftButtonPressed)) return;
         if (_activePointerId is not null) return;
         _activePointerId = args.Pointer.PointerId;
         _seekAcknowledgementTimer.Stop();
@@ -271,7 +299,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
 
     private void OnSeekCommitTimer(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args)
     {
-        if (_queuedSeekSeconds is not { } seconds || _seekInteraction.IsDragging) return;
+        if (!CanRender || _queuedSeekSeconds is not { } seconds || _seekInteraction.IsDragging) return;
         _queuedSeekSeconds = null;
         ExecuteSeek(_seekInteraction.Commit(seconds, DateTimeOffset.UtcNow));
     }

@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-07T07:26:02.226Z",
+  "releaseVersion": "v0.3.1-beta.17",
+  "scope": "Source authorization and release metadata preparation only. No Windows App/XAML build, model inference, CUDA download, commit, merge or publication was performed by this preparation task.",
+  "approvalStatus": "owner-accepted-experimental-beta",
+  "semanticApproved": false,
+  "sourceFingerprint": "0e4981a2103fa2adfc2403d5ff4218fb52462822e556a06c758139a9f6420809",
+  "review": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-accepted-review.json",
+    "sha256": "a114aa063b4b8fbd044628447879c6d88df3705ab57ab4ef5637534afc51a3cf"
+  },
+  "reviewHashMatches": true,
+  "ownerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-decision.json",
+    "sha256": "e1fe28c3ed6e5ca0ce5b351e9b0b8651890c71852c4a1a6d7254f0e560f0c1da"
+  },
+  "ownerDecisionHashMatches": true,
+  "models": [
+    {
+      "id": "hy-mt2-18-q8-plain-beta",
+      "verdict": "unverified"
+    },
+    {
+      "id": "hy-mt2-7b-q8-plain-beta",
+      "verdict": "unverified"
+    }
+  ],
+  "reviewedSources": [
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+      "sha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d"
+    },
+    {
+      "path": "scripts/cuda_runtime_contract.py",
+      "sha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962"
+    },
+    {
+      "path": "scripts/package-cuda-runtime.py",
+      "sha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e"
+    },
+    {
+      "path": "scripts/stage-reviewed-cuda-metadata.py",
+      "sha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d"
+    },
+    {
+      "path": "scripts/test-ai-release-approval.mjs",
+      "sha256": "aac06a7661d5191ece5b53de717a99ca8d256e24710b2aecd07434ac7c884a5c"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+      "sha256": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+      "sha256": "0e880ffe7cb00023534d7ed34caa87b9108fe9fff28f78bdc2f3b58e9698170f"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+      "sha256": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+      "sha256": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
+    },
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "sha256": "6291c42f59519a5bb138f5202d2b3d11d7a9eb394b598a11625c86b74994d234"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+      "sha256": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+      "sha256": "d7312200a6ca79aced25f4d2e9e811657956c1e674aa7e44f96a203a3eeab49c"
+    },
+    {
+      "path": "scripts/Test-CudaBuildBinding.ps1",
+      "sha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5"
+    }
+  ],
+  "checks": [
+    {
+      "command": "node scripts/test-ai-release-approval.mjs",
+      "outcome": "passed",
+      "meaning": "Actual current scope/review/runtime bindings; no semantic model approval."
+    },
+    {
+      "command": "node scripts/test-release-metadata.mjs",
+      "outcome": "passed",
+      "meaning": "Exact Beta target, baseline, notes and SDK labels; not Windows compilation."
+    },
+    {
+      "command": "node --test --test-name-pattern='owner-accepted Beta|experimental Beta rejects future Beta|experimental Beta still rejects|experimental owner acceptance|changed fixture or release version|publication binds live approval' scripts/test-ai-release-approval.test.mjs",
+      "outcome": "passed",
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "meaning": "Synthetic release-gate regressions; no model or artifact execution."
+    },
+    {
+      "command": "git diff --check",
+      "outcome": "passed"
+    }
+  ],
+  "historicalEvidencePreserved": true,
+  "actualWindowsProducerAndFinalArtifactVerificationRequired": true
+}

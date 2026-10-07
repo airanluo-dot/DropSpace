@@ -1,0 +1,14 @@
+  Determining projects to restore...
+  Restored /workspace/DropSpace/src/DropSpace.Core/DropSpace.Core.csproj (in 245 ms).
+  Restored /workspace/DropSpace/src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj (in 268 ms).
+  Restored /workspace/DropSpace/src/DropSpace.App/DropSpace.App.csproj (in 287 ms).
+  DropSpace.Core -> /workspace/DropSpace/src/DropSpace.Core/bin/x64/Debug/net10.0/DropSpace.Core.dll
+MSBUILD : error MSB4166: Child node "2" exited prematurely. Shutting down. Diagnostic information may be found in files in "/tmp/MSBuildTempjqX8NP/" and will be named MSBuild_*.failure.txt. This location can be changed by setting the MSBUILDDEBUGPATH environment variable to a different directory.
+
+Build FAILED.
+
+MSBUILD : error MSB4166: Child node "2" exited prematurely. Shutting down. Diagnostic information may be found in files in "/tmp/MSBuildTempjqX8NP/" and will be named MSBuild_*.failure.txt. This location can be changed by setting the MSBUILDDEBUGPATH environment variable to a different directory.
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:06.91

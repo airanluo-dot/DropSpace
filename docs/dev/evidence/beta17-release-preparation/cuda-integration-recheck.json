@@ -1,0 +1,102 @@
+{
+  "checkedAt": "2026-10-07T07:28:01.705788+00:00",
+  "verifiedPrHead": "b9bfde8f9d2473b16aa155266af64de3ea4198b6",
+  "publicAppBaseline": "v0.3.1-beta.16",
+  "candidate": "v0.3.1-beta.17",
+  "files": [
+    {
+      "path": ".github/workflows/cuda-component-contracts.yml",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "67d1c7b5d9136e77dcc8760d983a6f150236bb814457c7efa987d4f847400f4f",
+      "candidateSha256": "67d1c7b5d9136e77dcc8760d983a6f150236bb814457c7efa987d4f847400f4f"
+    },
+    {
+      "path": "docs/dev/independent-cuda-component.md",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "76039e995ab5d54201dee5ef0db5884fbdfefa7cef177024eff8cfb4b4d5ed58",
+      "candidateSha256": "76039e995ab5d54201dee5ef0db5884fbdfefa7cef177024eff8cfb4b4d5ed58"
+    },
+    {
+      "path": "scripts/Test-CudaBuildBinding.ps1",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5",
+      "candidateSha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5"
+    },
+    {
+      "path": "scripts/cuda_runtime_contract.py",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962",
+      "candidateSha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962"
+    },
+    {
+      "path": "scripts/package-cuda-runtime.py",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e",
+      "candidateSha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e"
+    },
+    {
+      "path": "scripts/stage-reviewed-cuda-metadata.py",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d",
+      "candidateSha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d"
+    },
+    {
+      "path": "scripts/test-ai-release-approval.mjs",
+      "matchesVerifiedPr": false,
+      "onlyIntentionalBeta17VersionPin": true,
+      "prSha256": "b2a3b98ffb53e936e817905aa0883e0b7789f2cffe695119f979969dc8986748",
+      "candidateSha256": "aac06a7661d5191ece5b53de717a99ca8d256e24710b2aecd07434ac7c884a5c"
+    },
+    {
+      "path": "scripts/test-ai-release-approval.test.mjs",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "3b0a462dfae237ba72e005790561ab979529fb73a97e5dcf20f74cd55e298efa",
+      "candidateSha256": "3b0a462dfae237ba72e005790561ab979529fb73a97e5dcf20f74cd55e298efa"
+    },
+    {
+      "path": "scripts/test_cuda_component_delivery.py",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "2be9a0fd3fef9836d55e36d92b0f7e6412ab140b74d6ba3d63791796430f0215",
+      "candidateSha256": "2be9a0fd3fef9836d55e36d92b0f7e6412ab140b74d6ba3d63791796430f0215"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d",
+      "candidateSha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "e9e96e8b4d5c4c2618d16d402840a239ffefa057c56a9aa4f504647f3bd24ddb",
+      "candidateSha256": "e9e96e8b4d5c4c2618d16d402840a239ffefa057c56a9aa4f504647f3bd24ddb"
+    },
+    {
+      "path": "website/_source/scripts/verify-published-release.mjs",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "12846a992d25e4f6fc44ce6c27459c9f7d8749e72bf81106e82249f95a610a94",
+      "candidateSha256": "12846a992d25e4f6fc44ce6c27459c9f7d8749e72bf81106e82249f95a610a94"
+    },
+    {
+      "path": "website/_source/scripts/verify-published-release.test.mjs",
+      "matchesVerifiedPr": true,
+      "onlyIntentionalBeta17VersionPin": false,
+      "prSha256": "e1b7abb13406998aa29034bd5f576539d7506a6a9b0a914df60b3aebbb2f47ce",
+      "candidateSha256": "e1b7abb13406998aa29034bd5f576539d7506a6a9b0a914df60b3aebbb2f47ce"
+    }
+  ],
+  "archiveDownloaded": false,
+  "archiveUploaded": false,
+  "pr102Merged": false
+}

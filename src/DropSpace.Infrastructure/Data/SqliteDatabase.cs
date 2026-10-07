@@ -161,6 +161,19 @@ public sealed class SqliteDatabase(
             return;
         }
 
+        // SQLite's async APIs still perform synchronous filesystem and SQL work.
+        // Keep the complete first initialization off callers that own a UI thread.
+        await Task.Run(() => InitializeCoreAsync(cancellationToken), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task InitializeCoreAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_initialized)
+        {
+            return;
+        }
+
         await _initializeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {

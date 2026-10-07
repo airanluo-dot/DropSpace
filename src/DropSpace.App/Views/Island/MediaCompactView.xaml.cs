@@ -5,6 +5,7 @@ using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 
 namespace DropSpace.App.Views.Island;
@@ -13,6 +14,10 @@ public sealed partial class MediaCompactView : UserControl
 {
     private MediaViewModel? _view;
     private bool _subscribed;
+    private readonly MediaRenderQueue _renderQueue = new();
+    private EventHandler<object>? _renderHandler;
+    private bool _presentationActive = true;
+    internal long RefreshCount { get; private set; }
     private readonly TextBlock _measure = new() { FontSize = 13, TextWrapping = TextWrapping.NoWrap };
     private double _textWidth;
     private double _secondaryTextWidth;
@@ -37,10 +42,11 @@ public sealed partial class MediaCompactView : UserControl
     {
         value = Math.Max(1, value);
         if (Math.Abs(value - _availableWidth) < 0.5) return;
-        _availableWidth = value; Refresh();
+        _availableWidth = value;
+        RequestRefresh();
     }
     // The glow asks the rendered text surface, not only whether a translation exists.
-    internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
+    internal bool IsTranslationActuallyVisible => _presentationActive && IsLoaded && Visibility == Visibility.Visible &&
         SecondaryViewport.Visibility == Visibility.Visible && SecondaryViewport.ActualWidth > 0 && SecondaryViewport.ActualHeight > 0 &&
         SecondaryLine.Visibility == Visibility.Visible && SecondaryLine.Opacity > 0.01 &&
         SecondaryLine.ActualWidth > 0 && SecondaryLine.ActualHeight > 0 &&
@@ -70,19 +76,21 @@ public sealed partial class MediaCompactView : UserControl
         Unloaded += OnUnloaded;
         ActualThemeChanged += (_, _) => InvalidateTextMeasure();
         LayoutUpdated += (_, _) => NotifyTranslationVisibility();
+        RegisterPropertyChangedCallback(VisibilityProperty, OnVisibilityChanged);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
         Subscribe();
         AttachXamlRoot();
-        Refresh();
+        RequestRefresh();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         DetachXamlRoot();
         Unsubscribe();
+        CancelRefresh();
         _secondaryMarquee.Reset();
         NotifyTranslationVisibility();
     }
@@ -93,7 +101,7 @@ public sealed partial class MediaCompactView : UserControl
         {
             Unsubscribe(); _view = value; Layout.DataContext = value;
             if (IsLoaded) Subscribe();
-            Refresh();
+            RequestRefresh();
         }
     }
     private void Subscribe() { if (!_subscribed && _view is not null) { _view.PropertyChanged += OnChanged; _subscribed = true; } }
@@ -122,7 +130,53 @@ public sealed partial class MediaCompactView : UserControl
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion) or nameof(MediaViewModel.Position)) Refresh();
+        if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion) or nameof(MediaViewModel.Position)) RequestRefresh();
+    }
+
+    // The owning host supplies ancestor visibility. A collapsed CompactPanel does
+    // not unload this control, and its own Visibility may still be Visible.
+    internal void SetActive(bool active)
+    {
+        if (_presentationActive == active) return;
+        _presentationActive = active;
+        if (CanRender) RequestRefresh();
+        else CancelRefresh();
+        NotifyTranslationVisibility();
+    }
+
+    internal void RefreshForPresentation()
+    {
+        CancelRefresh();
+        if (_renderQueue.BeginImmediateRender()) Refresh();
+    }
+
+    private bool CanRender => IsLoaded && _presentationActive && Visibility == Visibility.Visible;
+
+    private void RequestRefresh()
+    {
+        if (!_renderQueue.Request(CanRender, out var generation)) return;
+        EventHandler<object>? handler = null;
+        handler = (_, _) =>
+        {
+            CompositionTarget.Rendering -= handler;
+            if (ReferenceEquals(_renderHandler, handler)) _renderHandler = null;
+            if (_renderQueue.BeginRender(CanRender, generation)) Refresh();
+        };
+        _renderHandler = handler;
+        CompositionTarget.Rendering += handler;
+    }
+
+    private void CancelRefresh()
+    {
+        if (_renderHandler is not null) CompositionTarget.Rendering -= _renderHandler;
+        _renderHandler = null;
+        _renderQueue.Cancel();
+    }
+
+    private void OnVisibilityChanged(DependencyObject sender, DependencyProperty property)
+    {
+        if (CanRender) RequestRefresh();
+        else CancelRefresh();
     }
     private void OnViewportSizeChanged(object sender, SizeChangedEventArgs args)
     {
@@ -138,6 +192,7 @@ public sealed partial class MediaCompactView : UserControl
     private void Refresh()
     {
         if (_view is null || BaseLine is null) return;
+        RefreshCount++;
         var previousHeight = IdealIslandHeight;
         var settings = _view.Settings;
         var showDots = settings.Lyrics.Enabled && settings.IslandActivity.ShowLyricsInCompact && _view.LyricPresentation.IsInterlude;
@@ -234,7 +289,7 @@ public sealed partial class MediaCompactView : UserControl
         _measuredFontFamily = null;
         _secondaryMeasureInvalid = true;
         _secondaryMarquee.Reset();
-        Refresh();
+        RequestRefresh();
     }
     private void RefreshHighlight()
     {

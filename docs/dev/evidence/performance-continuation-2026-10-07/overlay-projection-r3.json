@@ -1,0 +1,145 @@
+{
+  "scope": "R3 geometry guard only; OverlayWindowService remains unchanged.",
+  "environment": {
+    "os": "Linux",
+    "sdk": "10.0.401",
+    "target": "net10.0",
+    "nativeWindowsExecuted": false
+  },
+  "source": {
+    "beforeWindow": {
+      "snapshot": "/tmp/dropspace-r3-baseline/OverlayWindow.xaml.cs",
+      "sha256": "dc0608d529398f19f7c8261580436114b25f39ac119c94090248300ad95ffbe7"
+    },
+    "finalWindow": {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "sha256": "cf25217d6f1792b7e6dc7e3a4e0872fefb07d9998ee406e7873dce637783a2e5"
+    },
+    "beforeAndFinalService": {
+      "path": "src/DropSpace.App/Services/OverlayWindowService.cs",
+      "sha256": "ed00d2a0532378b5234762c37e97e53795fce0aa54422f53cc538b793426fe9b",
+      "matchesSavedBaseline": true
+    },
+    "extractedMethods": {
+      "baseline": {
+        "path": "overlay-projection-probe/baseline-methods.cs.txt",
+        "sha256": "2841544e91e964f29ad4f30be8746de5360fbc30f92267e4ceb0a5b7b8de2be6"
+      },
+      "current": {
+        "path": "overlay-projection-probe/current-methods.cs.txt",
+        "sha256": "62382f77dc9fdb1edfb69024606a8cdfc7c9f9d562b90cde367109ed700cd97c"
+      }
+    }
+  },
+  "before": {
+    "mode": "baseline-before-r3",
+    "source": "Complete OnSnapshotChanged, OnExperienceChanged, service ApplySnapshot, window ApplySnapshot and OnMediaGeometryChanged extracted verbatim; real Core coordinator/policies; native and UI dependencies use managed fixtures.",
+    "synchronousGeometry": {
+      "width": 420,
+      "height": 76,
+      "refreshes": 1,
+      "queuedProjections": 1,
+      "projectionCalls": 2
+    },
+    "preexistingGeometry": {
+      "queuedProjections": 1,
+      "width": 390,
+      "height": 72
+    },
+    "nestedWindowRetirement": {
+      "authority": "Hidden",
+      "activeTarget": "Hidden",
+      "inactiveTarget": "Hidden",
+      "activeTargetSequence": [
+        "Dismissing",
+        "Hidden"
+      ]
+    },
+    "passedAssertions": 13,
+    "checks": [
+      "First projection consumes the supplied latest compact dimensions synchronously",
+      "Synchronous geometry preparation avoids an already consumed queued projection",
+      "First-frame geometry scope and callbacks retire",
+      "Ordinary geometry invalidation owns its queued callback",
+      "Existing pending geometry work survives synchronous preparation",
+      "Existing callback observes the latest dimensions after preparation",
+      "Ordinary geometry changes preserve existing coalescing",
+      "Ordinary geometry callback clears the original pending flag",
+      "Media preparation scope restores after producer failure",
+      "Later ordinary geometry event remains observable after failure",
+      "Nested geometry preparation restores the prior outer scope",
+      "Real nested dismissal retires the experience authority",
+      "Nested window targets preserve the final existing authority"
+    ],
+    "limitations": [
+      "Platform fixtures do not execute HWND, WinUI text measurement, layout or animation.",
+      "Counts are managed projection boundaries, not UI latency, CPU or memory measurements."
+    ]
+  },
+  "after": {
+    "mode": "current-geometry-only",
+    "source": "Complete OnSnapshotChanged, OnExperienceChanged, service ApplySnapshot, window ApplySnapshot and OnMediaGeometryChanged extracted verbatim; real Core coordinator/policies; native and UI dependencies use managed fixtures.",
+    "synchronousGeometry": {
+      "width": 420,
+      "height": 76,
+      "refreshes": 1,
+      "queuedProjections": 0,
+      "projectionCalls": 1
+    },
+    "preexistingGeometry": {
+      "queuedProjections": 1,
+      "width": 390,
+      "height": 72
+    },
+    "nestedWindowRetirement": {
+      "authority": "Hidden",
+      "activeTarget": "Hidden",
+      "inactiveTarget": "Hidden",
+      "activeTargetSequence": [
+        "Dismissing",
+        "Hidden"
+      ]
+    },
+    "passedAssertions": 13,
+    "checks": [
+      "First projection consumes the supplied latest compact dimensions synchronously",
+      "Synchronous geometry preparation avoids an already consumed queued projection",
+      "First-frame geometry scope and callbacks retire",
+      "Ordinary geometry invalidation owns its queued callback",
+      "Existing pending geometry work survives synchronous preparation",
+      "Existing callback observes the latest dimensions after preparation",
+      "Ordinary geometry changes preserve existing coalescing",
+      "Ordinary geometry callback clears the original pending flag",
+      "Media preparation scope restores after producer failure",
+      "Later ordinary geometry event remains observable after failure",
+      "Nested geometry preparation restores the prior outer scope",
+      "Real nested dismissal retires the experience authority",
+      "Nested window targets preserve the final existing authority"
+    ],
+    "limitations": [
+      "Platform fixtures do not execute HWND, WinUI text measurement, layout or animation.",
+      "Counts are managed projection boundaries, not UI latency, CPU or memory measurements."
+    ]
+  },
+  "commands": {
+    "extractBefore": "python3 /tmp/dropspace-r3-probe/extract.py /tmp/dropspace-r3-baseline",
+    "extractAfter": "python3 /tmp/dropspace-r3-probe/extract.py /workspace/DropSpace/src/DropSpace.App",
+    "build": "/tmp/dropspace-dotnet/dotnet build /tmp/dropspace-r3-probe/Probe.csproj --no-restore --nologo -m:1",
+    "runBefore": "/tmp/dropspace-dotnet/dotnet /tmp/dropspace-r3-probe/bin/Debug/net10.0/Probe.dll baseline",
+    "runAfter": "/tmp/dropspace-dotnet/dotnet /tmp/dropspace-r3-probe/bin/Debug/net10.0/Probe.dll"
+  },
+  "validation": {
+    "beforeConsoleAssertions": 13,
+    "finalConsoleAssertions": 13,
+    "compileWarnings": 0,
+    "compileErrors": 0,
+    "formalAppTestsOrNativeFrames": false
+  },
+  "compatibilityEvidence": "overlay-service-deduplication-rejected.json",
+  "limitations": [
+    "The complete service/window methods compile against managed native dependency fixtures, not real WinUI/Win32 types.",
+    "Scripted compact control supplies one geometry-change event; no text measurement is simulated or measured.",
+    "The window fixture returns through the existing placement-suppression branch after actual first-frame geometry reads; later native layout and motion are unexecuted.",
+    "Counts represent managed projection work only. No FPS, UI latency, CPU or application-memory improvement is claimed."
+  ]
+}

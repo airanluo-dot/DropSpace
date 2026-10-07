@@ -1,0 +1,221 @@
+{
+  "validatedAtUtc": "2026-10-07T07:07:55.872415+00:00",
+  "branch": "work",
+  "head": "6a1586a01e769c8b71492bcb18fb970047753434",
+  "originMain": "6a1586a01e769c8b71492bcb18fb970047753434",
+  "sourceHashConvention": "SHA256 of source with LF line endings; CRLF normalization is not a semantic change",
+  "priorOptimizationPreservation": [
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "priorSourceVerifiedInR3Baseline": true,
+      "addition": "Only R3 synchronous geometry scope; independent patch reverse-check passes",
+      "finalSha256Utf8Lf": "6291c42f59519a5bb138f5202d2b3d11d7a9eb394b598a11625c86b74994d234"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ItemProjectionService.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "3c06a8e427f7a3181c7b201688f242ead10359cffe1798d1f8b762c86401a68a"
+    },
+    {
+      "path": "src/DropSpace.App/Services/SystemVisualPreferenceService.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "c333faa265ae7efb2a2be6c79af280a1721a9320024fff8e13e8048415d6beb3"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/MusicUiPressureTests.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "2e9226f6a49a3cd31cf6bce4374cdb2107a9f1b7525b5b5388c72841945529e5"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/ItemProjectionServiceTests.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "f812100451849e3f1260dfa970281b06d95dbc9e8b96cc8076d079727add831f"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/SystemVisualPreferenceTests.cs",
+      "unchanged": true,
+      "sha256Utf8Lf": "fd8e409484ed3fe50ff63d136a6610f7387db918243c0098bcf8f874a878c4f5"
+    }
+  ],
+  "sources": [
+    {
+      "path": ".github/workflows/cuda-component-contracts.yml",
+      "sha256Utf8Lf": "67d1c7b5d9136e77dcc8760d983a6f150236bb814457c7efa987d4f847400f4f"
+    },
+    {
+      "path": "scripts/Test-CudaBuildBinding.ps1",
+      "sha256Utf8Lf": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5"
+    },
+    {
+      "path": "scripts/cuda_runtime_contract.py",
+      "sha256Utf8Lf": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962"
+    },
+    {
+      "path": "scripts/package-cuda-runtime.py",
+      "sha256Utf8Lf": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e"
+    },
+    {
+      "path": "scripts/stage-reviewed-cuda-metadata.py",
+      "sha256Utf8Lf": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d"
+    },
+    {
+      "path": "scripts/test-ai-release-approval.mjs",
+      "sha256Utf8Lf": "b2a3b98ffb53e936e817905aa0883e0b7789f2cffe695119f979969dc8986748"
+    },
+    {
+      "path": "scripts/test-ai-release-approval.test.mjs",
+      "sha256Utf8Lf": "3b0a462dfae237ba72e005790561ab979529fb73a97e5dcf20f74cd55e298efa"
+    },
+    {
+      "path": "scripts/test_cuda_component_delivery.py",
+      "sha256Utf8Lf": "2be9a0fd3fef9836d55e36d92b0f7e6412ab140b74d6ba3d63791796430f0215"
+    },
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "sha256Utf8Lf": "6291c42f59519a5bb138f5202d2b3d11d7a9eb394b598a11625c86b74994d234"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+      "sha256Utf8Lf": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ItemProjectionService.cs",
+      "sha256Utf8Lf": "3c06a8e427f7a3181c7b201688f242ead10359cffe1798d1f8b762c86401a68a"
+    },
+    {
+      "path": "src/DropSpace.App/Services/SystemVisualPreferenceService.cs",
+      "sha256Utf8Lf": "c333faa265ae7efb2a2be6c79af280a1721a9320024fff8e13e8048415d6beb3"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+      "sha256Utf8Lf": "0e880ffe7cb00023534d7ed34caa87b9108fe9fff28f78bdc2f3b58e9698170f"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+      "sha256Utf8Lf": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+      "sha256Utf8Lf": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+      "sha256Utf8Lf": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteDatabase.cs",
+      "sha256Utf8Lf": "f609b41d20c24d3b9613a6c68445e1ca53d7ce5ee00f19f1e816bf44968f736e"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteItemRepository.cs",
+      "sha256Utf8Lf": "18bd54450cd60afb9863e6dcda520b4862677ec24c8228b3f14726cd058e9da9"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+      "sha256Utf8Lf": "d7312200a6ca79aced25f4d2e9e811657956c1e674aa7e44f96a203a3eeab49c"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+      "sha256Utf8Lf": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/ItemProjectionServiceTests.cs",
+      "sha256Utf8Lf": "f812100451849e3f1260dfa970281b06d95dbc9e8b96cc8076d079727add831f"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/MediaNotificationTests.cs",
+      "sha256Utf8Lf": "abb1b2ec154fd4ee3373bcd8449f8b4fee0b0347cc910ebdb84bf3ad78b8cef9"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/MusicUiPressureTests.cs",
+      "sha256Utf8Lf": "2e9226f6a49a3cd31cf6bce4374cdb2107a9f1b7525b5b5388c72841945529e5"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/SystemVisualPreferenceTests.cs",
+      "sha256Utf8Lf": "fd8e409484ed3fe50ff63d136a6610f7387db918243c0098bcf8f874a878c4f5"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs",
+      "sha256Utf8Lf": "e9e96e8b4d5c4c2618d16d402840a239ffefa057c56a9aa4f504647f3bd24ddb"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DownloadManagerLifetimeTests.cs",
+      "sha256Utf8Lf": "b118764e82d9fe0fc11b2cbe43b9d70c28620731652e24c5e04f02fdedd50b9b"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/SqliteFileIntakeBoundaryTests.cs",
+      "sha256Utf8Lf": "a62b1e7535e9a584c5b667daa05c1caba18e2d84bb80a6e7315e42425f630dc2"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/SqliteUiExecutionBoundaryTests.cs",
+      "sha256Utf8Lf": "da2a11d22fb683bc27d6a25ba0cb2ef0961c30bc435fdd6dfc5a075ab7005340"
+    },
+    {
+      "path": "website/_source/scripts/verify-published-release.mjs",
+      "sha256Utf8Lf": "12846a992d25e4f6fc44ce6c27459c9f7d8749e72bf81106e82249f95a610a94"
+    },
+    {
+      "path": "website/_source/scripts/verify-published-release.test.mjs",
+      "sha256Utf8Lf": "e1b7abb13406998aa29034bd5f576539d7506a6a9b0a914df60b3aebbb2f47ce"
+    }
+  ],
+  "independentPatchChecks": [
+    {
+      "patch": "cuda-pr102.patch",
+      "reverseCheckExitCode": 0,
+      "stderr": "",
+      "sha256": "955a31501a65de6c70aa497c4be5b164ef6518f9f6152de95bb515a123afacb0"
+    },
+    {
+      "patch": "r1-sqlite.patch",
+      "reverseCheckExitCode": 0,
+      "stderr": "",
+      "sha256": "17719d9b87f13c89b7ea79076b60bfa6c7bd1fbc19358ea614052344ee29f976"
+    },
+    {
+      "patch": "r1-media.patch",
+      "reverseCheckExitCode": 0,
+      "stderr": "",
+      "sha256": "ec67275018767d6685c5299f6ba46156148ce8eae4ced40a4f835799b8aca8ee"
+    },
+    {
+      "patch": "r2-download.patch",
+      "reverseCheckExitCode": 0,
+      "stderr": "",
+      "sha256": "b530c969fae2795cea461e856779bae8dcbcc97e91baeba182c07547a67633b0"
+    },
+    {
+      "patch": "r3-overlay-geometry.patch",
+      "reverseCheckExitCode": 0,
+      "stderr": "",
+      "sha256": "2e4018c4090a83a0b37bd794b51a1a8afd2d8a17db93f086f2013e519a43db0e"
+    },
+    {
+      "patch": "r4-file-intake.patch",
+      "reverseCheckExitCode": 0,
+      "stderr": "",
+      "sha256": "ea722a9ba12b195bec801210c2b8588a920470692edeaea05c0c14231c6d54e0"
+    }
+  ],
+  "verificationScope": "No mutation from patch checks; Core/Infrastructure Release and focused tests, App C# reference subset and extracted methods only. No complete WinUI/XAML build or native Windows runtime."
+}

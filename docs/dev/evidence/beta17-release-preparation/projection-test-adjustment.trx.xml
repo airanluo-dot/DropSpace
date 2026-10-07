@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="e08e4aeb-8764-43f1-990d-8b48a1eebaf9" name="@fc0360741f88 2026-10-07 07:25:13" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T07:25:13.5968927+00:00" queuing="2026-10-07T07:25:13.5968927+00:00" start="2026-10-07T07:25:13.1240411+00:00" finish="2026-10-07T07:25:13.6041130+00:00" />
+  <TestSettings name="default" id="60737c44-4ade-4e04-a114-a1516dc6309a">
+    <Deployment runDeploymentRoot="_fc0360741f88_2026-10-07_07_25_13" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="5e887ddb-86bd-47a7-9ecc-948e7aab5df7" testId="10959704-9257-8adb-9dd6-e738618cad9f" testName="LoadPageAsync_ReturnsToCallerWhileSynchronousRepositoryIsBlocked" computerName="fc0360741f88" duration="00:00:00.0171276" startTime="2026-10-07T07:25:13.4664052+00:00" endTime="2026-10-07T07:25:13.5012670+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5e887ddb-86bd-47a7-9ecc-948e7aab5df7" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="LoadPageAsync_ReturnsToCallerWhileSynchronousRepositoryIsBlocked" storage="/tmp/dropspace-projection-tests/bin/release/net10.0/projectiontests.dll" id="10959704-9257-8adb-9dd6-e738618cad9f">
+      <Execution id="5e887ddb-86bd-47a7-9ecc-948e7aab5df7" />
+      <TestMethod codeBase="/tmp/dropspace-projection-tests/bin/Release/net10.0/ProjectionTests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.ItemProjectionServiceTests" name="LoadPageAsync_ReturnsToCallerWhileSynchronousRepositoryIsBlocked" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="10959704-9257-8adb-9dd6-e738618cad9f" executionId="5e887ddb-86bd-47a7-9ecc-948e7aab5df7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c6c101e8-1ed6-45ad-a043-82e8b13dca23" name="@fc0360741f88 2026-10-07 06:09:57" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T06:09:57.7477325+00:00" queuing="2026-10-07T06:09:57.7477325+00:00" start="2026-10-07T06:09:57.0103181+00:00" finish="2026-10-07T06:09:57.8007850+00:00" />
+  <TestSettings name="default" id="bbdf5b53-e8e1-4020-8669-ed85f65e7a88">
+    <Deployment runDeploymentRoot="_fc0360741f88_2026-10-07_06_09_57" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="03c23c85-0eaf-4151-a917-89498105d103" testId="15e687e6-ca8e-8ad2-ba51-d91575e646b4" testName="GeometryChangesContinuouslyBeforeReachingTarget" computerName="fc0360741f88" duration="00:00:00.0084202" startTime="2026-10-07T06:09:57.6556047+00:00" endTime="2026-10-07T06:09:57.6641184+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="03c23c85-0eaf-4151-a917-89498105d103" />
+    <UnitTestResult executionId="22674289-a640-437e-b009-460efbece5cb" testId="1d3824e6-4659-8b11-86a4-9b116e3caa9c" testName="WindowsTenUsesSolidFallback" computerName="fc0360741f88" duration="00:00:00.0002914" startTime="2026-10-07T06:09:57.6413360+00:00" endTime="2026-10-07T06:09:57.6416562+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="22674289-a640-437e-b009-460efbece5cb" />
+    <UnitTestResult executionId="12981089-07f2-44ad-9b34-50809e8c9430" testId="195f6d84-6a3f-834a-9c5b-80e88438c16b" testName="PauseFreezesAndBackwardSeekOrReloadRestarts" computerName="fc0360741f88" duration="00:00:00.0002783" startTime="2026-10-07T06:09:57.5855054+00:00" endTime="2026-10-07T06:09:57.5858086+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="12981089-07f2-44ad-9b34-50809e8c9430" />
+    <UnitTestResult executionId="5669ac21-a36a-478b-b1a6-23986c3fadd8" testId="18611a71-469d-83a8-823e-6e47e840e222" testName="PrimaryAndSecondaryOverflowAreIndependentForAllLengthCombinations" computerName="fc0360741f88" duration="00:00:00.0005901" startTime="2026-10-07T06:09:57.5833170+00:00" endTime="2026-10-07T06:09:57.5843780+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5669ac21-a36a-478b-b1a6-23986c3fadd8" />
+    <UnitTestResult executionId="de1b7d08-03f1-4201-9008-ee810a36d06b" testId="1be61bcd-e5b8-8204-aede-532a1ef10bb5" testName="OneThousandIslandStateReversalsAlwaysProduceApiSafeFrames" computerName="fc0360741f88" duration="00:00:00.0587760" startTime="2026-10-07T06:09:57.6730477+00:00" endTime="2026-10-07T06:09:57.7318727+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="de1b7d08-03f1-4201-9008-ee810a36d06b" />
+    <UnitTestResult executionId="6b3a9a68-d8f2-44b0-a1d7-4d51ed3c577a" testId="1d31c3fa-63c2-8b94-893b-9d0dde366916" testName="FontAndDpiMatrixPreservesDipBoundsAndReachesEveryTail" computerName="fc0360741f88" duration="00:00:00.0517056" startTime="2026-10-07T06:09:57.5858239+00:00" endTime="2026-10-07T06:09:57.6375761+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6b3a9a68-d8f2-44b0-a1d7-4d51ed3c577a" />
+    <UnitTestResult executionId="383c2fa4-1891-4390-8426-b7def7948e65" testId="1e1c7dd5-03e5-81a9-b88c-0fe7697c0d6f" testName="HighContrastAlwaysWinsOverOptionalMaterials" computerName="fc0360741f88" duration="00:00:00.0015298" startTime="2026-10-07T06:09:57.6396490+00:00" endTime="2026-10-07T06:09:57.6413032+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="383c2fa4-1891-4390-8426-b7def7948e65" />
+    <UnitTestResult executionId="8ba7f853-2a73-4c64-b35c-ad3fea5b6328" testId="1cf2c39f-8ef1-886b-bbea-3b8270db316c" testName="OneHundredInterruptibleCyclesReturnToIdle" computerName="fc0360741f88" duration="00:00:00.0069200" startTime="2026-10-07T06:09:57.6660761+00:00" endTime="2026-10-07T06:09:57.6730235+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8ba7f853-2a73-4c64-b35c-ad3fea5b6328" />
+    <UnitTestResult executionId="69891fb3-488f-49ed-8474-e26ecf0d7bad" testId="1d11ecae-cf52-88ce-8f30-712bdd14692f" testName="LongTranslationReachesItsTailAndHoldsBothEnds" computerName="fc0360741f88" duration="00:00:00.0115600" startTime="2026-10-07T06:09:57.5415169+00:00" endTime="2026-10-07T06:09:57.5777785+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="69891fb3-488f-49ed-8474-e26ecf0d7bad" />
+    <UnitTestResult executionId="f069e06d-737a-4fc0-8aa9-06b712f1c768" testId="1b0ddaa3-1bb3-80fa-9c94-13d8139c59e9" testName="ContentTrackLineSizeDpiWidthAndMotionChangesEachRestartLeadingHold" computerName="fc0360741f88" duration="00:00:00.0007189" startTime="2026-10-07T06:09:57.5847357+00:00" endTime="2026-10-07T06:09:57.5854866+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f069e06d-737a-4fc0-8aa9-06b712f1c768" />
+    <UnitTestResult executionId="caad5a6b-5873-4b77-bbcc-a8ca1a691003" testId="1e672e46-9b82-8cbe-96d7-374970f4006b" testName="DisabledReducedMotionShortOrUnmeasuredTextDoesNotScroll" computerName="fc0360741f88" duration="00:00:00.0003419" startTime="2026-10-07T06:09:57.6376236+00:00" endTime="2026-10-07T06:09:57.6396164+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="caad5a6b-5873-4b77-bbcc-a8ca1a691003" />
+    <UnitTestResult executionId="6c8afc83-cd73-4421-ab8a-f0a845fdea6f" testId="15f682e3-d428-88ce-9ad5-e4b8c4dc376a" testName="SafeProjectionClampsNegativeOvershootAndNonFiniteValues" computerName="fc0360741f88" duration="00:00:00.0002546" startTime="2026-10-07T06:09:57.7319416+00:00" endTime="2026-10-07T06:09:57.7322591+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6c8afc83-cd73-4421-ab8a-f0a845fdea6f" />
+    <UnitTestResult executionId="acd400fd-f19d-42f1-8d08-f7a460dfcce7" testId="183e719e-3779-86a2-a999-80dd5901339d" testName="EveryAnimatedPropertySettlesAndStopsFrames" computerName="fc0360741f88" duration="00:00:00.0010334" startTime="2026-10-07T06:09:57.6649581+00:00" endTime="2026-10-07T06:09:57.6660513+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="acd400fd-f19d-42f1-8d08-f7a460dfcce7" />
+    <UnitTestResult executionId="b42e496e-f3ab-4f3c-a2a3-35e4da9ab9d4" testId="15c21eee-f40c-860f-b663-5625e1c9b7a0" testName="DisabledTransparencyAndRemoteSessionUseSolidSurface" computerName="fc0360741f88" duration="00:00:00.0002425" startTime="2026-10-07T06:09:57.6552452+00:00" endTime="2026-10-07T06:09:57.6555738+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b42e496e-f3ab-4f3c-a2a3-35e4da9ab9d4" />
+    <UnitTestResult executionId="36d69956-002c-4744-8010-7fdd65f3efc3" testId="11d83d4b-955b-8ad1-97f0-52ee7fa36c1c" testName="GeometryOpacityAndShadowReverseFromTheCurrentFrame" computerName="fc0360741f88" duration="00:00:00.0002001" startTime="2026-10-07T06:09:57.7322787+00:00" endTime="2026-10-07T06:09:57.7340325+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="36d69956-002c-4744-8010-7fdd65f3efc3" />
+    <UnitTestResult executionId="9041d320-b075-415a-ac93-53d5710b16d6" testId="119278fe-e179-8dc0-bc8c-86c082fe77c0" testName="TargetCanReverseWithoutResettingCurrentGeometry" computerName="fc0360741f88" duration="00:00:00.0007354" startTime="2026-10-07T06:09:57.6641578+00:00" endTime="2026-10-07T06:09:57.6649358+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9041d320-b075-415a-ac93-53d5710b16d6" />
+    <UnitTestResult executionId="07cd4692-1872-4ba8-9fff-0f13e204038a" testId="199bf1b8-04b2-8f84-b208-811f6c2d011a" testName="WindowsElevenRequiresRuntimeAcrylicAndCompositionSupport" computerName="fc0360741f88" duration="00:00:00.0003504" startTime="2026-10-07T06:09:57.6416741+00:00" endTime="2026-10-07T06:09:57.6420543+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="07cd4692-1872-4ba8-9fff-0f13e204038a" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="EveryAnimatedPropertySettlesAndStopsFrames" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="183e719e-3779-86a2-a999-80dd5901339d">
+      <Execution id="acd400fd-f19d-42f1-8d08-f7a460dfcce7" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMotionControllerTests" name="EveryAnimatedPropertySettlesAndStopsFrames" />
+    </UnitTest>
+    <UnitTest name="GeometryOpacityAndShadowReverseFromTheCurrentFrame" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="11d83d4b-955b-8ad1-97f0-52ee7fa36c1c">
+      <Execution id="36d69956-002c-4744-8010-7fdd65f3efc3" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMotionControllerTests" name="GeometryOpacityAndShadowReverseFromTheCurrentFrame" />
+    </UnitTest>
+    <UnitTest name="OneHundredInterruptibleCyclesReturnToIdle" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="1cf2c39f-8ef1-886b-bbea-3b8270db316c">
+      <Execution id="8ba7f853-2a73-4c64-b35c-ad3fea5b6328" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMotionControllerTests" name="OneHundredInterruptibleCyclesReturnToIdle" />
+    </UnitTest>
+    <UnitTest name="WindowsTenUsesSolidFallback" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="1d3824e6-4659-8b11-86a4-9b116e3caa9c">
+      <Execution id="22674289-a640-437e-b009-460efbece5cb" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMaterialCapabilityTests" name="WindowsTenUsesSolidFallback" />
+    </UnitTest>
+    <UnitTest name="DisabledReducedMotionShortOrUnmeasuredTextDoesNotScroll" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="1e672e46-9b82-8cbe-96d7-374970f4006b">
+      <Execution id="caad5a6b-5873-4b77-bbcc-a8ca1a691003" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.LyricsMarqueePolicyTests" name="DisabledReducedMotionShortOrUnmeasuredTextDoesNotScroll" />
+    </UnitTest>
+    <UnitTest name="OneThousandIslandStateReversalsAlwaysProduceApiSafeFrames" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="1be61bcd-e5b8-8204-aede-532a1ef10bb5">
+      <Execution id="de1b7d08-03f1-4201-9008-ee810a36d06b" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMotionControllerTests" name="OneThousandIslandStateReversalsAlwaysProduceApiSafeFrames" />
+    </UnitTest>
+    <UnitTest name="WindowsElevenRequiresRuntimeAcrylicAndCompositionSupport" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="199bf1b8-04b2-8f84-b208-811f6c2d011a">
+      <Execution id="07cd4692-1872-4ba8-9fff-0f13e204038a" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMaterialCapabilityTests" name="WindowsElevenRequiresRuntimeAcrylicAndCompositionSupport" />
+    </UnitTest>
+    <UnitTest name="HighContrastAlwaysWinsOverOptionalMaterials" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="1e1c7dd5-03e5-81a9-b88c-0fe7697c0d6f">
+      <Execution id="383c2fa4-1891-4390-8426-b7def7948e65" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMaterialCapabilityTests" name="HighContrastAlwaysWinsOverOptionalMaterials" />
+    </UnitTest>
+    <UnitTest name="PrimaryAndSecondaryOverflowAreIndependentForAllLengthCombinations" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="18611a71-469d-83a8-823e-6e47e840e222">
+      <Execution id="5669ac21-a36a-478b-b1a6-23986c3fadd8" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.LyricsMarqueePolicyTests" name="PrimaryAndSecondaryOverflowAreIndependentForAllLengthCombinations" />
+    </UnitTest>
+    <UnitTest name="DisabledTransparencyAndRemoteSessionUseSolidSurface" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="15c21eee-f40c-860f-b663-5625e1c9b7a0">
+      <Execution id="b42e496e-f3ab-4f3c-a2a3-35e4da9ab9d4" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMaterialCapabilityTests" name="DisabledTransparencyAndRemoteSessionUseSolidSurface" />
+    </UnitTest>
+    <UnitTest name="PauseFreezesAndBackwardSeekOrReloadRestarts" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="195f6d84-6a3f-834a-9c5b-80e88438c16b">
+      <Execution id="12981089-07f2-44ad-9b34-50809e8c9430" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.LyricsMarqueePolicyTests" name="PauseFreezesAndBackwardSeekOrReloadRestarts" />
+    </UnitTest>
+    <UnitTest name="GeometryChangesContinuouslyBeforeReachingTarget" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="15e687e6-ca8e-8ad2-ba51-d91575e646b4">
+      <Execution id="03c23c85-0eaf-4151-a917-89498105d103" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMotionControllerTests" name="GeometryChangesContinuouslyBeforeReachingTarget" />
+    </UnitTest>
+    <UnitTest name="LongTranslationReachesItsTailAndHoldsBothEnds" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="1d11ecae-cf52-88ce-8f30-712bdd14692f">
+      <Execution id="69891fb3-488f-49ed-8474-e26ecf0d7bad" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.LyricsMarqueePolicyTests" name="LongTranslationReachesItsTailAndHoldsBothEnds" />
+    </UnitTest>
+    <UnitTest name="TargetCanReverseWithoutResettingCurrentGeometry" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="119278fe-e179-8dc0-bc8c-86c082fe77c0">
+      <Execution id="9041d320-b075-415a-ac93-53d5710b16d6" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMotionControllerTests" name="TargetCanReverseWithoutResettingCurrentGeometry" />
+    </UnitTest>
+    <UnitTest name="FontAndDpiMatrixPreservesDipBoundsAndReachesEveryTail" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="1d31c3fa-63c2-8b94-893b-9d0dde366916">
+      <Execution id="6b3a9a68-d8f2-44b0-a1d7-4d51ed3c577a" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.LyricsMarqueePolicyTests" name="FontAndDpiMatrixPreservesDipBoundsAndReachesEveryTail" />
+    </UnitTest>
+    <UnitTest name="SafeProjectionClampsNegativeOvershootAndNonFiniteValues" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="15f682e3-d428-88ce-9ad5-e4b8c4dc376a">
+      <Execution id="6c8afc83-cd73-4421-ab8a-f0a845fdea6f" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.OverlayMotionControllerTests" name="SafeProjectionClampsNegativeOvershootAndNonFiniteValues" />
+    </UnitTest>
+    <UnitTest name="ContentTrackLineSizeDpiWidthAndMotionChangesEachRestartLeadingHold" storage="/workspace/dropspace/tests/dropspace.core.tests/bin/release/net10.0/dropspace.core.tests.dll" id="1b0ddaa3-1bb3-80fa-9c94-13d8139c59e9">
+      <Execution id="f069e06d-737a-4fc0-8aa9-06b712f1c768" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Release/net10.0/DropSpace.Core.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Core.Tests.LyricsMarqueePolicyTests" name="ContentTrackLineSizeDpiWidthAndMotionChangesEachRestartLeadingHold" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="15e687e6-ca8e-8ad2-ba51-d91575e646b4" executionId="03c23c85-0eaf-4151-a917-89498105d103" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d3824e6-4659-8b11-86a4-9b116e3caa9c" executionId="22674289-a640-437e-b009-460efbece5cb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="195f6d84-6a3f-834a-9c5b-80e88438c16b" executionId="12981089-07f2-44ad-9b34-50809e8c9430" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="18611a71-469d-83a8-823e-6e47e840e222" executionId="5669ac21-a36a-478b-b1a6-23986c3fadd8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1be61bcd-e5b8-8204-aede-532a1ef10bb5" executionId="de1b7d08-03f1-4201-9008-ee810a36d06b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d31c3fa-63c2-8b94-893b-9d0dde366916" executionId="6b3a9a68-d8f2-44b0-a1d7-4d51ed3c577a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1e1c7dd5-03e5-81a9-b88c-0fe7697c0d6f" executionId="383c2fa4-1891-4390-8426-b7def7948e65" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1cf2c39f-8ef1-886b-bbea-3b8270db316c" executionId="8ba7f853-2a73-4c64-b35c-ad3fea5b6328" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d11ecae-cf52-88ce-8f30-712bdd14692f" executionId="69891fb3-488f-49ed-8474-e26ecf0d7bad" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1b0ddaa3-1bb3-80fa-9c94-13d8139c59e9" executionId="f069e06d-737a-4fc0-8aa9-06b712f1c768" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1e672e46-9b82-8cbe-96d7-374970f4006b" executionId="caad5a6b-5873-4b77-bbcc-a8ca1a691003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="15f682e3-d428-88ce-9ad5-e4b8c4dc376a" executionId="6c8afc83-cd73-4421-ab8a-f0a845fdea6f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="183e719e-3779-86a2-a999-80dd5901339d" executionId="acd400fd-f19d-42f1-8d08-f7a460dfcce7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="15c21eee-f40c-860f-b663-5625e1c9b7a0" executionId="b42e496e-f3ab-4f3c-a2a3-35e4da9ab9d4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="11d83d4b-955b-8ad1-97f0-52ee7fa36c1c" executionId="36d69956-002c-4744-8010-7fdd65f3efc3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="119278fe-e179-8dc0-bc8c-86c082fe77c0" executionId="9041d320-b075-415a-ac93-53d5710b16d6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="199bf1b8-04b2-8f84-b208-811f6c2d011a" executionId="07cd4692-1872-4ba8-9fff-0f13e204038a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="17" executed="17" passed="17" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>
