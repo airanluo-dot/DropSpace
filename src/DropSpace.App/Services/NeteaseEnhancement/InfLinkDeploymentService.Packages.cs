@@ -20,6 +20,88 @@ public sealed partial class InfLinkDeploymentService
         if (Directory.Exists(directory)) Directory.Delete(directory, recursive: false);
     }
 
+    // Called only under the deployment gate, after receipt publication or before
+    // creating a new transaction. Keep the current committed generation and both
+    // generations needed to recover an uncommitted replacement.
+    private async Task RetireUnusedBackupsAsync()
+    {
+        const int maximumReceipts = 256, maximumDirectories = 256;
+        try
+        {
+            DeploymentPaths.AssertSafe(stateRoot);
+            string backups = Path.Combine(stateRoot, "backups");
+            DeploymentPaths.AssertSafe(backups);
+            if (!Directory.Exists(backups)) return;
+            var receiptPaths = Directory.EnumerateFiles(stateRoot, "*.json")
+                .Where(path => Path.GetFileNameWithoutExtension(path) is { Length: 64 } name && name.All(char.IsAsciiHexDigit))
+                .Take(maximumReceipts + 1).ToArray();
+            if (receiptPaths.Length > maximumReceipts) return;
+            var retained = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string path in receiptPaths)
+            {
+                DeploymentPaths.AssertSafe(path);
+                if (new FileInfo(path).Length > 65536) throw new EnhancementDeploymentException("InvalidReceipt");
+                var receipt = JsonSerializer.Deserialize<InfLinkDeploymentReceipt>(await File.ReadAllTextAsync(path).ConfigureAwait(false))
+                    ?? throw new EnhancementDeploymentException("InvalidReceipt");
+                ValidateReceipt(receipt, receipt.Installation);
+                if (!string.Equals(Path.GetFullPath(path), Path.GetFullPath(ReceiptPath(receipt.Installation)), StringComparison.OrdinalIgnoreCase))
+                    throw new EnhancementDeploymentException("InvalidReceipt");
+                retained.Add(receipt.TransactionId);
+                if (receipt.Committed) continue;
+                string priorPath = Path.Combine(backups, receipt.TransactionId, "previous.json");
+                DeploymentPaths.AssertSafe(priorPath);
+                if (!File.Exists(priorPath))
+                {
+                    if (receipt.Files.Any(file => file.BackupName is not null))
+                        throw new EnhancementDeploymentException("InvalidReceipt");
+                    continue;
+                }
+                if (new FileInfo(priorPath).Length > 65536) throw new EnhancementDeploymentException("InvalidReceipt");
+                var prior = JsonSerializer.Deserialize<InfLinkDeploymentReceipt>(await File.ReadAllTextAsync(priorPath).ConfigureAwait(false))
+                    ?? throw new EnhancementDeploymentException("InvalidReceipt");
+                ValidateReceipt(prior, receipt.Installation);
+                // Install admits only committed predecessors. Unexpected history
+                // is left intact rather than guessing which recovery files to keep.
+                if (!prior.Committed) throw new EnhancementDeploymentException("InvalidReceipt");
+                retained.Add(prior.TransactionId);
+            }
+
+            foreach (string directory in Directory.EnumerateDirectories(backups).Take(maximumDirectories + retained.Count))
+            {
+                string transaction = Path.GetFileName(directory);
+                if (!Guid.TryParseExact(transaction, "N", out _) || retained.Contains(transaction)) continue;
+                try
+                {
+                    DeploymentPaths.AssertSafe(directory);
+                    var children = Directory.EnumerateFileSystemEntries(directory).Take(4).ToArray();
+                    if (children.Length > 3 || children.Any(path => Path.GetFileName(path) is not ("0.bak" or "1.bak" or "previous.json"))) continue;
+                    // Validate every fixed child before deleting any. Unknown files,
+                    // directories and reparse points never become cleanup targets.
+                    foreach (string path in children)
+                    {
+                        DeploymentPaths.AssertSafe(path);
+                        if (!File.Exists(path)) throw new EnhancementDeploymentException("UnsafePath");
+                    }
+                    foreach (string path in children)
+                    {
+                        DeploymentPaths.AssertSafe(path);
+                        File.Delete(path);
+                    }
+                    DeploymentPaths.AssertSafe(directory);
+                    Directory.Delete(directory, recursive: false);
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or EnhancementDeploymentException)
+                { System.Diagnostics.Trace.TraceWarning("NetEase backup retirement remains retryable ({0}).", error.GetType().Name); }
+            }
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            // Receipt uncertainty or maintenance failure must never undo a completed
+            // commit or remove files still needed by a pending recovery transaction.
+            System.Diagnostics.Trace.TraceWarning("NetEase backup inventory retirement skipped ({0}).", error.GetType().Name);
+        }
+    }
+
     private static void ValidatePluginArchive(string path, string expectedVersion)
     {
         using var archive = ZipFile.OpenRead(path);

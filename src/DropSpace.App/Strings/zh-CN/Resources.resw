@@ -781,7 +781,7 @@
 下载大小：{1}
 
 下载不会自动启用 AI，也不会更改已选模型或 GPU 模式。</value></data>
-  <data name="DlcDeleteConfirm" xml:space="preserve"><value>卸载 {0} 及其未完成的下载？将先停止使用该组件的 AI 并释放资源。若是当前所选模型，将关闭 AI 翻译。歌词缓存和你的文件会保留。</value></data>
+  <data name="DlcDeleteConfirm" xml:space="preserve"><value>卸载 {0} 及其未完成的下载？将先停止使用该组件的 AI 并释放资源。AI 启用偏好、歌词缓存和你的文件会保留。</value></data>
   <data name="DlcSource" xml:space="preserve"><value>来源：{0}</value></data>
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} 下载进度</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}：{1}</value></data>

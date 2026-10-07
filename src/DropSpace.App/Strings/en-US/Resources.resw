@@ -781,7 +781,7 @@ This downloads a model to this computer. Your internet connection is used only f
 Download size: {1}
 
 Downloading does not enable AI or change your selected model or GPU mode.</value></data>
-  <data name="DlcDeleteConfirm" xml:space="preserve"><value>Uninstall {0} and its partial downloads? AI using this component will stop and release resources first. If it is the selected model, AI translation will be turned off. Lyrics caches and your files are kept.</value></data>
+  <data name="DlcDeleteConfirm" xml:space="preserve"><value>Uninstall {0} and its partial downloads? AI using this component will stop and release resources first. Your AI preference, lyrics caches, and files are kept.</value></data>
   <data name="DlcSource" xml:space="preserve"><value>Source: {0}</value></data>
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} download progress</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}: {1}</value></data>

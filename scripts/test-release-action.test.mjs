@@ -41,9 +41,9 @@ test('release action retains every metadata input and the exact conditional asse
     '            artifacts/release/DropSpace-x64.msix',
     '            artifacts/release/SHA256SUMS.txt',
     '            artifacts/release/update-manifest.json',
-    "            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/runtime-publication.json' || '' }}",
-    "            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-download.json' || '' }}",
-    "            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-manifest.json' || '' }}",
+    "            ${{ contains(fromJSON('[\"v0.3.1-beta.17\",\"v0.3.1-beta.18\"]'), needs.validate-release.outputs.tag) && 'artifacts/release/runtime-publication.json' || '' }}",
+    "            ${{ contains(fromJSON('[\"v0.3.1-beta.17\",\"v0.3.1-beta.18\"]'), needs.validate-release.outputs.tag) && 'artifacts/release/cuda-runtime-download.json' || '' }}",
+    "            ${{ contains(fromJSON('[\"v0.3.1-beta.17\",\"v0.3.1-beta.18\"]'), needs.validate-release.outputs.tag) && 'artifacts/release/cuda-runtime-manifest.json' || '' }}",
   ].join('\n'));
 });
 

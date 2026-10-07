@@ -311,11 +311,11 @@ jobs:
             throw 'Beta16 uses its owner-authorized local focused-validation producer and exact nine-asset publication. This legacy workflow would repeat broad suites and emit an incomplete CUDA asset set; it is disabled for this exact release. Use the documented Beta16 delivery record and immutable asset-verification CI route.'
           }
 
-      - name: Require final-main Beta17 producer without broad-test fallback
+      - name: Require exact final-main isolated producer without broad-test fallback
         shell: pwsh
         run: |
-          if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.17' -and '${{ steps.ci-promotion.outputs.reuse }}' -cne 'true') {
-            throw 'Beta17 requires its successful exact-main focused producer. Dispatch ci.yml on final main first; this legacy path must not repeat tests, packages or model downloads.'
+          if ((Get-Content RELEASE_VERSION -Raw).Trim() -cin @('v0.3.1-beta.17','v0.3.1-beta.18') -and '${{ steps.ci-promotion.outputs.reuse }}' -cne 'true') {
+            throw 'This release requires its successful exact-main isolated producer. Dispatch ci.yml on final main first; this legacy path must not repeat tests, packages or model downloads.'
           }
 
       - name: Test AI semantic release gate regressions
@@ -597,7 +597,16 @@ jobs:
 
       - name: Reject mismatched executable release identities
         shell: pwsh
-        run: ./scripts/Test-ReleaseArtifactVersion.ps1
+        run: |
+          if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.18') {
+            # Check only the actual final identities; do not repeat negative
+            # version-regression fixtures under this release's one-percent budget.
+            . ./scripts/ReleaseVersion.ps1
+            . ./scripts/ReleaseArtifactVersion.ps1
+            $info = Get-DropSpaceReleaseInfo ((Get-Content RELEASE_VERSION -Raw).Trim())
+            Assert-DropSpaceExecutableVersion -Path artifacts/release/DropSpace.exe -ReleaseInfo $info
+            Assert-DropSpaceExecutableVersion -Path artifacts/release/DropSpaceSetup.exe -ReleaseInfo $info -Installer
+          } else { ./scripts/Test-ReleaseArtifactVersion.ps1 }
 
 
       - name: Validate generated icon and brand chain
@@ -631,7 +640,7 @@ jobs:
 
 
       - name: Freeze unsigned bytes and generate release metadata
-        if: steps.version.outputs.tag != 'v0.3.1-beta.17'
+        if: ${{ !contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), steps.version.outputs.tag) }}
         shell: pwsh
         run: |
           $files = @(
@@ -693,8 +702,12 @@ jobs:
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
             artifacts/release/runtime-publication.json
-            ${{ steps.version.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-download.json' || '' }}
-            ${{ steps.version.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
+            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), steps.version.outputs.tag) && 'artifacts/release/cuda-runtime-download.json' || '' }}
+            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), steps.version.outputs.tag) && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
+            ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/DropSpace.Identity.msix' || '' }}
+            ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/ci-release-receipt.json' || '' }}
+            ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/focused-validation.json' || '' }}
+            ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/focused.trx' || '' }}
           if-no-files-found: error
           retention-days: 2
 
@@ -963,6 +976,12 @@ jobs:
       - name: Recheck AI publication decision
         run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
 
+      - name: Recheck exact producer and focused results immediately before publication
+        if: needs.validate-release.outputs.tag == 'v0.3.1-beta.18'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci-release-promotion.mjs verify-final artifacts/release
+
       - name: Publish immutable Stable or Beta release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
@@ -980,9 +999,9 @@ jobs:
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
-            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/runtime-publication.json' || '' }}
-            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-download.json' || '' }}
-            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
+            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.validate-release.outputs.tag) && 'artifacts/release/runtime-publication.json' || '' }}
+            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.validate-release.outputs.tag) && 'artifacts/release/cuda-runtime-download.json' || '' }}
+            ${{ contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.validate-release.outputs.tag) && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
 
       - name: Refresh official website release metadata
         shell: bash

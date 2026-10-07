@@ -423,8 +423,8 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         }
 
         var scheduledTasks = _scheduledTasks.Values.ToArray();
-        _completionGrace?.Cancel();
-        _sessionTimeout?.Cancel();
+        CancelScheduledSource(_completionGrace);
+        CancelScheduledSource(_sessionTimeout);
         _runCancellation?.Cancel();
 
         if (scheduledTasks.Length > 0)
@@ -974,8 +974,8 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                 Interlocked.Increment(ref _genericCandidateCount);
             }
 
-            _completionGrace?.Cancel();
-            _sessionTimeout?.Cancel();
+            CancelScheduledSource(_completionGrace);
+            CancelScheduledSource(_sessionTimeout);
             var timeoutCancellation = new CancellationTokenSource();
             _sessionTimeout = timeoutCancellation;
             ScheduleTimeout(transition.SessionId, transition.Point, timeoutCancellation);
@@ -1039,8 +1039,8 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                 Interlocked.Increment(ref _probeTimeoutCount);
             }
 
-            _completionGrace?.Cancel();
-            _sessionTimeout?.Cancel();
+            CancelScheduledSource(_completionGrace);
+            CancelScheduledSource(_sessionTimeout);
             _logger.LogInformation(
                 "Smart file-drag candidate session {SessionId} ended with {Result}.",
                 transition.SessionId,
@@ -1136,7 +1136,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
             return;
         }
 
-        _completionGrace?.Cancel();
+        CancelScheduledSource(_completionGrace);
         var cancellation = CancellationTokenSource.CreateLinkedTokenSource(runCancellation);
         _completionGrace = cancellation;
         var sessionId = _policy.ActiveSessionId;
@@ -1169,11 +1169,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         finally
         {
             _scheduledTasks.TryRemove(cancellation, out _);
-            if (ReferenceEquals(_completionGrace, cancellation))
-            {
-                _completionGrace = null;
-            }
-
+            Interlocked.CompareExchange(ref _completionGrace, null, cancellation);
             cancellation.Dispose();
         }
     }
@@ -1209,13 +1205,17 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         finally
         {
             _scheduledTasks.TryRemove(cancellation, out _);
-            if (ReferenceEquals(_sessionTimeout, cancellation))
-            {
-                _sessionTimeout = null;
-            }
-
+            Interlocked.CompareExchange(ref _sessionTimeout, null, cancellation);
             cancellation.Dispose();
         }
+    }
+
+    private static void CancelScheduledSource(CancellationTokenSource? cancellation)
+    {
+        // Scheduled continuations can retire and dispose their source after a
+        // caller reads the field. Completion must not abort observer shutdown.
+        try { cancellation?.Cancel(); }
+        catch (ObjectDisposedException) { }
     }
 
     private void TryWrite(DetectorSignal signal)

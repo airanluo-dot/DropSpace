@@ -172,7 +172,14 @@ public sealed class StagingLeaseStore(
         }
     }
 
-    public async Task<int> RecoverAbandonedAsync(CancellationToken cancellationToken = default)
+    public Task<int> RecoverAbandonedAsync(CancellationToken cancellationToken = default)
+    {
+        // Recovery enumerates and removes crash leftovers synchronously. Keep
+        // that work off the caller's UI thread even when the gate is available.
+        return Task.Run(() => RecoverAbandonedCoreAsync(cancellationToken), cancellationToken);
+    }
+
+    private async Task<int> RecoverAbandonedCoreAsync(CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -189,9 +196,14 @@ public sealed class StagingLeaseStore(
                 {
                     lease = ReadLease(leasePath);
                 }
-                catch (Exception exception) when (IsFileFailure(exception) || exception is JsonException)
+                catch (Exception exception) when (exception is InvalidDataException or JsonException or ArgumentException or NotSupportedException or PathTooLongException)
                 {
                     QuarantineMalformedLease(leasePath, exception);
+                    continue;
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    logger.LogWarning(exception, "A staging lease could not be read; its record remains for a later recovery attempt.");
                     continue;
                 }
                 if (lease is null ||

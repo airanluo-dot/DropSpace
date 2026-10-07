@@ -113,6 +113,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         RootContent.Content = _mainPage;
         AppWindow.Changed += OnWindowPresentationChanged;
         _viewModel.PropertyChanged += OnMediaSectionChanged;
+        UpdateMediaVisibility();
     }
 
     public event EventHandler? ExitRequested;
@@ -130,13 +131,19 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
                 _mainPage.Retire();
                 _mainPage = _createMainPage();
                 RootContent.Content = _mainPage;
+                UpdateMediaVisibility();
                 XamlResourceOverride.Apply(this, "MainWindow");
                 XamlResourceOverride.Apply(AppTitleBar, "MainTitleBar");
             });
         }
     }
-    private void UpdateMediaVisibility() => _media.SetPresentationVisible(this, _viewModel.IsMusicVisible && AppWindow.IsVisible &&
-        AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized });
+    private void UpdateMediaVisibility()
+    {
+        var active = !_allowClose && _viewModel.IsMusicVisible && AppWindow.IsVisible &&
+            AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized };
+        _media.SetPresentationVisible(this, active);
+        _mainPage.SetMusicPresentationActive(active);
+    }
 
     public void InitializeTray(ILogger<NativeTrayService> logger)
     {

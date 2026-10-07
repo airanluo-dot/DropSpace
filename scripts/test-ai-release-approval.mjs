@@ -236,8 +236,10 @@ export const sourcePaths = Object.freeze([
   'scripts/Build-Installer.ps1',
   // Exact Beta17 producer, asset reuse and validation/promotion are shipping inputs.
   'scripts/Build-Beta17Candidate.ps1',
+  'scripts/Build-Beta18Candidate.ps1',
   'scripts/Reuse-BundledLyricsLanguageModel.ps1',
   'scripts/beta17-release-validation.mjs',
+  'scripts/beta18-release-validation.mjs',
   'scripts/ci-release-promotion.mjs',
   'scripts/Inspect-OwnerWaivedPackages.ps1',
   'scripts/Collect-AiRuntimeNotices.ps1',

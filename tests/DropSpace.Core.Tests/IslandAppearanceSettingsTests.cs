@@ -8,13 +8,16 @@ namespace DropSpace.Core.Tests;
 public sealed class IslandAppearanceSettingsTests
 {
     [TestMethod]
-    public void OlderSettingsKeepWindowsAppearanceAndInvalidChoicesRecoverLocally()
+    public void OlderSettingsKeepAppearanceAndInvalidChoicesRecoverLocally()
     {
-        var older = JsonSerializer.Deserialize<AppSettings>("{\"Theme\":2,\"IslandAppearance\":{\"CompactScale\":1.5}}")!.Validate();
-        Assert.AreEqual(ThemePreference.System, older.IslandAppearance.Theme);
+        using var legacy = JsonDocument.Parse("{\"Theme\":2,\"IslandAppearance\":{\"CompactScale\":1.5}}");
+        var older = IslandAppearanceMigration.Apply(legacy.RootElement.Deserialize<AppSettings>()!, legacy.RootElement).Validate();
+        Assert.AreEqual(ThemePreference.Dark, older.IslandAppearance.Theme);
         Assert.AreEqual(IslandContentPriority.Music, older.IslandContentPriority);
         Assert.AreEqual(ThemePreference.Dark, older.Theme);
         Assert.AreEqual(1.5, older.IslandAppearance.CompactScale);
+        using var previousDefault = JsonDocument.Parse("{}");
+        Assert.AreEqual(ThemePreference.System, IslandAppearanceMigration.Apply(new AppSettings(), previousDefault.RootElement).IslandAppearance.Theme);
 
         var recovered = (older with
         {

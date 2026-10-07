@@ -49,6 +49,7 @@ public sealed partial class MainPage : Page
     private readonly DropLinkHost _dropLinkHost;
     private readonly SharingUseCase _sharing;
     private readonly NativeSettingsEditor _settingsEditor;
+    private readonly Music.MusicPage _musicPage;
     private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
     private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
     private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
@@ -119,7 +120,8 @@ public sealed partial class MainPage : Page
             MaxClipboardFileMegabytesNumber, MaxClipboardFileTotalMegabytesNumber, MaxClipboardFileItemsNumber })
             slider.InteractionCompleted += async (_, _) => await _settingsEditor.FlushEditsAsync();
         DataContext = viewModel;
-        MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings);
+        _musicPage = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings);
+        MusicContent.Content = _musicPage;
         BuildSettingsPages(settingsEditor, dlc);
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
         Loaded += OnLoaded;
@@ -208,8 +210,11 @@ public sealed partial class MainPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs args) => Retire();
 
+    internal void SetMusicPresentationActive(bool active) => _musicPage.SetActive(active);
+
     internal void Retire()
     {
+        _musicPage.SetActive(false);
         _dialogLifetime.Cancel();
         if (!_subscriptionsAttached)
         {

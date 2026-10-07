@@ -878,6 +878,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private long _dragOverCount;
     private Task? _lastDropCompletion;
     private CancellationTokenSource? _dropCancellation;
+    private bool _rejectedWhileVirtualDropPending;
     private bool _disposed;
     private long _dragGeneration;
 
@@ -922,6 +923,15 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private int DragEnterCore(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
     {
         if (_disposed) { effect = DropEffectNone; return Success; }
+        if (Volatile.Read(ref _dropCancellation) is not null)
+        {
+            // An accepted virtual import owns intake and its visual completion until cleanup.
+            // Reject another gesture without retiring that operation's generation or callbacks.
+            _rejectedWhileVirtualDropPending = true;
+            effect = DropEffectNone;
+            return Success;
+        }
+        _rejectedWhileVirtualDropPending = false;
         ++_dragGeneration;
         _currentDataObject = dataObject;
         var discoveredWindow = WindowFromPoint(point);
@@ -975,7 +985,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     private int DragOverCore(uint keyState, NativePoint point, ref uint effect)
     {
-        if (_disposed) { effect = DropEffectNone; return Success; }
+        if (_disposed || _rejectedWhileVirtualDropPending) { effect = DropEffectNone; return Success; }
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         if (_canAccept)
         {
@@ -1010,6 +1020,11 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private int DragLeaveCore()
     {
         if (_disposed) return Success;
+        if (_rejectedWhileVirtualDropPending)
+        {
+            _rejectedWhileVirtualDropPending = false;
+            return Success;
+        }
         _logger.LogInformation(
             "OLE DragLeave received by {SurfaceKind} on monitor {MonitorId} after {DragOverCount} DragOver events.",
             _surfaceKind,
@@ -1025,18 +1040,25 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     public int Drop(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
     {
         if (_disposed) { effect = DropEffectNone; return Success; }
+        if (_rejectedWhileVirtualDropPending || Volatile.Read(ref _dropCancellation) is not null)
+        {
+            _rejectedWhileVirtualDropPending = false;
+            effect = DropEffectNone;
+            return Success;
+        }
         try
         {
             if (_classification.Kind == OleFileDataKind.VirtualFiles)
             {
-                _dropCancellation?.Cancel();
-                _dropCancellation?.Dispose();
-                _dropCancellation = new CancellationTokenSource();
                 effect = _canAccept ? DropEffectCopy : DropEffectNone;
-                _lastDropCompletion = effect == DropEffectCopy
-                    ? CompleteVirtualDropAsync(dataObject, _dropCancellation.Token, CaptureCompletionGuard())
-                    : null;
-                if (effect != DropEffectCopy)
+                if (effect == DropEffectCopy)
+                {
+                    var current = CaptureCompletionGuard();
+                    var cancellation = new CancellationTokenSource();
+                    _dropCancellation = cancellation;
+                    _lastDropCompletion = CompleteVirtualDropAsync(dataObject, cancellation, current);
+                }
+                else
                 {
                     NotifyDragLeft();
                 }
@@ -1151,9 +1173,9 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 result);
         }
 
-        _dropCancellation?.Cancel();
-        _dropCancellation?.Dispose();
-        _dropCancellation = null;
+        // Completion owns source disposal after materialization, intake and lease cleanup drain.
+        try { Volatile.Read(ref _dropCancellation)?.Cancel(); }
+        catch (ObjectDisposedException) { /* The accepted operation already completed. */ }
         _disposed = true;
     }
 
@@ -1164,8 +1186,9 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         return () => !_disposed && generation == _dragGeneration && (outer?.Invoke() ?? true);
     }
 
-    private async Task CompleteVirtualDropAsync(IDataObject dataObject, CancellationToken cancellationToken, Func<bool> current)
+    private async Task CompleteVirtualDropAsync(IDataObject dataObject, CancellationTokenSource cancellation, Func<bool> current)
     {
+        var cancellationToken = cancellation.Token;
         MaterializedVirtualFileBatch? batch = null;
         try
         {
@@ -1198,19 +1221,27 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         }
         finally
         {
-            if (batch is not null)
+            try
             {
-                try
+                if (batch is not null)
                 {
-                    if (!await _virtualFileMaterializer.CompleteLeaseAsync(batch.Lease, CancellationToken.None).ConfigureAwait(false))
+                    try
                     {
-                        _logger.LogWarning("Virtual-file staging cleanup was deferred; its lease remains durable.");
+                        if (!await _virtualFileMaterializer.CompleteLeaseAsync(batch.Lease, CancellationToken.None).ConfigureAwait(false))
+                        {
+                            _logger.LogWarning("Virtual-file staging cleanup was deferred; its lease remains durable.");
+                        }
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                    {
+                        _logger.LogWarning(exception, "Virtual-file staging cleanup could not complete; its lease remains durable.");
                     }
                 }
-                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
-                {
-                    _logger.LogWarning(exception, "Virtual-file staging cleanup could not complete; its lease remains durable.");
-                }
+            }
+            finally
+            {
+                _ = Interlocked.CompareExchange(ref _dropCancellation, null, cancellation);
+                cancellation.Dispose();
             }
         }
     }

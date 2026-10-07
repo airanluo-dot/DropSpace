@@ -80,8 +80,14 @@ public sealed class LyricsCache
             await _gate.WaitAsync(token).ConfigureAwait(false);
             try
             {
-                lock (_state.PolicyGate)
-                    if (CurrentQuota() > 0 && Directory.Exists(_root)) Trim(CurrentQuota());
+                while (true)
+                {
+                    var quota = CurrentQuota();
+                    if (quota == 0 || !Directory.Exists(_root)) break;
+                    var retainedBytes = Trim(quota);
+                    var latestQuota = CurrentQuota();
+                    if (latestQuota == 0 || retainedBytes <= latestQuota) break;
+                }
             }
             finally { _gate.Release(); }
         }, token);
@@ -136,15 +142,12 @@ public sealed class LyricsCache
                 }
                 payload = new UTF8Encoding(false, true).GetString(memory.GetBuffer(), 0, checked((int)memory.Length));
             }
+            // Optional filesystem metadata must not hold up synchronous policy publication.
+            try { File.SetLastWriteTimeUtc(path, DateTime.UtcNow); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
             lock (_state.PolicyGate)
-            {
-                if (CurrentQuota() == 0 || generation != Generation) return null;
-                // A failed optional access-time update must not turn good data into a miss.
-                try { File.SetLastWriteTimeUtc(path, DateTime.UtcNow); }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
-                return payload;
-            }
+                return CurrentQuota() == 0 || generation != Generation ? null : payload;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or JsonException or DecoderFallbackException)
         { return null; }
@@ -172,16 +175,27 @@ public sealed class LyricsCache
             // Reclaim the complete post-replacement budget before publishing. If an
             // old entry cannot be evicted, the new entry must not increase disk usage.
             // Recheck at publication, after potentially slow quota scans and file writes.
-            token.ThrowIfCancellationRequested();
-            lock (_state.PolicyGate)
+            while (true)
             {
-                if (CurrentQuota() == 0 || generation != Generation || isCurrent?.Invoke() == false) return;
-                Trim(CurrentQuota() - bytes.LongLength, final, temporary);
+                token.ThrowIfCancellationRequested();
+                var quota = CurrentQuota();
+                if (quota == 0 || generation != Generation || isCurrent?.Invoke() == false || bytes.LongLength > quota) return;
+                // The filesystem gate owns eviction; policy changes remain immediately
+                // available while scanning/deleting. Retry if the quota shrank meanwhile.
+                var retainedBytes = Trim(quota - bytes.LongLength, final, temporary);
                 ReparseSafePathPolicy.RevalidatePreparedDestination(_root, final);
                 token.ThrowIfCancellationRequested();
-                if (CurrentQuota() == 0 || generation != Generation || isCurrent?.Invoke() == false) return;
-                File.Move(temporary, final, true);
-                temporary = null;
+                lock (_state.PolicyGate)
+                {
+                    quota = CurrentQuota();
+                    if (quota == 0 || generation != Generation || isCurrent?.Invoke() == false || bytes.LongLength > quota) return;
+                    if (retainedBytes > quota - bytes.LongLength) continue;
+                    // Only the atomic publication shares the policy fence. Disable/clear
+                    // cannot return before this already-admitted publication finishes.
+                    File.Move(temporary, final, true);
+                    temporary = null;
+                    break;
+                }
             }
         }
         finally
@@ -269,7 +283,7 @@ public sealed class LyricsCache
             (name[..separator] is "source" or "ai");
     }
 
-    private void Trim(long quota, string? replacing = null, string? preserveTemporary = null)
+    private long Trim(long quota, string? replacing = null, string? preserveTemporary = null)
     {
         foreach (var path in TemporaryFiles().Where(path => path != preserveTemporary))
             File.Delete(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, Path.GetFileName(path)));
@@ -282,6 +296,7 @@ public sealed class LyricsCache
             File.Delete(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, file.Name));
             total -= length;
         }
+        return total;
     }
 
     private static bool IsValidDocument(LyricsDocument? document)

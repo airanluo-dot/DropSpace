@@ -13,7 +13,7 @@ namespace DropSpace.App.Views.Island;
 
 public sealed partial class MediaExpandedView : UserControl
 {
-    internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
+    internal bool IsTranslationActuallyVisible => _presentationActive && IsLoaded && Visibility == Visibility.Visible &&
         LyricsArea.Visibility == Visibility.Visible && TranslatedLyric.Visibility == Visibility.Visible &&
         TranslatedLyric.Opacity > 0.01 && TranslatedLyric.ActualWidth > 0 && TranslatedLyric.ActualHeight > 0 &&
         !string.IsNullOrWhiteSpace(TranslatedLyric.Text) &&
@@ -29,6 +29,7 @@ public sealed partial class MediaExpandedView : UserControl
     private string _trackIdentity = string.Empty;
     private string _lyricViewportText = string.Empty;
     private bool _updating;
+    private bool _presentationActive = true;
     public MediaExpandedView()
     {
         InitializeComponent();
@@ -41,7 +42,7 @@ public sealed partial class MediaExpandedView : UserControl
         _seekAcknowledgementTimer.IsRepeating = false;
         _seekAcknowledgementTimer.Tick += (_, _) =>
         {
-            if (!IsLoaded) return;
+            if (!CanRender) return;
             _seekInteraction.RejectPending();
             RequestRender();
         };
@@ -81,7 +82,17 @@ public sealed partial class MediaExpandedView : UserControl
         CancelSeekInteraction();
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args) => RequestRender();
-    private bool CanRender => IsLoaded && Visibility == Visibility.Visible;
+    internal void SetActive(bool active)
+    {
+        _presentationActive = active;
+        if (CanRender) RequestRender();
+        else
+        {
+            CancelRender();
+            CancelSeekInteraction();
+        }
+    }
+    private bool CanRender => _presentationActive && IsLoaded && Visibility == Visibility.Visible;
     private void RequestRender()
     {
         if (_renderQueue.Request(CanRender)) CompositionTarget.Rendering += OnRendering;
@@ -174,7 +185,7 @@ public sealed partial class MediaExpandedView : UserControl
 
     private void OnSeekChanged(object sender, RangeBaseValueChangedEventArgs args)
     {
-        if (_updating || !double.IsFinite(args.NewValue)) return;
+        if (!CanRender || _updating || !double.IsFinite(args.NewValue)) return;
         var value = Math.Clamp(args.NewValue, Progress.Minimum, Progress.Maximum);
         if (_seekInteraction.IsPendingTarget(value)) return;
         _seekAcknowledgementTimer.Stop();
@@ -193,7 +204,7 @@ public sealed partial class MediaExpandedView : UserControl
     private void OnSeekPointerPressed(object sender, PointerRoutedEventArgs args)
     {
         var point = args.GetCurrentPoint(Progress);
-        if (!Progress.IsEnabled || (!point.IsInContact && !point.Properties.IsLeftButtonPressed)) return;
+        if (!CanRender || !Progress.IsEnabled || (!point.IsInContact && !point.Properties.IsLeftButtonPressed)) return;
         if (_activePointerId is not null) return;
         _activePointerId = args.Pointer.PointerId;
         _seekAcknowledgementTimer.Stop();
@@ -227,21 +238,21 @@ public sealed partial class MediaExpandedView : UserControl
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
         _seekInteraction.Preview(Progress.Value);
-        var target = _seekInteraction.Complete(canceled, DateTimeOffset.UtcNow);
+        var target = _seekInteraction.Complete(canceled || !CanRender, DateTimeOffset.UtcNow);
         if (target is { } seconds) ExecuteSeek(seconds);
         else RequestRender();
     }
 
     private void OnSeekCommitTimer(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args)
     {
-        if (_queuedSeekSeconds is not { } seconds || _seekInteraction.IsDragging) return;
+        if (!CanRender || _queuedSeekSeconds is not { } seconds || _seekInteraction.IsDragging) return;
         _queuedSeekSeconds = null;
         ExecuteSeek(_seekInteraction.Commit(seconds, DateTimeOffset.UtcNow));
     }
 
     private void ExecuteSeek(double seconds)
     {
-        if (_view?.SeekCommand.CanExecute(seconds) == true)
+        if (CanRender && _view?.SeekCommand.CanExecute(seconds) == true)
         {
             _view.SeekCommand.Execute(seconds);
             // Paused players may reject a seek without producing another media event.

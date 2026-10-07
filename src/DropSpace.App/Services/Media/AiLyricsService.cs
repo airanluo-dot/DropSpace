@@ -226,7 +226,7 @@ public sealed class AiLyricsService : IDisposable
     /// <summary>A fresh source revision retires every AI publication from the preceding candidate.</summary>
     public void ObserveSource(LyricsDocument document) => TryObserveSource(document, static () => true);
 
-    private bool TryObserveSource(LyricsDocument document, Func<bool> isCurrent)
+    internal bool TryObserveSource(LyricsDocument document, Func<bool> isCurrent)
     {
         var admission = document.TranslationAdmission is { } prepared &&
             LyricsLanguagePolicy.IsAdmissionCurrent(document, prepared.Target) ? prepared : null;
