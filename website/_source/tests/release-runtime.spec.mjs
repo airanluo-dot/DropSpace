@@ -30,6 +30,29 @@ async function serveReleaseApi(page, releases) {
   }));
 }
 
+for (const [route, expected, fallback] of [
+  ["en", "Stable v0.3.0: 64-bit Windows build 28000 or later", "Stable v0.4.0: 64-bit Windows · See release notes for system requirements"],
+  ["zh-cn", "稳定版 v0.3.0: 需要 64 位 Windows Build 28000 或更高版本", "稳定版 v0.4.0: 64 位 Windows · 系统要求请查看发布说明"]
+]) {
+  test(`runtime updates Stable requirements with its downloads (${route})`, async ({ page }) => {
+    const known = stableRelease("v0.3.0", "2026-09-28T00:00:00Z");
+    known.body = "Requires 64-bit Windows build 28000 or later.";
+    await serveReleaseApi(page, [known]);
+    await page.goto(`/DropSpace/${route}/`);
+    await expect(page.locator("html")).toHaveAttribute("data-release-api", "current");
+    await expect(page.locator("[data-stable-requirements]")).toHaveText([expected, expected, expected]);
+    await expect(page.locator('[data-download="installer"]').first()).toHaveAttribute("href", known.assets.find((asset) => asset.kind === "installer").downloadUrl);
+
+    const unknown = stableRelease("v0.4.0", "2026-09-29T00:00:00Z");
+    unknown.body = "See this release's compatibility notes.";
+    await serveReleaseApi(page, [unknown]);
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-release-api", "current");
+    await expect(page.locator("[data-stable-requirements]")).toHaveText([fallback, fallback, fallback]);
+    await expect(page.locator('[data-download="installer"]').first()).toHaveAttribute("href", unknown.assets.find((asset) => asset.kind === "installer").downloadUrl);
+  });
+}
+
 test("runtime Stable downloads choose the highest version after an older release is republished", async ({ page }) => {
   const newest = stableRelease("v0.3.0", "2026-09-28T00:00:00Z");
   const republished = stableRelease("v0.2.1", "2026-09-29T00:00:00Z");

@@ -2,7 +2,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DropSpace — A Temporary Space for Windows</title>
-  <meta name="description" content="Drag files to the top of your Windows 10 or 11 screen, keep them in a temporary space, and bring them back when you need them.">
+  <meta name="description" content="Drag files to the top of your Windows screen, keep them in a temporary space, and bring them back when you need them.">
   <link rel="canonical" href="https://airanluo-dot.github.io/DropSpace/en/">
   <link rel="alternate" hreflang="en" href="https://airanluo-dot.github.io/DropSpace/en/">
   <link rel="alternate" hreflang="zh-CN" href="https://airanluo-dot.github.io/DropSpace/zh-cn/">
@@ -47,7 +47,7 @@
     <section class="hero shell hero-cinematic" id="top">
       <div class="hero-copy">
         <h1>Drag it. Keep it.<br>Use it later.</h1>
-        <p>A temporary space for Windows 10 and 11—right at the top of your screen.</p>
+        <p>A temporary space for Windows—right at the top of your screen.</p>
         <div class="actions">
           <a class="button button-primary" href="{{INSTALLER_URL}}" data-download="installer">
             <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4.4 10.3 3v8.2H3V4.4Zm8.3-1.6L21 1v10.2h-9.7V2.8ZM3 12.2h7.3V21L3 19.6v-7.4Zm8.3 0H21V23l-9.7-1.8v-9Z"></path></svg>
@@ -212,7 +212,7 @@
     </section>
 
     <section class="download band shell download-gallery" id="download">
-      <div class="download-intro"><p class="section-index">10 / DOWNLOAD</p><h2>Ready when<br>you are.</h2><p data-stable-version="">Latest Stable · {{STABLE_TAG}}</p><p>64-bit Windows build 20348 or later · See release notes for system requirements</p><a href="{{STABLE_URL}}" data-release-url="" target="_blank" rel="noopener noreferrer">Release notes <span>↗</span></a><a href="{{CHECKSUM_URL}}" data-download="checksums">SHA-256 checksums <span>↗</span></a></div>
+      <div class="download-intro"><p class="section-index">10 / DOWNLOAD</p><h2>Ready when<br>you are.</h2><p data-stable-version="">Latest Stable · {{STABLE_TAG}}</p><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><a href="{{STABLE_URL}}" data-release-url="" target="_blank" rel="noopener noreferrer">Release notes <span>↗</span></a><a href="{{CHECKSUM_URL}}" data-download="checksums">SHA-256 checksums <span>↗</span></a></div>
       <div class="download-options">
         <a class="download-card recommended" href="{{INSTALLER_URL}}" data-download="installer"><img src="./assets/favicon.png" alt=""><div><strong>Download Installer</strong><span>Recommended for most users</span><small>DropSpaceSetup.exe</small></div><b>↓</b><em>RECOMMENDED</em></a>
         <a class="download-card" href="{{PORTABLE_URL}}" data-download="portable"><span class="download-icon">▱</span><div><strong>Portable</strong><span>Run without installing</span><small>DropSpace.exe</small></div><b>↓</b></a>
@@ -221,7 +221,7 @@
     </section>
 
     <section class="release-readiness shell" aria-label="System requirements and download verification">
-      <article><p class="section-index">11 / SYSTEM REQUIREMENTS</p><h2>Check your Windows version.</h2><p>DropSpace runs on 64-bit Windows. Minimum system requirements depend on the release; check its release notes before installing.</p><p class="system-result" data-system-check="" data-windows="Windows detected. Find your Windows build in Settings → System → About, then compare it with the release requirements." data-other="This device is not reporting Windows. DropSpace downloads are for 64-bit Windows; see the release notes for system requirements.">Checking this device…</p></article>
+      <article><p class="section-index">11 / SYSTEM REQUIREMENTS</p><h2>Check your Windows version.</h2><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><p>Current Beta (Beta.25+): 64-bit Windows build 20348 or later</p><p class="system-result" data-system-check="" data-windows="Windows detected. Find your Windows build in Settings → System → About, then compare it with the release requirements." data-other="This device is not reporting Windows. DropSpace downloads are for 64-bit Windows; see the release notes for system requirements.">Checking this device…</p></article>
       <article id="known-limitations"><p class="section-index">12 / KNOWN LIMITATIONS</p><h2>Know before you install.</h2><p>Unsigned packages may trigger a SmartScreen warning. Windows Drop Tray can use the same top-edge gesture; Windows sharing integration requires a trusted package identity.</p></article>
       <article><p class="section-index">13 / VERIFY YOUR DOWNLOAD</p><h2>Check the file you received.</h2><p>Download only from the official GitHub Release. Compare the file's SHA-256 with SHA256SUMS.txt; a matching hash proves file integrity, but not publisher identity.</p><a class="button button-ghost" href="{{CHECKSUM_URL}}" data-download="checksums">Verification guide</a></article>
     </section>
@@ -239,12 +239,12 @@
     <section class="faq shell" id="faq">
       <div class="section-heading"><p class="section-index">16 / FAQ</p><h2>Good to know.</h2></div>
       <div class="faq-list">
-        <details><summary>What is DropSpace?</summary><p>A local-first Windows 10 and 11 workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island.</p></details>
+        <details><summary>What is DropSpace?</summary><p>A local-first Windows workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island.</p></details>
         <details><summary>Does DropSpace move my files?</summary><p>No. Temporary Space stores references. Adding or removing a reference does not move, copy, or delete the original file.</p></details>
         <details><summary>Can I add folders?</summary><p>Yes. DropSpace can hold file and folder references through drag and drop or its picker.</p></details>
         <details><summary>What is Clipboard History?</summary><p>A local history of captured text, URLs, images, files, and folders. You can search, pin, pause, clear, and apply retention limits.</p></details>
         <details><summary>What's the difference between Installer and Portable?</summary><p>The recommended per-user Installer adds Start Menu integration, an uninstaller, and in-place update support. Portable runs directly without installation; updates are notify/download-only.</p></details>
-        <details><summary>Does DropSpace support Windows 10?</summary><p>Supported Windows versions depend on the release. Check the system requirements in its release notes before downloading.</p></details>
+        <details><summary>What are the minimum system requirements?</summary><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><p>Current Beta (Beta.25+): 64-bit Windows build 20348 or later</p></details>
         <details><summary>What about the Windows 11 Drop Tray?</summary><p>Windows may own the same top-edge drag gesture. DropSpace Settings links to the official Multitasking page; direct drops onto visible Compact and Expanded surfaces remain supported.</p></details>
         <details><summary>Does DropSpace upload clipboard content?</summary><p>Clipboard history is stored locally. Update checks use public release metadata and official download endpoints. Sharing uses the connections you explicitly enable.</p></details>
         <details><summary>How do updates work?</summary><p>Stable receives Stable releases. Beta can receive Stable and Beta releases. DropSpace verifies download size and SHA-256. Installation options depend on the package; release notes explain any manual upgrade steps.</p></details>
@@ -253,7 +253,7 @@
   </main>
 
   <footer class="site-footer"><div class="shell footer-inner"><a class="brand" href="#top"><img src="./assets/dropspace-logo.png" width="42" height="42" alt=""><span>DropSpace</span></a><nav aria-label="Footer"><a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/airanluo-dot/DropSpace/releases" target="_blank" rel="noopener noreferrer">Releases</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Privacy</a></nav><p>© 2026 Airan Luo.</p></div></footer>
-  <script defer="defer" src="./script.js"></script>
+  <script type="module" src="./script.js"></script>
   <script defer="defer" src="./lyrics-demo.js"></script>
 
 

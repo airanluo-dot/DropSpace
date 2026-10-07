@@ -20,6 +20,7 @@ for(const [locale,route] of [['en-US','en'],['zh-CN','zh-cn']]) {
   await page.locator('[data-language-switch]').click();
   await expect(page).toHaveURL(`http://127.0.0.1:4174/${route}/index.html`);
   await expect(page.locator('[data-download="installer"]').first()).toHaveAttribute('href','https://github.com/airanluo-dot/DropSpace/releases/latest/download/DropSpaceSetup.exe');
+  await expect(page.locator('.download-intro [data-stable-requirements]')).toHaveText(route==='en'?'64-bit Windows · See release notes for system requirements':'64 位 Windows · 系统要求请查看发布说明');
   expect(projectPaths).toEqual([]);
   expect(failures).toEqual([]);
   await context.close();
