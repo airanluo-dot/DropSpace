@@ -6,6 +6,9 @@ on:
 permissions:
   contents: read
   actions: read
+defaults:
+  run:
+    shell: bash
 jobs:
   readback:
     name: Immutable Beta17 input readback (${{ matrix.os }})
@@ -92,3 +95,6 @@ jobs:
         run: |
           diff -u comparison/release-readback-ubuntu-24.04/bundle.sha256 comparison/release-readback-ubuntu-26.04/bundle.sha256
           diff -u comparison/release-readback-ubuntu-24.04/publication-binding.log comparison/release-readback-ubuntu-26.04/publication-binding.log
+          cat comparison/release-readback-ubuntu-26.04/publication-binding.log
+          cat comparison/release-readback-ubuntu-26.04/bundle.sha256
+          cat comparison/release-readback-ubuntu-26.04/guard.json
