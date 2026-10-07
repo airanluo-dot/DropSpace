@@ -1,0 +1,225 @@
+name: Focused Ubuntu runner compatibility (nonpublishing)
+on:
+  push:
+    branches: [validation/ubuntu-2604-20261007]
+    paths: [runner-compat/**, .github/workflows/ubuntu-runner-compat.yml]
+permissions:
+  contents: read
+  actions: read
+  pages: read
+concurrency:
+  group: ubuntu-runner-compat-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  linux:
+    name: Linux compatibility (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Record actual system tools before setup-node
+        id: system
+        run: |
+          mkdir -p runner-compat/evidence
+          { cat /etc/os-release; printf 'ImageVersion=%s\n' "$ImageVersion"; uname -a; bash --version; git --version; gh --version; node --version; npm --version; google-chrome --version; tar --version; } > runner-compat/evidence/system.txt
+          cat runner-compat/evidence/system.txt
+      - name: Execute unchanged change-scope script with a real Git diff
+        id: scope
+        env:
+          BASE_SHA: 00d07b3773dc614587b75fbcf1affd45a136535b
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const text=fs.readFileSync('.github/workflows/ci.yml','utf8');
+          const script=text.match(/        run: \|\n([\s\S]*?)(?=\n  produce-windows:)/)[1].replace(/^ {10}/gm,'');
+          const output=process.env.RUNNER_TEMP+'/compat-scope-output'; fs.writeFileSync(output,'');
+          execFileSync('bash',['--noprofile','--norc','-eo','pipefail','-c',script],{stdio:'inherit',env:{...process.env,GITHUB_EVENT_NAME:'pull_request',GITHUB_OUTPUT:output}});
+          const result=fs.readFileSync(output,'utf8');
+          if(result!=='maintenance_only=false\nrelease_version=v0.3.1-beta.17\n') throw new Error(result);
+          fs.writeFileSync('runner-compat/evidence/scope.txt',result);
+          JS
+      - name: Check gh and published metadata using the default system Node
+        id: live
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/v0.3.1-beta.17" --jq '{id,tag_name,target_commitish,draft,prerelease,assets:[.assets[]|{id,name,size,digest}]}' > runner-compat/evidence/beta17.json
+          gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v0.3.1-beta.17" --jq '.object' > runner-compat/evidence/beta17-tag.json
+          gh workflow view deploy-website.yml --ref main > runner-compat/evidence/gh-workflow.txt
+          gh workflow run --help >/dev/null
+          node website/_source/scripts/verify-published-release.mjs v0.3.1-beta.17 180 release 2>&1 | tee runner-compat/evidence/live.log
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/_source/package-lock.json
+      - name: Install unchanged locked website dependencies
+        id: npm
+        working-directory: website/_source
+        run: npm ci
+      - name: Build identical checked-in fixture and hash every output file
+        id: build
+        working-directory: website/_source
+        run: |
+          npm run build
+          (cd dist && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum) > ../../runner-compat/evidence/fixture.sha256
+      - name: Run existing static tests independently of release waiver
+        id: static
+        continue-on-error: true
+        working-directory: website/_source
+        run: node --test scripts/*.test.mjs 2>&1 | tee ../../runner-compat/evidence/static.log
+      - name: Install Chinese fonts with the production apt command
+        id: fonts
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y fonts-noto-cjk
+          dpkg-query -W fonts-noto-cjk > runner-compat/evidence/fonts.txt
+          fc-match 'Noto Sans CJK SC' >> runner-compat/evidence/fonts.txt
+      - name: Run existing Chrome browser tests independently of release waiver
+        id: browser
+        continue-on-error: true
+        timeout-minutes: 12
+        working-directory: website/_source
+        run: npm run test:browser 2>&1 | tee ../../runner-compat/evidence/browser.log
+      - name: Run production release synchronization and static build
+        id: sync
+        continue-on-error: true
+        working-directory: website/_source
+        env:
+          NODE_ENV: production
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          npm run sync-releases
+          node -e "const fs=require('node:fs');const data=JSON.parse(fs.readFileSync('data/releases.json','utf8'));console.log('stable_tag='+data.stable.tag)" >> "$GITHUB_OUTPUT"
+          npm run build
+      - name: Configure actual Pages metadata without enabling or deploying
+        id: configure
+        continue-on-error: true
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+      - name: Upload actual atomic Pages artifact under isolated name
+        id: pages-upload
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+        with:
+          name: compat-pages-${{ matrix.os }}
+          path: website/_source/dist
+          retention-days: 3
+      - name: Download the same artifact with the production download action
+        id: download
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: compat-pages-${{ matrix.os }}
+          path: runner-compat/download
+      - name: Verify downloaded tar and exact uploaded website bytes
+        id: archive
+        run: |
+          mkdir -p runner-compat/unpacked
+          tar -xf runner-compat/download/artifact.tar -C runner-compat/unpacked
+          diff -qr website/_source/dist runner-compat/unpacked
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: actions/deploy-pages
+          ref: 368f82528645a54fb793d4d04e342629a3f51346
+          path: .probe/upstream/pages
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: softprops/action-gh-release
+          ref: 3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+          path: .probe/upstream/release
+          persist-credentials: false
+      - name: Exercise exact deploy-pages bundle on Actions Node24 (API mutations isolated)
+        id: pages-action
+        continue-on-error: true
+        uses: ./runner-compat/actions/pages
+        env:
+          COMPAT_KIND: pages
+          COMPAT_ARTIFACT: compat-pages-${{ matrix.os }}
+      - name: Exercise exact release bundle on Actions Node20 (API mutations isolated)
+        id: release-action
+        continue-on-error: true
+        uses: ./runner-compat/actions/release
+        env:
+          COMPAT_KIND: release
+      - name: Record individual outcomes without treating waived tests as passed
+        if: always()
+        env:
+          OUTCOMES: ${{ toJSON(steps) }}
+          OS: ${{ matrix.os }}
+        run: |
+          mkdir -p runner-compat/evidence
+          node -e "const fs=require('node:fs');const steps=JSON.parse(process.env.OUTCOMES);const outcomes=Object.fromEntries(Object.entries(steps).filter(([,v])=>v.outcome).map(([k,v])=>[k,v.outcome]));fs.writeFileSync('runner-compat/evidence/outcomes.json',JSON.stringify({runner:process.env.OS,source:'00d07b3773dc614587b75fbcf1affd45a136535b',outcomes},null,2));console.log(outcomes);"
+      - name: Preserve comparison evidence and original workflow sources
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: compat-evidence-${{ matrix.os }}
+          path: |
+            runner-compat/evidence/
+            website/_source/test-results/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Fail on any actual failed or skipped validation path
+        if: always()
+        run: |
+          node -e "const r=require('./runner-compat/evidence/outcomes.json');const bad=Object.entries(r.outcomes).filter(([,v])=>v!=='success');if(bad.length){console.error(bad);process.exit(1)}"
+  patch-candidates:
+    name: Prepare minimal runner-only patch candidates (no refs changed)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 00d07b3773dc614587b75fbcf1affd45a136535b
+          persist-credentials: false
+      - name: Create unreferenced Git blobs for the two possible runner decisions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const result={};
+          for(const runner of ['ubuntu-24.04','ubuntu-26.04']) {
+            result[runner]=[];
+            for(const [path,count] of [['.github/workflows/deploy-website.yml',3],['.github/workflows/release.yml',1],['.github/workflows/ci.yml',1]]) {
+              const old=fs.readFileSync(path,'utf8');
+              if(old.split('runs-on: ubuntu-latest').length-1!==count) throw new Error('Unexpected runner count '+path);
+              const content=old.replaceAll('runs-on: ubuntu-latest','runs-on: '+runner);
+              const response=await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/blobs`,{method:'POST',headers:{authorization:`Bearer ${process.env.GH_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({content,encoding:'utf-8'})});
+              if(!response.ok)throw new Error(`${response.status}: ${await response.text()}`);
+              result[runner].push({path,mode:'100644',type:'blob',sha:(await response.json()).sha});
+            }
+          }
+          console.log('PATCH_CANDIDATES='+JSON.stringify(result));
+          fs.writeFileSync('runner-patch-candidates.json',JSON.stringify(result,null,2));
+          JS
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: runner-patch-candidates
+          path: runner-patch-candidates.json
+          retention-days: 7
+  compare:
+    name: Compare identical-source outputs
+    runs-on: ubuntu-24.04
+    needs: linux
+    if: always()
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          pattern: compat-evidence-*
+          path: comparison
+      - run: |
+          find comparison -name outcomes.json -exec cat {} \;
+          a=$(find comparison/compat-evidence-ubuntu-24.04 -name fixture.sha256)
+          b=$(find comparison/compat-evidence-ubuntu-26.04 -name fixture.sha256)
+          test -n "$a" && test -n "$b"
+          diff -u "$a" "$b"

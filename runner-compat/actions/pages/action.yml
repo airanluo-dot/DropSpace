@@ -1,0 +1,5 @@
+name: Isolated Pages runner probe
+description: Run the pinned upstream bundle with loopback publication endpoints
+runs:
+  using: node24
+  main: index.cjs

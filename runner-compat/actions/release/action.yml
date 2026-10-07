@@ -1,0 +1,5 @@
+name: Isolated release runner probe
+description: Run the pinned upstream bundle with loopback publication endpoints
+runs:
+  using: node20
+  main: index.cjs
