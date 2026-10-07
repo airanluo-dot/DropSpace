@@ -1,11 +1,5 @@
 name: M2m offline candidate QA (no publication)
 on:
-  push:
-    branches: [qa/m2m-031]
-    paths:
-      - scripts/m2m-model-qa/**
-      - '!scripts/m2m-model-qa/README.md'
-      - .github/workflows/m2m-model-diagnostics.yml
   workflow_dispatch:
 permissions:
   contents: read

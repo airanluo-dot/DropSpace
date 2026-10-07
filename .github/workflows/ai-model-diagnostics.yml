@@ -1,27 +1,6 @@
 name: AI model diagnostics (no publication)
 
 on:
-  push:
-    branches: [qa/hy-q8-031]
-    # This candidate failed full-song acceptance. Rerun only on its explicit experiment branch.
-    # Approval records, documentation and unrelated UI changes must not repeat a model experiment.
-    paths:
-      - scripts/ai-model-qa/Program.cs
-      - scripts/ai-model-qa/Run-WindowsModelQa.ps1
-      - scripts/ai-model-qa/Get-PinnedDiagnosticRuntime.ps1
-      - scripts/ai-model-qa/WindowsModelQa.csproj
-      - scripts/ai-model-qa/packages.lock.json
-      - scripts/ai-model-qa/candidates.json
-      - scripts/ai-model-qa/inputs/**
-      - scripts/ai-model-qa/profiles/**
-      - src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs
-      - src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs
-      - src/DropSpace.Core/Lyrics/LyricsTranslationPolicy.cs
-      - src/DropSpace.Core/Lyrics/LyricsModels.cs
-      - src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs
-      - src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs
-      - src/DropSpace.Infrastructure/Storage/ReparseSafePathPolicy.cs
-  # Once present on the default branch, this also permits deliberate configuration-only reruns.
   workflow_dispatch:
 
 permissions:

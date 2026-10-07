@@ -1,11 +1,5 @@
 name: Hy Q8 plaintext full-song validation (no publication)
 on:
-  push:
-    branches: [qa/hy-plain-031]
-    paths:
-      - scripts/hy-plain-model-qa/**
-      - '!scripts/hy-plain-model-qa/README.md'
-      - .github/workflows/hy-plain-model-diagnostics.yml
   workflow_dispatch:
 permissions:
   contents: read

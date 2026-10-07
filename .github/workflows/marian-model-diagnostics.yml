@@ -1,11 +1,5 @@
 name: Marian offline candidate QA (no publication)
 on:
-  push:
-    branches: [qa/marian-031]
-    paths:
-      - scripts/marian-model-qa/**
-      - '!scripts/marian-model-qa/README.md'
-      - .github/workflows/marian-model-diagnostics.yml
   workflow_dispatch:
 permissions:
   contents: read
