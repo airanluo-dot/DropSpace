@@ -125,49 +125,65 @@ public sealed class SqliteItemRepository(
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            var duplicateId = source == ItemSource.Space
-                ? await FindFileDuplicateAsync(connection, source, candidate.NormalizedPath, cancellationToken)
-                    .ConfigureAwait(false)
-                : null;
-            if (duplicateId is Guid existingId)
-            {
-                logger.LogInformation("An existing Space reference was reused instead of creating a duplicate.");
-                return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
-            }
-
-            var now = DateTimeOffset.UtcNow;
-            var itemId = Guid.NewGuid();
-            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-            if (payload is not null)
-            {
-                await InsertPayloadAsync(connection, transaction, payload, cancellationToken).ConfigureAwait(false);
-            }
-            await InsertBaseItemAsync(
-                    connection,
-                    transaction,
-                    itemId,
-                    source,
-                    candidate.EntryKind == FileEntryKind.Folder ? ItemKind.Folder : ItemKind.File,
-                    candidate.Title,
-                    now,
-                    candidate.Status,
-                    ContentClassifier.BuildSearchText(candidate.Title, candidate.OriginalPath),
-                    fingerprint,
-                    payload?.Id,
-                    cancellationToken,
-                    metadataJson)
+            // Keep write admission on the caller; the admitted owner must run
+            // even if cancellation arrives before its worker starts.
+            return await Task.Run(
+                    () => AddFileSqlCoreAsync(candidate, source, fingerprint, metadataJson, payload, cancellationToken),
+                    CancellationToken.None)
                 .ConfigureAwait(false);
-
-            await InsertFileReferenceAsync(connection, transaction, itemId, candidate, now, cancellationToken)
-                .ConfigureAwait(false);
-            await transaction.CommitAsync(CancellationToken.None).ConfigureAwait(false);
-            return (await GetWithConnectionAsync(connection, itemId, CancellationToken.None).ConfigureAwait(false))!;
         }
         finally
         {
             database.WriteGate.Release();
         }
+    }
+
+    private async Task<DropItem> AddFileSqlCoreAsync(
+        FileCandidate candidate,
+        ItemSource source,
+        string? fingerprint,
+        string? metadataJson,
+        PayloadRecord? payload,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        var duplicateId = source == ItemSource.Space
+            ? await FindFileDuplicateAsync(connection, source, candidate.NormalizedPath, cancellationToken)
+                .ConfigureAwait(false)
+            : null;
+        if (duplicateId is Guid existingId)
+        {
+            logger.LogInformation("An existing Space reference was reused instead of creating a duplicate.");
+            return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var itemId = Guid.NewGuid();
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (payload is not null)
+        {
+            await InsertPayloadAsync(connection, transaction, payload, cancellationToken).ConfigureAwait(false);
+        }
+        await InsertBaseItemAsync(
+                connection,
+                transaction,
+                itemId,
+                source,
+                candidate.EntryKind == FileEntryKind.Folder ? ItemKind.Folder : ItemKind.File,
+                candidate.Title,
+                now,
+                candidate.Status,
+                ContentClassifier.BuildSearchText(candidate.Title, candidate.OriginalPath),
+                fingerprint,
+                payload?.Id,
+                cancellationToken,
+                metadataJson)
+            .ConfigureAwait(false);
+
+        await InsertFileReferenceAsync(connection, transaction, itemId, candidate, now, cancellationToken)
+            .ConfigureAwait(false);
+        await transaction.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+        return (await GetWithConnectionAsync(connection, itemId, CancellationToken.None).ConfigureAwait(false))!;
     }
 
     public Task<DropItem> AddTextAsync(TextCandidate candidate, CancellationToken cancellationToken = default) =>
@@ -463,6 +479,11 @@ public sealed class SqliteItemRepository(
 
     public async Task<DropItem?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        return await Task.Run(() => GetCoreAsync(id, cancellationToken), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<DropItem?> GetCoreAsync(Guid id, CancellationToken cancellationToken)
+    {
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         return await GetWithConnectionAsync(connection, id, cancellationToken).ConfigureAwait(false);
     }
@@ -497,47 +518,58 @@ public sealed class SqliteItemRepository(
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-            var current = await ReadPinnedStatesAsync(
-                    connection,
-                    (SqliteTransaction)transaction,
-                    distinctIds,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            var previousStates = current
-                .Where(entry => entry.Value != isPinned)
-                .ToDictionary(entry => entry.Key, entry => entry.Value);
-            if (previousStates.Count > 0)
-            {
-                foreach (var batch in previousStates.Keys.Chunk(MaximumIdsPerCommand))
-                {
-                    await using var update = connection.CreateCommand();
-                    update.Transaction = (SqliteTransaction)transaction;
-                    update.CommandText = string.Concat(
-                        "UPDATE items SET is_pinned = @value, revision = revision + 1 ",
-                        "WHERE pending_delete_token IS NULL AND is_pinned <> @value AND id IN (",
-                        string.Join(",", batch.Select((_, index) => string.Concat("@id", index))),
-                        ");");
-                    update.Parameters.AddWithValue("@value", isPinned ? 1 : 0);
-                    for (var index = 0; index < batch.Length; index++)
-                    {
-                        update.Parameters.AddWithValue(string.Concat("@id", index), ToBytes(batch[index]));
-                    }
-
-                    await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-                }
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            var affectedIds = previousStates.Keys.ToArray();
-            return new BatchPinResult(previousStates, affectedIds);
+            // Admission stays in caller order. Once the write slot is owned, the
+            // worker must run even if cancellation arrives before it is scheduled;
+            // the business token remains attached to SQL; finally releases the slot.
+            return await Task.Run(() => SetPinnedManyCoreAsync(distinctIds, isPinned, cancellationToken), CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
             database.WriteGate.Release();
         }
+    }
+
+    private async Task<BatchPinResult> SetPinnedManyCoreAsync(
+        Guid[] distinctIds,
+        bool isPinned,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var current = await ReadPinnedStatesAsync(
+                connection,
+                (SqliteTransaction)transaction,
+                distinctIds,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var previousStates = current
+            .Where(entry => entry.Value != isPinned)
+            .ToDictionary(entry => entry.Key, entry => entry.Value);
+        if (previousStates.Count > 0)
+        {
+            foreach (var batch in previousStates.Keys.Chunk(MaximumIdsPerCommand))
+            {
+                await using var update = connection.CreateCommand();
+                update.Transaction = (SqliteTransaction)transaction;
+                update.CommandText = string.Concat(
+                    "UPDATE items SET is_pinned = @value, revision = revision + 1 ",
+                    "WHERE pending_delete_token IS NULL AND is_pinned <> @value AND id IN (",
+                    string.Join(",", batch.Select((_, index) => string.Concat("@id", index))),
+                    ");");
+                update.Parameters.AddWithValue("@value", isPinned ? 1 : 0);
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    update.Parameters.AddWithValue(string.Concat("@id", index), ToBytes(batch[index]));
+                }
+
+                await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        var affectedIds = previousStates.Keys.ToArray();
+        return new BatchPinResult(previousStates, affectedIds);
     }
 
     public async Task<int> RestorePinnedStatesAsync(
@@ -558,26 +590,7 @@ public sealed class SqliteItemRepository(
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-            var changed = 0;
-            foreach (var state in states)
-            {
-                await using var command = connection.CreateCommand();
-                command.Transaction = (SqliteTransaction)transaction;
-                command.CommandText = """
-                    UPDATE items
-                    SET is_pinned = @value, revision = revision + 1
-                    WHERE id = @id AND pending_delete_token IS NULL AND is_pinned <> @value;
-                    """;
-                command.Parameters.AddWithValue("@value", state.Value ? 1 : 0);
-                command.Parameters.AddWithValue("@id", ToBytes(state.Key));
-                changed += await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return changed;
+            return await Task.Run(() => RestorePinnedStatesCoreAsync(states, cancellationToken), CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
@@ -585,22 +598,54 @@ public sealed class SqliteItemRepository(
         }
     }
 
+    private async Task<int> RestorePinnedStatesCoreAsync(
+        KeyValuePair<Guid, bool>[] states,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var changed = 0;
+        foreach (var state in states)
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+            command.CommandText = """
+                UPDATE items
+                SET is_pinned = @value, revision = revision + 1
+                WHERE id = @id AND pending_delete_token IS NULL AND is_pinned <> @value;
+                """;
+            command.Parameters.AddWithValue("@value", state.Value ? 1 : 0);
+            command.Parameters.AddWithValue("@id", ToBytes(state.Key));
+            changed += await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return changed;
+    }
+
     public async Task MarkUsedAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            await using var command = connection.CreateCommand();
-            command.CommandText = "UPDATE items SET last_used_at_utc = @now, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;";
-            command.Parameters.AddWithValue("@now", ToTimestamp(DateTimeOffset.UtcNow));
-            command.Parameters.AddWithValue("@id", ToBytes(id));
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await Task.Run(() => MarkUsedCoreAsync(id, cancellationToken), CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
             database.WriteGate.Release();
         }
+    }
+
+    private async Task MarkUsedCoreAsync(
+        Guid id, CancellationToken cancellationToken)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE items SET last_used_at_utc = @now, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;";
+        command.Parameters.AddWithValue("@now", ToTimestamp(DateTimeOffset.UtcNow));
+        command.Parameters.AddWithValue("@id", ToBytes(id));
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateFileStatusAsync(
@@ -612,37 +657,46 @@ public sealed class SqliteItemRepository(
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-            await using (var itemCommand = connection.CreateCommand())
-            {
-                itemCommand.Transaction = (SqliteTransaction)transaction;
-                itemCommand.CommandText = "UPDATE items SET status = @status, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;";
-                itemCommand.Parameters.AddWithValue("@status", (int)status);
-                itemCommand.Parameters.AddWithValue("@id", ToBytes(id));
-                await itemCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            await using (var referenceCommand = connection.CreateCommand())
-            {
-                referenceCommand.Transaction = (SqliteTransaction)transaction;
-                referenceCommand.CommandText = """
-                    UPDATE file_references
-                    SET availability_reason = @reason, last_checked_at_utc = @now
-                    WHERE item_id = @id;
-                    """;
-                referenceCommand.Parameters.AddWithValue("@reason", DbValue(reason));
-                referenceCommand.Parameters.AddWithValue("@now", ToTimestamp(DateTimeOffset.UtcNow));
-                referenceCommand.Parameters.AddWithValue("@id", ToBytes(id));
-                await referenceCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            await Task.Run(() => UpdateFileStatusCoreAsync(id, status, reason, cancellationToken), CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
             database.WriteGate.Release();
         }
+    }
+
+    private async Task UpdateFileStatusCoreAsync(
+        Guid id,
+        ItemStatus status,
+        string? reason,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await using (var itemCommand = connection.CreateCommand())
+        {
+            itemCommand.Transaction = (SqliteTransaction)transaction;
+            itemCommand.CommandText = "UPDATE items SET status = @status, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;";
+            itemCommand.Parameters.AddWithValue("@status", (int)status);
+            itemCommand.Parameters.AddWithValue("@id", ToBytes(id));
+            await itemCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await using (var referenceCommand = connection.CreateCommand())
+        {
+            referenceCommand.Transaction = (SqliteTransaction)transaction;
+            referenceCommand.CommandText = """
+                UPDATE file_references
+                SET availability_reason = @reason, last_checked_at_utc = @now
+                WHERE item_id = @id;
+                """;
+            referenceCommand.Parameters.AddWithValue("@reason", DbValue(reason));
+            referenceCommand.Parameters.AddWithValue("@now", ToTimestamp(DateTimeOffset.UtcNow));
+            referenceCommand.Parameters.AddWithValue("@id", ToBytes(id));
+            await referenceCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task ReplaceFileReferenceAsync(
@@ -1155,6 +1209,14 @@ public sealed class SqliteItemRepository(
         bool pinnedOnly = false,
         CancellationToken cancellationToken = default)
     {
+        return await Task.Run(() => CountCoreAsync(source, pinnedOnly, cancellationToken), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<int> CountCoreAsync(
+        ItemSource? source,
+        bool pinnedOnly,
+        CancellationToken cancellationToken)
+    {
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         var sql = new StringBuilder("SELECT COUNT(*) FROM items");
         var clauses = new List<string> { "pending_delete_token IS NULL" };
@@ -1182,6 +1244,11 @@ public sealed class SqliteItemRepository(
     }
 
     public async Task<int> CountClipboardAsync(DateTimeOffset? fromUtc, bool includePinned, CancellationToken cancellationToken = default)
+    {
+        return await Task.Run(() => CountClipboardCoreAsync(fromUtc, includePinned, cancellationToken), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<int> CountClipboardCoreAsync(DateTimeOffset? fromUtc, bool includePinned, CancellationToken cancellationToken)
     {
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
