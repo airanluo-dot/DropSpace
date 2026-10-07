@@ -866,6 +866,13 @@
   <data name="DownloadRetryDetail" xml:space="preserve"><value>第 {0} 次重试</value></data>
   <data name="IslandResident" xml:space="preserve"><value>常驻灵动岛</value></data>
   <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} 秒</value></data>
+  <data name="IslandAppearance" xml:space="preserve"><value>灵动岛外观</value></data>
+  <data name="IslandAppearanceFollow" xml:space="preserve"><value>跟随</value></data>
+  <data name="IslandAppearanceLight" xml:space="preserve"><value>浅色</value></data>
+  <data name="IslandAppearanceDark" xml:space="preserve"><value>深色</value></data>
+  <data name="IslandContentPriority" xml:space="preserve"><value>灵动岛内容优先级</value></data>
+  <data name="IslandContentPriorityMusic" xml:space="preserve"><value>音乐</value></data>
+  <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>临时空间</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>空闲时显示 Logo</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB（已关闭）</value></data>
 </root>

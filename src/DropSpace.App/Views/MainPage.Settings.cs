@@ -39,6 +39,18 @@ public sealed partial class MainPage
             else groups[uid == "DevicesSharingSection" ? "Devices" : uid == "UpdatesSection" ? "Updates" : "General"].Children.Add(section);
         }
         var island = new SettingsForm(editor, _strings);
+        island.AddChoice("IslandAppearance", new[]
+        {
+            (ThemePreference.System, _strings.Get("IslandAppearanceFollow")),
+            (ThemePreference.Light, _strings.Get("IslandAppearanceLight")),
+            (ThemePreference.Dark, _strings.Get("IslandAppearanceDark")),
+        }, s => s.IslandAppearance.Theme,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { Theme = v } });
+        island.AddChoice("IslandContentPriority", new[]
+        {
+            (IslandContentPriority.Music, _strings.Get("IslandContentPriorityMusic")),
+            (IslandContentPriority.TemporarySpace, _strings.Get("IslandContentPriorityTemporarySpace")),
+        }, s => s.IslandContentPriority, (s, v) => s with { IslandContentPriority = v });
         island.AddToggle("IslandShowLogoWhenIdle", s => s.IslandAppearance.ShowLogoWhenIdle,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { ShowLogoWhenIdle = v } });
         island.AddToggle("IslandResident", s => s.IslandAppearance.Resident,

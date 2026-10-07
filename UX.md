@@ -178,6 +178,9 @@ Settings keeps the precise X/Y editor and adds **Adjust Island Position…** for
 - Changes apply immediately unless a restart is technically required; required restart is stated before saving.
 - Top interface settings provide Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, Automatic/Primary monitor, and display language: System default, English, or Simplified Chinese. The visual surface is always Dynamic Island. System motion follows Windows `UISettings.AnimationsEnabled`; System language uses the Windows display language, maps Chinese to Simplified Chinese, and falls back to English for the other shipped-language cases. Saving the language preference refreshes the main window and Dynamic Island live, including control accessibility names. Existing transient status/error messages and in-flight operation text can retain the previous language until replaced.
 
+- Island appearance offers Follow (default), Light, and Dark, applies immediately, and persists independently from the settings-window appearance. Follow uses Windows app appearance when Windows system and app modes differ.
+- Island content priority offers Music (default) and Temporary Space. It chooses compact and expanded defaults when both are available. Active user page selections are retained while available, including across expansion and collapse; losing that content falls back to the available content. Changing the setting deliberately reapplies the selected default.
+
 ## System tray
 
 - Left click opens/activates the main window.

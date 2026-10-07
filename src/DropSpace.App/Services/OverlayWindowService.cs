@@ -120,6 +120,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _openMainWindow = openMainWindow;
+        _experience.UpdateContentPriority(_viewModel.ContentPriority);
         CreateMonitorSurfaces();
         var primaryMonitor = _primaryMonitor
             ?? throw new InvalidOperationException("No primary monitor was available after creating overlay surfaces.");
@@ -640,18 +641,13 @@ public sealed class OverlayWindowService : IDisposable
             });
             return;
         }
-        if (args.PropertyName != nameof(MainViewModel.Theme)) return;
-        _dispatcher.TryEnqueue(() =>
-        {
-            if (_disposed) return;
-            foreach (var window in _windows) window.ApplyTheme(_mainViewModel.Theme);
-        });
     }
 
     private void OnMediaSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (!_disposed && args.PropertyName == nameof(MediaViewModel.Settings))
         {
+            foreach (var window in _windows) window.ApplyTheme(_mediaViewModel.Settings.IslandAppearance.Theme);
             UpdateFullscreenRefreshTimer();
             ApplySnapshot(_viewModel.Snapshot);
         }
@@ -691,6 +687,10 @@ public sealed class OverlayWindowService : IDisposable
         else if (args.PropertyName == nameof(OverlayViewModel.ActiveMonitorId))
         {
             ApplySnapshot(_viewModel.Snapshot);
+        }
+        else if (args.PropertyName == nameof(OverlayViewModel.ContentPriority))
+        {
+            _experience.UpdateContentPriority(_viewModel.ContentPriority);
         }
         else if (args.PropertyName == nameof(OverlayViewModel.MotionPreference))
         {
@@ -983,7 +983,7 @@ public sealed class OverlayWindowService : IDisposable
                 _systemActivityViewModel);
             if (glowTransfers is not null && glowTransfers.TryGetValue(monitor.Id, out var transfer))
                 window.StageGlowHandoff(transfer);
-            window.ApplyTheme(_mainViewModel.Theme);
+            window.ApplyTheme(_mediaViewModel.Settings.IslandAppearance.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementEditRequested += OnOverlayPlacementEditRequested;
             window.PlacementCancelled += OnPlacementCancelled;

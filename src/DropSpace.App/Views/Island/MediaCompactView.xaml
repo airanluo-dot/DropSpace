@@ -17,34 +17,34 @@
       <Canvas x:Name="LyricScrollHost">
       <Grid x:Name="LyricCanvas" HorizontalAlignment="Left" VerticalAlignment="Center">
         <Grid.RenderTransform><CompositeTransform x:Name="LyricTranslation" /></Grid.RenderTransform>
-        <TextBlock x:Name="BaseLine" FontSize="13" TextWrapping="NoWrap" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
-        <TextBlock x:Name="HighlightLine" FontSize="13" TextWrapping="NoWrap" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" AutomationProperties.AccessibilityView="Raw">
+        <TextBlock x:Name="BaseLine" FontSize="13" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}" />
+        <TextBlock x:Name="HighlightLine" FontSize="13" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" AutomationProperties.AccessibilityView="Raw">
           <TextBlock.Clip><RectangleGeometry x:Name="HighlightClip" /></TextBlock.Clip>
         </TextBlock>
       </Grid>
       </Canvas>
       <StackPanel x:Name="InterludeDots" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
-        <Ellipse x:Name="InterludeDot0" Width="4" Height="4" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
-        <Ellipse x:Name="InterludeDot1" Width="4" Height="4" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
-        <Ellipse x:Name="InterludeDot2" Width="4" Height="4" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
+        <Ellipse x:Name="InterludeDot0" Width="4" Height="4" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
+        <Ellipse x:Name="InterludeDot1" Width="4" Height="4" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
+        <Ellipse x:Name="InterludeDot2" Width="4" Height="4" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
       </StackPanel>
     </Grid>
     <Grid x:Name="SecondaryViewport" SizeChanged="OnSecondaryViewportSizeChanged" Visibility="Collapsed">
       <Grid.Clip><RectangleGeometry x:Name="SecondaryViewportClip" /></Grid.Clip>
       <Canvas x:Name="SecondaryScrollHost">
-      <TextBlock x:Name="SecondaryLine" HorizontalAlignment="Left" FontSize="11" TextWrapping="NoWrap" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Visibility="Collapsed">
+      <TextBlock x:Name="SecondaryLine" HorizontalAlignment="Left" FontSize="11" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}" Visibility="Collapsed">
         <TextBlock.RenderTransform><CompositeTransform x:Name="SecondaryTranslation" /></TextBlock.RenderTransform>
       </TextBlock>
       </Canvas>
     </Grid>
     </StackPanel>
     <StackPanel x:Name="SpectrumBars" Grid.Column="2" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Height="22" AutomationProperties.AccessibilityView="Raw">
-      <Rectangle x:Name="Band0" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band1" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band2" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band3" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band4" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band5" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
+      <Rectangle x:Name="Band0" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
+      <Rectangle x:Name="Band1" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
+      <Rectangle x:Name="Band2" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
+      <Rectangle x:Name="Band3" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
+      <Rectangle x:Name="Band4" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
+      <Rectangle x:Name="Band5" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
     </StackPanel>
   </Grid>
 </UserControl>

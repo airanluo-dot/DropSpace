@@ -11,6 +11,12 @@ public enum ThemePreference
     Dark,
 }
 
+public enum IslandContentPriority
+{
+    Music,
+    TemporarySpace,
+}
+
 public enum AppLanguagePreference
 {
     System,
@@ -69,6 +75,7 @@ public sealed record AppSettings
     public IslandActivitySettings IslandActivity { get; init; } = new();
     public LyricsSettings Lyrics { get; init; } = new();
     public IslandAppearanceSettings IslandAppearance { get; init; } = new();
+    public IslandContentPriority IslandContentPriority { get; init; } = IslandContentPriority.Music;
     public SystemActivitySettings SystemActivities { get; init; } = new();
     public WidgetSettings Widgets { get; init; } = new();
     public int MaxDownloadConnections { get; init; } = 64;
@@ -160,6 +167,8 @@ public sealed record AppSettings
     public AppSettings WithSafeUiPreferences() => this with
     {
         Theme = ThemePreference.System,
+        IslandAppearance = (IslandAppearance ?? new()) with { Theme = ThemePreference.System },
+        IslandContentPriority = IslandContentPriority.Music,
         Language = AppLanguagePreference.System,
         OverlayMotion = OverlayMotionPreference.System,
         OverlayMonitor = OverlayMonitorPreference.Automatic,

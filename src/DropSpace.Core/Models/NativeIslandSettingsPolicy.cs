@@ -52,8 +52,10 @@ public static class NativeIslandSettingsPolicy
                 ScrollingMaxWidth = Math.Clamp(lyrics.ScrollingMaxWidth, MinimumWidth, MaximumWidth),
                 LocalLrcDirectory = lyrics.LocalLrcDirectory is { Length: <= 32767 } ? lyrics.LocalLrcDirectory : string.Empty,
             },
+            IslandContentPriority = Enum.IsDefined(settings.IslandContentPriority) ? settings.IslandContentPriority : IslandContentPriority.Music,
             IslandAppearance = appearance with
             {
+                Theme = Enum.IsDefined(appearance.Theme) ? appearance.Theme : ThemePreference.System,
                 HideDelayMilliseconds = NormalizeHideDelay(appearance.HideDelayMilliseconds),
                 CompactScale = NormalizeScale(appearance.CompactScale),
                 ExpandedScale = NormalizeScale(appearance.ExpandedScale),

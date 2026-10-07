@@ -23,6 +23,7 @@ public static class SettingsChangePolicy
         IslandActivity = Pick(baseline.IslandActivity, requested.IslandActivity, latest.IslandActivity),
         Lyrics = MergeLyrics(baseline.Lyrics, requested.Lyrics, latest.Lyrics),
         IslandAppearance = MergeIsland(baseline.IslandAppearance, requested.IslandAppearance, latest.IslandAppearance),
+        IslandContentPriority = Pick(baseline.IslandContentPriority, requested.IslandContentPriority, latest.IslandContentPriority),
         SystemActivities = Pick(baseline.SystemActivities, requested.SystemActivities, latest.SystemActivities),
         Widgets = Pick(baseline.Widgets, requested.Widgets, latest.Widgets),
         CaptureImages = Pick(baseline.CaptureImages, requested.CaptureImages, latest.CaptureImages),
@@ -64,6 +65,7 @@ public static class SettingsChangePolicy
 
     private static IslandAppearanceSettings MergeIsland(IslandAppearanceSettings baseline, IslandAppearanceSettings requested, IslandAppearanceSettings latest) => latest with
     {
+        Theme = Pick(baseline.Theme, requested.Theme, latest.Theme),
         Resident = Pick(baseline.Resident, requested.Resident, latest.Resident),
         ShowLogoWhenIdle = Pick(baseline.ShowLogoWhenIdle, requested.ShowLogoWhenIdle, latest.ShowLogoWhenIdle),
         ForceShowOverFullscreen = Pick(baseline.ForceShowOverFullscreen, requested.ForceShowOverFullscreen, latest.ForceShowOverFullscreen),

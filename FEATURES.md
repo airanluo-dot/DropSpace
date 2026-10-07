@@ -239,6 +239,10 @@ Master toggle, retention age/count, image/file capture, size limits, duplicate p
 
 Display language: System default, English, or Simplified Chinese. System maps a Chinese Windows display language to Simplified Chinese and all other Windows display languages to English. Saving the choice refreshes the main window and Dynamic Island in the running process and persists it for later starts. Appearance also includes System/light/dark, System/Full/Reduced Dynamic Island motion, Automatic/Primary monitor, and material fallback. Mica is automatic preference, not a user performance promise.
 
+Dynamic Island appearance is independent from the settings window: Follow Windows (default), Light, or Dark. Follow retains the WinUI Windows app-appearance source, including Windows Custom mode. Both compact and expanded surfaces update immediately; artwork, glow, and the main-window theme keep their own settings.
+
+Island content priority is Music (default) or Temporary Space. When playing music and temporary files are both available, the choice selects the default compact and expanded content. An explicit page selection remains in effect while its content is available; lyrics and position refreshes do not change it. Both choices persist across restarts.
+
 ### Privacy
 
 Current recording state, pause/resume, data location, clear ranges, exclusion limitation, and a copyable path-free Smart Drag report with P50/P90/P95/P99 probe latency, velocity buckets, timeout and false-reveal proxy counts.

@@ -866,6 +866,13 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="DownloadRetryDetail" xml:space="preserve"><value>Retry {0}</value></data>
   <data name="IslandResident" xml:space="preserve"><value>Keep Dynamic Island visible</value></data>
   <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} s</value></data>
+  <data name="IslandAppearance" xml:space="preserve"><value>Island appearance</value></data>
+  <data name="IslandAppearanceFollow" xml:space="preserve"><value>Follow Windows</value></data>
+  <data name="IslandAppearanceLight" xml:space="preserve"><value>Light</value></data>
+  <data name="IslandAppearanceDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="IslandContentPriority" xml:space="preserve"><value>Island content priority</value></data>
+  <data name="IslandContentPriorityMusic" xml:space="preserve"><value>Music</value></data>
+  <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>Temporary Space</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Show logo when idle</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (disabled)</value></data>
 </root>

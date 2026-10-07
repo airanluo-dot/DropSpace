@@ -106,7 +106,7 @@ public sealed partial class WidgetsExpandedView : UserControl
                     _clipboardButton = new Button { Command = _view.ClipboardPauseCommand, Content = new FontIcon { Glyph = "\uE77F", FontSize = 18 }, Padding = new(4), HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                     tile = _clipboardButton;
                 }
-                else tile = new Border { CornerRadius = new(14), Padding = new(placement.ColumnSpan == 1 ? 4 : 8), Background = (Brush)Application.Current.Resources["ControlFillColorSecondaryBrush"], Child = content };
+                else tile = new Border { CornerRadius = new(14), Padding = new(placement.ColumnSpan == 1 ? 4 : 8), Style = (Style)Application.Current.Resources["DropSpaceOverlayWidgetTileStyle"], Child = content };
             }
             ToolTipService.SetToolTip(tile, _view.Text(placement.Id == NativeWidgetId.Settings ? "WidgetSettingsName" : "Widget" + placement.Id + ".Text"));
             Grid.SetColumn(tile, placement.Column); Grid.SetRow(tile, placement.Row);

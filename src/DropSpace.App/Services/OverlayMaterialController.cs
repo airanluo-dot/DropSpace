@@ -2,7 +2,6 @@ using DropSpace.Core.Compatibility;
 using DropSpace.Core.Overlay;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Services;
 
@@ -15,7 +14,6 @@ internal sealed class OverlayMaterialController : IDisposable
     private readonly SystemBackdropElement _backdrop;
     private readonly Border _fallback;
     private readonly IWindowsCapabilityService _capabilities;
-    private readonly Brush? _normalFallbackBrush;
     private bool _disposed;
     private IslandAcrylicBackdrop? _acrylic;
     private OverlayRegionSignature? _geometry;
@@ -28,7 +26,6 @@ internal sealed class OverlayMaterialController : IDisposable
         _backdrop = backdrop;
         _fallback = fallback;
         _capabilities = capabilities;
-        _normalFallbackBrush = fallback.Background;
     }
 
     public bool IsUsingDesktopAcrylic { get; private set; }
@@ -56,16 +53,8 @@ internal sealed class OverlayMaterialController : IDisposable
 
             _backdrop.Visibility = canUseAcrylic ? Visibility.Visible : Visibility.Collapsed;
             _fallback.Visibility = canUseAcrylic ? Visibility.Collapsed : Visibility.Visible;
-            if (preferences.HighContrast)
-            {
-                _fallback.Background = GetSystemBrush(
-                    "SystemControlBackgroundBaseLowBrush",
-                    _normalFallbackBrush);
-            }
-            else
-            {
-                _fallback.Background = _normalFallbackBrush;
-            }
+            // XAML ThemeResource owns the fallback color, including High Contrast.
+            // Reusing a brush captured on construction would retain the previous theme.
             IsUsingDesktopAcrylic = canUseAcrylic;
             MaterialTier = canUseAcrylic
                 ? requestedTier
@@ -81,7 +70,6 @@ internal sealed class OverlayMaterialController : IDisposable
             catch (Exception cleanupError) { System.Diagnostics.Trace.TraceError("Acrylic cleanup failed: {0}", cleanupError); }
             _backdrop.Visibility = Visibility.Collapsed;
             _fallback.Visibility = Visibility.Visible;
-            _fallback.Background = _normalFallbackBrush;
             IsUsingDesktopAcrylic = false;
             MaterialTier = preferences.HighContrast
                 ? OverlayMaterialTier.HighContrastSystemSurface
@@ -127,15 +115,4 @@ internal sealed class OverlayMaterialController : IDisposable
         _acrylic?.Dispose();
     }
 
-    private static Brush? GetSystemBrush(string key, Brush? fallback)
-    {
-        try
-        {
-            return Application.Current.Resources[key] as Brush ?? fallback;
-        }
-        catch (Exception)
-        {
-            return fallback;
-        }
-    }
 }

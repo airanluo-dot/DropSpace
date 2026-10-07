@@ -236,6 +236,8 @@ public sealed partial class OverlayWindow : Window
                 SurfaceContent,
                 InteractionTintOverlay);
             _motion = new OverlayMotionOrchestrator(OverlayMotionValues.Hidden, _compositionAnimator);
+            Root.ActualThemeChanged += OnIslandThemeChanged;
+            ApplyTheme(mediaViewModel.Settings.IslandAppearance.Theme);
             _materialController.Apply(_visualPreferences.Resolve(viewModel.MotionPreference));
             _visualPreferences.Changed += OnSystemVisualPreferencesChanged;
 
@@ -325,12 +327,26 @@ public sealed partial class OverlayWindow : Window
 
     public string MonitorId => _monitor.Id;
 
-    internal void ApplyTheme(ThemePreference preference) => Root.RequestedTheme = preference switch
+    internal void ApplyTheme(ThemePreference preference)
     {
-        ThemePreference.Light => ElementTheme.Light,
-        ThemePreference.Dark => ElementTheme.Dark,
-        _ => ElementTheme.Default,
-    };
+        if (_closing) return;
+        // Default retains WinUI's existing Windows app-appearance source, including
+        // Windows Custom mode; the main settings window keeps its own preference.
+        Root.RequestedTheme = preference switch
+        {
+            ThemePreference.Light => ElementTheme.Light,
+            ThemePreference.Dark => ElementTheme.Dark,
+            _ => ElementTheme.Default,
+        };
+    }
+
+    private void OnIslandThemeChanged(FrameworkElement sender, object args)
+    {
+        if (_closing) return;
+        // Retire captured Acrylic motion frames before presenting the new palette.
+        ResetMotionBlur();
+        _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
+    }
 
     public bool IsPlacementEditing => _placementEditActive;
 
@@ -738,6 +754,7 @@ public sealed partial class OverlayWindow : Window
         _suppressedForPlacementEdit = false;
         RevokeNativeDropTarget();
         _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
+        Root.ActualThemeChanged -= OnIslandThemeChanged;
         _motion.Dispose();
         _materialController.Dispose();
         MusicCompact.IdealWidthChanged -= OnMediaGeometryChanged;
@@ -1940,11 +1957,11 @@ public sealed partial class OverlayWindow : Window
         try
         {
             if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music)
-                _experience.Open(DropSpace.Core.Island.IslandPage.Music);
+                _experience.Open();
             else
             {
                 _hideWhenSettled = false;
-                _experience.Open(DropSpace.Core.Island.IslandPage.Files);
+                _experience.Open();
                 var generation = _experience.HideGeneration;
                 await _viewModel.ExpandAsync();
                 if (_closing || generation != _experience.HideGeneration || !_experience.IsManuallyOpen) return;

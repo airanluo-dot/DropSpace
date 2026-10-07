@@ -13,6 +13,8 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     private bool _mediaAvailable, _mediaPlaying, _manual, _expanded, _resident, _allows = true, _dismissed, _hideCompleted;
     private string? _mediaIdentity;
     private IslandPage _page = IslandPage.Files;
+    private bool _pageSelected;
+    private IslandContentPriority _contentPriority = IslandContentPriority.Music;
     private DateTimeOffset? _notification, _volume, _hideStarted;
     private int _delay = 3000;
     private long _revision, _generation;
@@ -26,12 +28,26 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         if (files.TemporaryItemCount > _files.TemporaryItemCount ||
             files.Transition?.Cause is OverlayTransitionCause.DropCompleted or OverlayTransitionCause.VisibleDropCompleted or OverlayTransitionCause.DragApproach)
             _dismissed = false;
+        // A chosen file page survives passive refreshes, but loses its override
+        // when its content is cleared. Drag previews do not select a page.
+        if (_files.TemporaryItemCount > 0 && files.TemporaryItemCount == 0 && _page == IslandPage.Files)
+            _pageSelected = false;
         _files = files;
         if (files.Transition?.Cause == OverlayTransitionCause.Restore && !_manual) { _expanded = files.State == OverlayState.Expanded; }
         else if (files.Transition?.Cause == OverlayTransitionCause.QuickPanelOpened) { _dismissed = false; _manual = true; _expanded = true; }
-        else if (files.Transition?.Cause == OverlayTransitionCause.Expanded) { _expanded = true; _page = IslandPage.Files; }
+        else if (files.Transition?.Cause == OverlayTransitionCause.Expanded) { _expanded = true; }
         else if (!_manual && (files.Transition?.Cause is OverlayTransitionCause.Collapsed or OverlayTransitionCause.Dismissed))
         { _expanded = false; _manual = false; }
+        Reconcile();
+    }
+    public void UpdateContentPriority(IslandContentPriority priority)
+    {
+        if (!Enum.IsDefined(priority)) throw new ArgumentOutOfRangeException(nameof(priority));
+        if (_contentPriority == priority) return;
+        _contentPriority = priority;
+        // Changing the default is an explicit user action and applies immediately
+        // to both presentations. Ordinary media/lyrics updates never reset this.
+        _pageSelected = false;
         Reconcile();
     }
     public void UpdateSettings(IslandAppearanceSettings settings, bool fullscreenAllows)
@@ -49,7 +65,8 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         var available = enabled && contentAvailable;
         var active = available && playing;
         if (available && contentIdentity != _mediaIdentity || active && !_mediaPlaying) _dismissed = false;
-        if (available) _mediaIdentity = contentIdentity;
+        if (_mediaAvailable && !available && _page == IslandPage.Music) _pageSelected = false;
+        _mediaIdentity = available ? contentIdentity : null;
         _mediaAvailable = available;
         _mediaPlaying = active;
         _delay = NativeIslandSettingsPolicy.NormalizeHideDelay(hideDelayMilliseconds);
@@ -58,11 +75,16 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     public void Open(IslandPage? page = null)
     {
         _generation++; _hideStarted = null;
-        _page = page ?? (_mediaAvailable ? IslandPage.Music : IslandPage.Files);
+        if (page is { } selected)
+        {
+            if (!Enum.IsDefined(selected)) throw new ArgumentOutOfRangeException(nameof(page));
+            _page = selected;
+            _pageSelected = true;
+        }
         _dismissed = false; _manual = true; _expanded = true; Reconcile();
     }
     public void SelectPage(IslandPage page)
-    { if (!Enum.IsDefined(page)) throw new ArgumentOutOfRangeException(nameof(page)); _page = page; Reconcile(); }
+    { if (!Enum.IsDefined(page)) throw new ArgumentOutOfRangeException(nameof(page)); _page = page; _pageSelected = true; Reconcile(); }
     public void Collapse() { _manual = false; _expanded = false; Reconcile(); }
     public void DismissNow()
     { _dismissed = true; _manual = false; _expanded = false; _hideStarted = null; _hideCompleted = false; _generation++; Reconcile(); }
@@ -85,10 +107,14 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     public void Reconcile()
     {
         var now = _time.GetUtcNow();
+        var defaultPage = IslandContentSelectionPolicy.ResolveDefault(_contentPriority, _files.TemporaryItemCount > 0, _mediaAvailable, _mediaPlaying);
+        if (!_pageSelected) _page = defaultPage;
+        var contentPage = _pageSelected && (_page == IslandPage.Music && _mediaAvailable ||
+            _page == IslandPage.Files && _files.TemporaryItemCount > 0) ? _page : defaultPage;
         // Content remains available while paused. Only playing is a persistent
         // visibility reason; content selection must not double as a hide clock.
         var baseState = IslandPresencePolicy.Resolve(new(_files, _mediaPlaying, null, _manual, _expanded, _page,
-            _notification, _volume, RetainMedia: _mediaAvailable), now, _revision);
+            _notification, _volume, RetainMedia: _mediaAvailable, ContentPage: contentPage), now, _revision);
         var hasReason = _resident || _mediaPlaying || IsManuallyOpen || _files.TemporaryItemCount > 0 ||
             _files.State is OverlayState.DragApproaching or OverlayState.DragReady || _files.ExpandedDropActive ||
             _notification > now || _volume > now;
