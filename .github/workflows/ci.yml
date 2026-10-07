@@ -901,7 +901,8 @@ jobs:
 
   beta17-windows:
     # Only the active route owns the required check name; a skipped legacy job
-    # cannot satisfy the Beta17 requirement. PRs compile/test; main packages.
+    # cannot satisfy the Beta17 requirement. Owner waived all further tests;
+    # PRs compile only and explicitly record that waiver; main packages.
     name: ${{ needs.change-scope.outputs.release_version == 'v0.3.1-beta.17' && 'Build and test (x64)' || 'Beta17 focused producer (inactive)' }}
     needs: change-scope
     if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.release_version == 'v0.3.1-beta.17'
@@ -917,7 +918,7 @@ jobs:
           dotnet-version: 10.0.401
           cache: true
           cache-dependency-path: Directory.Packages.props
-      - name: Locate successful same-tree merged PR validation before final packaging
+      - name: Locate successful same-tree merged PR build before final packaging
         if: github.event_name == 'workflow_dispatch'
         id: beta17-validation
         env:
@@ -931,14 +932,13 @@ jobs:
           run-id: ${{ steps.beta17-validation.outputs.run_id }}
           github-token: ${{ github.token }}
           path: artifacts/beta17-pr-validation
-      - name: Verify actual PR checkout and focused test receipts
+      - name: Verify actual PR checkout and explicit build-only waiver receipt
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/beta17-release-validation.mjs verify artifacts/beta17-pr-validation
-      - name: Verify narrow producer and unchanged-byte promotion contracts
-        if: github.event_name == 'pull_request'
-        run: node --test scripts/test-beta17-release-route.test.mjs scripts/ci-release-promotion.test.mjs
+        run: node scripts/beta17-release-validation.mjs verify-build-only artifacts/beta17-pr-validation
+      # Explicit owner request: skip every further test suite for Beta17.
+      # Actual source approval, full build and payload/commit checks remain.
       - name: Restore locked dependency graph
         shell: pwsh
         run: |
@@ -967,7 +967,7 @@ jobs:
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           # Immutable successful PR #103 artifact; only the fixed-hash language
-          # asset is reused. This PR still performs its own build and tests.
+          # asset is reused. This PR still performs its own full build; further tests are owner-waived.
           artifact-ids: 11468175429
           run-id: 37588748222
           github-token: ${{ github.token }}
@@ -977,14 +977,11 @@ jobs:
         run: ./scripts/Reuse-BundledLyricsLanguageModel.ps1
       - name: Bind existing independent CUDA component metadata to this checkout
         run: python scripts/stage-reviewed-cuda-metadata.py --app-commit ${{ github.sha }}
-      - name: Install locked Windows App Runtime for affected native-boundary checks
-        shell: pwsh
-        run: ./scripts/Install-TestWindowsAppRuntime.ps1
-      - name: Compile full Windows App and XAML and run only affected tests
+      - name: Compile full Windows App and XAML; all further tests owner-waived
         if: github.event_name == 'pull_request'
         shell: pwsh
-        run: ./scripts/Build-Beta17Candidate.ps1 -ValidateOnly
-      - name: Retain actual complete build and focused PR validation receipt
+        run: ./scripts/Build-Beta17Candidate.ps1 -ValidateOnly -SkipTests
+      - name: Retain actual complete build and explicit test-waiver receipt
         if: github.event_name == 'pull_request' && success()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -992,12 +989,12 @@ jobs:
           path: artifacts/beta17-validation/*
           if-no-files-found: error
           retention-days: 14
-      - name: Produce final-commit packages once and verify native music controls
+      - name: Produce final-commit packages and verify actual payload bytes; tests waived
         if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./scripts/Build-Beta17Candidate.ps1
+        run: ./scripts/Build-Beta17Candidate.ps1 -SkipTests
       - name: Retain final-main packages for unchanged-byte publication
         if: github.event_name == 'workflow_dispatch' && success()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -1016,7 +1013,7 @@ jobs:
             artifacts/release/ci-release-receipt.json
           if-no-files-found: error
           retention-days: 7
-      - name: Retain focused failure and native evidence
+      - name: Retain actual build and package byte evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:

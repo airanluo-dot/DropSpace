@@ -14,9 +14,22 @@ export const focusedFilters = Object.freeze({
 });
 const repository = 'airanluo-dot/DropSpace';
 const files = ['app-build.txt', 'infrastructure.trx', 'app.trx'];
+const buildOnlyKind = 'beta17-owner-waived-windows-build';
+const ownerWaiverPath = 'docs/dev/evidence/beta17-release/owner-test-waiver.json';
+const ownerWaiverSha256 = 'f383ff84a55b16381aa8c79af87e7f8dd2b3bb61724850b1c8865ad42de99285';
 const git = (...args) => execFileSync('git', args, {encoding:'utf8'}).trim();
 const read = filename => JSON.parse(fs.readFileSync(filename, 'utf8').replace(/^\uFEFF/, ''));
 const identity = filename => {const {bytes,sha256}=fileIdentity(filename);return {bytes,sha256};};
+
+function ownerWaiver() {
+  assert.equal(identity(ownerWaiverPath).sha256,ownerWaiverSha256,'Exact Beta17 owner test waiver changed');
+  const waiver=read(ownerWaiverPath);
+  assert.equal(waiver.schemaVersion,1);
+  assert.equal(waiver.releaseTag,beta17Version);
+  assert.equal(waiver.owner,'airanluo-dot');
+  assert.deepEqual(waiver.ownerMessages,['减少测试数量，减少多余测试，直接尽快发布','我说了跳过测试立刻发布啊']);
+  return {path:ownerWaiverPath,sha256:ownerWaiverSha256,ownerMessages:waiver.ownerMessages,decision:waiver.decision};
+}
 
 export function passedCounters(xml) {
   const element = xml.match(/<Counters\b[^>]*\/>/g);
@@ -29,11 +42,20 @@ export function passedCounters(xml) {
 }
 export function verifyValidation(directory, receipt, expected) {
   assert.equal(receipt.schemaVersion,1);
-  assert.equal(receipt.kind,'beta17-focused-windows-pr-validation');
+  assert.ok(receipt.kind==='beta17-focused-windows-pr-validation'||receipt.kind===buildOnlyKind,'Unsupported actual PR evidence kind');
   for(const key of ['repository','runId','runAttempt','sourceTree','releaseVersion'])
     assert.equal(receipt[key],expected[key],`Validation ${key} mismatch`);
   assert.match(receipt.sourceCommit??'',/^[a-f0-9]{40}$/);
   assert.equal(receipt.appXamlBuild,true,'Complete Windows App/XAML build is required');
+  if(receipt.kind===buildOnlyKind) {
+    assert.deepEqual(receipt.ownerWaiver,ownerWaiver());
+    assert.deepEqual(receipt.tests,{status:'not-run',reason:'Explicit owner waiver; no automated tests or native smoke/stress executed'});
+    assert.equal(receipt.results,undefined,'Build-only receipt cannot claim test results');
+    assert.equal(receipt.filters,undefined,'Build-only receipt cannot imply test coverage');
+    assert.deepEqual(Object.keys(receipt.files),['app-build.txt']);
+    assert.deepEqual(receipt.files['app-build.txt'],identity(path.join(directory,'app-build.txt')),'Actual full App/XAML build evidence changed');
+    return receipt;
+  }
   assert.deepEqual(receipt.filters,focusedFilters,'Validation filters changed');
   assert.deepEqual(Object.keys(receipt.files).sort(),[...files].sort());
   for(const name of files) assert.deepEqual(receipt.files[name],identity(path.join(directory,name)),`Validation evidence changed: ${name}`);
@@ -61,7 +83,19 @@ async function main() {
   assert.equal(fs.readFileSync('RELEASE_VERSION','utf8').trim(),beta17Version,'Route is limited to the reviewed Beta17 release');
   assert.equal(process.env.GITHUB_REPOSITORY,repository);
   assert.equal(git('rev-parse','HEAD'),process.env.GITHUB_SHA,'Actual checkout commit mismatch');
-  if(command==='record') {
+  if(command==='verify-owner-waiver') {
+    ownerWaiver();
+  } else if(command==='record-build-only') {
+    assert.equal(process.env.GITHUB_EVENT_NAME,'pull_request');
+    const receipt={schemaVersion:1,kind:buildOnlyKind,repository,
+      runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),
+      sourceCommit:git('rev-parse','HEAD'),sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion:beta17Version,
+      appXamlBuild:true,ownerWaiver:ownerWaiver(),
+      tests:{status:'not-run',reason:'Explicit owner waiver; no automated tests or native smoke/stress executed'},
+      files:{'app-build.txt':identity(path.join(directory,'app-build.txt'))}};
+    verifyValidation(directory,receipt,receipt);
+    fs.writeFileSync(path.join(directory,'validation-receipt.json'),JSON.stringify(receipt,null,2)+'\n');
+  } else if(command==='record') {
     assert.equal(process.env.GITHUB_EVENT_NAME,'pull_request');
     const receipt={schemaVersion:1,kind:'beta17-focused-windows-pr-validation',repository,
       runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),
@@ -93,18 +127,20 @@ async function main() {
       fs.appendFileSync(process.env.GITHUB_OUTPUT,`run_id=${run.id}\nartifact_id=${artifact.id}\n`);return;
     }
     throw new Error('No successful merged PR validation exists for this exact Beta17 main commit; no broad-test or model-download fallback');
-  } else if(command==='verify') {
+  } else if(command==='verify'||command==='verify-build-only') {
     const expected=read('artifacts/beta17-validation-expected.json');
     assert.equal(expected.sourceTree,git('rev-parse','HEAD^{tree}'));
     const run=await api(`actions/runs/${expected.runId}`);producer(run);
     assert.equal(run.run_attempt,expected.runAttempt,'PR producer rerun changed');
     const receipt=read(path.join(directory,'validation-receipt.json'));
+    if(command==='verify-build-only')assert.equal(receipt.kind,buildOnlyKind,'Owner-waived route requires an actual build-only receipt');
     const commit=await api(`git/commits/${receipt.sourceCommit}`);
-    assert.equal(commit.tree.sha,expected.sourceTree,'Actual tested PR tree differs from final main');
-    assert.ok(receipt.sourceCommit===run.head_sha || commit.parents?.some(parent=>parent.sha===run.head_sha),'Test checkout is not bound to the actual PR head');
+    assert.equal(commit.tree.sha,expected.sourceTree,'Actual built PR tree differs from final main');
+    assert.ok(receipt.sourceCommit===run.head_sha || commit.parents?.some(parent=>parent.sha===run.head_sha),'Build checkout is not bound to the actual PR head');
     verifyValidation(directory,receipt,expected);
-    if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-      `Reused successful PR validation ${run.id}/${run.run_attempt}, checkout ${receipt.sourceCommit}, identical tree ${receipt.sourceTree}. Complete Windows App/XAML build and ${receipt.results.infrastructure.total+receipt.results.app.total} focused tests were performed by that PR; no unit tests repeated here. Final-commit packaging and native visual verification follow.\n`);
-  } else throw new Error('Expected record, find or verify');
+    if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,receipt.kind===buildOnlyKind
+      ? `Reused actual full Windows App/XAML PR build ${run.id}/${run.run_attempt}, checkout ${receipt.sourceCommit}, identical tree ${receipt.sourceTree}. All additional tests and native smoke/stress are not run under the fixed owner waiver ${ownerWaiverPath} (${ownerWaiverSha256}). Final-commit packaging and actual payload byte verification follow. No test pass is claimed.\n`
+      : `Reused successful PR validation ${run.id}/${run.run_attempt}, checkout ${receipt.sourceCommit}, identical tree ${receipt.sourceTree}. Complete Windows App/XAML build and ${receipt.results.infrastructure.total+receipt.results.app.total} focused tests were performed by that PR; no unit tests repeated here. Final-commit packaging and native visual verification follow.\n`);
+  } else throw new Error('Expected record, record-build-only, find, verify, verify-build-only or verify-owner-waiver');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(error.message);process.exitCode=1;});

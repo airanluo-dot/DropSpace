@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-07T08:52:07.366Z",
+  "releaseVersion": "v0.3.1-beta.17",
+  "scope": "Only necessary actual source approval validation after explicit owner test waiver. No additional tests/native smoke/stress.",
+  "sourceFingerprint": "79ad1f711ac1884761b90eae836a09068eaa405e407d031ed25249d215648da3",
+  "sourceInputCount": 253,
+  "approvalStatus": "owner-accepted-experimental-beta",
+  "semanticApproved": false,
+  "modelVerdicts": [
+    {
+      "id": "hy-mt2-18-q8-plain-beta",
+      "verdict": "unverified"
+    },
+    {
+      "id": "hy-mt2-7b-q8-plain-beta",
+      "verdict": "unverified"
+    }
+  ],
+  "review": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-test-waiver-utc-source-review.json",
+    "sha256": "deecdcd7ff9c6afcc3698fcfb717dd6d137f265187da7ecd3695aabf191dc8c9"
+  },
+  "ownerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-test-waiver-utc-owner-supplement.json",
+    "sha256": "d7c4a22c3944594d1cd90ad9d30896f309286ad71fd06c7be7565ab2f19b6fe1"
+  },
+  "ownerTestWaiver": {
+    "path": "docs/dev/evidence/beta17-release/owner-test-waiver.json",
+    "sha256": "f383ff84a55b16381aa8c79af87e7f8dd2b3bb61724850b1c8865ad42de99285"
+  },
+  "exactReviewedSources": [
+    {
+      "path": "scripts/Build-Beta17Candidate.ps1",
+      "sha256": "32fca42823c1054fe0f67e2aa08fa28ebb4ffe6bd9bb59a9614f6b667c878ee2"
+    },
+    {
+      "path": "scripts/beta17-release-validation.mjs",
+      "sha256": "8586bd802f88edac739cb1ff5ed2645f015c8d882f1fc6d2cc20f5535393e5d0"
+    }
+  ],
+  "preservedPriorRecordByteIdentities": {
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-decision.json": "e1fe28c3ed6e5ca0ce5b351e9b0b8651890c71852c4a1a6d7254f0e560f0c1da",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-accepted-review.json": "a114aa063b4b8fbd044628447879c6d88df3705ab57ab4ef5637534afc51a3cf",
+    "docs/dev/evidence/beta17-release-preparation/approval-preparation.json": "b2e3a6abe26d3db5d340ce47dc3731745755122eb74e9c5f8b9e1c113b3347fb",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-owner-decision.json": "9c8243765c183f5b6230cdb2e26002135365c7bac861343109e2e36294d82dcd",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-source-review.json": "54a954511674b62d2a342bba643f90d59302ac9d983e168d71cdfe1eb7fd6572",
+    "docs/dev/evidence/beta17-release-preparation/final-source-review.json": "9914c5407aa8d5cfd26aefa635d2b3885eb4821a71369ab9a12d5bdafdad8f23",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-owner-supplement.json": "7d2ab86b0b026ad8950cbdcebbabd2c6320c68ddd4247e4a0570536a0d3d682f",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-source-review.json": "09dc7d7e16cf6155ea4a5521be68e06fe0572b8adf3d6ec01ad9d4324d6d6f6d",
+    "docs/dev/evidence/beta17-release-preparation/asset-reuse-source-review.json": "303913d337689911c1b7aaaaedbe262eb0dae4337438251c5d8f103ab04ff311",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-package-collection-owner-supplement.json": "e2d8507ca3ab71e9f3f11ab0a138e7b395c6960465a976da5bb249892d316b68",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-package-collection-source-review.json": "9f9b8821bcd91f035f8ffba7060ebf30aa7812748e15487b3af59690fa394ff9",
+    "docs/dev/evidence/beta17-release-preparation/package-collection-source-review.json": "aaa5bd8cb45906ebe4ab13c20dad6fae0cce23834dda06ab43db4b6f06ee8e73",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-test-waiver-owner-supplement.json": "af35c33d0922619d082aa589726194c884802862eb7fe5f2e2a9b588cf6a099b",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-test-waiver-source-review.json": "2653ac33c4088415e903f29ab9dacce43908124e6ccd32d00ed84518ea934351"
+  },
+  "priorRecordsPreserved": true,
+  "actualApprovalCheck": "passed",
+  "additionalTestsRun": 0,
+  "nativeSmokeOrStressRun": false,
+  "preservedCompletedValidation": {
+    "windowsRun": 37593717586,
+    "fullAppXamlBuild": "passed",
+    "affectedInfrastructurePassed": 46,
+    "affectedAppPassed": 39,
+    "skipped": 0
+  },
+  "knownFailedDiagnostic": {
+    "run": 37594272314,
+    "scope": "Legacy broad portable smoke (1000 lifecycle cycles plus other stress scenarios)",
+    "failure": "Wake mode ownership diagnostic failed before lifecycle cycles",
+    "status": "failed; not passed or retried",
+    "rootCauseQualification": "Baseline service/ownership/activation-host sources unchanged. Diagnostic can probe Classic host discoverability while the authority legally remains Compact during its existing hidden deadline. Combined error does not identify the observed branch; no actual user-path regression established."
+  },
+  "initialAcceptanceFormatFailure": {
+    "review": {
+      "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-test-waiver-source-review.json",
+      "sha256": "2653ac33c4088415e903f29ab9dacce43908124e6ccd32d00ed84518ea934351"
+    },
+    "message": "User acceptance time must be an explicit UTC timestamp",
+    "cause": "prepare accepted the original valid offset/microsecond timestamp, but the existing release gate requires whole-second UTC Z notation",
+    "status": "Original failed record preserved; no source or validation state altered to bypass the check."
+  },
+  "finalPackagingAndPublicationStillRequired": true
+}

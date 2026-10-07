@@ -1,7 +1,12 @@
 {
   "schemaVersion": 1,
-  "status": "owner-accepted-experimental-beta",
-  "reason": "Owner-authorized corrective release v0.3.1-beta.17; model inputs and historical evidence unchanged. See exact owner decision.",
+  "kind": "owner-accepted-experimental-beta",
+  "verdict": "owner-accepted-experimental-beta",
+  "semanticApproved": false,
+  "reviewedBy": "Local Codex, repository-owner-authorized v0.3.1-beta.17 source review",
+  "reviewedAt": "2026-10-07T08:52:07Z",
+  "expiresAt": "2026-10-14T08:52:07Z",
+  "summary": "Owner-authorized corrective release v0.3.1-beta.17; model inputs and historical evidence unchanged. See exact owner decision.",
   "scope": {
     "releaseVersion": "v0.3.1-beta.17",
     "shippingModels": [
@@ -2594,8 +2599,235 @@
       "sha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549"
     }
   },
-  "review": {
-    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-test-waiver-utc-source-review.json",
-    "sha256": "deecdcd7ff9c6afcc3698fcfb717dd6d137f265187da7ecd3695aabf191dc8c9"
+  "openDefects": [],
+  "acceptedLimitations": [
+    {
+      "id": "historical-300s-baseline-timeouts",
+      "kind": "latency",
+      "summary": "The prior 1.8B baseline English/Chinese full-song captures timed out at 300 seconds; complete 600-second cold/cache and AVX2 captures remain unexecuted."
+    },
+    {
+      "id": "unverified-model-semantics",
+      "kind": "quality",
+      "summary": "Neither shipping model has complete approved semantic validation; translation may change meaning, lose nuance or omit details."
+    },
+    {
+      "id": "optional-7b-validation-incomplete",
+      "kind": "latency",
+      "summary": "The optional 7B model has no completed full-song cold/cache or baseline/AVX2 validation; Windows performance and resource qualification remain unverified."
+    },
+    {
+      "id": "optional-cuda-matrix-unverified",
+      "kind": "quality",
+      "summary": "Minimal App-chain 1.8B CUDA Chinese translation succeeded on the development computer. Other GPUs, 7B CUDA, performance and general translation quality remain unverified."
+    }
+  ],
+  "userAcceptance": {
+    "reference": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-test-waiver-utc-owner-supplement.json",
+    "acceptedAt": "2026-10-07T08:45:41Z",
+    "releaseVersion": "v0.3.1-beta.17",
+    "acceptsIncompleteModelValidation": true,
+    "timestampMeaning": "Explicit owner authorization recorded in the linked decision; historical model observations unchanged."
+  },
+  "runtimeManifest": {
+    "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
+    "sha256": "b492e2f0413449d69e0e37536b941e9e30c2b31c692732a5385ae8c9c6f9deab"
+  },
+  "runtimeArtifact": {
+    "schemaVersion": 1,
+    "repository": "airanluo-dot/DropSpace",
+    "workflowPath": ".github/workflows/release.yml",
+    "runId": 37095011004,
+    "runAttempt": 1,
+    "headCommit": "643186a647fc60871eafb877de6ba7031f7df315",
+    "checkoutCommit": "a23a712a9494cc0ecc6047c96833db67c1e13c3d",
+    "artifactId": 11264582019,
+    "artifactName": "ai-candidate-runtime-37095011004-1",
+    "archiveSha256": "9d2b8086347172d12366c19872f815c00f99cc6a521c62f3d03929e575ebe941",
+    "files": [
+      {
+        "path": "LICENSE-llama.cpp",
+        "sha256": "03c07ba3cbfe0108dcbd5911d6d63f51754514abedb12b128a21a4c8cf316f35",
+        "bytes": 150940
+      },
+      {
+        "path": "llama-completion-avx2.exe",
+        "sha256": "3fc3bd789f4d5a48eea3674182bbb9908eb7f44ca264f8bbf11c4bab526b9783",
+        "bytes": 6858752
+      },
+      {
+        "path": "llama-completion.exe",
+        "sha256": "905b11566413d8892868e600374a6df807c5299c09deb137c6092a6dab761e4e",
+        "bytes": 6727680
+      },
+      {
+        "path": "llama-tokenize.exe",
+        "sha256": "e0e09ca62bc1c430abf81c5dc85cb226757018c3ab0406403dde9476080f4bc8",
+        "bytes": 6511104
+      },
+      {
+        "path": "plain-lyrics-worker-avx2.exe",
+        "sha256": "8de38b9286a5118b2559876f08f3fc000930df3c8c66b21b5de53fd82bee7851",
+        "bytes": 6797312
+      },
+      {
+        "path": "plain-lyrics-worker-vulkan.exe",
+        "sha256": "8c2d09ff61e1908fbc06896159520c75b84f8a0d9ec5b8b8a2d9428648cb68c2",
+        "bytes": 50860032
+      },
+      {
+        "path": "plain-lyrics-worker.exe",
+        "sha256": "872a4d0f4a37dc3a72bc0c095b5607c2b47182f3dcba0c57ba5fc98ff8e6e2ae",
+        "bytes": 6665728
+      },
+      {
+        "path": "runtime-manifest.json",
+        "sha256": "b492e2f0413449d69e0e37536b941e9e30c2b31c692732a5385ae8c9c6f9deab",
+        "bytes": 1930
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "hy-mt2-18-q8-plain-beta",
+      "sha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "bytes": 1908528192,
+      "verdict": "unverified",
+      "summary": "The historical Windows baseline full-song captures timed out after 32/43 English and 33/40 Chinese eligible segments at 300 seconds. No complete 600-second cold/cache or AVX2 semantic capture is available.",
+      "validation": [
+        {
+          "variant": "baseline",
+          "targetLanguage": "en",
+          "status": "timed-out",
+          "configuration": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/configuration.json",
+            "sha256": "7b59f4259fda442050b9e0f9ea3812512bdb5a646fddcb16cad0f8b3630194ea"
+          },
+          "runnerOutput": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/en.runner-output.json",
+            "sha256": "f55efdacaf52959249aa3433ca7c649659813b3e9f3c75ea5fcfe4d8355687b0"
+          },
+          "technicalResults": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/technical-results.json",
+            "sha256": "ff6307e9a0d0f3b950d6267b56bc2679d06950e236a6e4a5abe2d5f47a98901c"
+          },
+          "capturedWholeSongSeconds": 300,
+          "historicalRunId": 37091472691,
+          "current600SecondValidation": "not-run"
+        },
+        {
+          "variant": "baseline",
+          "targetLanguage": "zh-Hans",
+          "status": "timed-out",
+          "configuration": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/configuration.json",
+            "sha256": "7b59f4259fda442050b9e0f9ea3812512bdb5a646fddcb16cad0f8b3630194ea"
+          },
+          "runnerOutput": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/zh-Hans.runner-output.json",
+            "sha256": "836d9c833f0b286c3b3bd2bf54486fe38f63f610a452c61b570be53cb1a21703"
+          },
+          "technicalResults": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/technical-results.json",
+            "sha256": "ff6307e9a0d0f3b950d6267b56bc2679d06950e236a6e4a5abe2d5f47a98901c"
+          },
+          "capturedWholeSongSeconds": 300,
+          "historicalRunId": 37091472691,
+          "current600SecondValidation": "not-run"
+        },
+        {
+          "variant": "avx2",
+          "targetLanguage": "en",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        },
+        {
+          "variant": "avx2",
+          "targetLanguage": "zh-Hans",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        }
+      ],
+      "currentCeilingValidation": {
+        "wholeSongSeconds": 600,
+        "coldTargets": [],
+        "cacheTargets": [],
+        "status": "not-run",
+        "variants": [
+          "baseline",
+          "avx2"
+        ],
+        "targets": [
+          "en",
+          "zh-Hans"
+        ]
+      }
+    },
+    {
+      "id": "hy-mt2-7b-q8-plain-beta",
+      "sha256": "58b3ad55dd6f6fa08c695cddc34fb5f8f708a844f78ae10508071914b0ed67c0",
+      "bytes": 7981928896,
+      "verdict": "unverified",
+      "summary": "Complete cold/cache captures, CPU variants, translation quality and Windows resource/performance validation remain unverified.",
+      "validation": [
+        {
+          "variant": "baseline",
+          "targetLanguage": "en",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        },
+        {
+          "variant": "baseline",
+          "targetLanguage": "zh-Hans",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        },
+        {
+          "variant": "avx2",
+          "targetLanguage": "en",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        },
+        {
+          "variant": "avx2",
+          "targetLanguage": "zh-Hans",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        }
+      ],
+      "currentCeilingValidation": {
+        "wholeSongSeconds": 600,
+        "coldTargets": [],
+        "cacheTargets": [],
+        "status": "not-run",
+        "variants": [
+          "baseline",
+          "avx2"
+        ],
+        "targets": [
+          "en",
+          "zh-Hans"
+        ]
+      }
+    }
+  ],
+  "ownerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-test-waiver-utc-owner-supplement.json",
+    "sha256": "d7c4a22c3944594d1cd90ad9d30896f309286ad71fd06c7be7565ab2f19b6fe1"
+  },
+  "candidateValidation": {
+    "summary": "Release preparation only. No new tests or model validation claimed."
   }
 }
