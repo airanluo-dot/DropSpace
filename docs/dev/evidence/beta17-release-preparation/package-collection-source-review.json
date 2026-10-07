@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-07T08:24:43.543Z",
+  "releaseVersion": "v0.3.1-beta.17",
+  "sourceFingerprint": "eb12509659d5b43d7fdb45fb9a071b0b9ef59de4317b65c5deb2d4589081c1c2",
+  "sourceInputCount": 253,
+  "scope": "Single publisher collection input correction under existing authorization; actual corrected Windows package production is still required.",
+  "exactReviewedSource": {
+    "path": "scripts/Build-Beta17Candidate.ps1",
+    "sha256": "6ce1c5e9bb172936db44425b9c9cb28623a4eeb243a8aacef981a11523f51344"
+  },
+  "approvalStatus": "owner-accepted-experimental-beta",
+  "semanticApproved": false,
+  "modelVerdicts": [
+    {
+      "id": "hy-mt2-18-q8-plain-beta",
+      "verdict": "unverified"
+    },
+    {
+      "id": "hy-mt2-7b-q8-plain-beta",
+      "verdict": "unverified"
+    }
+  ],
+  "review": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-package-collection-source-review.json",
+    "sha256": "9f9b8821bcd91f035f8ffba7060ebf30aa7812748e15487b3af59690fa394ff9"
+  },
+  "ownerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-package-collection-owner-supplement.json",
+    "sha256": "e2d8507ca3ab71e9f3f11ab0a138e7b395c6960465a976da5bb249892d316b68"
+  },
+  "priorRecordByteIdentities": {
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-decision.json": "e1fe28c3ed6e5ca0ce5b351e9b0b8651890c71852c4a1a6d7254f0e560f0c1da",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-accepted-review.json": "a114aa063b4b8fbd044628447879c6d88df3705ab57ab4ef5637534afc51a3cf",
+    "docs/dev/evidence/beta17-release-preparation/approval-preparation.json": "b2e3a6abe26d3db5d340ce47dc3731745755122eb74e9c5f8b9e1c113b3347fb",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-owner-decision.json": "9c8243765c183f5b6230cdb2e26002135365c7bac861343109e2e36294d82dcd",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-source-review.json": "54a954511674b62d2a342bba643f90d59302ac9d983e168d71cdfe1eb7fd6572",
+    "docs/dev/evidence/beta17-release-preparation/final-source-review.json": "9914c5407aa8d5cfd26aefa635d2b3885eb4821a71369ab9a12d5bdafdad8f23",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-owner-supplement.json": "7d2ab86b0b026ad8950cbdcebbabd2c6320c68ddd4247e4a0570536a0d3d682f",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-source-review.json": "09dc7d7e16cf6155ea4a5521be68e06fe0572b8adf3d6ec01ad9d4324d6d6f6d",
+    "docs/dev/evidence/beta17-release-preparation/asset-reuse-source-review.json": "303913d337689911c1b7aaaaedbe262eb0dae4337438251c5d8f103ab04ff311"
+  },
+  "priorRecordsPreserved": true,
+  "actualApprovalCheck": "passed",
+  "focusedCorrectionEvidence": "docs/dev/evidence/beta17-release/package-collection-correction.json",
+  "correctedWindowsProducerPassed": false
+}

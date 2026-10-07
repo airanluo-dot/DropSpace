@@ -32,8 +32,15 @@ if ($LASTEXITCODE -ne 0) { throw 'Successful identical-tree PR validation is req
 & ./scripts/Build-IdentityPackage.ps1
 & ./scripts/Build-Installer.ps1
 Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe
-$packages = @(Get-ChildItem artifacts/msix -Recurse -File -Filter *.msix)
-if ($packages.Count -ne 1) { throw 'Expected one final MSIX package.' }
+. (Join-Path $PSScriptRoot 'ReleaseVersion.ps1')
+$releaseInfo = Get-DropSpaceReleaseInfo ((Get-Content RELEASE_VERSION -Raw).Trim())
+$expectedPrefix = "DropSpace.App_$($releaseInfo.PackageVersion)_"
+# The SDK also emits dependency packages. Match the same current App identity
+# already validated by Build-UnsignedPackage, including its AppX compatibility.
+$packages = @(Get-ChildItem artifacts/msix -Recurse -File | Where-Object {
+    $_.Extension -in '.msix', '.appx' -and $_.Name.StartsWith($expectedPrefix, [StringComparison]::OrdinalIgnoreCase)
+})
+if ($packages.Count -ne 1) { throw 'Expected one current DropSpace MSIX/AppX package.' }
 Copy-Item $packages[0].FullName artifacts/release/DropSpace-x64.msix
 Copy-Item artifacts/identity/DropSpace.Identity.msix artifacts/release/DropSpace.Identity.msix
 Copy-Item artifacts/cuda-runtime/win-x64/cuda-runtime-*.json artifacts/release

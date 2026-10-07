@@ -1,0 +1,20 @@
+{
+  "scope": "Beta17 package collection only",
+  "failedProducerRunId": 37592403853,
+  "actualMainPackage": "artifacts/msix/DropSpace.App_0.3.1.17_x64_Test/DropSpace.App_0.3.1.17_x64.msix",
+  "rootCause": "Candidate collected every recursive .msix instead of the current DropSpace App identity. SDK dependency packages must be excluded; the validated main package existed. AppX output was not observed in this run.",
+  "correction": "Derive current PackageVersion using existing ReleaseVersion.ps1; accept .msix/.appx only for the DropSpace.App current-version prefix; require exactly one candidate.",
+  "validation": {
+    "powerShellSyntax": "System.Management.Automation 7.5.4 Parser.ParseFile: zero parse errors",
+    "actualCollectorManagedFixtureCases": 4,
+    "actualCollectorManagedFixtureResults": [
+      "Current MSIX selected despite dependency and old-version packages",
+      "Current AppX selected with MSIX dependency present",
+      "Missing current-version package rejected",
+      "Two current-version candidates rejected"
+    ],
+    "scriptExecutionScope": "Extracted actual package collector ran in PowerShell runspace with mocked Get-ChildItem file records; no Windows package build or native smoke was run",
+    "diffCheck": "passed"
+  },
+  "remainingValidation": "Protected Windows PR build/tests and final-main packaging/native smoke remain required"
+}
