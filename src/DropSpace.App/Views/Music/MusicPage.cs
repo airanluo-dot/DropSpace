@@ -342,8 +342,7 @@ public sealed class MusicPage : UserControl
     {
         Padding = padding,
         CornerRadius = new CornerRadius(8),
-        Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-        BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        Style = (Style)Application.Current.Resources["DropSpaceCardStyle"],
         BorderThickness = new Thickness(1),
         Child = content,
     };

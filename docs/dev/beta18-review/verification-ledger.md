@@ -13,7 +13,10 @@ Pending.
 
 ## Build and production checks
 
-Pending.
+- PR107/108 required full Windows App/XAML compilation succeeded in runs [37643784243](https://github.com/airanluo-dot/DropSpace/actions/runs/37643784243) and [37644096871](https://github.com/airanluo-dot/DropSpace/actions/runs/37644096871). Zero test cases.
+- Website deployments after those merges succeeded in runs [37644230224](https://github.com/airanluo-dot/DropSpace/actions/runs/37644230224) and [37644488482](https://github.com/airanluo-dot/DropSpace/actions/runs/37644488482). Zero test cases.
+- Full source reads, frozen-manifest hash reconciliation, changed XML/JSON/YAML syntax checks and diff whitespace checks are source/production integrity checks. They execute zero functional test cases.
+- Final Beta18 compile, producer and publication remain pending.
 
 ## Unverified runtime behavior
 

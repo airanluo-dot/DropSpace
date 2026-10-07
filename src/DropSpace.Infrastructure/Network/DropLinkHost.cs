@@ -990,10 +990,12 @@ public sealed class DropLinkHost(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or OperationCanceledException or DbException)
         {
-            RollbackCompletedItems(receive);
+            // Published outputs are now visible in the user's Downloads folder and
+            // may have been edited or replaced. Retain their paths in the failed
+            // response; a path alone never grants custody to delete the current file.
             logger.LogWarning(
                 exception,
-                "DropLink transfer finalization failed for session {SessionId}; completed outputs were rolled back.",
+                "DropLink transfer finalization failed for session {SessionId}; published partial outputs were retained.",
                 receive.Session.Id);
             return await MarkFinalizationFailedAsync(receive, exception).ConfigureAwait(false);
         }
@@ -1174,34 +1176,14 @@ public sealed class DropLinkHost(
             ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
             File.Move(temporary, destination, overwrite: false);
             ownsTemporary = false;
-            ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
             receive.CompletedPaths.Enqueue(relative);
+            ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
         }
         catch
         {
             if (ownsTemporary) TryDelete(temporary);
             throw;
         }
-    }
-
-    private static void RollbackCompletedItems(ReceiveTransfer receive)
-    {
-        var residual = new List<string>();
-        while (receive.CompletedPaths.TryDequeue(out var relative))
-        {
-            try
-            {
-                var destination = ReparseSafePathPolicy.PrepareContainedFileDestination(receive.DestinationRoot, relative);
-                ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
-                if (File.Exists(destination)) File.Delete(destination);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
-            {
-                residual.Add(relative);
-                System.Diagnostics.Debug.WriteLine($"DropLink rollback deferred: {exception.GetType().Name}");
-            }
-        }
-        foreach (var relative in residual) receive.CompletedPaths.Enqueue(relative);
     }
 
     private static async Task<string> HashFileAsync(string path, CancellationToken cancellationToken)

@@ -54,7 +54,7 @@ public sealed class NetworkRoundTwoRegressionTests
     }
 
     [TestMethod]
-    public async Task FailedCompletionPersistenceRollsBackPublishedFilesAndReportsFailure()
+    public async Task FailedCompletionPersistencePreservesPublishedFilesAndReportsFailure()
     {
         await using var fixture = new HostFixture();
         var receive = await fixture.SeedAsync();
@@ -67,8 +67,8 @@ public sealed class NetworkRoundTwoRegressionTests
         }
         var result = await fixture.CompleteAsync(receive);
         Assert.AreEqual(TransferSessionState.Failed, result.State);
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.Destination, "empty.txt")));
-        Assert.AreEqual(0, result.CompletedRelativePaths.Count);
+        Assert.IsTrue(File.Exists(Path.Combine(fixture.Destination, "empty.txt")));
+        Assert.AreEqual("empty.txt", result.CompletedRelativePaths.Single());
     }
 
     [TestMethod]

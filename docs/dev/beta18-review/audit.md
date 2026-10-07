@@ -43,7 +43,7 @@ additional source inspection.
 | --- | --- | --- | --- |
 | 1 | `57474cd5ca02ad64bb2367cfb05bb94b74380b8c` | 424 files / 84,564 physical lines | [UI](round1-app-ui.md), [Services](round1-app-services.md), [Core](round1-core.md), [Infrastructure](round1-infrastructure.md), [integration](round1-root.md), [release](round1-release.md), [manifest](round1-source-manifest.json) |
 | 2 | `729d5b179f34ab2f852e7975f129431f77e8dc7a` | 425 files / 84,869 physical lines | [UI](round2-app-ui.md), [Services](round2-app-services.md), [Core](round2-core.md), [Infrastructure](round2-infrastructure.md), [integration](round2-root.md), [manifest](round2-source-manifest.json) |
-| 3 | Pending final round-2 fix commit | Pending fresh complete read | Not yet performed |
+| 3 | `f22bcc4bdd5c2d477a7880fe02c87f6035392ab9` | 425 files / 85,220 physical lines | [UI](round3-app-ui.md), [Services](round3-app-services.md), [Core](round3-core.md), [Infrastructure](round3-infrastructure.md), [root supplement](round3-root.md), [manifest](round3-source-manifest.json) |
 
 Round 1 repaired clipboard reload/capture publication and bounded live projection;
 hidden music rendering/seek lifetime; off-thread payload-store initialization;
@@ -54,13 +54,15 @@ output reservation ownership/partial-write failures; recent-query and staging
 recovery worker boundaries; and transient lease recovery failures. Integration
 follow-up preserved old fixed island appearance, bounded ASCII search-index work
 without changing Unicode normalization, and repaired the required CI outcome gate
-and the existing website scope helper. No measured speedup is claimed.
+and the existing website scope helper. Round 1 fixed 18 confirmed App/Core/Infrastructure/integration findings; release-routing fixes are recorded separately. No measured speedup is claimed.
 
 Round 2 reread all corrected and unchanged modules. Its new findings include live
 clipboard paging/group/removal publication boundaries, stale navigation and hidden
 settings work, failed overlay construction lifetime and tray-independent theme
 updates, provider target-language completeness and bounded local pairing cleanup.
-Services also fixed retryable device-secret reads, EXIF image geometry, dispatcher-bound image preflight, actual hotkey transaction ownership, retired OLE callbacks, final volume snapshot coalescing and dispatcher-bound NetEase native calls. All 16 new App findings are fixed in source; round 3 has not yet begun.
+Services also fixed retryable device-secret reads, EXIF image geometry, dispatcher-bound image preflight, actual hotkey transaction ownership, retired OLE callbacks, final volume snapshot coalescing and dispatcher-bound NetEase native calls. All 16 new App findings are fixed in source.
+
+Round 3 reread the entire second-round-corrected source. Five new confirmed findings concern hidden widgets doing visual work, programmatic card brushes bypassing the island theme, monitor-edge OLE probe geometry, unbounded DropLink response buffering and path-only rollback deleting user replacements of published outputs. All five are fixed; their individual reports record the changes and source-only verification. No further confirmed Core issue was found. [Final feature checks](round3-feature-final-static.md) cover the selected cases and state/persistence boundaries. The subsequently authorized [lyrics empty-state wording](round3-lyrics-empty-state.md) uses “无匹配歌词” / “No matching lyrics” only for NotFound, retaining the retry message for genuine Failed; the existing state pipeline was traced and the two resource edits received final delta review. The user identified the reported animation/glow behavior as the reduced-motion setting and canceled those two bug requests; their existing renderers are retained.
 
 ## Verification and remaining limits
 
@@ -81,6 +83,8 @@ qualification remains incomplete; models, native worker bytes and the independen
 CUDA archive are unchanged. A second native drop at a target busy importing accepted
 virtual files is rejected and can be retried after completion; bounded ownership
 prevents the prior accepted import from being canceled.
+
+The [final release-route review](round3-release-final.md) also repaired an automatic CUDA-contract job that would have exceeded the budget; exact Beta18 now checks actual component metadata binding without running the unrelated fixture suites. Original tests remain intact, including the existing receive-finalization case updated to the safe preserved-file contract.
 
 Public release, package and website verification remain pending. The next public
 App version will be checked again immediately before preparation and publication.

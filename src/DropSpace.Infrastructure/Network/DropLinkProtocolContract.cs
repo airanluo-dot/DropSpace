@@ -75,9 +75,13 @@ public static class DropLinkProtocolPolicy
     public const int BodyHashBytes = 32;
     public const int BodyHashHexLength = BodyHashBytes * 2;
     public const int MaximumPairingBodyBytes = 64 * 1024;
+    public const int MaximumUnauthenticatedResponseBytes = MaximumPairingBodyBytes;
     // The manifest carries the negotiated chunk size. The middleware must allow the complete
     // protocol range before the endpoint validates the per-transfer value.
     public const int MaximumAuthenticatedBodyBytes = 16 * 1024 * 1024 + 64 * 1024;
+    // Status replies carry chunk indices and completed paths, but no file bytes.
+    // Bound eager HTTP buffering before any JSON response is deserialized.
+    public const int MaximumAuthenticatedResponseBytes = MaximumAuthenticatedBodyBytes;
     // byte[] is encoded as Base64 in the clipboard JSON; retain the smaller
     // transfer/hand-off budget for every other authenticated endpoint.
     public const int MaximumClipboardBodyBytes = (int)(((ClipboardEnvelopePolicy.HardImageLimitBytes + 2) / 3) * 4 + 64 * 1024);

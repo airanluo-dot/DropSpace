@@ -70,13 +70,13 @@ public sealed class WidgetEditorView : UserControl
             for (var row = 0; row < WidgetLayoutPolicy.Rows; row++)
             for (var column = 0; column < WidgetLayoutPolicy.Columns; column++)
             {
-                var cell = new Border { BorderThickness = new(1), BorderBrush = Brush("CardStrokeColorDefaultBrush"), Background = Brush("ControlFillColorSecondaryBrush"), CornerRadius = new(8) };
+                var cell = new Border { BorderThickness = new(1), Style = ThemeStyle("DropSpaceWidgetEditorCellStyle"), CornerRadius = new(8) };
                 Grid.SetColumn(cell, column); Grid.SetRow(cell, row); _grid.Children.Add(cell);
             }
         }
         if (!_grid.Children.Contains(_dropPreview))
         {
-            _dropPreview.BorderBrush = Brush("AccentFillColorDefaultBrush");
+            _dropPreview.Style = ThemeStyle("DropSpaceWidgetEditorDropPreviewStyle");
             Canvas.SetZIndex(_dropPreview, 99);
             _grid.Children.Add(_dropPreview);
         }
@@ -96,7 +96,7 @@ public sealed class WidgetEditorView : UserControl
                 button.HorizontalAlignment = HorizontalAlignment.Stretch; button.VerticalAlignment = VerticalAlignment.Stretch;
                 button.Click += (_, _) => { if (_suppressClicks.Remove(placement.Id)) return; _selectedId = placement.Id; RefreshSelection(); };
                 _placedButtons[placement.Id] = button;
-                button.Background = Brush("ControlFillColorDefaultBrush");
+                button.Style = ThemeStyle("DropSpaceWidgetEditorButtonStyle");
                 _grid.Children.Add(button);
             }
             Grid.SetColumn(button, placement.Column); Grid.SetRow(button, placement.Row); Grid.SetColumnSpan(button, placement.ColumnSpan); Grid.SetRowSpan(button, placement.RowSpan);
@@ -127,7 +127,7 @@ public sealed class WidgetEditorView : UserControl
             _library.RowDefinitions.Add(new());
             for (var column = 0; column < WidgetLayoutPolicy.Columns; column++)
             {
-                var cell = new Border { BorderThickness = new(1), BorderBrush = Brush("CardStrokeColorDefaultBrush"), Background = Brush("ControlFillColorSecondaryBrush"), CornerRadius = new(8), IsHitTestVisible = false };
+                var cell = new Border { BorderThickness = new(1), Style = ThemeStyle("DropSpaceWidgetEditorCellStyle"), CornerRadius = new(8), IsHitTestVisible = false };
                 Grid.SetColumn(cell,column); Grid.SetRow(cell,row); _library.Children.Add(cell);
             }
         }
@@ -231,7 +231,7 @@ public sealed class WidgetEditorView : UserControl
         {
             var selected = id == _selectedId;
             button.BorderThickness = new Thickness(selected ? 3 : 1);
-            button.BorderBrush = Brush(selected ? "AccentFillColorDefaultBrush" : "ControlStrokeColorDefaultBrush");
+            button.Style = ThemeStyle(selected ? "DropSpaceWidgetEditorSelectedButtonStyle" : "DropSpaceWidgetEditorButtonStyle");
             AutomationProperties.SetItemStatus(button, selected ? _strings.Get("WidgetSelected") : string.Empty);
             if (button.Content is StackPanel content && content.Children.LastOrDefault() is TextBlock label)
                 label.FontWeight = selected ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
@@ -245,7 +245,7 @@ public sealed class WidgetEditorView : UserControl
         foreach (var size in WidgetCatalog.Sizes(placement.Id))
         {
             var selected = size.Columns == placement.ColumnSpan && size.Rows == placement.RowSpan;
-            var shape = new Border { Width = size.Columns * 16, Height = size.Rows * 16, CornerRadius = new(4), Background = Brush(selected ? "AccentFillColorDefaultBrush" : "ControlFillColorSecondaryBrush"), BorderThickness = new(1), BorderBrush = Brush("ControlStrokeColorDefaultBrush") };
+            var shape = new Border { Width = size.Columns * 16, Height = size.Rows * 16, CornerRadius = new(4), Style = ThemeStyle(selected ? "DropSpaceWidgetEditorSelectedSizeStyle" : "DropSpaceWidgetEditorSizeStyle"), BorderThickness = new(1) };
             var choose = new Button { Content = shape, Padding = new(6), MinWidth = 0, BorderThickness = new(selected ? 2 : 1) };
             var label = _strings.Get("WidgetSize") + $" {size.Columns} × {size.Rows}";
             AutomationProperties.SetName(choose,label); ToolTipService.SetToolTip(choose,label);
@@ -333,5 +333,5 @@ public sealed class WidgetEditorView : UserControl
         if (saved && _selectedId == id) { _selectedId = null; RefreshSelection(); }
     }
     private string WidgetName(NativeWidgetId id) => _strings.Get(id == NativeWidgetId.Settings ? "WidgetSettingsName" : "Widget" + id + ".Text");
-    private static Brush Brush(string key) => (Brush)Application.Current.Resources[key];
+    private static Style ThemeStyle(string key) => (Style)Application.Current.Resources[key];
 }

@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Views.Settings;
 
@@ -80,7 +79,7 @@ public sealed class SettingsForm : UserControl
         body.Children.Add(new TextBlock { Text = _strings.Get(key), TextWrapping = TextWrapping.Wrap });
         body.Children.Add(panel);
         Rows.Children.Add(new Border { CornerRadius = new(8), Padding = new(14, 10, 14, 10),
-            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"], Child = body });
+            Style = (Style)Application.Current.Resources["DropSpaceCardStyle"], Child = body });
         uint? pointer = null;
         _refresh.Add(() =>
         {
@@ -121,7 +120,7 @@ public sealed class SettingsForm : UserControl
         grid.ColumnDefinitions.Add(new()); grid.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         grid.Children.Add(new TextBlock { Text = _strings.Get(key), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
         Grid.SetColumn(control, 1); grid.Children.Add(control);
-        Rows.Children.Add(new Border { CornerRadius = new(8), Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"], Child = grid });
+        Rows.Children.Add(new Border { CornerRadius = new(8), Style = (Style)Application.Current.Resources["DropSpaceCardStyle"], Child = grid });
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Refresh(); }
     private void Refresh() { _syncing = true; try { foreach (var refresh in _refresh) refresh(); } finally { _syncing = false; } }

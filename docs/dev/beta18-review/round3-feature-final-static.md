@@ -1,0 +1,36 @@
+# Round 3 — final appearance and content-priority static check
+
+Source checkpoint: `f22bcc4bdd5c2d477a7880fe02c87f6035392ab9`, including the appearance/content-priority feature and sequential R1/R2 fixes. This checks the already selected test source and shipping feature callers; it adds or executes no cases. The user resolved the animation/glow symptom as reduced visual effects and canceled that focused investigation. Its historical supplement ends with that closure; no animation/glow change follows from it.
+
+## Selected-case relevance
+
+The exact final-main filter in `scripts/beta18-release-validation.mjs:13` selects `IslandContentPriorityTests` and `IslandAppearanceSettingsTests`; the configured count is eight, against the unchanged original denominator of 2,124 (hard maximum 21). Both files were read completely. They contain exactly eight `[TestMethod]` methods and no data expansion. The producer invokes the selected Core project once, checks real TRX executed/passed counts against eight, and has no automatic retest or full-suite fallback. None of those commands was invoked here.
+
+| Selected existing new case | Static coverage |
+|---|---|
+| `OlderSettingsKeepAppearanceAndInvalidChoicesRecoverLocally` | Legacy Dark preservation when the independent field is absent; fresh Follow/System; Music default; invalid island-theme/priority recovery; unrelated scale/main-theme retention. |
+| `OverlappingFormsPreserveIndependentAppearanceAndPriorityThroughSerialization` | Independent island/main appearance, priority and scale/lyrics/activity merge; serialization roundtrip; later stale main edit does not replace island choices. |
+| `DefaultMusicAppliesToCompactExpandedAndPlaybackFallback` | Music default for compact/expanded, paused fallback to files, resumed playback with expanded presentation retained. |
+| `RestoredTemporarySpacePriorityUsesAvailableContentInBothPresentations` | Saved Temporary Space priority before projections, availability fallback in compact/expanded and clearing/restoring content. |
+| `ManualMusicChoiceSurvivesRefreshPlayerChangesPauseAndReopenUntilUnavailable` | Explicit Music selection across passive reconcile, changed player/song identity, pause, collapse/reopen; release when media becomes unavailable. |
+| `ManualFilesChoiceSurvivesAddRefreshAndCollapseButClearingRestoresMusic` | Explicit Files selection across media/file refresh, additions and collapse/reopen; release on clear, without restoring a retired choice when files return. |
+| `DragPreviewAndDropRetainTheChosenPageWithoutLosingFileDropOwnership` | Expanded-drop and DragReady force Files during the drag; retained Music choice resumes after drop/preview and on reopen. |
+| `PriorityChangeImmediatelyResetsChoiceWhileRepeatedSettingsAndActivitiesDoNot` | Same-value settings preserve manual page; notification temporarily overrides content; changed default applies immediately; subsequent manual choices remain authoritative. |
+
+These are meaningful focused coverage of the new Core rules rather than checks that merely count fields. Their actual runtime results remain unestablished until the authorized final producer. They do not directly exercise WinUI theme resources, Windows Custom mode, real player notifications, real lyric completion, native Shell drag, or asynchronous UI expansion. The migration case has no explicit assertion for an already-present independent island-theme field and no separate legacy Light assertion; those branches were source-checked below rather than silently claimed as tested.
+
+## Follow Windows and migration source trace
+
+Fresh `IslandAppearanceSettings.Theme` defaults to `ThemePreference.System` (`Core/Models/NativeIslandSettings.cs:60`). `OverlayWindow.ApplyTheme` maps System to `ElementTheme.Default` and Light/Dark to local root overrides (`App/OverlayWindow.xaml.cs:329`). `App.xaml` does not override application RequestedTheme; the main window changes only its own root (`MainWindow.xaml.cs:178`). Thus Follow retains the application's existing WinUI Windows **app appearance** source, including the distinction from Windows system/taskbar appearance, and remains independent of a manual main-window choice. There is no direct `AppsUseLightTheme` registry read in application source: that source is delegated to WinUI. This source trace supports retaining the existing mechanism and does not claim an observed registry value or Custom-mode Windows result.
+
+`IslandAppearanceMigration.Apply` preserves an explicitly present independent Theme (case-insensitive raw presence check), otherwise maps a valid old main preference once; invalid old values recover to System. Normal load and update/raw load both apply it (`Infrastructure/Settings/JsonSettingsService.cs:74,231`); normal load saves the migrated record. Fresh missing-file settings stay Follow. Independent merge/validation does not couple island Theme to later main Theme edits. Current settings notifications and rebuilt monitor windows use `MediaViewModel.Settings.IslandAppearance.Theme` (`App/Services/OverlayWindowService.cs:650,967`). R1 added the migration; the R2 changes read here do not alter its policy or replace Follow's native source.
+
+## Manual priority and caller source trace
+
+`IslandExperienceCoordinator` owns `_pageSelected`. Same-value `UpdateContentPriority` returns immediately; changed priority is an explicit action and clears the override. Passive `UpdateMedia` retains it through changed player/song identity and pause, releasing a Music choice only when available content disappears. Passive `UpdateFiles` releases a Files choice only when the previous nonempty content becomes empty. `Open(null)`, Collapse and repeated Reconcile retain the selection. Presence policy forces Files for DragApproaching/DragReady/expanded-drop presentation without mutating the coordinator's chosen page, so the choice resumes afterward (`Core/Island/IslandExperienceCoordinator.cs:26–113`; `IslandPresencePolicy.cs:21–31`).
+
+Only the overlay's explicit previous/next buttons call `SelectPage` in App source (`OverlayWindow.xaml.cs:2049,2060`). Lyric source/progress/final/frame paths update the media presentation; they do not select pages. Media metadata publication calls `UpdateMedia`; settings forward `UpdateContentPriority` only when the actual shared preference changes (`MediaExperienceService.cs:396`; `OverlayViewModel.cs:488`; `OverlayWindowService.cs:693`). Compact expansion calls `Open()` and fences continuation after its await; collapse does not reset the content override (`OverlayWindow.xaml.cs:1980–2000,2044`). The feature's coordinator/presence/selection-policy bytes were not changed by R1/R2. No newly confirmed regression in these two functional paths was established.
+
+## Limits and final status
+
+**Executed test cases: 0.** No tests, fixtures, probes, build, app/native execution, production edits, remote mutations or commits. Read-only source/diff/caller inspection and `git diff --check` completed; that whitespace check produced no errors. Selected tests were assessed, not run. Windows app-theme behavior and the native/UI interactions above still require runtime evidence beyond this static check; no additional validation or rewrite was introduced.

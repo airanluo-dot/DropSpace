@@ -15,6 +15,10 @@ public sealed partial class WidgetsExpandedView : UserControl
     private readonly Dictionary<NativeWidgetId, WidgetPlacement> _placements = [];
     private readonly Dictionary<NativeWidgetId, Button> _timerButtons = [];
     private Button? _stopwatchButton, _clipboardButton;
+    private bool _active;
+    private bool _subscribed;
+    private bool _structureDirty = true;
+    private bool _dataDirty = true;
     public event EventHandler? SettingsRequested;
     public event EventHandler? PinnedRequested;
     public WidgetsExpandedView()
@@ -27,13 +31,75 @@ public sealed partial class WidgetsExpandedView : UserControl
     public WidgetViewModel? ViewModel
     {
         get => _view;
-        set { if (_view is not null) _view.PropertyChanged -= OnChanged; _view = value; if (IsLoaded && value is not null) value.PropertyChanged += OnChanged; Rebuild(); }
+        set
+        {
+            if (ReferenceEquals(_view, value)) return;
+            Unsubscribe();
+            _view?.SetVisible(this, false);
+            _view = value;
+            if (IsLoaded) Subscribe();
+            _view?.SetVisible(this, _active && IsLoaded);
+            _structureDirty = true;
+            RenderPending();
+        }
     }
-    public void SetActive(bool active) => _view?.SetVisible(this, active);
-    private void OnLoaded(object sender, RoutedEventArgs args) { if (_view is not null) _view.PropertyChanged += OnChanged; Rebuild(); }
-    private void OnUnloaded(object sender, RoutedEventArgs args) { if (_view is not null) { _view.PropertyChanged -= OnChanged; _view.SetVisible(this, false); } }
+    public void SetActive(bool active)
+    {
+        _active = active;
+        _view?.SetVisible(this, active && IsLoaded);
+        RenderPending();
+    }
+    private void OnLoaded(object sender, RoutedEventArgs args)
+    {
+        Subscribe();
+        _view?.SetVisible(this, _active);
+        // Settings may have changed while the unloaded view was unsubscribed.
+        _structureDirty = true;
+        RenderPending();
+    }
+    private void OnUnloaded(object sender, RoutedEventArgs args)
+    {
+        Unsubscribe();
+        _view?.SetVisible(this, false);
+        _structureDirty = true;
+        _dataDirty = true;
+    }
+    private void Subscribe()
+    {
+        if (_subscribed || _view is null) return;
+        _view.PropertyChanged += OnChanged;
+        _subscribed = true;
+    }
+    private void Unsubscribe()
+    {
+        if (_subscribed && _view is not null) _view.PropertyChanged -= OnChanged;
+        _subscribed = false;
+    }
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
-    { if (args.PropertyName is nameof(WidgetViewModel.Snapshot) or nameof(WidgetViewModel.StopwatchText) or nameof(WidgetViewModel.ClipboardPauseLabel)) RenderData(); else Rebuild(); }
+    {
+        if (args.PropertyName is nameof(WidgetViewModel.Snapshot) or nameof(WidgetViewModel.StopwatchText) or nameof(WidgetViewModel.ClipboardPauseLabel))
+            _dataDirty = true;
+        else
+            _structureDirty = true;
+        RenderPending();
+    }
+    private void RenderPending()
+    {
+        // Collapsing the native host or an ancestor does not unload this view.
+        // Retain invalidation until this particular host presents Widgets again.
+        if (!_active || !IsLoaded) return;
+        if (_structureDirty)
+        {
+            Rebuild();
+            _structureDirty = false;
+            _dataDirty = false;
+        }
+        else if (_dataDirty)
+        {
+            RenderData();
+            _dataDirty = false;
+        }
+    }
     private void Rebuild()
     {
         Tiles.Children.Clear(); _timerButtons.Clear(); _values.Clear(); _placements.Clear(); _stopwatchButton = null; _clipboardButton = null;

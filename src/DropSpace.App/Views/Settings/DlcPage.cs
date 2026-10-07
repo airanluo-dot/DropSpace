@@ -7,7 +7,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Views.Settings;
 
@@ -228,8 +227,7 @@ public sealed class DlcPage : UserControl
             Content = new Border
             {
                 Padding = new(16), CornerRadius = new(8), BorderThickness = new(1),
-                Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-                BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+                Style = (Style)Application.Current.Resources["DropSpaceCardStyle"],
                 Child = body,
             };
         }

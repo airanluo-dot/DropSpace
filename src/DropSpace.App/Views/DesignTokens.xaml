@@ -54,6 +54,35 @@
   <x:Double x:Key="DropSpaceOverlayCompactWidth">340</x:Double>
   <x:Double x:Key="DropSpaceOverlayCompactHeight">64</x:Double>
   <CornerRadius x:Key="DropSpaceOverlayRadius">32</CornerRadius>
+  <!-- ThemeResource setters resolve for the destination control, including window theme overrides. -->
+  <Style x:Key="DropSpaceCardStyle" TargetType="Border">
+    <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+  </Style>
+  <Style x:Key="DropSpaceSecondaryTextStyle" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+  </Style>
+  <Style x:Key="DropSpaceWidgetEditorCellStyle" TargetType="Border">
+    <Setter Property="Background" Value="{ThemeResource ControlFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+  </Style>
+  <Style x:Key="DropSpaceWidgetEditorDropPreviewStyle" TargetType="Border">
+    <Setter Property="BorderBrush" Value="{ThemeResource AccentFillColorDefaultBrush}" />
+  </Style>
+  <Style x:Key="DropSpaceWidgetEditorButtonStyle" TargetType="Button">
+    <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}" />
+  </Style>
+  <Style x:Key="DropSpaceWidgetEditorSelectedButtonStyle" TargetType="Button" BasedOn="{StaticResource DropSpaceWidgetEditorButtonStyle}">
+    <Setter Property="BorderBrush" Value="{ThemeResource AccentFillColorDefaultBrush}" />
+  </Style>
+  <Style x:Key="DropSpaceWidgetEditorSizeStyle" TargetType="Border">
+    <Setter Property="Background" Value="{ThemeResource ControlFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}" />
+  </Style>
+  <Style x:Key="DropSpaceWidgetEditorSelectedSizeStyle" TargetType="Border" BasedOn="{StaticResource DropSpaceWidgetEditorSizeStyle}">
+    <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}" />
+  </Style>
   <Style x:Key="DropSpaceOverlayWidgetTileStyle" TargetType="Border">
     <Setter Property="Background" Value="{ThemeResource ControlFillColorSecondaryBrush}" />
   </Style>

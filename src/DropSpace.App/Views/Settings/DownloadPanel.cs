@@ -7,7 +7,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Views.Settings;
 
@@ -290,8 +289,8 @@ public sealed class DownloadPanel : UserControl
     private static Border Card(UIElement body) => new()
     {
         Padding = new(16), CornerRadius = new(8), BorderThickness = new(1),
-        Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-        BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], Child = body,
+        Style = (Style)Application.Current.Resources["DropSpaceCardStyle"],
+        Child = body,
     };
     private sealed class TaskCard : UserControl
     {

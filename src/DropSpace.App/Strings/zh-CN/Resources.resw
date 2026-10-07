@@ -514,7 +514,7 @@
   <data name="WidgetLeft" xml:space="preserve"><value>左侧</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>启用歌词</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>正在加载歌词……</value></data>
-  <data name="LyricsNotFound" xml:space="preserve"><value>没有找到已验证属于当前歌曲的歌词。</value></data>
+  <data name="LyricsNotFound" xml:space="preserve"><value>无匹配歌词</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>歌词暂时无法加载，请点击刷新重试。</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>无法在此放置小组件，请拖到网格单元格或使用位置设置。</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>移除小组件</value></data>

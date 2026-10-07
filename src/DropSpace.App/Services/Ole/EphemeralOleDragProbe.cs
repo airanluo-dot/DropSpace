@@ -214,11 +214,14 @@ internal sealed class EphemeralOleDragProbe : IDisposable
             }
 
             var center = _options.OuterSizePixels / 2;
+            var pointerX = _origin.X - bounds.Left;
+            var pointerY = _origin.Y - bounds.Top;
             var ringInset = Math.Max(1, (_options.OuterSizePixels - _options.CenterHolePixels) / 4);
+            var ringX = pointerX < center ? _options.OuterSizePixels - ringInset - 1 : ringInset;
             return bounds.Left + center == _probeCenter.X &&
                    bounds.Top + center == _probeCenter.Y &&
-                   !PtInRegion(region, center, center) &&
-                   PtInRegion(region, ringInset, center);
+                   !PtInRegion(region, pointerX, pointerY) &&
+                   PtInRegion(region, ringX, center);
         }
         finally
         {
@@ -311,12 +314,16 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     private void ApplyHollowRegion()
     {
         var outer = CreateRectRgn(0, 0, _options.OuterSizePixels, _options.OuterSizePixels);
-        var holeLeft = (_options.OuterSizePixels - _options.CenterHolePixels) / 2;
+        var centeredHoleOffset = (_options.OuterSizePixels - _options.CenterHolePixels) / 2;
+        // Keep the hole around the actual cursor when the outer square is clamped inward.
+        // Subtracting it from the outer region clips the hole at monitor edges and corners.
+        var holeLeft = centeredHoleOffset + _origin.X - _probeCenter.X;
+        var holeTop = centeredHoleOffset + _origin.Y - _probeCenter.Y;
         var inner = CreateRectRgn(
             holeLeft,
-            holeLeft,
+            holeTop,
             holeLeft + _options.CenterHolePixels,
-            holeLeft + _options.CenterHolePixels);
+            holeTop + _options.CenterHolePixels);
         if (outer == nint.Zero || inner == nint.Zero)
         {
             if (outer != nint.Zero)

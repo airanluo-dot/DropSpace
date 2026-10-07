@@ -514,7 +514,7 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>Left</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Loading lyrics…</value></data>
-  <data name="LyricsNotFound" xml:space="preserve"><value>No verified lyrics found for this track.</value></data>
+  <data name="LyricsNotFound" xml:space="preserve"><value>No matching lyrics</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>Lyrics are temporarily unavailable. Select Refresh to try again.</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>This widget could not be dropped here. Try a grid cell or use the position controls.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>

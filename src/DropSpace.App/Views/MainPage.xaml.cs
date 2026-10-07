@@ -1902,7 +1902,7 @@ public sealed partial class MainPage : Page
         QuickActionsSettingsPanel.Children.Add(new TextBlock
         {
             Text = _strings.Get("QuickActionsDescription"),
-            Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray),
+            Style = (Style)Application.Current.Resources["DropSpaceSecondaryTextStyle"],
             TextWrapping = TextWrapping.Wrap,
         });
 

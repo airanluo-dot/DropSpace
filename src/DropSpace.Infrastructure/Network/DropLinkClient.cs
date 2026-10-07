@@ -353,7 +353,9 @@ public sealed class DropLinkClient(
         try
         {
             var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            return new AuthenticatedClient(CreateClient(endpoint, peer.IdentityFingerprint), peer.Id, identity.DeviceId, secret);
+            return new AuthenticatedClient(
+                CreateClient(endpoint, peer.IdentityFingerprint, DropLinkProtocolPolicy.MaximumAuthenticatedResponseBytes),
+                peer.Id, identity.DeviceId, secret);
         }
         catch
         {
@@ -394,7 +396,10 @@ public sealed class DropLinkClient(
         return request;
     }
 
-    private static HttpClient CreateClient(Uri endpoint, string fingerprint)
+    private static HttpClient CreateClient(
+        Uri endpoint,
+        string fingerprint,
+        int maximumResponseBytes = DropLinkProtocolPolicy.MaximumUnauthenticatedResponseBytes)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         if (endpoint.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(endpoint.UserInfo) ||
@@ -416,7 +421,12 @@ public sealed class DropLinkClient(
                 return string.Equals(actual, normalized, StringComparison.OrdinalIgnoreCase);
             },
         };
-        return new HttpClient(handler) { BaseAddress = new Uri(endpoint.ToString().TrimEnd('/') + "/"), Timeout = TimeSpan.FromMinutes(10) };
+        return new HttpClient(handler)
+        {
+            BaseAddress = new Uri(endpoint.ToString().TrimEnd('/') + "/"),
+            Timeout = TimeSpan.FromMinutes(10),
+            MaxResponseContentBufferSize = maximumResponseBytes,
+        };
     }
 
     private static Task<List<SourceFile>> EnumerateFilesAsync(IReadOnlyList<string> sourcePaths, TransferLimits limits, CancellationToken cancellationToken) =>
