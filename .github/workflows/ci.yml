@@ -27,6 +27,7 @@ jobs:
     outputs:
       maintenance_only: ${{ steps.scope.outputs.maintenance_only }}
       release_version: ${{ steps.scope.outputs.release_version }}
+      isolated_beta: ${{ steps.scope.outputs.isolated_beta }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Classify complete maintenance diff
@@ -37,6 +38,9 @@ jobs:
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           import {execFileSync} from 'node:child_process';
+          import {isNextBetaRelease} from './scripts/next-beta-release-validation.mjs';
+          const tag=fs.readFileSync('RELEASE_VERSION','utf8').trim();
+          const isolatedBeta=['v0.3.1-beta.17','v0.3.1-beta.18'].includes(tag)||isNextBetaRelease(tag);
           let maintenance=false, websiteOnly=false;
           try {
             const base=process.env.BASE_SHA;
@@ -47,9 +51,9 @@ jobs:
             websiteOnly=names.length>0&&names.some(n=>n.startsWith('website/'))&&names.every(n=>n.startsWith('website/')||n==='.github/workflows/ci.yml');
             maintenance=websiteOnly||(names.length>0&&names.every(n=>allowed.has(n)));
             // Exact corrective Betas require complete App-input comparison and immutable asset binding.
-            if(!websiteOnly&&['v0.3.1-beta.15','v0.3.1-beta.16','v0.3.1-beta.17','v0.3.1-beta.18'].includes(fs.readFileSync('RELEASE_VERSION','utf8').trim()))maintenance=false;
+            if(!websiteOnly&&(isolatedBeta||['v0.3.1-beta.15','v0.3.1-beta.16'].includes(tag)))maintenance=false;
           } catch(e) { maintenance=false; websiteOnly=false; console.log(e.message); }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\nrelease_version=${fs.readFileSync('RELEASE_VERSION','utf8').trim()}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\nrelease_version=${tag}\nisolated_beta=${isolatedBeta}\n`);
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,websiteOnly?'Website-only changes: no application binaries built, no application test pass claimed.\n':maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
           JS
       - name: Audit permanent passive test budget and workflow triggers
@@ -64,7 +68,7 @@ jobs:
       contents: write
       actions: read
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && !contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.change-scope.outputs.release_version)
+    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta != 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     outputs:
@@ -925,11 +929,11 @@ jobs:
 
   focused-windows:
     # The final required check verifies the selected producer's real outcome.
-    # Exact Beta17/Beta18 PRs compile only;
-    # final main packages. Beta18 runs its eight Core and two Infrastructure cases once.
+    # Historical Beta17/Beta18 routes stay immutable. New Beta PRs compile only;
+    # final main packages without unit/model suites; one installer payload scenario remains.
     name: Isolated Windows producer
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.change-scope.outputs.release_version)
+    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta == 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
@@ -942,9 +946,16 @@ jobs:
         shell: pwsh
         run: |
           $tag = (Get-Content RELEASE_VERSION -Raw).Trim()
+          $newBeta = $false
           if ($tag -ceq 'v0.3.1-beta.18') { $series = 'beta18'; $producer = 'Beta18'; $flags = ''; $verify = 'verify' }
           elseif ($tag -ceq 'v0.3.1-beta.17') { $series = 'beta17'; $producer = 'Beta17'; $flags = '-SkipTests'; $verify = 'verify-build-only' }
-          else { throw 'Unsupported isolated candidate route.' }
+          else {
+            & node --input-type=module -e "import {isNextBetaRelease} from './scripts/next-beta-release-validation.mjs'; if (!isNextBetaRelease(process.argv[1])) process.exit(1);" $tag
+            if ($LASTEXITCODE -ne 0) { throw 'Unsupported isolated candidate route.' }
+            $newBeta = $true
+            $series = 'next-beta'; $producer = 'NextBeta'; $flags = ''; $verify = 'verify'
+          }
+          "next_beta=$($newBeta.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "series=$series" >> $env:GITHUB_OUTPUT
           "build_script=scripts/Build-$($producer)Candidate.ps1" >> $env:GITHUB_OUTPUT
           "build_flags=$flags" >> $env:GITHUB_OUTPUT
@@ -955,6 +966,15 @@ jobs:
           dotnet-version: 10.0.401
           cache: true
           cache-dependency-path: Directory.Packages.props
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: steps.candidate-route.outputs.next_beta == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/_source/package-lock.json
+      - name: Install locked localization parser dependency
+        if: steps.candidate-route.outputs.next_beta == 'true'
+        run: npm ci --prefix website/_source --ignore-scripts
       - name: Locate successful same-tree merged PR build before final packaging
         if: github.event_name == 'workflow_dispatch'
         id: pr-validation
@@ -1011,7 +1031,7 @@ jobs:
           path: artifacts/${{ steps.candidate-route.outputs.series }}-pr-validation
       - name: Reuse verified language bytes from cache or existing Beta16 App
         shell: pwsh
-        run: ./scripts/Reuse-BundledLyricsLanguageModel.ps1
+        run: ./scripts/Reuse-BundledLyricsLanguageModel.ps1 -PrAssetDirectory "artifacts/${{ steps.candidate-route.outputs.series }}-pr-validation"
       - name: Bind existing independent CUDA component metadata to this checkout
         run: python scripts/stage-reviewed-cuda-metadata.py --app-commit ${{ github.sha }}
       - name: Compile full Windows App and XAML without PR tests
@@ -1049,6 +1069,7 @@ jobs:
             artifacts/release/update-manifest.json
             artifacts/release/SHA256SUMS.txt
             artifacts/release/ci-release-receipt.json
+            artifacts/release/localization-publication.json
             artifacts/release/focused-validation.json
             artifacts/release/focused.trx
             artifacts/release/focused-infrastructure.trx
@@ -1081,6 +1102,7 @@ jobs:
           SCOPE_RESULT: ${{ needs.change-scope.result }}
           MAINTENANCE_ONLY: ${{ needs.change-scope.outputs.maintenance_only }}
           RELEASE_VERSION: ${{ needs.change-scope.outputs.release_version }}
+          ISOLATED_BETA: ${{ needs.change-scope.outputs.isolated_beta }}
           FOCUSED_RESULT: ${{ needs.focused-windows.result }}
           LEGACY_RESULT: ${{ needs.produce-windows.result }}
         run: |
@@ -1089,7 +1111,7 @@ jobs:
           if [[ "$MAINTENANCE_ONLY" == true ]]; then
             [[ "$FOCUSED_RESULT" == skipped && "$LEGACY_RESULT" == skipped ]]
             echo 'Maintenance-only source scope: no App build or functional test pass is claimed.' >> "$GITHUB_STEP_SUMMARY"
-          elif [[ "$RELEASE_VERSION" == v0.3.1-beta.17 || "$RELEASE_VERSION" == v0.3.1-beta.18 ]]; then
+          elif [[ "$ISOLATED_BETA" == true ]]; then
             [[ "$FOCUSED_RESULT" == success && "$LEGACY_RESULT" == skipped ]]
             echo 'The selected isolated Windows producer succeeded; see its recorded build and validation scope.' >> "$GITHUB_STEP_SUMMARY"
           else

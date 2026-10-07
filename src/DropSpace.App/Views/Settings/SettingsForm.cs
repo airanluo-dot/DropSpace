@@ -23,7 +23,7 @@ public sealed class SettingsForm : UserControl
         Loaded += (_, _) => { _editor.PropertyChanged += OnChanged; Refresh(); };
         Unloaded += async (_, _) => { _editor.PropertyChanged -= OnChanged; await _editor.FlushEditsAsync(); };
     }
-    public void AddHeading(string key) => Rows.Children.Add(new TextBlock { Text = _strings.Get(key), FontSize = 20, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new(0, 12, 0, 4) });
+    public void AddHeading(string key) => Rows.Children.Add(new TextBlock { Text = _strings.Get(key), FontSize = 20, TextWrapping = TextWrapping.Wrap, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new(0, 12, 0, 4) });
     public ToggleSwitch AddToggle(string key, Func<AppSettings, bool> read, Func<AppSettings, bool, AppSettings> write, Func<bool, Task<bool>>? beforeChange = null, Func<AppSettings, bool>? isEnabled = null)
     {
         var toggle = new ToggleSwitch(); AddRow(key, toggle);
@@ -67,7 +67,7 @@ public sealed class SettingsForm : UserControl
     {
         var slider = new Slider { Minimum = minimum, Maximum = maximum, StepFrequency = step, SmallChange = step,
             LargeChange = step, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+        var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
         var panel = new Grid { ColumnSpacing = 12, HorizontalAlignment = HorizontalAlignment.Stretch };
         panel.ColumnDefinitions.Add(new()); panel.ColumnDefinitions.Add(new() { Width = new GridLength(160) });
         panel.Children.Add(slider); Grid.SetColumn(label, 1); panel.Children.Add(label);

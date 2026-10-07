@@ -135,6 +135,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
                 UpdateMediaVisibility();
                 XamlResourceOverride.Apply(this, "MainWindow");
                 XamlResourceOverride.Apply(AppTitleBar, "MainTitleBar");
+                _tray?.SetPaused(_viewModel.IsClipboardPaused);
             });
         }
     }

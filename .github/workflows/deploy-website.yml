@@ -5,15 +5,24 @@ on:
     branches: [main]
     paths:
       - "website/**"
+      - "localization/**"
+      - "scripts/check-localization.mjs"
       - ".github/workflows/deploy-website.yml"
   pull_request:
     branches: [main]
     paths:
       - "website/**"
+      - "localization/**"
+      - "scripts/check-localization.mjs"
       - ".github/workflows/deploy-website.yml"
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      full_tests:
+        description: "Explicitly run diagnostic website suites (release refresh leaves this false)"
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -35,7 +44,7 @@ jobs:
         shell: bash
         run: |
           skip_tests=true
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then skip_tests=false; fi
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.full_tests }}" == "true" ]]; then skip_tests=false; fi
           echo "skip_tests=$skip_tests" >> "$GITHUB_OUTPUT"
           if [[ "$skip_tests" == true ]]; then
             echo 'Passive budget: website Node/Playwright suites skipped; build, deployment and published metadata verification remain.' >> "$GITHUB_STEP_SUMMARY"
@@ -67,7 +76,7 @@ jobs:
         if: steps.owner-waiver.outputs.skip_tests != 'true'
         working-directory: website/_source
         run: node --test scripts/*.test.mjs
-      - name: Install Chinese fonts for bilingual visual review
+      - name: Install fonts for explicitly requested visual review
         if: steps.owner-waiver.outputs.skip_tests != 'true'
         run: sudo apt-get update -qq && sudo apt-get install -y fonts-noto-cjk
       - name: Test language routes in a real browser

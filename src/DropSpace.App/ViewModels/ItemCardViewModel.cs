@@ -39,6 +39,8 @@ public sealed class ItemCardViewModel : ObservableObject
         }
     }
 
+    public void RefreshLanguage() => OnPropertyChanged(string.Empty);
+
     public Guid Id => Item.Id;
 
     public string Title => Item.Title;

@@ -17,33 +17,23 @@ public sealed class AppLanguageService
 
     public string EffectiveLanguageTag { get; private set; } = EnglishLanguageTag;
 
-    /// <summary>
-    /// The culture used for imperative strings. With the system choice selected, DropSpace has
-    /// Chinese resources for a Chinese Windows display language and falls back to English for
-    /// every other Windows display language.
-    /// </summary>
     public void Apply(AppLanguagePreference preference)
     {
-        Preference = preference;
-        // ApplicationLanguages.PrimaryLanguageOverride is unsupported for unpackaged Windows App
-        // SDK processes. ResourceStringLocalizer and XamlResourceOverride therefore use this
-        // effective tag through an explicit resource context for every display-language choice.
-        EffectiveLanguageTag = AppLanguagePolicy.ResolveEffectiveLanguageTag(
-            preference,
-            [CultureInfo.CurrentUICulture.Name]);
+        Preference = Enum.IsDefined(preference) ? preference : AppLanguagePreference.System;
+        // Explicit resource contexts also work for the portable, unpackaged app.
+        IReadOnlyList<string> languages;
+        try { languages = Windows.System.UserProfile.GlobalizationPreferences.Languages; }
+        catch (Exception) { languages = [CultureInfo.CurrentUICulture.Name]; }
+        EffectiveLanguageTag = AppLanguagePolicy.ResolveEffectiveLanguageTag(Preference, languages);
     }
 
     public static bool TryParseSupportedLanguage(string? value, out AppLanguagePreference preference)
     {
         var normalized = value?.Trim().ToLowerInvariant();
-        preference = normalized switch
-        {
-            "system" or "default" => AppLanguagePreference.System,
-            "en" or "en-us" => AppLanguagePreference.English,
-            "zh" or "zh-cn" or "zh-hans" => AppLanguagePreference.SimplifiedChinese,
-            _ => AppLanguagePreference.System,
-        };
-
-        return normalized is "system" or "default" or "en" or "en-us" or "zh" or "zh-cn" or "zh-hans";
+        preference = AppLanguagePreference.System;
+        if (normalized is "system" or "default") return true;
+        if (!AppLanguageCatalog.TryMatch(normalized, out var match)) return false;
+        preference = match.Preference;
+        return true;
     }
 }

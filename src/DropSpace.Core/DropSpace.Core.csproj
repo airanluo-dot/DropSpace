@@ -4,6 +4,7 @@
     <RootNamespace>DropSpace.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\..\localization\languages.json" LogicalName="DropSpace.Core.Localization.Languages.json" />
     <EmbeddedResource Include="Lyrics\Data\TSCharacters.txt" />
     <EmbeddedResource Include="Lyrics\Data\OpenCC-LICENSE.txt" />
   </ItemGroup>

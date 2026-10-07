@@ -1,0 +1,878 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- Offline interface resources. Original lyrics, model instructions and protocols are not translated. -->
+  <data name="AppDescription" xml:space="preserve"><value>ファイルとクリップボード履歴用のローカル一時ワークスペース。</value></data>
+  <data name="AppDisplayName" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="AppUpdated" xml:space="preserve"><value>DropSpace が {0} に更新されました。</value></data>
+  <data name="Bytes" xml:space="preserve"><value>{0:0} B</value></data>
+  <data name="ClearConfirmButton" xml:space="preserve"><value>クリア</value></data>
+  <data name="ClearConfirmContent" xml:space="preserve"><value>ピン留めされていないクリップボード項目を {0} 件削除します。ピン留めした項目は残り、一時スペース内の元のファイルには影響しません。</value></data>
+  <data name="ClearConfirmTitle" xml:space="preserve"><value>{0}をクリアしますか?</value></data>
+  <data name="ClearNothingContent" xml:space="preserve"><value>選択した期間には、消去できるピン留めされていない項目がありません。</value></data>
+  <data name="ClearNothingTitle" xml:space="preserve"><value>消去する項目はありません</value></data>
+  <data name="ClearRangeAll" xml:space="preserve"><value>すべての履歴</value></data>
+  <data name="ClearRangeLastHour" xml:space="preserve"><value>直近 1 時間</value></data>
+  <data name="ClearRangeToday" xml:space="preserve"><value>今日</value></data>
+  <data name="ClipboardBusyRetrying" xml:space="preserve"><value>クリップボードは別のアプリによって一時的に使用されています。再試行中です。</value></data>
+  <data name="ClipboardCaptureStopped" xml:space="preserve"><value>内部エラーのため、クリップボードの記録が停止しました。</value></data>
+  <data name="ClipboardErrorStatus" xml:space="preserve"><value>記録エラー</value></data>
+  <data name="ClipboardEventDropped" xml:space="preserve"><value>クリップボードのアクティビティが頻繁すぎました。 1 つのイベントがスキップされました。</value></data>
+  <data name="ClipboardItemCaptureFailed" xml:space="preserve"><value>クリップボード項目を記録できませんでした。記録はまだ実行中です。</value></data>
+  <data name="ClipboardLimitInvalidContent" xml:space="preserve"><value>キャプチャの合計サイズ制限は、単一ファイルのサイズ制限より小さくすることはできません。</value></data>
+  <data name="ClipboardLimitInvalidTitle" xml:space="preserve"><value>無効な制限</value></data>
+  <data name="ClipboardListenerRegistrationFailed" xml:space="preserve"><value>システム クリップボード リスナーを登録できませんでした。診断ログを参照してください。</value></data>
+  <data name="ClipboardListenerUnavailable" xml:space="preserve"><value>システム クリップボード リスナーは使用できません。診断ログを参照してください。</value></data>
+  <data name="ClipboardPaused" xml:space="preserve"><value>クリップボードの記録が一時停止されました。</value></data>
+  <data name="ClipboardPausedAtStartup" xml:space="preserve"><value>クリップボードの記録は一時停止中です。クリップボード画面またはトレイメニューから再開できます。</value></data>
+  <data name="ClipboardPausedStatus" xml:space="preserve"><value>記録を一時停止中</value></data>
+  <data name="ClipboardRecording" xml:space="preserve"><value>記録中 · {0} 件記録済み</value></data>
+  <data name="ClipboardResumed" xml:space="preserve"><value>クリップボード記録が再開されました。</value></data>
+  <data name="ClipboardStarting" xml:space="preserve"><value>開始中…</value></data>
+  <data name="CloseToTrayContent" xml:space="preserve"><value>ウィンドウを閉じると、DropSpace はシステム トレイに残り、クリップボードへの記録を続けます。これを設定で直接終了するように変更できます。</value></data>
+  <data name="CloseToTrayTitle" xml:space="preserve"><value>DropSpace はバックグラウンドで実行され続けます</value></data>
+  <data name="CommonAcknowledge" xml:space="preserve"><value>了解</value></data>
+  <data name="CommonCancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="CommonClose" xml:space="preserve"><value>閉じる</value></data>
+  <data name="CurrentVersion" xml:space="preserve"><value>DropSpace {0}</value></data>
+  <data name="DeploymentInstaller" xml:space="preserve"><value>インストーラー</value></data>
+  <data name="DeploymentPackaged" xml:space="preserve"><value>Windows パッケージ (Windows によって更新)</value></data>
+  <data name="DeploymentPortable" xml:space="preserve"><value>ポータブル (ダウンロードと検証のみ。自動的にはインストールされません)</value></data>
+  <data name="DeploymentUnknown" xml:space="preserve"><value>不明な展開</value></data>
+  <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>DropSpace に追加</value></data>
+  <data name="EmptyClipboardDescription" xml:space="preserve"><value>テキスト、画像、ファイル、フォルダーをコピーすると、サポートされているコンテンツがここに表示されます。</value></data>
+  <data name="EmptyClipboardTitle" xml:space="preserve"><value>クリップボード履歴がありません</value></data>
+  <data name="EmptyPinnedDescription" xml:space="preserve"><value>一時スペース またはクリップボードからアイテムをピン留めすると、ここに一緒に表示されます。</value></data>
+  <data name="EmptyPinnedTitle" xml:space="preserve"><value>ピン留めされたアイテムはありません</value></data>
+  <data name="EmptySpaceDescription" xml:space="preserve"><value>DropSpace は参照のみを保存します。元のファイルを移動したり削除したりすることはありません。</value></data>
+  <data name="EmptySpaceTitle" xml:space="preserve"><value>ここにファイルまたはフォルダーをドロップします</value></data>
+  <data name="ExportJpegImage" xml:space="preserve"><value>JPEG 画像</value></data>
+  <data name="ExportOnlyClipboardImages" xml:space="preserve"><value>エクスポートできるのはクリップボード画像のみです。</value></data>
+  <data name="ExportPngImage" xml:space="preserve"><value>PNG 画像</value></data>
+  <data name="FileReferenceUpdated" xml:space="preserve"><value>ファイルへの参照を更新しました。</value></data>
+  <data name="FileUnavailableRelocate" xml:space="preserve"><value>ファイルを現在利用できません。もう一度場所を指定してください。</value></data>
+  <data name="Gigabytes" xml:space="preserve"><value>{0:0.00} GB</value></data>
+  <data name="ImageExported" xml:space="preserve"><value>画像がエクスポートされました。</value></data>
+  <data name="ImagePreview" xml:space="preserve"><value>{0} × {1} · {2}</value></data>
+  <data name="ItemCannotOpen" xml:space="preserve"><value>この項目は開けません。</value></data>
+  <data name="ItemCannotShowInFolder" xml:space="preserve"><value>このアイテムはフォルダー内に表示できません。</value></data>
+  <data name="ItemCopied" xml:space="preserve"><value>コピーされました。</value></data>
+  <data name="ItemCount" xml:space="preserve"><value>{0} 項目</value></data>
+  <data name="ItemCreatedDateFormat" xml:space="preserve"><value>M月d日 HH:mm</value></data>
+  <data name="ItemCreatedTodayFormat" xml:space="preserve"><value>HH:mm</value></data>
+  <data name="ItemKindCode" xml:space="preserve"><value>コード</value></data>
+  <data name="ItemKindColor" xml:space="preserve"><value>色</value></data>
+  <data name="ItemKindFile" xml:space="preserve"><value>ファイル</value></data>
+  <data name="ItemKindFolder" xml:space="preserve"><value>フォルダー</value></data>
+  <data name="ItemKindImage" xml:space="preserve"><value>画像</value></data>
+  <data name="ItemKindText" xml:space="preserve"><value>テキスト</value></data>
+  <data name="ItemKindUnknown" xml:space="preserve"><value>不明</value></data>
+  <data name="ItemKindUrl" xml:space="preserve"><value>リンク</value></data>
+  <data name="ItemPin" xml:space="preserve"><value>ピン留め</value></data>
+  <data name="ItemRemoved" xml:space="preserve"><value>DropSpace から削除されました。元のファイルは変更されていません。</value></data>
+  <data name="ItemSourceClipboard" xml:space="preserve"><value>クリップボード</value></data>
+  <data name="ItemSourceSpace" xml:space="preserve"><value>一時スペース</value></data>
+  <data name="ItemStatusError" xml:space="preserve"><value>読み取りに失敗しました</value></data>
+  <data name="ItemStatusMissing" xml:space="preserve"><value>ファイルが見つかりません</value></data>
+  <data name="ItemStatusProcessing" xml:space="preserve"><value>処理中</value></data>
+  <data name="ItemStatusUnavailable" xml:space="preserve"><value>一時的に利用できません</value></data>
+  <data name="ItemUnpin" xml:space="preserve"><value>ピン留めを解除</value></data>
+  <data name="ItemsAdded" xml:space="preserve"><value>{0} 個のアイテムが追加されました。</value></data>
+  <data name="ItemsAddedWithRejected" xml:space="preserve"><value>{0} 個のアイテムが追加されました。 {1}を追加できませんでした。</value></data>
+  <data name="ItemsCleared" xml:space="preserve"><value>{0} 項目を消去しました。ピン留めした項目は残しています。</value></data>
+  <data name="Kilobytes" xml:space="preserve"><value>{0:0.0} KB</value></data>
+  <data name="LastUpdateCheck" xml:space="preserve"><value>最終チェック日: {0}</value></data>
+  <data name="LastUpdateCheckDateFormat" xml:space="preserve"><value>yyyy/MM/dd HH:mm</value></data>
+  <data name="Megabytes" xml:space="preserve"><value>{0:0.0} MB</value></data>
+  <data name="OperationIncompleteContent" xml:space="preserve"><value>要求された操作は完了しませんでした。問題が解決しない場合は、ローカルの診断ログを参照してください。</value></data>
+  <data name="OperationIncompleteTitle" xml:space="preserve"><value>操作を完了できませんでした</value></data>
+  <data name="OverlayClassicDragTitle" xml:space="preserve"><value>画面上端にドラッグして保管</value></data>
+  <data name="OverlayDragSubtitle" xml:space="preserve"><value>元のファイルは移動または削除されません</value></data>
+  <data name="OverlayDropSubtitle" xml:space="preserve"><value>放してファイルやフォルダーへの参照を追加</value></data>
+  <data name="OverlayDropTitle" xml:space="preserve"><value>DropSpace にドロップ</value></data>
+  <data name="OverlayItemCount" xml:space="preserve"><value>{0} アイテム</value></data>
+  <data name="OverlaySmartDragTitle" xml:space="preserve"><value>表示された DropSpace へドラッグ</value></data>
+  <data name="OverlayTitle" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="PageDescriptionClipboard" xml:space="preserve"><value>コピーされたテキスト、画像、ファイル、フォルダー参照を自動的に記録します。</value></data>
+  <data name="PageDescriptionPinned" xml:space="preserve"><value>一時スペースとクリップボードでピン留めした項目は、保存期限の設定では自動消去されません。</value></data>
+  <data name="PageDescriptionSettings" xml:space="preserve"><value>ローカル ストレージ、プライバシー、外観、ウィンドウの動作。</value></data>
+  <data name="PageDescriptionSpace" xml:space="preserve"><value>ファイルやフォルダーの保存先を決める前に、ここへドラッグして置いておきましょう。</value></data>
+  <data name="PageTitleClipboard" xml:space="preserve"><value>クリップボード</value></data>
+  <data name="PageTitlePinned" xml:space="preserve"><value>ピン留め済み</value></data>
+  <data name="PageTitleSettings" xml:space="preserve"><value>設定</value></data>
+  <data name="PageTitleSpace" xml:space="preserve"><value>一時スペース</value></data>
+  <data name="RemoveConfirmButton" xml:space="preserve"><value>削除</value></data>
+  <data name="RemoveConfirmTitle" xml:space="preserve"><value>DropSpace から削除しますか?</value></data>
+  <data name="RemoveFileReferenceContent" xml:space="preserve"><value>「{0}」への参照のみが削除されます。元のファイルは移動または削除されません。</value></data>
+  <data name="RemoveStoredItemContent" xml:space="preserve"><value>「{0}」と DropSpace によって保存されているローカル コピーは削除されます。</value></data>
+  <data name="SearchNoMatches" xml:space="preserve"><value>一致するアイテムが見つかりませんでした。</value></data>
+  <data name="SearchUnavailable" xml:space="preserve"><value>検索は一時的に利用できません。</value></data>
+  <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace は、Windows 共有からのファイルとフォルダーのみを受け入れます。</value></data>
+  <data name="ShareItemsNotAdded" xml:space="preserve"><value>ファイルまたはフォルダーを 一時スペース に追加できませんでした。</value></data>
+  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>共有コンテンツには、DropSpace がアクセスできるファイルやフォルダーは含まれません。</value></data>
+  <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace はこの共有を処理できませんでした。もう一度試すか、上端のドロップ ターゲットを使用してください。</value></data>
+  <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace の起動を完了できませんでした。一部のバックグラウンド サービスがまだ実行されている可能性があります。データ ディレクトリを検査または復元する前にアプリを終了し、ローカルの診断ログを確認してください。</value></data>
+  <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace を安全に開始できませんでした</value></data>
+  <data name="StorageCalculating" xml:space="preserve"><value>計算中…</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>使用量: {0}</value></data>
+  <data name="StorageUnavailable" xml:space="preserve"><value>利用不可</value></data>
+  <data name="TrayClearClipboard" xml:space="preserve"><value>クリップボードの履歴をクリア…</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>終了</value></data>
+  <data name="TrayOpen" xml:space="preserve"><value>DropSpace を開く</value></data>
+  <data name="TrayPauseClipboard" xml:space="preserve"><value>クリップボードの記録を一時停止する</value></data>
+  <data name="TrayResumeClipboard" xml:space="preserve"><value>クリップボード記録を再開する</value></data>
+  <data name="TrayTipPaused" xml:space="preserve"><value>DropSpace — クリップボードの記録が一時停止されました</value></data>
+  <data name="TrayTipRecording" xml:space="preserve"><value>DropSpace — クリップボードの記録</value></data>
+  <data name="UpdateAutomaticCheckFailed" xml:space="preserve"><value>自動更新チェックに失敗しました: {0}</value></data>
+  <data name="UpdateCheckCancelled" xml:space="preserve"><value>更新チェックがキャンセルされました。</value></data>
+  <data name="UpdateChecking" xml:space="preserve"><value>アップデートをチェック中…</value></data>
+  <data name="UpdateDownloadCancelled" xml:space="preserve"><value>アップデートのダウンロードがキャンセルされました。</value></data>
+  <data name="UpdateDownloadFailed" xml:space="preserve"><value>アップデートのダウンロードに失敗しました。接続を確認して、もう一度試してください。</value></data>
+  <data name="UpdateDownloadIntegrityFailed" xml:space="preserve"><value>アップデートのダウンロードは整合性検証に合格しませんでした。</value></data>
+  <data name="UpdateRecoveryFailed" xml:space="preserve"><value>DropSpace は以前の更新状態を回復できませんでした。アップデートを再度確認できます。</value></data>
+  <data name="UpdateDownloadedReadyToInstall" xml:space="preserve"><value>アップデートをダウンロードして確認しました。インストールする準備ができました。</value></data>
+  <data name="UpdateDownloadedVerified" xml:space="preserve"><value>アップデートをダウンロードして確認しました。</value></data>
+  <data name="UpdateDownloading" xml:space="preserve"><value>アップデートをダウンロード中…</value></data>
+  <data name="UpdateFound" xml:space="preserve"><value>アップデート {0} が利用可能です。</value></data>
+  <data name="UpdateFoundManaged" xml:space="preserve"><value>アップデート {0} が利用可能で、Windows によって管理されます。</value></data>
+  <data name="UpdateInstallIntegrityFailed" xml:space="preserve"><value>整合性検証に失敗したため、更新プログラムをインストールできません。</value></data>
+  <data name="UpdateInstallStateFailed" xml:space="preserve"><value>回復状態を保存できなかったため、更新プログラムをインストールする準備ができませんでした。</value></data>
+  <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>検証済みのインストーラーを起動できませんでした。</value></data>
+  <data name="UpdateInstalling" xml:space="preserve"><value>アップデートインストーラーを開始しています…</value></data>
+  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>前回のアップデートのダウンロードは不完全だったため、破棄されました。</value></data>
+  <data name="UpdateLastInstallIncomplete" xml:space="preserve"><value>前回の更新プログラムのインストールが完了していません。検証済みの更新を再試行する準備ができています。</value></data>
+  <data name="UpdateManagedByWindows" xml:space="preserve"><value>この Windows パッケージは Windows によって更新されます。</value></data>
+  <data name="UpdateNoDowngrade" xml:space="preserve"><value>新しい安定したアップデートは利用できません。 DropSpace はこのビルドをダウングレードしません。</value></data>
+  <data name="UpdateNotChecked" xml:space="preserve"><value>まだチェックされていません</value></data>
+  <data name="UpdatePortableManualReplacement" xml:space="preserve"><value>ポータブル ビルドは、検証済みのダウンロードが完了した後、手動で置き換える必要があります。</value></data>
+  <data name="UpdatePortableVerified" xml:space="preserve"><value>アップデートをダウンロードして確認しました。ポータブルな実行可能ファイルを手動で置き換えます。</value></data>
+  <data name="UpdateProgress" xml:space="preserve"><value>{0:0}% · {1} / {2}</value></data>
+  <data name="UpdateServiceTimedOut" xml:space="preserve"><value>更新サービスがタイムアウトしました。</value></data>
+  <data name="UpdateServiceUnavailable" xml:space="preserve"><value>アップデートサービスは一時的にご利用いただけません。</value></data>
+  <data name="UpdateServiceValidationFailed" xml:space="preserve"><value>更新応答を検証できませんでした。</value></data>
+  <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>更新発行者が信頼されていないため、無人インストールは使用できません。</value></data>
+  <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace は最新です。</value></data>
+  <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>Windows の共有メニューから DropSpace に送信します。</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>Windows 共有統合は、このバージョンでは利用できません。代わりに、ファイルを DropSpace にドラッグしてください。</value></data>
+  <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="MainTitleBar.Title" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="MainTitleBar.Subtitle" xml:space="preserve"><value>一時的なコンテンツワークスペース</value></data>
+  <data name="OverlayWindow.Title" xml:space="preserve"><value>DropSpace ダイナミックアイランド</value></data>
+  <data name="OverlayCompactPanel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>DropSpace 上部パネルを展開します</value></data>
+  <data name="OverlayCompactSubtitle.Text" xml:space="preserve"><value>一時スペース</value></data>
+  <data name="OverlayExpandedTitle.Text" xml:space="preserve"><value>一時スペース</value></data>
+  <data name="OverlayExpandedSubtitle.Text" xml:space="preserve"><value>最近のアイテム · エクスプローラーに直接ドラッグ</value></data>
+  <data name="OverlayCollapseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上部パネルを折りたたむ</value></data>
+  <data name="OverlayOpenItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>項目を開く</value></data>
+  <data name="OverlayPinItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>項目をピン留め</value></data>
+  <data name="OverlayRemoveItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>DropSpace から削除</value></data>
+  <data name="OverlayRemoveHint.Text" xml:space="preserve"><value>参照を削除しても元のファイルは削除されません</value></data>
+  <data name="OverlayOpenMainButton.Content" xml:space="preserve"><value>DropSpace を開く</value></data>
+  <data name="OverlayDropTargetTitle.Text" xml:space="preserve"><value>DropSpace にドロップ</value></data>
+  <data name="OverlayDropTargetSubtitle.Text" xml:space="preserve"><value>放して一時スペースに追加</value></data>
+  <data name="NavSpace.Content" xml:space="preserve"><value>一時スペース</value></data>
+  <data name="NavSpace.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>一時スペース</value></data>
+  <data name="NavClipboard.Content" xml:space="preserve"><value>クリップボード</value></data>
+  <data name="NavClipboard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>クリップボード履歴</value></data>
+  <data name="NavPinned.Content" xml:space="preserve"><value>ピン留め済み</value></data>
+  <data name="NavPinned.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>ピン留めされたアイテム</value></data>
+  <data name="NavSettings.Content" xml:space="preserve"><value>設定</value></data>
+  <data name="NavSettings.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>設定</value></data>
+  <data name="SearchBox.PlaceholderText" xml:space="preserve"><value>ファイル、テキスト、リンクを検索する</value></data>
+  <data name="SearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>すべての DropSpace アイテムを検索</value></data>
+  <data name="AddButton.Content" xml:space="preserve"><value>追加</value></data>
+  <data name="AddButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>一時スペース に追加</value></data>
+  <data name="AddFilesMenuItem.Text" xml:space="preserve"><value>ファイルを選択してください…</value></data>
+  <data name="AddFolderMenuItem.Text" xml:space="preserve"><value>フォルダーを選択…</value></data>
+  <data name="ItemsList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>DropSpace アイテム</value></data>
+  <data name="OpenItemButton.Content" xml:space="preserve"><value>開く</value></data>
+  <data name="OpenItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>項目を開く</value></data>
+  <data name="CopyItemButton.Content" xml:space="preserve"><value>コピー</value></data>
+  <data name="CopyItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>アイテムをコピーする</value></data>
+  <data name="PinItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>項目のピン留めを切り替える</value></data>
+  <data name="LocateItemButton.Content" xml:space="preserve"><value>場所を指定</value></data>
+  <data name="LocateItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>見つからないファイルの場所を指定</value></data>
+  <data name="ExportItemButton.Content" xml:space="preserve"><value>エクスポート</value></data>
+  <data name="ExportItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>画像のエクスポート</value></data>
+  <data name="MoreItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>その他のアイテムアクション</value></data>
+  <data name="ShowInFolderMenuItem.Text" xml:space="preserve"><value>フォルダーで表示</value></data>
+  <data name="RemoveItemMenuItem.Text" xml:space="preserve"><value>DropSpace から削除</value></data>
+  <data name="DropHintTitle.Text" xml:space="preserve"><value>放して参照を追加</value></data>
+  <data name="DropHintDescription.Text" xml:space="preserve"><value>元のファイルは移動されません</value></data>
+  <data name="ClipboardPrivacySection.Text" xml:space="preserve"><value>クリップボードとプライバシー</value></data>
+  <data name="PauseRecordingTitle.Text" xml:space="preserve"><value>記録を一時停止</value></data>
+  <data name="PauseRecordingDescription.Text" xml:space="preserve"><value>一時停止状態は、再起動後、再開するまで保持されます。</value></data>
+  <data name="PauseToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>クリップボードの記録を一時停止する</value></data>
+  <data name="CaptureImagesTitle.Text" xml:space="preserve"><value>画像を記録する</value></data>
+  <data name="CaptureImagesDescription.Text" xml:space="preserve"><value>以下のサイズとピクセル制限を調整します。制限を超えた画像はスキップされます。</value></data>
+  <data name="CaptureImagesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>クリップボード画像を記録する</value></data>
+  <data name="MaxImageMegabytesLabel.Text" xml:space="preserve"><value>最大画像サイズ (MiB)</value></data>
+  <data name="MaxImageMegapixelsLabel.Text" xml:space="preserve"><value>最大画像ピクセル (数百万)</value></data>
+  <data name="CaptureFilesTitle.Text" xml:space="preserve"><value>ファイルとフォルダーを記録</value></data>
+  <data name="CaptureFilesDescription.Text" xml:space="preserve"><value>エクスプローラーでコピーした項目は、クリップボードへの参照として記録します。元のファイルを移動・複製することはありません。</value></data>
+  <data name="CaptureFilesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>クリップボードファイルを記録する</value></data>
+  <data name="CaptureFoldersTitle.Text" xml:space="preserve"><value>フォルダー参照を含める</value></data>
+  <data name="CaptureFoldersDescription.Text" xml:space="preserve"><value>フォルダーは再帰的にスキャンされたり、コピーされたりしません。外部参照のみが記録されます。</value></data>
+  <data name="CaptureFoldersToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>クリップボードフォルダーを記録する</value></data>
+  <data name="MaxClipboardFileItemsLabel.Text" xml:space="preserve"><value>キャプチャごとの最大アイテム数</value></data>
+  <data name="MaxClipboardFileMegabytesLabel.Text" xml:space="preserve"><value>個別ファイルの最大サイズ (MiB)</value></data>
+  <data name="MaxClipboardFileTotalMegabytesLabel.Text" xml:space="preserve"><value>キャプチャごとの既知の最大合計サイズ (MiB)</value></data>
+  <data name="MaxClipboardFileTotalMegabytesDescription.Text" xml:space="preserve"><value>少なくとも個々のファイルの制限値以上である必要があります。フォルダーは再帰的にカウントされません。</value></data>
+  <data name="ClipboardPrivacyWarning.Message" xml:space="preserve"><value>DropSpace はすべてのクリップボード ソースを確実に識別することはできず、機密コンテンツの検出を安全保証として扱いません。必要に応じて録音を一時停止したり、履歴をクリアしたりできます。</value></data>
+  <data name="RetentionSection.Text" xml:space="preserve"><value>保存期間</value></data>
+  <data name="RetentionDaysLabel.Text" xml:space="preserve"><value>最大保存日数</value></data>
+  <data name="RetentionCountLabel.Text" xml:space="preserve"><value>固定されていないアイテムの最大保持数</value></data>
+  <data name="AppearanceSection.Text" xml:space="preserve"><value>外観と窓</value></data>
+  <data name="FileDragWakeModeTitle.Text" xml:space="preserve"><value>ファイルドラッグウェイクモード</value></data>
+  <data name="FileDragWakeModeDescription.Text" xml:space="preserve"><value>スマート検出は、アイドル状態では上端を占有しません。クラシック モードの方が互換性が高い可能性がありますが、非表示の上部入力領域がアクティブのままになります。</value></data>
+  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>スマート検出</value></data>
+  <data name="FileDragWakeModeClassic.Content" xml:space="preserve"><value>クラシックトップエッジゾーン（互換性あり）</value></data>
+  <data name="FileDragWakeModeDisabled.Content" xml:space="preserve"><value>自動ウェイクを無効にする</value></data>
+  <data name="StartWithWindowsTitle.Text" xml:space="preserve"><value>Windows と同時に起動</value></data>
+  <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>最初のセットアップ時または設定でこれを選択します。管理者権限なしで現在のユーザーの起動エントリを使用します。</value></data>
+  <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Windows と同時に起動</value></data>
+  <data name="LanguageTitle.Text" xml:space="preserve"><value>表示言語</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>画面の表示文言だけを変更します。歌詞の翻訳先は別に設定できます。</value></data>
+  <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>表示言語</value></data>
+  <data name="LanguageSystem.Content" xml:space="preserve"><value>システムに従う</value></data>
+  <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
+  <data name="LanguageSimplifiedChinese.Content" xml:space="preserve"><value>简体中文</value></data>
+  <data name="ThemeTitle.Text" xml:space="preserve"><value>テーマ</value></data>
+  <data name="ThemeSystem.Content" xml:space="preserve"><value>システムに従う</value></data>
+  <data name="ThemeLight.Content" xml:space="preserve"><value>ライト</value></data>
+  <data name="ThemeDark.Content" xml:space="preserve"><value>ダーク</value></data>
+  <data name="MotionTitle.Text" xml:space="preserve"><value>アニメーション</value></data>
+  <data name="MotionDescription.Text" xml:space="preserve"><value>システムのデフォルトでは、Windows モーション削減設定が考慮されます。</value></data>
+  <data name="MotionSystem.Content" xml:space="preserve"><value>システムのデフォルト</value></data>
+  <data name="MotionFull.Content" xml:space="preserve"><value>通常</value></data>
+  <data name="MotionReduced.Content" xml:space="preserve"><value>動きを減らす</value></data>
+  <data name="MonitorTitle.Text" xml:space="preserve"><value>モニター</value></data>
+  <data name="MonitorDescription.Text" xml:space="preserve"><value>ファイルのドラッグが発生した画面には自動モードが表示されます。</value></data>
+  <data name="MonitorAutomatic.Content" xml:space="preserve"><value>自動</value></data>
+  <data name="MonitorPrimary.Content" xml:space="preserve"><value>プライマリモニター</value></data>
+  <data name="OverlayMonitorChoice" xml:space="preserve"><value>{0}を表示します</value></data>
+  <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>{0} を表示 (プライマリ)</value></data>
+  <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>窓を閉めるとき</value></data>
+  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>アプリがトレイに非表示になっている場合でも、クリップボードの記録は継続されます。</value></data>
+  <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>トレイに隠す</value></data>
+  <data name="CloseBehaviorExit.Content" xml:space="preserve"><value>アプリを終了</value></data>
+  <data name="UpdatesSection.Text" xml:space="preserve"><value>アップデート</value></data>
+  <data name="AutoCheckUpdatesTitle.Text" xml:space="preserve"><value>アップデートを自動的にチェックする</value></data>
+  <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>DropSpace プロセスの起動ごとに最大 1 回チェックします。バックグラウンドタイマーは実行されません。</value></data>
+  <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>アップデートを自動的にダウンロードする</value></data>
+  <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>DropSpace 自体のキャッシュにのみダウンロードされ、サイズと SHA-256 の検証後にのみインストールされます。</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>無人自動インストール</value></data>
+  <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>アップデートが信頼できる Authenticode 発行者の検証に合格した場合にのみ使用できます。未署名のビルドではオフのままです。</value></data>
+  <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>チャンネルを更新する</value></data>
+  <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>安定版はリリース バージョンのみを受け取ります。ベータ版では、リリース番号順に安定版とプレリリース バージョンが提供されます。</value></data>
+  <data name="UpdateChannelStable.Content" xml:space="preserve"><value>安定版</value></data>
+  <data name="UpdateChannelBeta.Content" xml:space="preserve"><value>Beta</value></data>
+  <data name="CheckUpdatesButton.Content" xml:space="preserve"><value>アップデートを確認する</value></data>
+  <data name="DownloadUpdateButton.Content" xml:space="preserve"><value>今すぐダウンロード</value></data>
+  <data name="InstallUpdateButton.Content" xml:space="preserve"><value>今すぐアップデートしてください</value></data>
+  <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>ダウンロード場所を開く</value></data>
+  <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>リリースノートを見る</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>ローカルデータ</value></data>
+  <data name="StorageLocationTitle.Text" xml:space="preserve"><value>保管場所</value></data>
+  <data name="ClearLastHourButton.Content" xml:space="preserve"><value>過去 1 時間をクリア</value></data>
+  <data name="ClearTodayButton.Content" xml:space="preserve"><value>今日の履歴を消去</value></data>
+  <data name="ClearAllButton.Content" xml:space="preserve"><value>すべての履歴をクリアする</value></data>
+  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>クリーンアップはデフォルトでピン留めされたアイテムを保持し、一時スペース で参照されている元のファイルを削除することはありません。</value></data>
+  <data name="AddTextUrlMenuItem.Text" xml:space="preserve"><value>テキストまたは URL を追加…</value></data>
+  <data name="AddTextUrlTitle" xml:space="preserve"><value>一時スペース にテキストまたは URL を追加します</value></data>
+  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>テキストまたは https:// URL を貼り付けるか入力します</value></data>
+  <data name="AddTextUrlConfirm" xml:space="preserve"><value>追加</value></data>
+  <data name="Cancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="DropBatchLabel" xml:space="preserve"><value>ドロップバッチ · {0} アイテム</value></data>
+  <data name="CollapseBatch" xml:space="preserve"><value>折りたたむ</value></data>
+  <data name="ExpandBatch" xml:space="preserve"><value>拡大する</value></data>
+  <data name="PinBatchButton.Content" xml:space="preserve"><value>グループをピン留め</value></data>
+  <data name="RemoveBatchButton.Content" xml:space="preserve"><value>グループの削除</value></data>
+  <data name="IslandPlacementTitle.Text" xml:space="preserve"><value>ダイナミックアイランドの位置</value></data>
+  <data name="IslandPlacementDescription.Text" xml:space="preserve"><value>X/Y の指定値は、選択したモニターの作業領域を基準とする DIP です。一時的に表示位置を制限しても、保存した値は上書きしません。矢印キーで 1 DIP、Shift+矢印キーで 10 DIP 移動します。Enter で適用し、Esc で編集を取り消します。</value></data>
+  <data name="IslandPlacementAutomatic.Content" xml:space="preserve"><value>自動</value></data>
+  <data name="IslandPlacementCustom.Content" xml:space="preserve"><value>カスタム</value></data>
+  <data name="IslandPlacementX.Header" xml:space="preserve"><value>X (DIP)</value></data>
+  <data name="IslandPlacementY.Header" xml:space="preserve"><value>Y (DIP)</value></data>
+  <data name="ApplyIslandPlacementButton.Content" xml:space="preserve"><value>位置を適用</value></data>
+  <data name="ResetIslandPlacementButton.Content" xml:space="preserve"><value>リセット</value></data>
+  <data name="AdjustIslandPlacementButton.Content" xml:space="preserve"><value>島の位置を調整…</value></data>
+  <data name="AdjustIslandPlacementButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>ダイナミックアイランドの位置を調整します</value></data>
+  <data name="OverlayPlacementEditHint.Text" xml:space="preserve"><value>ドラッグして移動、Esc でキャンセル</value></data>
+  <data name="OverlayPlacementPersistenceWarning.Text" xml:space="preserve"><value>この表示には実行時のみの ID があります。永続的な表示 ID が使用可能になるまで、カスタム配置は使用できません。</value></data>
+  <data name="QuickPanelHotkeyTitle.Text" xml:space="preserve"><value>クイックパネルのホットキー</value></data>
+  <data name="QuickPanelHotkeyDescription.Text" xml:space="preserve"><value>キーボード ナビゲーションを使用して既存の ダイナミックアイランド を開きます。デフォルト: Win+Shift+Space。</value></data>
+  <data name="SmartDragExclusionsTitle.Text" xml:space="preserve"><value>スマートドラッグアプリの除外</value></data>
+  <data name="SmartDragExclusionsDescription.Text" xml:space="preserve"><value>カンマ区切りのプロセス名。これはベストエフォートです。一部の昇格された、保護された、または短期間のソース アプリは識別できない場合があります。</value></data>
+  <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>Smart Drag 互換性レポートのコピー</value></data>
+  <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>パスフリーの Smart Drag 互換性レポートがコピーされました。</value></data>
+  <data name="PreviewItemMenuItem.Text" xml:space="preserve"><value>クイックプレビュー</value></data>
+  <data name="PreviewUnavailable" xml:space="preserve"><value>この項目には制限付きプレビューがありません。</value></data>
+  <data name="ActionCompleted" xml:space="preserve"><value>アクションは正常に完了しました。</value></data>
+  <data name="ActionUnavailable" xml:space="preserve"><value>このアクションは、現在の選択では使用できません。</value></data>
+  <data name="ActionParametersRequired" xml:space="preserve"><value>続行する前に、必要なアクション パラメータをすべて選択してください。</value></data>
+  <data name="ActionAccessDenied" xml:space="preserve"><value>DropSpace はソースまたはエクスポートの場所にアクセスできませんでした。</value></data>
+  <data name="ActionSourceUnavailable" xml:space="preserve"><value>ソースが利用できなくなったか、読み取ることができませんでした。</value></data>
+  <data name="ActionOutputUnavailable" xml:space="preserve"><value>DropSpace はエクスポートを作成できませんでした。宛先を確認して再度実行してください。</value></data>
+  <data name="ActionInvalidData" xml:space="preserve"><value>ソース データが無効であるか、安全なアクションの制限を超えています。</value></data>
+  <data name="ActionCancelled" xml:space="preserve"><value>アクションはキャンセルされました。</value></data>
+  <data name="ActionFailed" xml:space="preserve"><value>アクションを完了できませんでした。ログで診断を確認してください。</value></data>
+  <data name="ActionOutputSaved" xml:space="preserve"><value>出力は次の場所に保存されました: {0}</value></data>
+  <data name="QuickActionParametersTitle" xml:space="preserve"><value>アクションパラメータ</value></data>
+  <data name="QuickActionParametersDescription" xml:space="preserve"><value>新しい画像をエクスポートするサイズと形式を選択します。オリジナルは変更されません。</value></data>
+  <data name="QuickActionDestination" xml:space="preserve"><value>エクスポートフォルダー</value></data>
+  <data name="QuickActionDefaultDestination" xml:space="preserve"><value>DropSpace エクスポート (デフォルト)</value></data>
+  <data name="QuickActionChooseFolder" xml:space="preserve"><value>選択してください…</value></data>
+  <data name="QuickActionOutputFormat" xml:space="preserve"><value>出力フォーマット</value></data>
+  <data name="QuickActionKeepOriginalFormat" xml:space="preserve"><value>元の形式を維持する</value></data>
+  <data name="QuickActionFormatPng" xml:space="preserve"><value>PNG</value></data>
+  <data name="QuickActionFormatJpeg" xml:space="preserve"><value>JPEG</value></data>
+  <data name="QuickActionFormatBmp" xml:space="preserve"><value>BMP</value></data>
+  <data name="QuickActionWidth" xml:space="preserve"><value>幅 (ピクセル)</value></data>
+  <data name="QuickActionHeight" xml:space="preserve"><value>高さ (ピクセル)</value></data>
+  <data name="QuickActionRequiredValue" xml:space="preserve"><value>必須</value></data>
+  <data name="QuickActionResizeOptional" xml:space="preserve"><value>変換のためのオプションのサイズ変更。ソースの寸法を維持するには、両方のフィールドを空白のままにします。</value></data>
+  <data name="QuickActionKeepAspectRatio" xml:space="preserve"><value>アスペクト比を維持する</value></data>
+  <data name="QuickActionApply" xml:space="preserve"><value>エクスポート</value></data>
+  <data name="QuickActionCancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="QuickActionFolderPickerFailed" xml:space="preserve"><value>エクスポート フォルダー ピッカーを開けませんでした。</value></data>
+  <data name="ActionHashSha256.Text" xml:space="preserve"><value>ファイルのチェックサムを表示 (SHA-256)</value></data>
+  <data name="ActionCompressZip.Text" xml:space="preserve"><value>ZIPとして圧縮</value></data>
+  <data name="ActionGenerateQr.Text" xml:space="preserve"><value>QRコードを生成する</value></data>
+  <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>画像のサイズを変更する</value></data>
+  <data name="ActionConvertImage.Text" xml:space="preserve"><value>画像フォーマットを変換する</value></data>
+  <data name="ActionStripMetadata.Text" xml:space="preserve"><value>画像メタデータを削除する</value></data>
+  <data name="DevicesSharingSection.Text" xml:space="preserve"><value>デバイスと共有</value></data>
+  <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows から Windows へのハンドオフとクリップボード同期はオプトインです。近くのリンクはプライベート ネットワーク上に残ります。インターネット共有には、明示的に構成された HTTPS バックエンドが必要です。</value></data>
+  <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>デバイスのハンドオフ</value></data>
+  <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>ペアリングされたデバイスにコンテンツを送信します。</value></data>
+  <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Windows デバイス ハンドオフを有効にする</value></data>
+  <data name="CrossDeviceClipboardTitle.Text" xml:space="preserve"><value>クロスデバイスクリップボード</value></data>
+  <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>ペアリングされた Windows デバイスとのみ同期します。同期を有効にすると、デバイスの接続も有効になります。デバイス接続を無効にすると同期が停止します。</value></data>
+  <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>クロスデバイスクリップボードを有効にする</value></data>
+  <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>デフォルトのピアクリップボードモード</value></data>
+  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>新しいピアは選択したモードで開始します。ペアリング自体が自動同期を有効にすることはありません。</value></data>
+  <data name="ClipboardSyncModeOff.Content" xml:space="preserve"><value>オフ</value></data>
+  <data name="ClipboardSyncModeManual.Content" xml:space="preserve"><value>手動</value></data>
+  <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>自動テキスト + URL</value></data>
+  <data name="ClipboardSyncModeTextUrlImage.Content" xml:space="preserve"><value>自動テキスト + URL + 画像</value></data>
+  <data name="NearbySharingTitle.Text" xml:space="preserve"><value>近くのブラウザの共有</value></data>
+  <data name="NearbySharingDescription.Text" xml:space="preserve"><value>ローカル ネットワーク上のデバイスがブラウザでアイテムを受信できるようにします。</value></data>
+  <data name="NearbySharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>近くのブラウザ共有を有効にする</value></data>
+  <data name="InternetSharingTitle.Text" xml:space="preserve"><value>安全なインターネット共有</value></data>
+  <data name="InternetSharingDescription.Text" xml:space="preserve"><value>ファイルはアップロード前に暗号化されます。まず共有サービスを設定します。</value></data>
+  <data name="InternetSharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>安全なインターネット共有を有効にする</value></data>
+  <data name="RefreshDevicesButton.Content" xml:space="preserve"><value>デバイスを探す</value></data>
+  <data name="PairDeviceButton.Content" xml:space="preserve"><value>選択したデバイスをペアリングする</value></data>
+  <data name="DevicesDisabledTitle" xml:space="preserve"><value>デバイスが無効になっています</value></data>
+  <data name="DevicesDisabledContent" xml:space="preserve"><value>ローカル ネットワークを検索する前に、デバイス ハンドオフを有効にします。</value></data>
+  <data name="NoDevicesFound" xml:space="preserve"><value>互換性のある DropSpace デバイスがプライベート ネットワーク上に見つかりませんでした。</value></data>
+  <data name="DevicesFound" xml:space="preserve"><value>{0} の互換性のあるデバイスが見つかりました。</value></data>
+  <data name="PairedDevice" xml:space="preserve"><value>{0}と組み合わせています。ピアは、選択されたデフォルトのクリップボード モードを使用します。</value></data>
+  <data name="DeviceServiceUnavailable" xml:space="preserve"><value>デバイス サービスが利用できません: {0}</value></data>
+  <data name="DeviceServiceReady" xml:space="preserve"><value>デバイスのハンドオフの準備ができました。 Windows ファイアウォールのステータスでは、引き続き明示的な受信機能チェックが必要です。</value></data>
+  <data name="DeviceServiceBlocked" xml:space="preserve"><value>受信できません: {0}</value></data>
+  <data name="DeviceServiceStarting" xml:space="preserve"><value>ローカル DropLink サービスを開始しています…</value></data>
+  <data name="PairingSasTitle" xml:space="preserve"><value>ペアリングコードを確認する</value></data>
+  <data name="PairingSasTitleWithDevice" xml:space="preserve"><value>{0}とのペアリングを確認します</value></data>
+  <data name="PairingSasContent" xml:space="preserve"><value>他のデバイスに同じ 6 桁のコード {0} が表示されていることを確認します。両方の画面が一致する場合にのみ続行します。</value></data>
+  <data name="PairingSasConfirm" xml:space="preserve"><value>このデバイスを信頼します</value></data>
+  <data name="IncomingTransferTitle" xml:space="preserve"><value>受信転送</value></data>
+  <data name="IncomingTransferContent" xml:space="preserve"><value>信頼できるデバイスが {0} 個の項目 (合計 {1} バイト) を送信しようとしています。ファイルは Downloads\DropSpace にコミットされる前に検証されます。</value></data>
+  <data name="IncomingTransferAccept" xml:space="preserve"><value>受け入れる</value></data>
+  <data name="IncomingTransferReject" xml:space="preserve"><value>拒否する</value></data>
+  <data name="IncomingHandoffTitle" xml:space="preserve"><value>受信テキストまたは URL</value></data>
+  <data name="HandoffTextKind" xml:space="preserve"><value>テキスト</value></data>
+  <data name="HandoffUrlKind" xml:space="preserve"><value>URL</value></data>
+  <data name="IncomingHandoffContent" xml:space="preserve"><value>{0} が一時スペースに {1} を追加しようとしています（{3} バイト）：
+
+{2}
+
+内容が自動で開かれることはありません。</value></data>
+  <data name="SendToDeviceAction.Text" xml:space="preserve"><value>デバイスに送信</value></data>
+  <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>近くのリンクを作成する</value></data>
+  <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>安全なインターネットリンクを作成する</value></data>
+  <data name="TransferSentTitle" xml:space="preserve"><value>転送が送信されました</value></data>
+  <data name="TransferSentContent" xml:space="preserve"><value>信頼できるデバイスは転送を受け入れ、DropSpace はコミット前にコンテンツを検証しました。</value></data>
+  <data name="TransferUnavailableTitle" xml:space="preserve"><value>転送不可</value></data>
+  <data name="NoPairedDevicesTitle" xml:space="preserve"><value>ペアリングされたデバイスがありません</value></data>
+  <data name="NoPairedDevicesContent" xml:space="preserve"><value>まず、[設定] → [デバイスと共有] で、信頼できる Windows デバイスを見つけてペアリングします。</value></data>
+  <data name="SelectDeviceTitle" xml:space="preserve"><value>どのデバイスに送信しますか?</value></data>
+  <data name="ShareReadyTitle" xml:space="preserve"><value>共有準備完了</value></data>
+  <data name="NearbyShareReady" xml:space="preserve"><value>この Nearby リンクは HTTP およびプライベート ネットワークのみです。有効期限は自動的に切れます。インターネットの安全なリンクとしては使用しないでください。</value></data>
+  <data name="EncryptedShareReady" xml:space="preserve"><value>マニフェストとファイル チャンクはこのデバイス上で暗号化されます。復号化キーは URL フラグメントに保存されます。</value></data>
+  <data name="ShareExpires" xml:space="preserve"><value>有効期限: {0}</value></data>
+  <data name="CopyShareLink" xml:space="preserve"><value>リンクをコピー</value></data>
+  <data name="OpenShareQr" xml:space="preserve"><value>QR画像を開く</value></data>
+  <data name="RevokeShareButton" xml:space="preserve"><value>リンクを取り消す</value></data>
+  <data name="RevokeShareTitle" xml:space="preserve"><value>安全な共有を取り消す</value></data>
+  <data name="RevokeShareContent" xml:space="preserve"><value>これにより、リンクが無効になり、その暗号化されたオブジェクトが構成されたバックエンドから削除されます。続く？</value></data>
+  <data name="RevokeShareCompleted" xml:space="preserve"><value>安全な共有が取り消されました。</value></data>
+  <data name="PdfPreviousPage" xml:space="preserve"><value>前へ</value></data>
+  <data name="PdfNextPage" xml:space="preserve"><value>次へ</value></data>
+  <data name="PdfPageIndicator" xml:space="preserve"><value>ページ {0}/{1}</value></data>
+  <data name="QuickActionsSection" xml:space="preserve"><value>クイックアクション</value></data>
+  <data name="QuickActionsDescription" xml:space="preserve"><value>各項目に直接表示されるアクションを 3 つまで選択します。自動では、利用可能なアクション レジストリに従います。使用できない選択肢は安全にスキップされます。</value></data>
+  <data name="QuickActionFiles" xml:space="preserve"><value>ファイルとフォルダー</value></data>
+  <data name="QuickActionImages" xml:space="preserve"><value>画像</value></data>
+  <data name="QuickActionText" xml:space="preserve"><value>テキストとコード</value></data>
+  <data name="QuickActionUrls" xml:space="preserve"><value>URL</value></data>
+  <data name="QuickActionAutomatic" xml:space="preserve"><value>自動アクション順序を使用する</value></data>
+  <data name="QuickActionNone" xml:space="preserve"><value>なし</value></data>
+  <data name="QuickActionSlot" xml:space="preserve"><value>プライマリ スロット {0}</value></data>
+  <data name="ResetQuickActions" xml:space="preserve"><value>このプロファイルをリセットする</value></data>
+  <data name="ResetAllQuickActions" xml:space="preserve"><value>すべてのクイックアクションをリセット</value></data>
+  <data name="UndoButton.Content" xml:space="preserve"><value>元に戻す</value></data>
+  <data name="UndoRemovedItem" xml:space="preserve"><value>項目が削除されました。元に戻す操作は 8 秒間可能です。</value></data>
+  <data name="UndoRemovedItems" xml:space="preserve"><value>{0} 個のアイテムが削除されました。元に戻す操作は 8 秒間可能です。</value></data>
+  <data name="UndoClearedItems" xml:space="preserve"><value>{0} クリップボード項目がクリアされました。元に戻す操作は 8 秒間可能です。</value></data>
+  <data name="UndoPinned" xml:space="preserve"><value>{0} 個のアイテムが固定されました。元に戻す操作は 8 秒間可能です。</value></data>
+  <data name="UndoUnpinned" xml:space="preserve"><value>{0} 個のアイテムの固定が解除されました。元に戻す操作は 8 秒間可能です。</value></data>
+  <data name="UndoCompleted" xml:space="preserve"><value>元に戻すが完了しました。</value></data>
+  <data name="ShellIntakeAdded" xml:space="preserve"><value>DropSpace に追加されました</value></data>
+  <data name="ShellIntakeAddedCount" xml:space="preserve"><value>{0} アイテムを DropSpace に追加しました</value></data>
+  <data name="SettingsStageAppearance" xml:space="preserve"><value>窓と外観</value></data>
+  <data name="SettingsStageStartup" xml:space="preserve"><value>Windows と同時に起動</value></data>
+  <data name="SettingsStageClipboard" xml:space="preserve"><value>ローカルクリップボード</value></data>
+  <data name="SettingsStageHandoff" xml:space="preserve"><value>デバイスの接続</value></data>
+  <data name="SettingsStageCrossClipboard" xml:space="preserve"><value>クロスデバイスクリップボード</value></data>
+  <data name="SettingsStageStore" xml:space="preserve"><value>設定を保存する</value></data>
+  <data name="SettingsUpdateFailed" xml:space="preserve"><value>{0}を更新できませんでした。 DropSpace は以前の設定を復元しようとしました。この機能の権限または接続ステータスを確認して、再試行してください。診断 ID: {1}。</value></data>
+  <data name="ImageSizePreset" xml:space="preserve"><value>画像サイズ</value></data>
+  <data name="ImageSizeOriginal" xml:space="preserve"><value>元のサイズ (100%)</value></data>
+  <data name="ImageSizeCustom" xml:space="preserve"><value>カスタムピクセル</value></data>
+  <data name="ImageSizeOutput" xml:space="preserve"><value>出力サイズ: {0} × {1} ピクセル</value></data>
+  <data name="HashResultDescription" xml:space="preserve"><value>SHA-256 チェックサムはファイルの内容を識別します。それをコピーして、別のファイルのチェックサムと比較します。</value></data>
+  <data name="CopyHashResult" xml:space="preserve"><value>チェックサムをコピーする</value></data>
+  <data name="OpenOutputFolder" xml:space="preserve"><value>出力フォルダーを開く</value></data>
+  <data name="MoreItemButton.Content" xml:space="preserve"><value>さらなるアクション</value></data>
+  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>[設定] でこの機能を有効にし、最初にペアリングまたはサービスのセットアップを完了します。</value></data>
+  <data name="SettingsRecoveryFailed" xml:space="preserve"><value>以前の設定を完全に復元できませんでした。再度設定を変更する前にDropSpaceを再起動してください。診断 ID: {1}。</value></data>
+  <data name="SettingsStageRecovery" xml:space="preserve"><value>設定を復元する</value></data>
+  <data name="MediaControlFailed" xml:space="preserve"><value>プレイヤーはこのアクションを完了できませんでした。もう一度やり直してください。</value></data>
+  <data name="MediaNoSession.Text" xml:space="preserve"><value>サポートされているプレーヤーで音楽を再生すると、ここに表示されます。</value></data>
+  <data name="WidgetClock.Text" xml:space="preserve"><value>時計</value></data>
+  <data name="WidgetCalendar.Text" xml:space="preserve"><value>カレンダー</value></data>
+  <data name="MediaPlayLabel" xml:space="preserve"><value>再生</value></data>
+  <data name="IslandNextPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>次の島のページ</value></data>
+  <data name="MediaPrevious.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>前のトラック</value></data>
+  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>推定位置。このプレーヤーは信頼できるタイムラインを提供しません。歌詞が同期していない可能性があり、シークが利用できません。</value></data>
+  <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>前の島のページ</value></data>
+  <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>次のトラック</value></data>
+  <data name="MediaPauseLabel" xml:space="preserve"><value>一時停止</value></data>
+  <data name="WidgetSettingsAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>設定を開く</value></data>
+  <data name="WidgetsEmpty.Text" xml:space="preserve"><value>このページを構築するには、[設定] でウィジェットを選択します。</value></data>
+  <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>再生位置</value></data>
+  <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>リソース</value></data>
+  <data name="WidgetsEnabled" xml:space="preserve"><value>ウィジェットを有効にする</value></data>
+  <data name="MusicSpectrum" xml:space="preserve"><value>オーディオスペクトルを表示する</value></data>
+  <data name="ActivitiesNotifications" xml:space="preserve"><value>Windows 通知を表示する</value></data>
+  <data name="IslandAutoHide" xml:space="preserve"><value>再生停止後の自動非表示</value></data>
+  <data name="MusicProgress" xml:space="preserve"><value>進行状況を表示する</value></data>
+  <data name="MusicApplications" xml:space="preserve"><value>メディアアプリケーション</value></data>
+  <data name="WidgetRow" xml:space="preserve"><value>行</value></data>
+  <data name="LyricsMode" xml:space="preserve"><value>モード</value></data>
+  <data name="WidgetsCompactHelp" xml:space="preserve"><value>コンパクトなウィジェットは、自分でウィジェット表示を開いたときに使います。これを有効にしても、使用していないアイランドが表示されたままにはなりません。</value></data>
+  <data name="NavMusic.Content" xml:space="preserve"><value>音楽</value></data>
+  <data name="MusicLyricsSection" xml:space="preserve"><value>歌詞</value></data>
+  <data name="LyricsWords" xml:space="preserve"><value>ワード同期ハイライト表示</value></data>
+  <data name="WidgetAdd" xml:space="preserve"><value>追加</value></data>
+  <data name="MusicAllApplications" xml:space="preserve"><value>すべてのメディア アプリケーションを許可する</value></data>
+  <data name="LyricsScrolling" xml:space="preserve"><value>長い歌詞をスクロールする</value></data>
+  <data name="MusicEnabled" xml:space="preserve"><value>ミュージックアイランドを有効にする</value></data>
+  <data name="LyricsWidth" xml:space="preserve"><value>歌詞の最大幅</value></data>
+  <data name="LyricsWidthUnlimited" xml:space="preserve"><value>無制限</value></data>
+  <data name="MusicApplicationsEmpty" xml:space="preserve"><value>音楽を再生してメディア アプリケーションを見つけます。</value></data>
+  <data name="WidgetCenter" xml:space="preserve"><value>中央</value></data>
+  <data name="LyricsProvider" xml:space="preserve"><value>優先歌詞プロバイダー</value></data>
+  <data name="LyricsFallbackHelp" xml:space="preserve"><value>ルックアップは、有効な場合、優先プロバイダー→オプションのバックアップ→残りのプロバイダーに従います。バックアップまたは残りのプロバイダーの検索を行わない場合、優先プロバイダーのみが使用されます。ローカルモードはオフラインのままです。</value></data>
+  <data name="LyricsBackupProvider" xml:space="preserve"><value>バックアップ歌詞プロバイダー</value></data>
+  <data name="LyricsBackupProviderNone" xml:space="preserve"><value>なし</value></data>
+  <data name="LyricsSearchRemainingProviders" xml:space="preserve"><value>残りのプロバイダーを検索する</value></data>
+  <data name="WidgetSelected" xml:space="preserve"><value>選択済み</value></data>
+  <data name="WidgetNoRoom" xml:space="preserve"><value>十分な空きスペースがありません。まず別のウィジェットのサイズを変更するか削除してください。</value></data>
+  <data name="LyricsDelay" xml:space="preserve"><value>歌詞オフセット (ミリ秒)</value></data>
+  <data name="SettingsPageAbout" xml:space="preserve"><value>このアプリについて</value></data>
+  <data name="MusicPlaybackSection" xml:space="preserve"><value>再生</value></data>
+  <data name="LyricsProviderAmll" xml:space="preserve"><value>AMLL TTML</value></data>
+  <data name="LyricsProviderKugou" xml:space="preserve"><value>Kugou</value></data>
+  <data name="SettingsPageUpdates" xml:space="preserve"><value>アップデート</value></data>
+  <data name="SettingsPageSystemActivities" xml:space="preserve"><value>システムアクティビティ</value></data>
+  <data name="WidgetColumn" xml:space="preserve"><value>列</value></data>
+  <data name="PageTitleMusic" xml:space="preserve"><value>音楽</value></data>
+  <data name="ChooseFolder" xml:space="preserve"><value>フォルダーを選択してください</value></data>
+  <data name="MusicDynamicWidth" xml:space="preserve"><value>ダイナミックな歌詞の幅</value></data>
+  <data name="ActivitiesVolume" xml:space="preserve"><value>音量の変化を表示する</value></data>
+  <data name="IslandRightHoldMove" xml:space="preserve"><value>マウスの右ボタンを押したまま移動します</value></data>
+  <data name="LyricsOnline" xml:space="preserve"><value>オンライン</value></data>
+  <data name="WidgetHeight" xml:space="preserve"><value>高さ</value></data>
+  <data name="MusicArtwork" xml:space="preserve"><value>アルバムアートワークを表示</value></data>
+  <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>ローカル LRC</value></data>
+  <data name="IslandHideDelay" xml:space="preserve"><value>非表示にするまでの時間</value></data>
+  <data name="WidgetRight" xml:space="preserve"><value>右</value></data>
+  <data name="WidgetLeft" xml:space="preserve"><value>左</value></data>
+  <data name="LyricsEnabled" xml:space="preserve"><value>歌詞を有効にする</value></data>
+  <data name="LyricsLoading" xml:space="preserve"><value>歌詞を読み込んでいます…</value></data>
+  <data name="LyricsNotFound" xml:space="preserve"><value>一致する歌詞はありません</value></data>
+  <data name="LyricsFailed" xml:space="preserve"><value>歌詞は一時的に利用できなくなります。再試行するには、「更新」を選択します。</value></data>
+  <data name="WidgetDropFailed" xml:space="preserve"><value>このウィジェットはここにドロップできませんでした。グリッド セルを試すか、位置コントロールを使用してください。</value></data>
+  <data name="WidgetRemove" xml:space="preserve"><value>ウィジェットを削除する</value></data>
+  <data name="SettingsPageIsland" xml:space="preserve"><value>ダイナミックアイランド</value></data>
+  <data name="ClearLyricsCache" xml:space="preserve"><value>歌詞キャッシュをクリアする</value></data>
+  <data name="LyricsCacheSize" xml:space="preserve"><value>歌詞キャッシュ制限 (GB)</value></data>
+  <data name="WidgetSelect" xml:space="preserve"><value>ウィジェットを選択して、その位置とサイズを編集します。</value></data>
+  <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
+  <data name="SettingsPageGeneral" xml:space="preserve"><value>一般</value></data>
+  <data name="WidgetWidth" xml:space="preserve"><value>幅</value></data>
+  <data name="LyricsProviderNetEase" xml:space="preserve"><value>NetEase Cloud Music</value></data>
+  <data name="LyricsLocal" xml:space="preserve"><value>ローカル LRC</value></data>
+  <data name="WidgetsEditorMode" xml:space="preserve"><value>ウィジェットエディターモード</value></data>
+  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>この変更を保存できませんでした。以前の設定が復元されました。</value></data>
+  <data name="WidgetsCompactMode" xml:space="preserve"><value>コンパクト・左/中央/右</value></data>
+  <data name="IslandExpandedScale" xml:space="preserve"><value>展開時の表示倍率</value></data>
+  <data name="WidgetsReset" xml:space="preserve"><value>ウィジェットのレイアウトをリセット</value></data>
+  <data name="ActivitiesFullscreen" xml:space="preserve"><value>全画面アプリ上のアクティビティを抑制する</value></data>
+  <data name="WidgetNone" xml:space="preserve"><value>なし</value></data>
+  <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
+  <data name="LyricsFolder" xml:space="preserve"><value>ローカルの歌詞フォルダー</value></data>
+  <data name="LyricsCompact" xml:space="preserve"><value>コンパクトアイランドに歌詞を表示</value></data>
+  <data name="PageDescriptionMusic" xml:space="preserve"><value>今再生中、歌詞、そしてあなたの音楽島。</value></data>
+  <data name="SettingsPageWidgets" xml:space="preserve"><value>ウィジェット</value></data>
+  <data name="IslandCompactScale" xml:space="preserve"><value>コンパクト時の表示倍率</value></data>
+  <data name="WidgetLibrary" xml:space="preserve"><value>ウィジェットライブラリ</value></data>
+  <data name="SettingsPageDevices" xml:space="preserve"><value>デバイス / 共有</value></data>
+  <data name="WidgetsEditorHelp" xml:space="preserve"><value>ハイライト表示されたスロットにドラッグします。同じサイズのウィジェットは交換できます。ウィジェットを選択し、矢印を使用して微調整するか、位置とサイズを編集してレイアウトを適用します。元に戻すと、最後の変更が復元されます。</value></data>
+  <data name="WidgetsExpandedMode" xml:space="preserve"><value>展開時・4行×8列</value></data>
+  <data name="LyricsSecondary" xml:space="preserve"><value>二次歌詞を表示する</value></data>
+  <data name="WidgetSettingsName" xml:space="preserve"><value>設定のショートカット</value></data>
+  <data name="WidgetBattery.Text" xml:space="preserve"><value>電源</value></data>
+  <data name="ClipboardIslandPin.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>ピン留めを切り替える</value></data>
+  <data name="ClipboardIslandEmpty.Text" xml:space="preserve"><value>コピーされたコンテンツがここに表示されます。</value></data>
+  <data name="ClipboardIslandResume" xml:space="preserve"><value>記録を再開</value></data>
+  <data name="WidgetClipboardPause.Text" xml:space="preserve"><value>クリップボード記録</value></data>
+  <data name="ClipboardIslandOpenMain.Content" xml:space="preserve"><value>全履歴を開く</value></data>
+  <data name="StopwatchReset.Text" xml:space="preserve"><value>ストップウォッチをリセットする</value></data>
+  <data name="ClipboardIslandActionFailed" xml:space="preserve"><value>このアクションを完了できませんでした。もう一度やり直してください。</value></data>
+  <data name="StopwatchPause" xml:space="preserve"><value>一時停止</value></data>
+  <data name="StopwatchStart" xml:space="preserve"><value>スタート</value></data>
+  <data name="ClipboardIslandTitle.Text" xml:space="preserve"><value>クリップボード</value></data>
+  <data name="WidgetUptime.Text" xml:space="preserve"><value>稼働時間</value></data>
+  <data name="WidgetStopwatch.Text" xml:space="preserve"><value>ストップウォッチ</value></data>
+  <data name="ClipboardIslandCopy.Content" xml:space="preserve"><value>コピー</value></data>
+  <data name="ClipboardIslandPause" xml:space="preserve"><value>記録を一時停止</value></data>
+  <data name="ClipboardIslandRemove.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>DropSpace から削除</value></data>
+  <data name="WidgetSize" xml:space="preserve"><value>サイズ</value></data>
+  <data name="ActivityMuted" xml:space="preserve"><value>ミュート</value></data>
+  <data name="ActivityVolume" xml:space="preserve"><value>音量</value></data>
+  <data name="NotificationAccessUnavailable" xml:space="preserve"><value>通知へのアクセスが利用できないか、許可されませんでした。 Windows 設定で、インストールされている DropSpace アプリの通知アクセスを有効にします。</value></data>
+  <data name="NeteaseEnhancementTitle" xml:space="preserve"><value>NetEase Musicの強化</value></data>
+  <data name="NeteaseEnhancementDescription" xml:space="preserve"><value>DropSpace で完全なメディア コントロール、再生の進行状況、および関連機能を有効にします。</value></data>
+  <data name="NeteaseEnhancementInstall" xml:space="preserve"><value>NetEase Musicを強化</value></data>
+  <data name="NeteaseEnhancementUpdate" xml:space="preserve"><value>アップデートを確認する</value></data>
+  <data name="NeteaseEnhancementReinstall" xml:space="preserve"><value>再インストール</value></data>
+  <data name="NeteaseEnhancementRemove" xml:space="preserve"><value>強化を削除する</value></data>
+  <data name="NeteaseEnhancementConfirmTitle" xml:space="preserve"><value>NetEase Musicを強化</value></data>
+  <data name="NeteaseEnhancementConfirmBody" xml:space="preserve"><value>DropSpace は InfLink-rs とその必要なランタイム コンポーネントを自動的にインストールし、NetEase Music に対する完全な Windows メディア サポートを提供します。これらは、独立したサードパーティのオープンソース プロジェクトです。 NetEase Music が再起動し、コントロールが確認されている間、再生が一時的に変わります。</value></data>
+  <data name="NeteaseEnhancementCancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="NeteaseEnhancementConfirm" xml:space="preserve"><value>確認してインストールする</value></data>
+  <data name="NeteaseEnhancementNotInstalled" xml:space="preserve"><value>強化する準備ができています</value></data>
+  <data name="NeteaseEnhancementDetecting" xml:space="preserve"><value>NetEase Musicをチェック中…</value></data>
+  <data name="NeteaseEnhancementPreparing" xml:space="preserve"><value>強化コンポーネントを準備しています…</value></data>
+  <data name="NeteaseEnhancementInstalling" xml:space="preserve"><value>InfLink-rs をインストールしています…</value></data>
+  <data name="NeteaseEnhancementRestarting" xml:space="preserve"><value>NetEase Music を再起動しています…</value></data>
+  <data name="NeteaseEnhancementVerifying" xml:space="preserve"><value>メディアコントロールを確認しています…</value></data>
+  <data name="NeteaseEnhancementInstalled" xml:space="preserve"><value>✓ 強化コンポーネントがインストールされています</value></data>
+  <data name="NeteaseEnhancementEnhanced" xml:space="preserve"><value>✓ 拡張 — 完全なメディア コントロールが有効になります</value></data>
+  <data name="NeteaseEnhancementRemoving" xml:space="preserve"><value>強化を削除しています…</value></data>
+  <data name="NeteaseEnhancementRemoved" xml:space="preserve"><value>強化が削除されました</value></data>
+  <data name="NeteaseEnhancementFailed" xml:space="preserve"><value>強化を完了できませんでした</value></data>
+  <data name="NeteaseEnhancementErrorUnexpected" xml:space="preserve"><value>操作は失敗しました。再試行できます。詳細は診断で確認できます。</value></data>
+  <data name="NeteaseEnhancementErrorNotFound" xml:space="preserve"><value>NetEase Music はこのコンピューター上に見つかりませんでした。</value></data>
+  <data name="NeteaseEnhancementErrorVerification" xml:space="preserve"><value>完全なメディア コントロールの検証に失敗しました。以前のインストール状態が復元されました。プレーヤーまたは拡張コンポーネントには一部の機能が不足している可能性があります。</value></data>
+  <data name="NeteaseEnhancementErrorPermission" xml:space="preserve"><value>Windows はプレーヤーのインストールへのアクセスを拒否しました。 DropSpace を管理者として実行し、再試行してください。</value></data>
+  <data name="NeteaseEnhancementErrorConflict" xml:space="preserve"><value>既存のコンポーネントを安全に交換できませんでした。既存のインストールは保存されました。</value></data>
+  <data name="NeteaseEnhancementErrorIntegrity" xml:space="preserve"><value>コンポーネントの整合性の検証に失敗しました。このダウンロードからは何もインストールされませんでした。</value></data>
+  <data name="NeteaseEnhancementErrorNetwork" xml:space="preserve"><value>公式コンポーネントのソースにアクセスできませんでした。後で再試行してください。</value></data>
+  <data name="NeteaseEnhancementErrorRuntime" xml:space="preserve"><value>必要なランタイム コンポーネントが利用できません。拡張機能はインストールされていませんでした。</value></data>
+  <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>自動回復を完了できませんでした。回復するには、再インストールまたは削除の拡張機能を使用します。</value></data>
+  <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>操作はキャンセルされました。</value></data>
+  <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC 時計</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>集中・25分</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>タイマー・5分</value></data>
+  <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>システムドライブの空き容量</value></data>
+  <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>ネットワークアダプター</value></data>
+  <data name="WidgetCalculator.Text" xml:space="preserve"><value>電卓</value></data>
+  <data name="WidgetPinnedItems.Text" xml:space="preserve"><value>ピン留めされたアイテム</value></data>
+  <data name="WidgetWeekProgress.Text" xml:space="preserve"><value>ISO 週間 · 進捗状況</value></data>
+  <data name="WidgetNetworkConnected" xml:space="preserve"><value>接続済み</value></data>
+  <data name="WidgetNetworkDisconnected" xml:space="preserve"><value>切断されました</value></data>
+  <data name="WidgetLaunchFailed" xml:space="preserve"><value>開けません</value></data>
+  <data name="WidgetApplyLayout" xml:space="preserve"><value>レイアウトを適用</value></data>
+  <data name="WidgetUndo" xml:space="preserve"><value>元に戻す</value></data>
+  <data name="WidgetMove" xml:space="preserve"><value>移動</value></data>
+  <data name="LyricsOriginalFontSize" xml:space="preserve"><value>元の歌詞のサイズ</value></data>
+  <data name="LyricsTranslationFontSize" xml:space="preserve"><value>訳文の文字サイズ</value></data>
+  <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
+  <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>翻訳された歌詞のプレビュー</value></data>
+  <data name="LyricsResetFonts" xml:space="preserve"><value>歌詞のサイズをリセットする</value></data>
+  <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌詞</value></data>
+  <data name="AiLyricsDescription" xml:space="preserve"><value>このコンピューターで、訳文がない歌詞を選択した簡体字中国語または英語に翻訳します。選択した言語に一致する提供元の訳文が優先されます。初回の全体翻訳には、デバイスの性能や歌詞の長さに応じて数分かかる場合があります。翻訳が終わった行から順に表示されます。AI が意味を誤訳することがあります。AI 翻訳のために歌詞がアップロードされることはありません。</value></data>
+  <data name="AiLyricsEnabled" xml:space="preserve"><value>AI の歌詞翻訳を使用する</value></data>
+  <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU加速度</value></data>
+  <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>AI 翻訳には互換性のある GPU を優先します。 GPU アクセラレーションが利用できない場合、または失敗した場合、アプリは代わりに CPU を使用します。 CPUのみを使用する場合はオフにします。この設定を変更しても、AI がオンになったり、モデルがダウンロードされたりすることはありません。</value></data>
+  <data name="AiLyricsModel" xml:space="preserve"><value>翻訳モデル</value></data>
+  <data name="AiLyricsStandardModel" xml:space="preserve"><value>従来の標準モデル（Q4）</value></data>
+  <data name="AiLyricsSmallerModel" xml:space="preserve"><value>従来のコンパクトモデル（IQ3）</value></data>
+  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0</value></data>
+  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0</value></data>
+  <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>大型モデル。より多くのメモリと GPU メモリが必要です。</value></data>
+  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>ローカル翻訳モデル。</value></data>
+  <data name="AiLyricsLegacyModels" xml:space="preserve"><value>以前のモデル ファイル</value></data>
+  <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>これらの古いモデル ファイルは、翻訳には使用されなくなりました。それらを削除してディスク領域を解放できます。</value></data>
+  <data name="AiLyricsDeleteLegacyModel" xml:space="preserve"><value>{0}を削除</value></data>
+  <data name="AiLyricsModelSize" xml:space="preserve"><value>{0} GB ({1} バイト)</value></data>
+  <data name="AiLyricsModelDetails" xml:space="preserve"><value>{0}
+ダウンロードサイズ：{1}
+提供元：{2}</value></data>
+  <data name="AiLyricsDownloadProgress" xml:space="preserve"><value>翻訳モデルのダウンロードの進行状況</value></data>
+  <data name="AiLyricsModelProgress" xml:space="preserve"><value>{0} モデルのダウンロードの進行状況</value></data>
+  <data name="AiLyricsDownload" xml:space="preserve"><value>モデルをダウンロード</value></data>
+  <data name="AiLyricsCancelDownload" xml:space="preserve"><value>ダウンロードをキャンセルする</value></data>
+  <data name="AiLyricsResumeDownload" xml:space="preserve"><value>ダウンロードの再試行/再開</value></data>
+  <data name="AiLyricsDownloadHelp" xml:space="preserve"><value>AI がオフのときにどちらかのモデルをダウンロードし、両方を保持することができます。選択したモデルのみが使用されます。中断されたダウンロードは可能な場合には再開されます。</value></data>
+  <data name="AiLyricsConfirmTitle" xml:space="preserve"><value>翻訳モデルをダウンロードしますか?</value></data>
+  <data name="AiLyricsConfirmBody" xml:space="preserve"><value>{0}
+{1}
+{2}
+提供元：{3}
+
+モデルをこのコンピューターにダウンロードします。インターネット接続はダウンロードにのみ使用され、歌詞がモデルの提供元に送信されることはありません。翻訳はローカルで実行されます。キャンセルして後から再開できます。</value></data>
+  <data name="AiLyricsConfirmDownload" xml:space="preserve"><value>ダウンロード</value></data>
+  <data name="AiLyricsNotNow" xml:space="preserve"><value>今ではありません</value></data>
+  <data name="AiLyricsChecking" xml:space="preserve"><value>ダウンロードしたモデルを確認しています…</value></data>
+  <data name="AiLyricsReady" xml:space="preserve"><value>ダウンロード済み、すぐに使用可能</value></data>
+  <data name="AiLyricsNeedsDownload" xml:space="preserve"><value>AI 翻訳をオンにする前に、このモデルをダウンロードしてください。</value></data>
+  <data name="AiLyricsDownloading" xml:space="preserve"><value>モデルをダウンロード中… 利用可能な場合は、以前の進行状況が再開されます。</value></data>
+  <data name="AiLyricsVerifying" xml:space="preserve"><value>ダウンロードを受け取りました。モデルを確認中…</value></data>
+  <data name="AiLyricsDownloadComplete" xml:space="preserve"><value>モデルをダウンロードして検証しました。すぐに使用できます。</value></data>
+  <data name="AiLyricsDownloadCanceled" xml:space="preserve"><value>ダウンロードをキャンセルしました。再試行すると、保存した続きから再開します。</value></data>
+  <data name="AiLyricsDownloadFailed" xml:space="preserve"><value>ダウンロードを完了できませんでした。接続と空きディスク容量を確認してから、再試行してください。保存された進行状況は可能な場合に再開されます。検証に失敗したモデルは再度ダウンロードされます。</value></data>
+  <data name="AiLyricsInspectFailed" xml:space="preserve"><value>ダウンロードしたモデルを確認できませんでした。アプリのデータ フォルダーにアクセスできることを確認してから、このページを再度開きます。</value></data>
+  <data name="AiLyricsOperationFailed" xml:space="preserve"><value>この変更は完了できませんでした。もう一度試してください。</value></data>
+  <data name="LyricsGlowTitle" xml:space="preserve"><value>アイランドのグロー</value></data>
+  <data name="LyricsSimplifiedGlow" xml:space="preserve"><value>シンプルなグロー</value></data>
+  <data name="LyricsSimplifiedGlowHelp" xml:space="preserve"><value>下辺全体と各角の下側 45° から柔らかな光を下向きに放ち、端に向かって自然に薄めます。オフにするとアイランドの周囲全体を照らします。</value></data>
+  <data name="LyricsGlowOff" xml:space="preserve"><value>オフ</value></data>
+  <data name="LyricsGlowAi" xml:space="preserve"><value>AI 歌詞</value></data>
+  <data name="LyricsGlowMusic" xml:space="preserve"><value>音楽</value></data>
+  <data name="LyricsGlowDescription" xml:space="preserve"><value>「AI 歌詞」では AI の訳文が表示されるときにグローが点灯します。「音楽」では AI がオフでも再生中に点灯します。AI をオンにすると「AI 歌詞」、オフにすると「オフ」が選択されます。ここで変更できます。</value></data>
+  <data name="LyricsGlowKeyboardHelp" xml:space="preserve"><value>矢印キーで「オフ」「AI 歌詞」「音楽」を選択します。Home は「オフ」、End は「音楽」を選択します。</value></data>
+  <data name="LyricsGlowAccessibleValue" xml:space="preserve"><value>アイランドのグロー: {0}</value></data>
+  <data name="AiLyricsDownloadHelpSingle" xml:space="preserve"><value>AIがオフのときにモデルをダウンロードできます。中断されたダウンロードは可能な場合には再開されます。</value></data>
+  <data name="AiLyricsStandardHelp" xml:space="preserve"><value>Tencent Q4 の前のモデル。古いダウンロードを検査および削除するためにのみ保存されます。</value></data>
+  <data name="AiLyricsCompactHelp" xml:space="preserve"><value>以前のサードパーティ製 IQ3 モデル。古いダウンロードを検査および削除するためにのみ保存されます。</value></data>
+  <data name="LyricsFontSize" xml:space="preserve"><value>歌詞のサイズ</value></data>
+  <data name="LyricsFontSizeNumber" xml:space="preserve"><value>歌詞サイズ、12 ～ 28</value></data>
+  <data name="LyricsFontSizeHelp" xml:space="preserve"><value>ドラッグするか、12 ～ 28 のサイズを入力します。小数も使用できます。オリジナルの歌詞と翻訳は一緒にスケールされます。</value></data>
+  <data name="LyricsFontSizeKeyboardHelp" xml:space="preserve"><value>0.1 ステップの場合は矢印キーを使用し、1 の場合は Page Up または Page Down を使用するか、数値フィールドに正確なサイズを入力します。</value></data>
+  <data name="LyricsFontSizeInvalid" xml:space="preserve"><value>12 ～ 28 の数値を入力してください。プレビューでは、最後に有効なサイズが保持されます。</value></data>
+  <data name="LyricsFontSizeRestored" xml:space="preserve"><value>最後の有効なサイズが復元されました。 12 ～ 28 の数字を入力します。</value></data>
+  <data name="AiLyricsTranslationPaused" xml:space="preserve"><value>3 回連続で翻訳に失敗したため、AI 翻訳を一時停止しました。原文の歌詞はそのままです。もう一度試すときに再開してください。</value></data>
+  <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>AI 翻訳を再開します</value></data>
+  <data name="AiLyricsDeleteModel" xml:space="preserve"><value>モデルの削除</value></data>
+  <data name="AiLyricsClearCache" xml:space="preserve"><value>歌詞キャッシュをクリアする</value></data>
+  <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>{0} とその部分ダウンロードを削除しますか?このモデルが有効な場合、AI 変換はオフになります。他のモデルとオリジナルの歌詞は保持されます。</value></data>
+  <data name="AiLyricsModelDeleted" xml:space="preserve"><value>モデルが削除されました。後で再度ダウンロードできます。</value></data>
+  <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>キャッシュされたオリジナルの歌詞、プロバイダーの翻訳、AI の翻訳を削除しますか?現在の推論は停止します。ダウンロードしたモデルと歌詞ファイルは保持されます。</value></data>
+  <data name="AiLyricsCacheCleared" xml:space="preserve"><value>歌詞キャッシュがクリアされました。</value></data>
+  <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>オフライン ランタイムはアプリに含まれています。追加のランタイムのダウンロードは必要ありません。ランタイム抽出では、最大約 {0} MiB の追加ディスク領域が使用されます。モデルのダウンロードとリカバリのために、さらに 64 MiB の空きディスク容量を確保してください。</value></data>
+  <data name="AiLyricsTranslating" xml:space="preserve"><value>ローカルで翻訳中… 最初の完全な翻訳には数分かかる場合があります。完成した翻訳は 1 行ずつ表示されます。未完成の行は元の歌詞を保持します。</value></data>
+  <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>AI 翻訳は一時的に利用できません。オリジナルの歌詞は変更されていません。</value></data>
+  <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI 翻訳の準備ができました。</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>オンライン歌詞は、現在の曲のタイトル、アーティスト、アルバム、再生時間を、設定で許可されている歌詞プロバイダーに送信します。新規インストールでは、NetEase を最初に使用し、バックアップなしで、残りのプロバイダー検索を有効にしてオンライン歌詞を利用できます。いつでも歌詞を無効にしたり、プロバイダーを変更したりできます。プロバイダーの要求なしで独自の歌詞ファイルを読み取るには、ローカル LRC を選択します。 AI 翻訳自体はこのデバイス上に残ります。</value></data>
+  <data name="AiLyricsClearingCache" xml:space="preserve"><value>AI 翻訳キャッシュをクリアしています…</value></data>
+  <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>バックグラウンドで実行するものを選択する</value></data>
+  <data name="FirstRunPrivacyBody" xml:space="preserve"><value>一時スペースは、クリップボードの記録を有効にしなくても使えます。有効にすると、DropSpace はコピーしたテキスト、画像、ファイルへの参照をローカルに保存します。ウィンドウを閉じてトレイに格納している間も記録は続きます。「クリップボード」と「設定」で、記録の一時停止、履歴の消去、保存期間の変更ができます。トレイへの格納ではアプリは終了しません。DropSpace を停止するには「終了」を選択してください。これらの設定は後から変更できます。</value></data>
+  <data name="FirstRunClipboardChoice" xml:space="preserve"><value>ローカルクリップボード記録を有効にする</value></data>
+  <data name="FirstRunStartupChoice" xml:space="preserve"><value>Windows にサインインしたら DropSpace を開始します</value></data>
+  <data name="FirstRunContinue" xml:space="preserve"><value>選択肢を保存して続行する</value></data>
+  <data name="FirstRunSkip" xml:space="preserve"><value>両方オフのまま続行します</value></data>
+  <data name="LyricsCacheClearFailed" xml:space="preserve"><value>歌詞キャッシュをクリアできませんでした。もう一度やり直してください。</value></data>
+  <data name="LyricsCacheMigrationFailed" xml:space="preserve"><value>一部の古い歌詞キャッシュ ファイルは削除できませんでした。歌詞キャッシュをクリアして再試行してください。ダウンロードしたモデルと歌詞ファイルは保持されます。</value></data>
+  <data name="MusicRefresh" xml:space="preserve"><value>音楽をリフレッシュ</value></data>
+  <data name="MusicRefreshHelp" xml:space="preserve"><value>DropSpace を再起動せずに、音楽、アートワーク、歌詞を再接続します。設定とキャッシュされた歌詞は保持されます。</value></data>
+  <data name="MusicReconnecting" xml:space="preserve"><value>音楽を再接続中…</value></data>
+  <data name="MusicReconnected" xml:space="preserve"><value>音楽が再接続されました</value></data>
+  <data name="MusicReconnectFailed" xml:space="preserve"><value>音楽を再接続できませんでした。もう一度更新ボタンを押してください。</value></data>
+  <data name="MediaNextLyricLabel" xml:space="preserve"><value>次の歌詞</value></data>
+  <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>全画面アプリの上にダイナミックアイランドを表示</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>内容がある場合、または常時表示が有効な場合に、全画面アプリの上へアイランドを表示します。オフの場合は、設定した待ち時間で非表示にします。</value></data>
+  <data name="LyricsShowAiLabel" xml:space="preserve"><value>AI の歌詞ラベルを表示</value></data>
+  <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>ローカル翻訳では、十分な使用可能なメモリを確認できませんでした。メモリを解放するか、より小さいモデルを選択して、再試行してください。</value></data>
+  <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU バックエンド</value></data>
+  <data name="AiLyricsGpuAutomatic" xml:space="preserve"><value>自動</value></data>
+  <data name="AiLyricsCudaComponents" xml:space="preserve"><value>DLC コンポーネント マネージャーを開く</value></data>
+  <data name="AiLyricsCudaTitle" xml:space="preserve"><value>CUDA アクセラレーション コンポーネントをダウンロード</value></data>
+  <data name="AiLyricsCudaDownloadBody" xml:space="preserve"><value>NVIDIA GPU が検出されました。 CUDA には、約 {0} MiB のランタイムを別途ダウンロードする必要があります。既存のAIモデルが再利用されます。 DLC でダウンロードまたは削除します。それまでは、Vulkan は CPU フォールバックで利用可能なままになります。</value></data>
+  <data name="AiLyricsActualBackend" xml:space="preserve"><value>最終推論バックエンド: {0}</value></data>
+  <data name="AiLyricsBackendPending" xml:space="preserve"><value>推論は実行されていません。実行待ちです。</value></data>
+  <data name="AiLyricsSelectedBackend" xml:space="preserve"><value>選択したバックエンド: {0}</value></data>
+  <data name="AiLyricsBackendStarting" xml:space="preserve"><value>ワーカープロセスを準備中です。推論はまだ始まっていません。</value></data>
+  <data name="AiLyricsBackendExecuting" xml:space="preserve"><value>現在の実行バックエンド: {0}。この推論結果を待っています。</value></data>
+  <data name="AiLyricsBackendCached" xml:space="preserve"><value>キャッシュがヒットしました。この結果に対して推論は実行されませんでした。</value></data>
+  <data name="AiLyricsLastBackend" xml:space="preserve"><value>最後に完了した推論: {0} ({1})</value></data>
+  <data name="AiLyricsRuntimeFailure" xml:space="preserve"><value>実行時レコード: 要求 {0}、試行 {1}; {2};理由: {3};終了コード: {4}。</value></data>
+  <data name="AiLyricsExitNotObserved" xml:space="preserve"><value>観察されていない</value></data>
+  <data name="AiLyricsWorkerStopped" xml:space="preserve"><value>アプリはこのワーカーを終了させました。</value></data>
+  <data name="AiLyricsWorkerExited" xml:space="preserve"><value>強制終了は要求されませんでした。</value></data>
+  <data name="AiLyricsCpuFallbackAttempted" xml:space="preserve"><value>CPU フォールバックが試行されました。成功した結果については、最後に完了した推論を参照してください。</value></data>
+  <data name="AiLyricsInferenceFailed" xml:space="preserve"><value>この試みは完了しませんでした。</value></data>
+  <data name="AiLyricsRetryGpu" xml:space="preserve"><value>次の推論で GPU を再試行します</value></data>
+  <data name="AiLyricsFailureTimeout" xml:space="preserve"><value>ワーカーの起動または推論がタイムアウトしました</value></data>
+  <data name="AiLyricsFailureMemory" xml:space="preserve"><value>メモリが不足しているか、メモリ バジェットを超えています</value></data>
+  <data name="AiLyricsFailureGpuAdmission" xml:space="preserve"><value>GPU デバイスまたは利用可能な VRAM が許可を通過できませんでした</value></data>
+  <data name="AiLyricsFailureArchitecture" xml:space="preserve"><value>CUDA カーネルはデバイスまたはドライバーと互換性がありません</value></data>
+  <data name="AiLyricsFailureDevice" xml:space="preserve"><value>CUDA デバイスまたはドライバーが利用できません</value></data>
+  <data name="AiLyricsFailureRuntime" xml:space="preserve"><value>ランタイムのロードまたはワーカーの起動に失敗しました</value></data>
+  <data name="AiLyricsFailureCompute" xml:space="preserve"><value>GPU の計算またはデコードに失敗しました</value></data>
+  <data name="AiLyricsFailureModel" xml:space="preserve"><value>モデルまたは推論コンテキストのロードに失敗しました</value></data>
+  <data name="AiLyricsFailureValidation" xml:space="preserve"><value>コンポーネントの整合性またはワーカーの応答の検証に失敗しました</value></data>
+  <data name="AiLyricsFailureUnknown" xml:space="preserve"><value>ワーカーは有効な応答を完了しませんでした。詳細については、ローカル診断を参照してください</value></data>
+  <data name="SettingsRecoveredPreferencesKept" xml:space="preserve"><value>一部の UI 設定を読み取れませんでした。安全な値が復元され、使用可能な設定が保持されました。元の構成はデータ隔離フォルダーにあります。設定を見直してください。</value></data>
+  <data name="SettingsRecoveredDefaults" xml:space="preserve"><value>元の構成を安全に読み取ることができませんでした。デフォルトが使用されており、AI スイッチは以前の選択と異なる場合があります。元のファイルはデータ隔離フォルダーにあります。設定を確認して復元してください。</value></data>
+  <data name="DlcDeleteEnabledModel" xml:space="preserve"><value>これは現在の AI 歌詞モデルです。削除は、アクティブな推論が終了するまで待機します。 AI 設定は有効なままになります。インストールするか、再度翻訳する利用可能なモデルを選択してください。</value></data>
+  <data name="AiLyricsCudaFallback" xml:space="preserve"><value>CUDA コンポーネントがインストールされていません。 Vulkan / CPU は引き続きご利用いただけます。</value></data>
+  <data name="SettingsPageDlc" xml:space="preserve"><value>DLC</value></data>
+  <data name="SettingsPageDownloads" xml:space="preserve"><value>ダウンロード</value></data>
+  <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
+  <data name="DlcDescription" xml:space="preserve"><value>オプションのモデル、ランタイム、機能コンポーネントを管理します。ダウンロードは、選択した場合にのみ開始されます。</value></data>
+  <data name="DlcManage" xml:space="preserve"><value>DLC でダウンロードを管理する</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>ダウンロード済み</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>ダウンロードされていません</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>ダウンロードされたコンポーネントはありません。</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>利用可能なコンポーネントはすべてダウンロード済みです。</value></data>
+  <data name="DlcRefresh" xml:space="preserve"><value>インストール済みコンポーネントの状態を再確認</value></data>
+  <data name="DlcModelPurpose" xml:space="preserve"><value>オフラインでの AI 歌詞翻訳。</value></data>
+  <data name="DlcLargeModelPurpose" xml:space="preserve"><value>オフライン AI 歌詞翻訳用のオプションの大型モデル。</value></data>
+  <data name="DlcLegacyModelPurpose" xml:space="preserve"><value>以前にダウンロードしたモデルです。削除のみ可能です。</value></data>
+  <data name="DlcInstalledSize" xml:space="preserve"><value>ディスク上: {0}</value></data>
+  <data name="DlcDownloadSize" xml:space="preserve"><value>ダウンロード: {0}</value></data>
+  <data name="DlcSizeFormat" xml:space="preserve"><value>{0} GB ({1} バイト)</value></data>
+  <data name="DlcUnknownSize" xml:space="preserve"><value>不明</value></data>
+  <data name="DlcDownload" xml:space="preserve"><value>ダウンロード</value></data>
+  <data name="DlcResume" xml:space="preserve"><value>ダウンロードを再開する</value></data>
+  <data name="DlcDelete" xml:space="preserve"><value>アンインストール</value></data>
+  <data name="DlcRetry" xml:space="preserve"><value>再試行</value></data>
+  <data name="DlcCancel" xml:space="preserve"><value>ダウンロードをキャンセルする</value></data>
+  <data name="DlcChecking" xml:space="preserve"><value>ローカルコンポーネントを確認しています…</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>ダウンロードされていません</value></data>
+  <data name="DlcReady" xml:space="preserve"><value>インストール済み</value></data>
+  <data name="DlcIncomplete" xml:space="preserve"><value>ダウンロードが不完全です。ダウンロードしたファイルを再開または削除します。</value></data>
+  <data name="DlcDownloading" xml:space="preserve"><value>ダウンロード中…</value></data>
+  <data name="DlcVerifying" xml:space="preserve"><value>確認してインストールしています…</value></data>
+  <data name="DlcCanceling" xml:space="preserve"><value>ダウンロードをキャンセルしています…</value></data>
+  <data name="DlcCanceled" xml:space="preserve"><value>ダウンロードがキャンセルされました。 [ダウンロード] を選択して続行します。</value></data>
+  <data name="DlcRemoving" xml:space="preserve"><value>AI を停止してアンインストールしています…</value></data>
+  <data name="DlcDownloadFailed" xml:space="preserve"><value>ダウンロードに失敗しました。続行するには再試行してください。</value></data>
+  <data name="DlcDeleteFailed" xml:space="preserve"><value>アンインストールに失敗しました。リソースを解放し、コンポーネントを削除してみてください。</value></data>
+  <data name="DlcInspectFailed" xml:space="preserve"><value>ローカルコンポーネントをチェックできませんでした。リトライ。</value></data>
+  <data name="DlcDownloadConfirm" xml:space="preserve"><value>{0} をダウンロードしますか？
+ダウンロードサイズ：{1}
+
+ダウンロードしても AI は有効にならず、選択したモデルや GPU モードも変更されません。</value></data>
+  <data name="DlcDeleteConfirm" xml:space="preserve"><value>{0} とその部分ダウンロードをアンインストールしますか?このコンポーネントを使用する AI は、最初にリソースを停止して解放します。 AI の設定、歌詞キャッシュ、ファイルは保存されます。</value></data>
+  <data name="DlcSource" xml:space="preserve"><value>出典: {0}</value></data>
+  <data name="DlcPackageProgress" xml:space="preserve"><value>{0} ダウンロードの進行状況</value></data>
+  <data name="DlcPackageAction" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="DlcOperationFailed" xml:space="preserve"><value>このアクションを開けませんでした。もう一度やり直してください。</value></data>
+  <data name="DlcCudaPurpose" xml:space="preserve"><value>互換性のある NVIDIA GPU でのオフライン AI 歌詞の高速化。インストールされたモデルを再利用します。</value></data>
+  <data name="DlcCudaUnsupported" xml:space="preserve"><value>互換性のあるNVIDIAドライバーが必要です。</value></data>
+  <data name="DownloadCustom" xml:space="preserve"><value>カスタムファイルをダウンロードする</value></data>
+  <data name="DownloadUrl" xml:space="preserve"><value>ダウンロード URL</value></data>
+  <data name="DownloadSaveTo" xml:space="preserve"><value>保存先</value></data>
+  <data name="DownloadFileName" xml:space="preserve"><value>ファイル名</value></data>
+  <data name="DownloadAutoName" xml:space="preserve"><value>空欄の場合は URL からファイル名を決定</value></data>
+  <data name="DownloadStart" xml:space="preserve"><value>ダウンロードを開始する</value></data>
+  <data name="DownloadOpenFolder" xml:space="preserve"><value>フォルダーを開く</value></data>
+  <data name="DownloadChoose" xml:space="preserve"><value>選択してください</value></data>
+  <data name="DownloadSettings" xml:space="preserve"><value>ダウンロード設定</value></data>
+  <data name="DownloadConcurrentCount" xml:space="preserve"><value>同時ダウンロード</value></data>
+  <data name="DownloadConnections" xml:space="preserve"><value>最大接続数 (1 ～ 256)</value></data>
+  <data name="DownloadConnectionsHint" xml:space="preserve"><value>ファイル、モデル、コンポーネントで共通の設定です。転送の進行に合わせて接続数を増やします。小さなファイルや安全な範囲リクエストに対応しないサーバーでは、接続数を抑えます。</value></data>
+  <data name="DownloadSpeed" xml:space="preserve"><value>速度制限 (MiB/s)</value></data>
+  <data name="DownloadUnlimited" xml:space="preserve"><value>無制限 · 0 は無制限です。 1 MiB/s = 1,048,576 バイト/秒</value></data>
+  <data name="DownloadDefaultDirectory" xml:space="preserve"><value>デフォルトのダウンロードフォルダー</value></data>
+  <data name="DownloadError" xml:space="preserve"><value>操作が失敗しました。 URL、フォルダアクセス、ディスク容量を確認し、再実行してください。</value></data>
+  <data name="DownloadPause" xml:space="preserve"><value>一時停止</value></data>
+  <data name="DownloadResume" xml:space="preserve"><value>再開</value></data>
+  <data name="DownloadCancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="DownloadRetry" xml:space="preserve"><value>再試行</value></data>
+  <data name="DownloadUnknownSize" xml:space="preserve"><value>不明なサイズ</value></data>
+  <data name="DownloadActiveConnections" xml:space="preserve"><value>アクティブな接続: {0}</value></data>
+  <data name="DownloadStateQueued" xml:space="preserve"><value>キューに入れられました</value></data>
+  <data name="DownloadStateResolving" xml:space="preserve"><value>接続中</value></data>
+  <data name="DownloadStateDownloadingFile" xml:space="preserve"><value>ダウンロード中</value></data>
+  <data name="DownloadStateFinalizing" xml:space="preserve"><value>検証して保存中</value></data>
+  <data name="DownloadStateCompleted" xml:space="preserve"><value>完了</value></data>
+  <data name="DownloadStatePaused" xml:space="preserve"><value>一時停止中</value></data>
+  <data name="DownloadStateFailed" xml:space="preserve"><value>ダウンロードに失敗しました。再試行可能</value></data>
+  <data name="DownloadStateCancelled" xml:space="preserve"><value>キャンセルされました</value></data>
+  <data name="QqMusicCheck" xml:space="preserve"><value>再試行</value></data>
+  <data name="QqMusicCheckFailed" xml:space="preserve"><value>接続できません。後でもう一度試してください。</value></data>
+  <data name="QqMusicChecking" xml:space="preserve"><value>接続中…</value></data>
+  <data name="QqMusicCloseLogin" xml:space="preserve"><value>閉じる</value></data>
+  <data name="QqMusicCompleteLogin" xml:space="preserve"><value>サインインを待っています…</value></data>
+  <data name="QqMusicLoginHelp" xml:space="preserve"><value>QQ または WeChat でサインインし、[保存] を選択します。</value></data>
+  <data name="QqMusicLoginMissing" xml:space="preserve"><value>まずサインインしてください。</value></data>
+  <data name="QqMusicLoginTitle" xml:space="preserve"><value>QQ Music サインイン</value></data>
+  <data name="QqMusicNavigationBlocked" xml:space="preserve"><value>このページは利用できません。</value></data>
+  <data name="QqMusicOpening" xml:space="preserve"><value>サインインを開いています…</value></data>
+  <data name="QqMusicPageFailed" xml:space="preserve"><value>サインインを開けません。後でもう一度試してください。</value></data>
+  <data name="QqMusicSaveFailed" xml:space="preserve"><value>変更を保存できません。再試行してください。</value></data>
+  <data name="QqMusicSignIn" xml:space="preserve"><value>QQ Music にサインインします</value></data>
+  <data name="QqMusicSignOut" xml:space="preserve"><value>サインアウト</value></data>
+  <data name="QqMusicStateConnected" xml:space="preserve"><value>サインインしました</value></data>
+  <data name="QqMusicStateExpired" xml:space="preserve"><value>サインインの有効期限が切れました。再度サインインしてください。</value></data>
+  <data name="QqMusicStateRejected" xml:space="preserve"><value>QQ Music に接続できません。後でもう一度試してください。</value></data>
+  <data name="QqMusicStateSaved" xml:space="preserve"><value>サインインしました</value></data>
+  <data name="QqMusicStateSignedOut" xml:space="preserve"><value>QQ Music から歌詞を取得するにはサインインしてください</value></data>
+  <data name="QqMusicStateStorageError" xml:space="preserve"><value>サインインを復元できません。再度サインインしてください。</value></data>
+  <data name="QqMusicUseLogin" xml:space="preserve"><value>保存</value></data>
+  <data name="QqMusicLoginReady" xml:space="preserve"><value>サインインしました</value></data>
+  <data name="QqMusicSignInAgain" xml:space="preserve"><value>再度サインインしてください</value></data>
+  <data name="DlcVisualCppTitle" xml:space="preserve"><value>Microsoft Visual C++ Runtime</value></data>
+  <data name="DlcVisualCppPurpose" xml:space="preserve"><value>NetEase Music 拡張で必要です。</value></data>
+  <data name="DlcVisualCppShared" xml:space="preserve"><value>Windows によって管理されており、他のアプリで使用される可能性があります。</value></data>
+  <data name="DlcVisualCppInstallNotice" xml:space="preserve"><value>ランタイムは Microsoft からダウンロードされ、インストールされます。 Windows は管理者の許可を要求する場合があります。</value></data>
+  <data name="DlcNeteaseRemoveNotice" xml:space="preserve"><value>拡張機能を削除すると、NetEase Music が再起動されます。ライブラリとプレイリストは保存されます。</value></data>
+  <data name="DownloadMoreHistory" xml:space="preserve"><value>ダウンロード履歴をもっと見る</value></data>
+  <data name="DownloadRemoveHistory" xml:space="preserve"><value>履歴から削除</value></data>
+  <data name="DownloadRecoveryWarning" xml:space="preserve"><value>一部のダウンロードを復元できませんでした。空き容量とフォルダーのアクセス権を確認してください。</value></data>
+  <data name="DownloadQueueTimedOut" xml:space="preserve"><value>ダウンロード キューの待機期限が切れました。再試行してください。</value></data>
+  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>ダウンロードがタイムアウトしました。再開可能な進行状況は保持されています。</value></data>
+  <data name="DownloadStageChecking" xml:space="preserve"><value>既存のファイルを確認中</value></data>
+  <data name="DownloadStageQueued" xml:space="preserve"><value>ダウンロードを待っています</value></data>
+  <data name="DownloadStageWaitingConnection" xml:space="preserve"><value>接続を待っています</value></data>
+  <data name="DownloadStageConnecting" xml:space="preserve"><value>接続中</value></data>
+  <data name="DownloadStageProbing" xml:space="preserve"><value>ダウンロード接続を確認中</value></data>
+  <data name="DownloadStageTransferring" xml:space="preserve"><value>ダウンロード中</value></data>
+  <data name="DownloadStageRetryWaiting" xml:space="preserve"><value>再試行を待っています</value></data>
+  <data name="DownloadStageMerging" xml:space="preserve"><value>ファイルの組み立て</value></data>
+  <data name="DownloadStageVerifying" xml:space="preserve"><value>ファイルの検証</value></data>
+  <data name="DownloadStagePublishing" xml:space="preserve"><value>インストールを仕上げています</value></data>
+  <data name="DownloadStageCompleted" xml:space="preserve"><value>ダウンロード完了</value></data>
+  <data name="DownloadTransferDetail" xml:space="preserve"><value>{0} / {1} · {2} MiB/s · {3} 接続</value></data>
+  <data name="DownloadRetryDetail" xml:space="preserve"><value>再試行 {0}</value></data>
+  <data name="IslandResident" xml:space="preserve"><value>ダイナミックアイランドを常時表示</value></data>
+  <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} s</value></data>
+  <data name="IslandAppearance" xml:space="preserve"><value>ダイナミックアイランドの外観</value></data>
+  <data name="IslandAppearanceFollow" xml:space="preserve"><value>Windows に従う</value></data>
+  <data name="IslandAppearanceLight" xml:space="preserve"><value>ライト</value></data>
+  <data name="IslandAppearanceDark" xml:space="preserve"><value>ダーク</value></data>
+  <data name="IslandContentPriority" xml:space="preserve"><value>ダイナミックアイランドのコンテンツ優先度</value></data>
+  <data name="IslandContentPriorityMusic" xml:space="preserve"><value>音楽</value></data>
+  <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>一時スペース</value></data>
+  <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>アイドル時にロゴを表示する</value></data>
+  <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (無効)</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌詞の翻訳先</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>画面の言語とは別に、簡体字中国語か英語を選択します。</value></data>
+</root>

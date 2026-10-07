@@ -7,6 +7,7 @@ using DropSpace.Core.Island;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using DropSpace.Core.Models;
+using DropSpace.Core.Policies;
 using DropSpace.Infrastructure.Lyrics;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
@@ -500,7 +501,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             if (!refresh)
                 await Task.Delay(admissionDelay, token).ConfigureAwait(false);
             if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
-            var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
+            var targetLanguage = LyricsTranslationTargetPolicy.ToLanguageTag(settings.LyricsTranslationTarget);
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
                     session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, settings.Lyrics with { SelectionMode = LyricsSelectionMode.Rules }, token, refresh,

@@ -64,13 +64,21 @@ VersionInfoProductTextVersion={#AppVersion}
 SignedUninstaller=no
 
 [Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl,localization\en-US.isl"
+Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl,localization\zh-CN.isl"
+Name: "chinesetraditional"; MessagesFile: "compiler:Languages\ChineseTraditional.isl,localization\zh-TW.isl"
+Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl,localization\ja-JP.isl"
+Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl,localization\ko-KR.isl"
+Name: "german"; MessagesFile: "compiler:Languages\German.isl,localization\de-DE.isl"
+Name: "french"; MessagesFile: "compiler:Languages\French.isl,localization\fr-FR.isl"
+Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl,localization\es-ES.isl"
+Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl,localization\pt-BR.isl"
+Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl,localization\ru-RU.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "explorercontext"; Description: "Add Send to DropSpace to File Explorer"; GroupDescription: "Windows integration:"
-Name: "sendtointegration"; Description: "Add DropSpace to the Windows Send To menu"; GroupDescription: "Windows integration:"
+Name: "explorercontext"; Description: "{cm:ExplorerContextTask}"; GroupDescription: "{cm:IntegrationGroup}"
+Name: "sendtointegration"; Description: "{cm:SendToTask}"; GroupDescription: "{cm:IntegrationGroup}"
 
 [Files]
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "DropSpace.exe"; Flags: ignoreversion
@@ -88,7 +96,7 @@ Name: "{usersendto}\DropSpace"; Filename: "{app}\DropSpace.exe"; Parameters: "--
 Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
 Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#AppVersion}"; Flags: uninsdeletekey
 Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: dword; ValueName: "VersionCode"; ValueData: "{#VersionCode}"; Flags: uninsdeletekey
-Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Send to DropSpace"; Flags: uninsdeletekey; Tasks: explorercontext
+Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{cm:SendToDropSpace}"; Flags: uninsdeletekey; Tasks: explorercontext
 Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\DropSpace.exe,0"; Flags: uninsdeletekey; Tasks: explorercontext
 Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Flags: uninsdeletekey; Tasks: explorercontext
 Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: none; ValueName: "NeverDefault"; Flags: uninsdeletekey; Tasks: explorercontext
@@ -96,7 +104,7 @@ Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.Sen
 
 [Run]
 #ifdef IdentityPackage
-Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\DropSpace.Identity.ps1"" -Action Register -PackagePath ""{app}\DropSpace.Identity.msix"" -ExternalLocation ""{app}"""; StatusMsg: "Registering the signed DropSpace Windows Share identity..."; Flags: runhidden waituntilterminated
+Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\DropSpace.Identity.ps1"" -Action Register -PackagePath ""{app}\DropSpace.Identity.msix"" -ExternalLocation ""{app}"""; StatusMsg: "{cm:RegisterIdentity}"; Flags: runhidden waituntilterminated
 #endif
 Filename: "{app}\DropSpace.exe"; Description: "{cm:LaunchProgram,DropSpace}"; Flags: nowait postinstall skipifsilent; Check: not IsUpdateMode
 Filename: "{app}\DropSpace.exe"; Parameters: "--startup --updated {#AppVersion}"; WorkingDir: "{app}"; Flags: nowait; Check: IsUpdateMode
@@ -125,6 +133,7 @@ const
 
 var
   DeleteDataCheckBox: TNewCheckBox;
+  DeleteDataDescription: TNewStaticText;
   PurgeDataRequested: Boolean;
 
 function OpenEvent(DesiredAccess: DWORD; InheritHandle: BOOL; Name: String): HANDLE;
@@ -169,8 +178,7 @@ begin
      (not HasParameter('/ALLOWDOWNGRADE=1')) then
   begin
     MsgBox(
-      'A newer DropSpace version is already installed. Setup blocked this downgrade to protect the installation. ' +
-      'Use a newer installer, or explicitly pass /ALLOWDOWNGRADE=1 if you intentionally need to test a downgrade.',
+      CustomMessage('DowngradeBlocked'),
       mbError,
       MB_OK);
     Result := False;
@@ -240,7 +248,7 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   if not RequestMaintenanceShutdown() then
-    Result := 'DropSpace is still running and could not close gracefully. Choose Exit DropSpace, then run Setup again.';
+    Result := CustomMessage('InstallCloseBlocked');
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -271,7 +279,7 @@ begin
   Result := RequestMaintenanceShutdown();
   if not Result and not UninstallSilent then
     MsgBox(
-      'DropSpace is still running and could not close gracefully. Choose Exit DropSpace, then start uninstall again.',
+      CustomMessage('UninstallCloseBlocked'),
       mbError,
       MB_OK);
 end;
@@ -284,8 +292,18 @@ begin
   DeleteDataCheckBox.Top := UninstallProgressForm.StatusLabel.Top + UninstallProgressForm.StatusLabel.Height + ScaleY(16);
   DeleteDataCheckBox.Width := UninstallProgressForm.StatusLabel.Width;
   DeleteDataCheckBox.Height := ScaleY(24);
-  DeleteDataCheckBox.Caption := 'Also delete all DropSpace local data and settings (original files are kept).';
+  DeleteDataCheckBox.Caption := CustomMessage('DeleteData');
   DeleteDataCheckBox.Checked := PurgeDataRequested;
+  DeleteDataDescription := TNewStaticText.Create(UninstallProgressForm);
+  DeleteDataDescription.Parent := UninstallProgressForm;
+  DeleteDataDescription.Left := DeleteDataCheckBox.Left + ScaleX(20);
+  DeleteDataDescription.Top := DeleteDataCheckBox.Top + DeleteDataCheckBox.Height;
+  DeleteDataDescription.Width := DeleteDataCheckBox.Width - ScaleX(20);
+  DeleteDataDescription.AutoSize := False;
+  DeleteDataDescription.WordWrap := True;
+  DeleteDataDescription.Caption := CustomMessage('DeleteDataHelp');
+  DeleteDataDescription.FocusControl := DeleteDataCheckBox;
+  DeleteDataDescription.AdjustHeight;
 end;
 
 function ShouldPurgeData(): Boolean;
@@ -319,5 +337,5 @@ begin
   DataRoot := ExpandConstant('{localappdata}\DropSpace');
   Log('Complete uninstall: removing DropSpace-owned data root ' + DataRoot);
   if DirExists(DataRoot) and not DelTree(DataRoot, True, True, True) then
-    RaiseException('Complete uninstall could not remove the DropSpace local data directory.');
+    RaiseException(CustomMessage('DeleteDataFailed'));
 end;

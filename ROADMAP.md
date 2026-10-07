@@ -1,27 +1,17 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.18
+## Release target: v0.3.1-beta.19
 
-The current Beta target is `v0.3.1-beta.18` (Beta 18).
-v0.3.1-beta.16 is the immediate upgrade baseline for this release.
+The current Beta target is `v0.3.1-beta.19` (Beta 19).
+v0.3.1-beta.18 is the immediate upgrade baseline for this release.
 
-Stop expanding the optimization scope and deliver all completed effective work:
-SQL calling-thread boundaries, music notification/render deduplication, hidden
-presentation lifecycle, current preference reuse, download cancellation-source
-retirement and bounded first-frame geometry cleanup. Include the already
-verified CUDA PR #102 with fixed independent component delivery and installed
-reuse. Preserve existing features and the Beta16 whole-track translation policy.
-Do not develop DLC/Bilibili, change native model bytes or repeat unchanged GPU
-inference, large CUDA downloads or unrelated broad suites.
+Deliver ten offline App and website interface languages, independently persisted Simplified Chinese / English lyric translation targets, one official URL per website content page, and fail-closed translation completeness checks. Reuse existing templates, .resw resources, updater schemas and independent component bytes. New release summaries, notes and version highlights are English only.
 
-The owner's explicit release request authorizes commit, merge and a fresh Beta
-after a complete Windows App/XAML build, minimum affected-path checks and exact
-final artifact/update/source bindings. Reuse existing focused evidence honestly;
-calling-thread occupation does not equal total query speed or native frame rate.
-The [Beta17 release audit](docs/dev/beta17-release-audit.md) and
-[release notes](.github/release-notes/v0.3.1-beta.18.md) record preparation and limitations;
-actual results belong to the same-source-tree producer's immutable Actions receipt
-and final release attachments, with no post-producer source edit required.
+Preserve lyric and AI business behavior; only the settings and display/target bindings necessary for interface isolation change. Keep all project scenario executions, including failures and retries, within the shared 20-scenario budget. The [release notes](.github/release-notes/v0.3.1-beta.19.md) and [development audit](docs/dev/ten-language-release-audit.md) record actual scope, validation and publication evidence.
+
+## Published release: v0.3.1-beta.18
+
+Beta18 added independent island appearance and content priority, retained existing component delivery and completed its recorded source reviews. [Release notes](.github/release-notes/v0.3.1-beta.18.md) and [public verification](docs/dev/beta18-review/public-verification.json) remain historical evidence.
 
 ## Published baseline: v0.3.1-beta.16
 
@@ -170,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.18
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.19
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

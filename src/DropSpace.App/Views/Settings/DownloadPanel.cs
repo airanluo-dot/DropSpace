@@ -214,7 +214,7 @@ public sealed class DownloadPanel : UserControl
             _defaultDirectory.Text = directory;
         UpdateSpeedLabel(); _syncing = false;
     }
-    private void UpdateSpeedLabel() => _speedLabel.Text = _speed.Value == 0 ? _strings.Get("DownloadUnlimited") : $"{_speed.Value:0} MiB/s";
+    private void UpdateSpeedLabel() => _speedLabel.Text = _speed.Value == 0 ? _strings.Get("DownloadUnlimited") : string.Create(_strings.Culture, $"{_speed.Value:0} MiB/s");
     private void Render()
     {
         if (!CanRefresh) return;
@@ -322,9 +322,9 @@ public sealed class DownloadPanel : UserControl
         public void Update(DownloadTaskSnapshot item)
         {
             _item = item; _name.Text = Path.GetFileName(item.OutputPath);
-            var total = item.TotalBytes is { } size ? $"{size / 1_048_576d:0.00} MiB" : _owner._strings.Get("DownloadUnknownSize");
+            var total = item.TotalBytes is { } size ? string.Create(_owner._strings.Culture, $"{size / 1_048_576d:0.00} MiB") : _owner._strings.Get("DownloadUnknownSize");
             _detail.Text = _owner._strings.Get("DownloadState" + item.State) + " · " +
-                $"{item.DownloadedBytes / 1_048_576d:0.00} / {total} · {item.BytesPerSecond / 1_048_576d:0.00} MiB/s · " +
+                string.Create(_owner._strings.Culture, $"{item.DownloadedBytes / 1_048_576d:0.00} / {total} · {item.BytesPerSecond / 1_048_576d:0.00} MiB/s · ") +
                 _owner._strings.Format("DownloadActiveConnections", item.ActiveConnections);
             _progress.IsIndeterminate = item.TotalBytes is null && item.State is DownloadTaskState.Queued or DownloadTaskState.DownloadingFile;
             _progress.Value = item.TotalBytes is > 0 ? Math.Clamp(item.DownloadedBytes * 100d / item.TotalBytes.Value, 0, 100) : 0;

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Policies;
 using Microsoft.Windows.ApplicationModel.Resources;
 
 namespace DropSpace.App.Services;
@@ -15,6 +16,10 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
     private readonly ResourceManager _resourceManager;
     private readonly IReadOnlyDictionary<string, ResourceContext> _resourceContexts;
     private readonly ResourceMap _resourceMap;
+    private sealed record RenderedUiString(string Key, object?[] Arguments);
+    private readonly object _renderedGate = new();
+    private readonly Dictionary<string, RenderedUiString> _rendered = [];
+    private readonly Queue<string> _renderedOrder = new();
 
     public ResourceStringLocalizer(AppLanguageService language)
     {
@@ -24,7 +29,7 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
         // Unpackaged WinUI apps have no default resource view. The portable build bundles this
         // PRI beside the extracted application and resolves strings through an explicit context.
         _resourceManager = new ResourceManager(resourceIndexPath);
-        _resourceContexts = new[] { AppLanguageService.EnglishLanguageTag, AppLanguageService.SimplifiedChineseLanguageTag }
+        _resourceContexts = AppLanguageCatalog.All.Select(item => item.Tag)
             .ToDictionary(tag => tag, tag =>
             {
                 var context = _resourceManager.CreateResourceContext();
@@ -44,6 +49,7 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
             throw new InvalidOperationException($"Missing DropSpace localized resource '{key}'.");
         }
 
+        Remember(value, key, []);
         return value;
     }
 
@@ -51,9 +57,18 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
+        if (TryGetInLanguage(key, _language.EffectiveLanguageTag, out value)) return true;
+        // Runtime fallback keeps a damaged resource from producing blank UI. The release
+        // completeness gate still rejects missing translations in every required resource set.
+        return _language.EffectiveLanguageTag != AppLanguageService.EnglishLanguageTag &&
+            TryGetInLanguage(key, AppLanguageService.EnglishLanguageTag, out value);
+    }
+
+    private bool TryGetInLanguage(string key, string tag, out string value)
+    {
         try
         {
-            value = _resourceMap.GetValue(ToResourceMapPath(key), _resourceContexts[_language.EffectiveLanguageTag]).ValueAsString ?? string.Empty;
+            value = _resourceMap.GetValue(ToResourceMapPath(key), _resourceContexts[tag]).ValueAsString ?? string.Empty;
             return !string.IsNullOrWhiteSpace(value);
         }
         catch (Exception)
@@ -63,8 +78,30 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
         }
     }
 
-    public string Format(string key, params object?[] arguments) =>
-        string.Format(Culture, Get(key), arguments);
+    public string Format(string key, params object?[] arguments)
+    {
+        var value = string.Format(Culture, Get(key), arguments);
+        Remember(value, key, arguments);
+        return value;
+    }
+
+    public string Relocalize(string text)
+    {
+        RenderedUiString? rendered;
+        lock (_renderedGate) _rendered.TryGetValue(text, out rendered);
+        return rendered is null ? text : rendered.Arguments.Length == 0
+            ? Get(rendered.Key) : Format(rendered.Key, rendered.Arguments);
+    }
+
+    private void Remember(string value, string key, object?[] arguments)
+    {
+        lock (_renderedGate)
+        {
+            if (!_rendered.ContainsKey(value)) _renderedOrder.Enqueue(value);
+            _rendered[value] = new(key, arguments.ToArray());
+            while (_rendered.Count > 2048 && _renderedOrder.TryDequeue(out var oldest)) _rendered.Remove(oldest);
+        }
+    }
 
     private static string ToResourceMapPath(string key)
     {

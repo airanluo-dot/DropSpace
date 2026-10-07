@@ -66,9 +66,12 @@ working feature instead of creating a new abstraction for every change.
 Localized XAML and imperative strings are under:
 
 ```text
-src/DropSpace.App/Strings/en-US/Resources.resw
-src/DropSpace.App/Strings/zh-CN/Resources.resw
+src/DropSpace.App/Strings/<code>/Resources.resw
+installer/localization/<code>.isl
+localization/languages.json
 ```
 
 Shared visual values should come from the existing resource dictionaries and design tokens. The
 current code is the best example of how a specific control, service, or registration is wired.
+Core embeds the shared ten-language catalog. The interface localization contract describes
+incremental translation review, the independent permanent Chinese/English lyric target and gate.

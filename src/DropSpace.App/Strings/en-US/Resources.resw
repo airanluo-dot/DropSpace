@@ -233,7 +233,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Choose this during first setup or in Settings. Uses the current-user startup entry without administrator privileges.</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>Display language</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>Uses the Windows display language when set to System default.</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>Changes interface text only. Lyric translation has its own language setting.</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Display language</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>System default</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -617,7 +617,7 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>Preview of translated lyrics</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>Reset lyric sizes</value></data>
   <data name="AiLyricsTitle" xml:space="preserve"><value>AI lyrics</value></data>
-  <data name="AiLyricsDescription" xml:space="preserve"><value>Translate missing lyrics into the app’s language on this computer. Matching source translations take priority. The first full translation may take several minutes, depending on your device and lyric length. Completed translations appear line by line. AI may mistranslate the meaning; lyrics are not uploaded for AI translation.</value></data>
+  <data name="AiLyricsDescription" xml:space="preserve"><value>Translate lyrics that lack a matching translation into your chosen Simplified Chinese or English target on this computer. Matching source translations take priority. The first full translation may take several minutes, depending on your device and lyric length. Completed translations appear line by line. AI may mistranslate the meaning; lyrics are not uploaded for AI translation.</value></data>
   <data name="AiLyricsEnabled" xml:space="preserve"><value>Use AI lyric translation</value></data>
   <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU acceleration</value></data>
   <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>Prefer a compatible GPU for AI translation. If GPU acceleration is unavailable or fails, the app uses the CPU instead. Turn this off to use only the CPU. Changing this preference does not turn on AI or download a model.</value></data>
@@ -875,4 +875,6 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>Temporary Space</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Show logo when idle</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (disabled)</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Lyrics translation target</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Choose Simplified Chinese or English independently of the interface language.</value></data>
 </root>

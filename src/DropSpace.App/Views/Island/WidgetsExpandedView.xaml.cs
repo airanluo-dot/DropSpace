@@ -43,6 +43,12 @@ public sealed partial class WidgetsExpandedView : UserControl
             RenderPending();
         }
     }
+    public void RefreshLanguage()
+    {
+        _structureDirty = true;
+        _dataDirty = true;
+        RenderPending();
+    }
     public void SetActive(bool active)
     {
         _active = active;

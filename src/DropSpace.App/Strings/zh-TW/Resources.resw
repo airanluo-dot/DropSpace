@@ -1,0 +1,878 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- Offline interface resources. Original lyrics, model instructions and protocols are not translated. -->
+  <data name="AppDescription" xml:space="preserve"><value>在本機暫存檔案與剪貼簿記錄的工作空間。</value></data>
+  <data name="AppDisplayName" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="AppUpdated" xml:space="preserve"><value>DropSpace 已更新為 {0}。</value></data>
+  <data name="Bytes" xml:space="preserve"><value>{0:0} B</value></data>
+  <data name="ClearConfirmButton" xml:space="preserve"><value>清除</value></data>
+  <data name="ClearConfirmContent" xml:space="preserve"><value>{0} 取消固定的剪貼簿專案將會被刪除。固定的專案仍然存在，暫存空間中的原始檔案不受影響。</value></data>
+  <data name="ClearConfirmTitle" xml:space="preserve"><value>清除 {0}？</value></data>
+  <data name="ClearNothingContent" xml:space="preserve"><value>在所選時間範圍內沒有要清除的未固定專案。</value></data>
+  <data name="ClearNothingTitle" xml:space="preserve"><value>沒有可清除的項目</value></data>
+  <data name="ClearRangeAll" xml:space="preserve"><value>全部記錄</value></data>
+  <data name="ClearRangeLastHour" xml:space="preserve"><value>最近一小時</value></data>
+  <data name="ClearRangeToday" xml:space="preserve"><value>今天</value></data>
+  <data name="ClipboardBusyRetrying" xml:space="preserve"><value>剪貼簿暫時由其他應用程式使用，正在重試。</value></data>
+  <data name="ClipboardCaptureStopped" xml:space="preserve"><value>由於內部錯誤，剪貼簿記錄已停止。</value></data>
+  <data name="ClipboardErrorStatus" xml:space="preserve"><value>記錄錯誤</value></data>
+  <data name="ClipboardEventDropped" xml:space="preserve"><value>剪貼簿活動過於頻繁；跳過了一項活動。</value></data>
+  <data name="ClipboardItemCaptureFailed" xml:space="preserve"><value>無法記錄此剪貼簿項目。剪貼簿記錄仍在進行。</value></data>
+  <data name="ClipboardLimitInvalidContent" xml:space="preserve"><value>擷取的總大小限制不能低於單一檔案大小限制。</value></data>
+  <data name="ClipboardLimitInvalidTitle" xml:space="preserve"><value>限制無效</value></data>
+  <data name="ClipboardListenerRegistrationFailed" xml:space="preserve"><value>無法註冊系統剪貼簿偵聽器。請參閱診斷記錄檔。</value></data>
+  <data name="ClipboardListenerUnavailable" xml:space="preserve"><value>系統剪貼簿監聽器不可用。請參閱診斷記錄檔。</value></data>
+  <data name="ClipboardPaused" xml:space="preserve"><value>剪貼簿記錄已暫停。</value></data>
+  <data name="ClipboardPausedAtStartup" xml:space="preserve"><value>剪貼簿記錄已暫停。您可以從剪貼簿頁面或系統匣功能表繼續記錄。</value></data>
+  <data name="ClipboardPausedStatus" xml:space="preserve"><value>記錄已暫停</value></data>
+  <data name="ClipboardRecording" xml:space="preserve"><value>記錄中 · 已擷取 {0} 項</value></data>
+  <data name="ClipboardResumed" xml:space="preserve"><value>剪貼簿記錄已還原。</value></data>
+  <data name="ClipboardStarting" xml:space="preserve"><value>啟動中…</value></data>
+  <data name="CloseToTrayContent" xml:space="preserve"><value>當您關閉視窗時，DropSpace 保留在系統匣中並繼續記錄剪貼簿。您可以在“設定”中將其變更為直接退出。</value></data>
+  <data name="CloseToTrayTitle" xml:space="preserve"><value>DropSpace 將繼續在背景執行</value></data>
+  <data name="CommonAcknowledge" xml:space="preserve"><value>知道了</value></data>
+  <data name="CommonCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="CommonClose" xml:space="preserve"><value>關閉</value></data>
+  <data name="CurrentVersion" xml:space="preserve"><value>DropSpace {0}</value></data>
+  <data name="DeploymentInstaller" xml:space="preserve"><value>安裝程式</value></data>
+  <data name="DeploymentPackaged" xml:space="preserve"><value>Windows 套件（由 Windows 更新）</value></data>
+  <data name="DeploymentPortable" xml:space="preserve"><value>可攜式版（僅下載並驗證，不會自動安裝）</value></data>
+  <data name="DeploymentUnknown" xml:space="preserve"><value>未知部署</value></data>
+  <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>加入 DropSpace</value></data>
+  <data name="EmptyClipboardDescription" xml:space="preserve"><value>複製文字、影象、檔案或資料夾，支援的內容將顯示在此。</value></data>
+  <data name="EmptyClipboardTitle" xml:space="preserve"><value>沒有剪貼簿歷史記錄</value></data>
+  <data name="EmptyPinnedDescription" xml:space="preserve"><value>固定暫存空間或剪貼簿中的專案，它們將一起出現在此。</value></data>
+  <data name="EmptyPinnedTitle" xml:space="preserve"><value>沒有固定的專案</value></data>
+  <data name="EmptySpaceDescription" xml:space="preserve"><value>DropSpace 僅儲存引用。它永遠不會移動或刪除您的原始檔案。</value></data>
+  <data name="EmptySpaceTitle" xml:space="preserve"><value>將檔案或資料夾拖放到此處</value></data>
+  <data name="ExportJpegImage" xml:space="preserve"><value>JPEG 影像</value></data>
+  <data name="ExportOnlyClipboardImages" xml:space="preserve"><value>只能匯出剪貼簿影像。</value></data>
+  <data name="ExportPngImage" xml:space="preserve"><value>PNG 影像</value></data>
+  <data name="FileReferenceUpdated" xml:space="preserve"><value>檔案參考已更新。</value></data>
+  <data name="FileUnavailableRelocate" xml:space="preserve"><value>目前無法存取此檔案。請重新指定檔案位置。</value></data>
+  <data name="Gigabytes" xml:space="preserve"><value>{0:0.00} GB</value></data>
+  <data name="ImageExported" xml:space="preserve"><value>影象已匯出。</value></data>
+  <data name="ImagePreview" xml:space="preserve"><value>{0} × {1} · {2}</value></data>
+  <data name="ItemCannotOpen" xml:space="preserve"><value>該專案無法開啟。</value></data>
+  <data name="ItemCannotShowInFolder" xml:space="preserve"><value>該專案無法顯示在其資料夾中。</value></data>
+  <data name="ItemCopied" xml:space="preserve"><value>已複製。</value></data>
+  <data name="ItemCount" xml:space="preserve"><value>{0} 個項目</value></data>
+  <data name="ItemCreatedDateFormat" xml:space="preserve"><value>M月d日 HH:mm</value></data>
+  <data name="ItemCreatedTodayFormat" xml:space="preserve"><value>HH:mm</value></data>
+  <data name="ItemKindCode" xml:space="preserve"><value>程式碼</value></data>
+  <data name="ItemKindColor" xml:space="preserve"><value>顏色</value></data>
+  <data name="ItemKindFile" xml:space="preserve"><value>檔案</value></data>
+  <data name="ItemKindFolder" xml:space="preserve"><value>資料夾</value></data>
+  <data name="ItemKindImage" xml:space="preserve"><value>圖片</value></data>
+  <data name="ItemKindText" xml:space="preserve"><value>文字</value></data>
+  <data name="ItemKindUnknown" xml:space="preserve"><value>未知</value></data>
+  <data name="ItemKindUrl" xml:space="preserve"><value>連結</value></data>
+  <data name="ItemPin" xml:space="preserve"><value>固定</value></data>
+  <data name="ItemRemoved" xml:space="preserve"><value>已從 DropSpace 移除；原始檔案未變更。</value></data>
+  <data name="ItemSourceClipboard" xml:space="preserve"><value>剪貼簿</value></data>
+  <data name="ItemSourceSpace" xml:space="preserve"><value>暫存空間</value></data>
+  <data name="ItemStatusError" xml:space="preserve"><value>讀取失敗</value></data>
+  <data name="ItemStatusMissing" xml:space="preserve"><value>找不到檔案</value></data>
+  <data name="ItemStatusProcessing" xml:space="preserve"><value>處理中</value></data>
+  <data name="ItemStatusUnavailable" xml:space="preserve"><value>暫時無法使用</value></data>
+  <data name="ItemUnpin" xml:space="preserve"><value>取消固定</value></data>
+  <data name="ItemsAdded" xml:space="preserve"><value>新增了 {0} 項。</value></data>
+  <data name="ItemsAddedWithRejected" xml:space="preserve"><value>已加入 {0} 個項目；{1} 個項目無法加入。</value></data>
+  <data name="ItemsCleared" xml:space="preserve"><value>已清除 {0} 個項目；已固定的項目會保留。</value></data>
+  <data name="Kilobytes" xml:space="preserve"><value>{0:0.0} KB</value></data>
+  <data name="LastUpdateCheck" xml:space="preserve"><value>最後檢查：{0}</value></data>
+  <data name="LastUpdateCheckDateFormat" xml:space="preserve"><value>yyyy/MM/dd HH:mm</value></data>
+  <data name="Megabytes" xml:space="preserve"><value>{0:0.0} MB</value></data>
+  <data name="OperationIncompleteContent" xml:space="preserve"><value>請求的操作未完成。如果問題仍然存在，請檢視本機診斷記錄檔。</value></data>
+  <data name="OperationIncompleteTitle" xml:space="preserve"><value>操作未完成</value></data>
+  <data name="OverlayClassicDragTitle" xml:space="preserve"><value>拖曳到頂端即可暫存</value></data>
+  <data name="OverlayDragSubtitle" xml:space="preserve"><value>原始檔案不會被移動或刪除</value></data>
+  <data name="OverlayDropSubtitle" xml:space="preserve"><value>放開滑鼠以加入檔案或資料夾參照</value></data>
+  <data name="OverlayDropTitle" xml:space="preserve"><value>拖放到 DropSpace</value></data>
+  <data name="OverlayItemCount" xml:space="preserve"><value>{0} 個項目</value></data>
+  <data name="OverlaySmartDragTitle" xml:space="preserve"><value>拖曳到出現的DropSpace</value></data>
+  <data name="OverlayTitle" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="PageDescriptionClipboard" xml:space="preserve"><value>自動記錄複製的文字、影象、檔案和資料夾引用。</value></data>
+  <data name="PageDescriptionPinned" xml:space="preserve"><value>保留規則不會自動清除暫存空間和剪貼簿中的固定專案。</value></data>
+  <data name="PageDescriptionSettings" xml:space="preserve"><value>本機儲存、隱私、外觀和視窗行為。</value></data>
+  <data name="PageDescriptionSpace" xml:space="preserve"><value>當檔案和資料夾還沒有固定的位置時，將它們拖曳到此處。</value></data>
+  <data name="PageTitleClipboard" xml:space="preserve"><value>剪貼簿</value></data>
+  <data name="PageTitlePinned" xml:space="preserve"><value>已固定</value></data>
+  <data name="PageTitleSettings" xml:space="preserve"><value>設定</value></data>
+  <data name="PageTitleSpace" xml:space="preserve"><value>暫存空間</value></data>
+  <data name="RemoveConfirmButton" xml:space="preserve"><value>刪除</value></data>
+  <data name="RemoveConfirmTitle" xml:space="preserve"><value>從 DropSpace 刪除？</value></data>
+  <data name="RemoveFileReferenceContent" xml:space="preserve"><value>僅刪除對“{0}”的引用。原始檔案不會被移動或刪除。</value></data>
+  <data name="RemoveStoredItemContent" xml:space="preserve"><value>“{0}”和DropSpace保留的本機副本將被刪除。</value></data>
+  <data name="SearchNoMatches" xml:space="preserve"><value>沒有找到符合的專案。</value></data>
+  <data name="SearchUnavailable" xml:space="preserve"><value>暫時無法搜尋。</value></data>
+  <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace 僅接受來自 Windows 共享的檔案和資料夾。</value></data>
+  <data name="ShareItemsNotAdded" xml:space="preserve"><value>無法將檔案或資料夾新增至暫存空間。</value></data>
+  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>共享內容不包含 DropSpace 可以存取的檔案或資料夾。</value></data>
+  <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace 無法處理此共用。再試一次或使用頂部邊緣放置目標。</value></data>
+  <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace 無法完成啟動。某些後臺服務可能仍在運作。在檢查或還原其資料目錄之前退出應用程式，並檢查本機診斷記錄檔。</value></data>
+  <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace 無法安全啟動</value></data>
+  <data name="StorageCalculating" xml:space="preserve"><value>正在計算...</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>使用：{0}</value></data>
+  <data name="StorageUnavailable" xml:space="preserve"><value>不可用</value></data>
+  <data name="TrayClearClipboard" xml:space="preserve"><value>清除剪貼簿歷史記錄...</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>退出</value></data>
+  <data name="TrayOpen" xml:space="preserve"><value>開啟DropSpace</value></data>
+  <data name="TrayPauseClipboard" xml:space="preserve"><value>暫停剪貼簿記錄</value></data>
+  <data name="TrayResumeClipboard" xml:space="preserve"><value>還原剪貼簿記錄</value></data>
+  <data name="TrayTipPaused" xml:space="preserve"><value>DropSpace — 剪貼簿記錄已暫停</value></data>
+  <data name="TrayTipRecording" xml:space="preserve"><value>DropSpace — 記錄剪貼簿</value></data>
+  <data name="UpdateAutomaticCheckFailed" xml:space="preserve"><value>自動更新檢查失敗：{0}</value></data>
+  <data name="UpdateCheckCancelled" xml:space="preserve"><value>更新檢查已取消。</value></data>
+  <data name="UpdateChecking" xml:space="preserve"><value>正在檢查更新...</value></data>
+  <data name="UpdateDownloadCancelled" xml:space="preserve"><value>更新下載已取消。</value></data>
+  <data name="UpdateDownloadFailed" xml:space="preserve"><value>更新下載失敗。檢查您的連線並重試。</value></data>
+  <data name="UpdateDownloadIntegrityFailed" xml:space="preserve"><value>更新下載未透過完整性驗證。</value></data>
+  <data name="UpdateRecoveryFailed" xml:space="preserve"><value>DropSpace 無法還原先前的更新狀態。您可以再次檢查更新。</value></data>
+  <data name="UpdateDownloadedReadyToInstall" xml:space="preserve"><value>已下載並驗證更新。準備安裝。</value></data>
+  <data name="UpdateDownloadedVerified" xml:space="preserve"><value>已下載並驗證更新。</value></data>
+  <data name="UpdateDownloading" xml:space="preserve"><value>正在下載更新...</value></data>
+  <data name="UpdateFound" xml:space="preserve"><value>更新 {0} 可用。</value></data>
+  <data name="UpdateFoundManaged" xml:space="preserve"><value>更新 {0} 可用並將由 Windows 管理。</value></data>
+  <data name="UpdateInstallIntegrityFailed" xml:space="preserve"><value>由於完整性驗證失敗，無法安裝更新。</value></data>
+  <data name="UpdateInstallStateFailed" xml:space="preserve"><value>無法準備安裝更新，因為無法儲存其還原狀態。</value></data>
+  <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>無法啟動經過驗證的安裝程式。</value></data>
+  <data name="UpdateInstalling" xml:space="preserve"><value>正在啟動更新安裝程式...</value></data>
+  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>先前的更新下載不完整，已被丟棄。</value></data>
+  <data name="UpdateLastInstallIncomplete" xml:space="preserve"><value>之前的更新安裝未完成。已驗證的更新已準備好重試。</value></data>
+  <data name="UpdateManagedByWindows" xml:space="preserve"><value>此 Windows 軟體包由 Windows 更新。</value></data>
+  <data name="UpdateNoDowngrade" xml:space="preserve"><value>沒有更新的穩定更新可用。 DropSpace 不會降級此版本。</value></data>
+  <data name="UpdateNotChecked" xml:space="preserve"><value>尚未檢查</value></data>
+  <data name="UpdatePortableManualReplacement" xml:space="preserve"><value>驗證下載完成後，必須手動取代可攜式版本。</value></data>
+  <data name="UpdatePortableVerified" xml:space="preserve"><value>已下載並驗證更新。手動取代可移植可執行檔。</value></data>
+  <data name="UpdateProgress" xml:space="preserve"><value>{0:0}% · {1} / {2}</value></data>
+  <data name="UpdateServiceTimedOut" xml:space="preserve"><value>更新服務逾時。</value></data>
+  <data name="UpdateServiceUnavailable" xml:space="preserve"><value>更新服務暫時無法使用。</value></data>
+  <data name="UpdateServiceValidationFailed" xml:space="preserve"><value>無法驗證更新回應。</value></data>
+  <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>由於更新發布者不受信任，無人值守安裝不可用。</value></data>
+  <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace 是最新的。</value></data>
+  <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>從 Windows 共用功能表傳送到 DropSpace。</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>Windows 共享整合在此版本中不可用。將檔案拖曳到 DropSpace 中。</value></data>
+  <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="MainTitleBar.Title" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="MainTitleBar.Subtitle" xml:space="preserve"><value>臨時內容工作區</value></data>
+  <data name="OverlayWindow.Title" xml:space="preserve"><value>DropSpace動態島</value></data>
+  <data name="OverlayCompactPanel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>展開 DropSpace 頂部面板</value></data>
+  <data name="OverlayCompactSubtitle.Text" xml:space="preserve"><value>暫存空間</value></data>
+  <data name="OverlayExpandedTitle.Text" xml:space="preserve"><value>暫存空間</value></data>
+  <data name="OverlayExpandedSubtitle.Text" xml:space="preserve"><value>最近的項目 · 可直接拖曳至檔案總管</value></data>
+  <data name="OverlayCollapseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>折疊頂部面板</value></data>
+  <data name="OverlayOpenItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>開啟項目</value></data>
+  <data name="OverlayPinItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>固定專案</value></data>
+  <data name="OverlayRemoveItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>從 DropSpace 中刪除</value></data>
+  <data name="OverlayRemoveHint.Text" xml:space="preserve"><value>移除參照不會刪除原始檔案</value></data>
+  <data name="OverlayOpenMainButton.Content" xml:space="preserve"><value>開啟DropSpace</value></data>
+  <data name="OverlayDropTargetTitle.Text" xml:space="preserve"><value>拖放到 DropSpace</value></data>
+  <data name="OverlayDropTargetSubtitle.Text" xml:space="preserve"><value>放開滑鼠以加入暫存空間</value></data>
+  <data name="NavSpace.Content" xml:space="preserve"><value>暫存空間</value></data>
+  <data name="NavSpace.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>暫存空間</value></data>
+  <data name="NavClipboard.Content" xml:space="preserve"><value>剪貼簿</value></data>
+  <data name="NavClipboard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>剪貼簿歷史記錄</value></data>
+  <data name="NavPinned.Content" xml:space="preserve"><value>已固定</value></data>
+  <data name="NavPinned.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>固定專案</value></data>
+  <data name="NavSettings.Content" xml:space="preserve"><value>設定</value></data>
+  <data name="NavSettings.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>設定</value></data>
+  <data name="SearchBox.PlaceholderText" xml:space="preserve"><value>搜尋檔案、文字或連結</value></data>
+  <data name="SearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>搜尋所有 DropSpace 專案</value></data>
+  <data name="AddButton.Content" xml:space="preserve"><value>新增</value></data>
+  <data name="AddButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>加入暫存空間</value></data>
+  <data name="AddFilesMenuItem.Text" xml:space="preserve"><value>選擇檔案...</value></data>
+  <data name="AddFolderMenuItem.Text" xml:space="preserve"><value>選擇資料夾...</value></data>
+  <data name="ItemsList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>DropSpace 專案</value></data>
+  <data name="OpenItemButton.Content" xml:space="preserve"><value>開啟</value></data>
+  <data name="OpenItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>開啟項目</value></data>
+  <data name="CopyItemButton.Content" xml:space="preserve"><value>複製</value></data>
+  <data name="CopyItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>複製項目</value></data>
+  <data name="PinItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>固定或取消固定專案</value></data>
+  <data name="LocateItemButton.Content" xml:space="preserve"><value>重新指定</value></data>
+  <data name="LocateItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>找到遺失的檔案</value></data>
+  <data name="ExportItemButton.Content" xml:space="preserve"><value>匯出</value></data>
+  <data name="ExportItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>匯出圖片</value></data>
+  <data name="MoreItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>更多專案操作</value></data>
+  <data name="ShowInFolderMenuItem.Text" xml:space="preserve"><value>在資料夾中顯示</value></data>
+  <data name="RemoveItemMenuItem.Text" xml:space="preserve"><value>從 DropSpace 中刪除</value></data>
+  <data name="DropHintTitle.Text" xml:space="preserve"><value>放開滑鼠以加入參照</value></data>
+  <data name="DropHintDescription.Text" xml:space="preserve"><value>原始檔案不會被移動</value></data>
+  <data name="ClipboardPrivacySection.Text" xml:space="preserve"><value>剪貼簿和隱私</value></data>
+  <data name="PauseRecordingTitle.Text" xml:space="preserve"><value>暫停記錄</value></data>
+  <data name="PauseRecordingDescription.Text" xml:space="preserve"><value>重新啟動後仍保持暫停，直到您繼續記錄。</value></data>
+  <data name="PauseToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>暫停剪貼簿記錄</value></data>
+  <data name="CaptureImagesTitle.Text" xml:space="preserve"><value>記錄影像</value></data>
+  <data name="CaptureImagesDescription.Text" xml:space="preserve"><value>調整下面的大小和畫素限制；超過限制的影象將被跳過。</value></data>
+  <data name="CaptureImagesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>記錄剪貼簿影像</value></data>
+  <data name="MaxImageMegabytesLabel.Text" xml:space="preserve"><value>最大影像尺寸 (MiB)</value></data>
+  <data name="MaxImageMegapixelsLabel.Text" xml:space="preserve"><value>最大影像畫素（百萬）</value></data>
+  <data name="CaptureFilesTitle.Text" xml:space="preserve"><value>記錄檔案和資料夾</value></data>
+  <data name="CaptureFilesDescription.Text" xml:space="preserve"><value>資源管理器副本被記錄為剪貼簿引用；原始檔案不會被移動或複製。</value></data>
+  <data name="CaptureFilesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>記錄剪貼簿檔案</value></data>
+  <data name="CaptureFoldersTitle.Text" xml:space="preserve"><value>包括資料夾引用</value></data>
+  <data name="CaptureFoldersDescription.Text" xml:space="preserve"><value>不會遞迴掃描或複製資料夾，僅記錄外部參照。</value></data>
+  <data name="CaptureFoldersToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>記錄剪貼簿資料夾</value></data>
+  <data name="MaxClipboardFileItemsLabel.Text" xml:space="preserve"><value>每次擷取的項目數上限</value></data>
+  <data name="MaxClipboardFileMegabytesLabel.Text" xml:space="preserve"><value>最大單一檔案大小 (MiB)</value></data>
+  <data name="MaxClipboardFileTotalMegabytesLabel.Text" xml:space="preserve"><value>每次擷取的最大已知總大小 (MiB)</value></data>
+  <data name="MaxClipboardFileTotalMegabytesDescription.Text" xml:space="preserve"><value>必須至少為單一檔案限制；資料夾不進行遞迴計數。</value></data>
+  <data name="ClipboardPrivacyWarning.Message" xml:space="preserve"><value>DropSpace 無法可靠地識別每個剪貼簿來源，並且不將敏感內容偵測視為安全保證。需要時暫停記錄或清除歷史記錄。</value></data>
+  <data name="RetentionSection.Text" xml:space="preserve"><value>保留規則</value></data>
+  <data name="RetentionDaysLabel.Text" xml:space="preserve"><value>最長保留天數</value></data>
+  <data name="RetentionCountLabel.Text" xml:space="preserve"><value>保留的最大未固定專案數</value></data>
+  <data name="AppearanceSection.Text" xml:space="preserve"><value>外觀及視窗</value></data>
+  <data name="FileDragWakeModeTitle.Text" xml:space="preserve"><value>檔案拖曳喚醒模式</value></data>
+  <data name="FileDragWakeModeDescription.Text" xml:space="preserve"><value>空閒時智慧型偵測不佔據頂部邊緣。經典模式可能更相容，但會保持不可見的頂部輸入區域處於活動狀態。</value></data>
+  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>智慧偵測</value></data>
+  <data name="FileDragWakeModeClassic.Content" xml:space="preserve"><value>經典頂部邊緣區域（相容）</value></data>
+  <data name="FileDragWakeModeDisabled.Content" xml:space="preserve"><value>停用自動喚醒</value></data>
+  <data name="StartWithWindowsTitle.Text" xml:space="preserve"><value>隨 Windows 啟動</value></data>
+  <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>在首次設定或“設定”中選擇此項。使用當前使用者啟動條目，無需管理員許可權。</value></data>
+  <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>隨 Windows 啟動</value></data>
+  <data name="LanguageTitle.Text" xml:space="preserve"><value>顯示語言</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>只更改介面文字。歌詞翻譯使用獨立的語言設定。</value></data>
+  <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>顯示語言</value></data>
+  <data name="LanguageSystem.Content" xml:space="preserve"><value>系統預設</value></data>
+  <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
+  <data name="LanguageSimplifiedChinese.Content" xml:space="preserve"><value>简体中文</value></data>
+  <data name="ThemeTitle.Text" xml:space="preserve"><value>主題</value></data>
+  <data name="ThemeSystem.Content" xml:space="preserve"><value>系統預設</value></data>
+  <data name="ThemeLight.Content" xml:space="preserve"><value>淺色</value></data>
+  <data name="ThemeDark.Content" xml:space="preserve"><value>深色</value></data>
+  <data name="MotionTitle.Text" xml:space="preserve"><value>動畫</value></data>
+  <data name="MotionDescription.Text" xml:space="preserve"><value>跟隨系統時，會遵循 Windows 的減少動畫設定。</value></data>
+  <data name="MotionSystem.Content" xml:space="preserve"><value>系統預設</value></data>
+  <data name="MotionFull.Content" xml:space="preserve"><value>完整動畫</value></data>
+  <data name="MotionReduced.Content" xml:space="preserve"><value>減少運動</value></data>
+  <data name="MonitorTitle.Text" xml:space="preserve"><value>顯示器</value></data>
+  <data name="MonitorDescription.Text" xml:space="preserve"><value>自動模式會在發生檔案拖曳的螢幕上顯示。</value></data>
+  <data name="MonitorAutomatic.Content" xml:space="preserve"><value>自動</value></data>
+  <data name="MonitorPrimary.Content" xml:space="preserve"><value>主顯示器</value></data>
+  <data name="OverlayMonitorChoice" xml:space="preserve"><value>顯示器 {0}</value></data>
+  <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>顯示器 {0}（主要）</value></data>
+  <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>關閉視窗時</value></data>
+  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>隱藏至系統匣時，剪貼簿記錄仍會繼續。</value></data>
+  <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>隱藏至系統匣</value></data>
+  <data name="CloseBehaviorExit.Content" xml:space="preserve"><value>直接結束</value></data>
+  <data name="UpdatesSection.Text" xml:space="preserve"><value>更新</value></data>
+  <data name="AutoCheckUpdatesTitle.Text" xml:space="preserve"><value>自動檢查更新</value></data>
+  <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>每次 DropSpace 程序啟動時最多檢查一次；沒有後臺計時器執行。</value></data>
+  <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>自動下載更新</value></data>
+  <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>僅下載到 DropSpace 自己的快取，並且僅在大小和 SHA-256 驗證後安裝。</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>無人值守自動安裝</value></data>
+  <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>僅當更新通過受信任的 Authenticode 發行者驗證時才可用；未簽署的版本會保持關閉。</value></data>
+  <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>更新頻道</value></data>
+  <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>穩定版僅接收發布版本。 Beta 收到穩定版和預發行版，按發行號排序。</value></data>
+  <data name="UpdateChannelStable.Content" xml:space="preserve"><value>穩定版</value></data>
+  <data name="UpdateChannelBeta.Content" xml:space="preserve"><value>Beta</value></data>
+  <data name="CheckUpdatesButton.Content" xml:space="preserve"><value>檢查更新</value></data>
+  <data name="DownloadUpdateButton.Content" xml:space="preserve"><value>立即下載</value></data>
+  <data name="InstallUpdateButton.Content" xml:space="preserve"><value>立即更新</value></data>
+  <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>開啟下載位置</value></data>
+  <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>檢視版本說明</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>本機資料</value></data>
+  <data name="StorageLocationTitle.Text" xml:space="preserve"><value>儲存位置</value></data>
+  <data name="ClearLastHourButton.Content" xml:space="preserve"><value>清除最近一小時</value></data>
+  <data name="ClearTodayButton.Content" xml:space="preserve"><value>清除今天的記錄</value></data>
+  <data name="ClearAllButton.Content" xml:space="preserve"><value>清除所有歷史記錄</value></data>
+  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>預設情況下，清理會保留固定專案，並且絕不會刪除暫存空間中引用的原始檔案。</value></data>
+  <data name="AddTextUrlMenuItem.Text" xml:space="preserve"><value>新增文字或網址…</value></data>
+  <data name="AddTextUrlTitle" xml:space="preserve"><value>將文字或網址加入暫存空間</value></data>
+  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>貼上或輸入文字，或 https:// 網址</value></data>
+  <data name="AddTextUrlConfirm" xml:space="preserve"><value>新增</value></data>
+  <data name="Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="DropBatchLabel" xml:space="preserve"><value>拖放批次 · {0} 個項目</value></data>
+  <data name="CollapseBatch" xml:space="preserve"><value>收合</value></data>
+  <data name="ExpandBatch" xml:space="preserve"><value>展開</value></data>
+  <data name="PinBatchButton.Content" xml:space="preserve"><value>固定群組</value></data>
+  <data name="RemoveBatchButton.Content" xml:space="preserve"><value>刪除群組</value></data>
+  <data name="IslandPlacementTitle.Text" xml:space="preserve"><value>動態島位置</value></data>
+  <data name="IslandPlacementDescription.Text" xml:space="preserve"><value>自訂 X/Y 座標以 DIP 為單位，相對於所選顯示器的工作區。暫時將位置限制在工作區範圍內，不會覆寫已儲存的座標。方向鍵每次移動 1 DIP；Shift+方向鍵每次移動 10 DIP；Enter 套用；Esc 取消編輯。</value></data>
+  <data name="IslandPlacementAutomatic.Content" xml:space="preserve"><value>自動</value></data>
+  <data name="IslandPlacementCustom.Content" xml:space="preserve"><value>自訂</value></data>
+  <data name="IslandPlacementX.Header" xml:space="preserve"><value>X (DIP)</value></data>
+  <data name="IslandPlacementY.Header" xml:space="preserve"><value>Y (DIP)</value></data>
+  <data name="ApplyIslandPlacementButton.Content" xml:space="preserve"><value>套用位置</value></data>
+  <data name="ResetIslandPlacementButton.Content" xml:space="preserve"><value>重設</value></data>
+  <data name="AdjustIslandPlacementButton.Content" xml:space="preserve"><value>調整動態島位置…</value></data>
+  <data name="AdjustIslandPlacementButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>調整動態島位置</value></data>
+  <data name="OverlayPlacementEditHint.Text" xml:space="preserve"><value>拖曳移動 · Esc 取消</value></data>
+  <data name="OverlayPlacementPersistenceWarning.Text" xml:space="preserve"><value>此顯示具有僅執行時標識。在持久顯示標識可用之前，自訂放置不可用。</value></data>
+  <data name="QuickPanelHotkeyTitle.Text" xml:space="preserve"><value>快速麵板熱鍵</value></data>
+  <data name="QuickPanelHotkeyDescription.Text" xml:space="preserve"><value>使用鍵盤導航開啟現有的動態島。預設值：Win+Shift+Space。</value></data>
+  <data name="SmartDragExclusionsTitle.Text" xml:space="preserve"><value>智慧拖曳應用程式排除</value></data>
+  <data name="SmartDragExclusionsDescription.Text" xml:space="preserve"><value>以逗號分隔的程序名稱。這是盡力而為：某些提升的、受保護的或短期的來源應用程式可能無法識別。</value></data>
+  <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>複製智慧拖曳相容性報告</value></data>
+  <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>已複製無路徑智慧拖曳相容性報告。</value></data>
+  <data name="PreviewItemMenuItem.Text" xml:space="preserve"><value>快速預覽</value></data>
+  <data name="PreviewUnavailable" xml:space="preserve"><value>該專案沒有可用的有限預覽。</value></data>
+  <data name="ActionCompleted" xml:space="preserve"><value>行動順利完成。</value></data>
+  <data name="ActionUnavailable" xml:space="preserve"><value>此操作對於目前選擇不可用。</value></data>
+  <data name="ActionParametersRequired" xml:space="preserve"><value>在繼續之前選擇所有必要的操作引數。</value></data>
+  <data name="ActionAccessDenied" xml:space="preserve"><value>DropSpace 無法存取來源或匯出位置。</value></data>
+  <data name="ActionSourceUnavailable" xml:space="preserve"><value>來源不再可用或無法閱讀。</value></data>
+  <data name="ActionOutputUnavailable" xml:space="preserve"><value>DropSpace 無法建立匯出。檢查目的地並重試。</value></data>
+  <data name="ActionInvalidData" xml:space="preserve"><value>來源資料無效或超出安全操作限制。</value></data>
+  <data name="ActionCancelled" xml:space="preserve"><value>該行動被取消。</value></data>
+  <data name="ActionFailed" xml:space="preserve"><value>該操作無法完成。檢查診斷記錄檔。</value></data>
+  <data name="ActionOutputSaved" xml:space="preserve"><value>輸出儲存到：{0}</value></data>
+  <data name="QuickActionParametersTitle" xml:space="preserve"><value>動作引數</value></data>
+  <data name="QuickActionParametersDescription" xml:space="preserve"><value>選擇匯出新影像的大小和格式。原來的保持不變。</value></data>
+  <data name="QuickActionDestination" xml:space="preserve"><value>匯出資料夾</value></data>
+  <data name="QuickActionDefaultDestination" xml:space="preserve"><value>DropSpace 匯出資料夾（預設）</value></data>
+  <data name="QuickActionChooseFolder" xml:space="preserve"><value>選擇...</value></data>
+  <data name="QuickActionOutputFormat" xml:space="preserve"><value>輸出格式</value></data>
+  <data name="QuickActionKeepOriginalFormat" xml:space="preserve"><value>保持原始格式</value></data>
+  <data name="QuickActionFormatPng" xml:space="preserve"><value>PNG</value></data>
+  <data name="QuickActionFormatJpeg" xml:space="preserve"><value>JPEG</value></data>
+  <data name="QuickActionFormatBmp" xml:space="preserve"><value>BMP</value></data>
+  <data name="QuickActionWidth" xml:space="preserve"><value>寬度（畫素）</value></data>
+  <data name="QuickActionHeight" xml:space="preserve"><value>高度（畫素）</value></data>
+  <data name="QuickActionRequiredValue" xml:space="preserve"><value>必填</value></data>
+  <data name="QuickActionResizeOptional" xml:space="preserve"><value>可選調整大小以進行轉換。將兩個欄位留空以保留來源尺寸。</value></data>
+  <data name="QuickActionKeepAspectRatio" xml:space="preserve"><value>維持長寬比</value></data>
+  <data name="QuickActionApply" xml:space="preserve"><value>匯出</value></data>
+  <data name="QuickActionCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="QuickActionFolderPickerFailed" xml:space="preserve"><value>無法開啟匯出資料夾選擇器。</value></data>
+  <data name="ActionHashSha256.Text" xml:space="preserve"><value>檢視檔案校驗和 (SHA-256)</value></data>
+  <data name="ActionCompressZip.Text" xml:space="preserve"><value>壓縮為 ZIP</value></data>
+  <data name="ActionGenerateQr.Text" xml:space="preserve"><value>產生QR 碼</value></data>
+  <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>調整影像大小</value></data>
+  <data name="ActionConvertImage.Text" xml:space="preserve"><value>轉換影像格式</value></data>
+  <data name="ActionStripMetadata.Text" xml:space="preserve"><value>移除影像中繼資料</value></data>
+  <data name="DevicesSharingSection.Text" xml:space="preserve"><value>裝置與共用</value></data>
+  <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows 到 Windows 切換和剪貼簿同步是可選的。附近的連結保留在專用網路上； Internet Share 需要明確設定的 HTTPS 後端。</value></data>
+  <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>裝置切換</value></data>
+  <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>將內容傳送到配對的裝置。</value></data>
+  <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>啟用 Windows 裝置切換</value></data>
+  <data name="CrossDeviceClipboardTitle.Text" xml:space="preserve"><value>跨裝置剪貼簿</value></data>
+  <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>僅與配對的 Windows 裝置同步。啟用同步還可以啟用裝置連線；停用裝置連線會停止同步。</value></data>
+  <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>啟用跨裝置剪貼簿</value></data>
+  <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>預設對等剪貼簿模式</value></data>
+  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>新的對等點以選定的模式啟動；配對本身永遠不會啟用自動同步。</value></data>
+  <data name="ClipboardSyncModeOff.Content" xml:space="preserve"><value>關閉</value></data>
+  <data name="ClipboardSyncModeManual.Content" xml:space="preserve"><value>手動</value></data>
+  <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>自動文字 + URL</value></data>
+  <data name="ClipboardSyncModeTextUrlImage.Content" xml:space="preserve"><value>自動文字 + URL + 影像</value></data>
+  <data name="NearbySharingTitle.Text" xml:space="preserve"><value>鄰近瀏覽器共用</value></data>
+  <data name="NearbySharingDescription.Text" xml:space="preserve"><value>讓本機網路上的裝置接收瀏覽器中的專案。</value></data>
+  <data name="NearbySharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>啟用附近瀏覽器共享</value></data>
+  <data name="InternetSharingTitle.Text" xml:space="preserve"><value>安全的網路分享</value></data>
+  <data name="InternetSharingDescription.Text" xml:space="preserve"><value>檔案在上傳前已加密。首先設定共享服務。</value></data>
+  <data name="InternetSharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>啟用安全網際網路共享</value></data>
+  <data name="RefreshDevicesButton.Content" xml:space="preserve"><value>尋找裝置</value></data>
+  <data name="PairDeviceButton.Content" xml:space="preserve"><value>配對選定的裝置</value></data>
+  <data name="DevicesDisabledTitle" xml:space="preserve"><value>裝置已禁用</value></data>
+  <data name="DevicesDisabledContent" xml:space="preserve"><value>在搜尋本機網路之前啟用裝置切換。</value></data>
+  <data name="NoDevicesFound" xml:space="preserve"><value>在專用網路上找不到相容的 DropSpace 裝置。</value></data>
+  <data name="DevicesFound" xml:space="preserve"><value>找到 {0} 相容裝置。</value></data>
+  <data name="PairedDevice" xml:space="preserve"><value>與 {0} 配對。對端使用所選的預設剪貼簿模式。</value></data>
+  <data name="DeviceServiceUnavailable" xml:space="preserve"><value>裝置服務不可用：{0}</value></data>
+  <data name="DeviceServiceReady" xml:space="preserve"><value>裝置切換已準備就緒。 Windows 防火牆狀態仍需要明確接收能力檢查。</value></data>
+  <data name="DeviceServiceBlocked" xml:space="preserve"><value>無法接收：{0}</value></data>
+  <data name="DeviceServiceStarting" xml:space="preserve"><value>啟動本機 DropLink 服務...</value></data>
+  <data name="PairingSasTitle" xml:space="preserve"><value>確認配對碼</value></data>
+  <data name="PairingSasTitleWithDevice" xml:space="preserve"><value>確認與 {0} 配對</value></data>
+  <data name="PairingSasContent" xml:space="preserve"><value>請確認另一個裝置顯示相同的六位數配對碼：{0}。只有兩邊的配對碼一致時才能繼續。</value></data>
+  <data name="PairingSasConfirm" xml:space="preserve"><value>信任這個裝置</value></data>
+  <data name="IncomingTransferTitle" xml:space="preserve"><value>傳入檔案</value></data>
+  <data name="IncomingTransferContent" xml:space="preserve"><value>受信任的裝置想要傳送 {0} 個項目，共 {1} 位元組。檔案會先驗證，再存入 Downloads\DropSpace。</value></data>
+  <data name="IncomingTransferAccept" xml:space="preserve"><value>接受</value></data>
+  <data name="IncomingTransferReject" xml:space="preserve"><value>拒絕</value></data>
+  <data name="IncomingHandoffTitle" xml:space="preserve"><value>傳入文字或 URL</value></data>
+  <data name="HandoffTextKind" xml:space="preserve"><value>文字</value></data>
+  <data name="HandoffUrlKind" xml:space="preserve"><value>URL</value></data>
+  <data name="IncomingHandoffContent" xml:space="preserve"><value>{0} 想要將{1}加入您的暫存空間（{3} 位元組）：
+
+{2}
+
+不會自動開啟任何內容。</value></data>
+  <data name="SendToDeviceAction.Text" xml:space="preserve"><value>傳送至裝置</value></data>
+  <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>建立附近的連結</value></data>
+  <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>建立安全的網際網路連結</value></data>
+  <data name="TransferSentTitle" xml:space="preserve"><value>傳送完成</value></data>
+  <data name="TransferSentContent" xml:space="preserve"><value>受信任的裝置接受了傳輸，並在提交之前 DropSpace 驗證了內容。</value></data>
+  <data name="TransferUnavailableTitle" xml:space="preserve"><value>無法傳送</value></data>
+  <data name="NoPairedDevicesTitle" xml:space="preserve"><value>沒有配對的裝置</value></data>
+  <data name="NoPairedDevicesContent" xml:space="preserve"><value>首先在「設定」→「裝置和共用」中尋找並配對受信任的 Windows 裝置。</value></data>
+  <data name="SelectDeviceTitle" xml:space="preserve"><value>傳送到哪個裝置？</value></data>
+  <data name="ShareReadyTitle" xml:space="preserve"><value>分享準備就緒</value></data>
+  <data name="NearbyShareReady" xml:space="preserve"><value>此「附近」連結僅限 HTTP 和專用網路。自動失效；不要將其用作網路安全連結。</value></data>
+  <data name="EncryptedShareReady" xml:space="preserve"><value>清單和檔案區塊在此裝置上加密。解密金鑰儲存在 URL 片段中。</value></data>
+  <data name="ShareExpires" xml:space="preserve"><value>過期：{0}</value></data>
+  <data name="CopyShareLink" xml:space="preserve"><value>複製連結</value></data>
+  <data name="OpenShareQr" xml:space="preserve"><value>開啟QR 碼圖片</value></data>
+  <data name="RevokeShareButton" xml:space="preserve"><value>復原連結</value></data>
+  <data name="RevokeShareTitle" xml:space="preserve"><value>復原安全共享</value></data>
+  <data name="RevokeShareContent" xml:space="preserve"><value>這會使連結無效並從設定的後端刪除其加密物件。繼續？</value></data>
+  <data name="RevokeShareCompleted" xml:space="preserve"><value>安全共享已被復原。</value></data>
+  <data name="PdfPreviousPage" xml:space="preserve"><value>上一頁</value></data>
+  <data name="PdfNextPage" xml:space="preserve"><value>下一頁</value></data>
+  <data name="PdfPageIndicator" xml:space="preserve"><value>第 {0} 頁，共 {1} 頁</value></data>
+  <data name="QuickActionsSection" xml:space="preserve"><value>快速動作</value></data>
+  <data name="QuickActionsDescription" xml:space="preserve"><value>最多選擇每個專案上直接顯示的三個操作。自動遵循可用的操作登錄檔；不可用的選擇將被安全地跳過。</value></data>
+  <data name="QuickActionFiles" xml:space="preserve"><value>檔案和資料夾</value></data>
+  <data name="QuickActionImages" xml:space="preserve"><value>圖片</value></data>
+  <data name="QuickActionText" xml:space="preserve"><value>文字和程式碼</value></data>
+  <data name="QuickActionUrls" xml:space="preserve"><value>網址</value></data>
+  <data name="QuickActionAutomatic" xml:space="preserve"><value>使用自動操作順序</value></data>
+  <data name="QuickActionNone" xml:space="preserve"><value>無</value></data>
+  <data name="QuickActionSlot" xml:space="preserve"><value>主要操作 {0}</value></data>
+  <data name="ResetQuickActions" xml:space="preserve"><value>重置此設定檔案</value></data>
+  <data name="ResetAllQuickActions" xml:space="preserve"><value>重置所有快速操作</value></data>
+  <data name="UndoButton.Content" xml:space="preserve"><value>復原</value></data>
+  <data name="UndoRemovedItem" xml:space="preserve"><value>專案已移除。復原操作的時間為 8 秒。</value></data>
+  <data name="UndoRemovedItems" xml:space="preserve"><value>{0} 專案已刪除。復原操作的時間為 8 秒。</value></data>
+  <data name="UndoClearedItems" xml:space="preserve"><value>{0} 剪貼簿專案已清除。復原操作的時間為 8 秒。</value></data>
+  <data name="UndoPinned" xml:space="preserve"><value>已固定 {0} 項。復原操作的時間為 8 秒。</value></data>
+  <data name="UndoUnpinned" xml:space="preserve"><value>{0} 項已取消固定。復原操作的時間為 8 秒。</value></data>
+  <data name="UndoCompleted" xml:space="preserve"><value>復原已完成。</value></data>
+  <data name="ShellIntakeAdded" xml:space="preserve"><value>加到 DropSpace</value></data>
+  <data name="ShellIntakeAddedCount" xml:space="preserve"><value>將 {0} 專案加入 DropSpace</value></data>
+  <data name="SettingsStageAppearance" xml:space="preserve"><value>視窗與外觀</value></data>
+  <data name="SettingsStageStartup" xml:space="preserve"><value>隨 Windows 啟動</value></data>
+  <data name="SettingsStageClipboard" xml:space="preserve"><value>本機剪貼簿</value></data>
+  <data name="SettingsStageHandoff" xml:space="preserve"><value>裝置連線</value></data>
+  <data name="SettingsStageCrossClipboard" xml:space="preserve"><value>跨裝置剪貼簿</value></data>
+  <data name="SettingsStageStore" xml:space="preserve"><value>儲存設定</value></data>
+  <data name="SettingsUpdateFailed" xml:space="preserve"><value>無法更新 {0}。 DropSpace 嘗試還原先前的設定。檢查此功能的許可權或連線狀態並重試。診斷 ID：{1}。</value></data>
+  <data name="ImageSizePreset" xml:space="preserve"><value>圖片尺寸</value></data>
+  <data name="ImageSizeOriginal" xml:space="preserve"><value>原始尺寸（100%）</value></data>
+  <data name="ImageSizeCustom" xml:space="preserve"><value>自訂畫素</value></data>
+  <data name="ImageSizeOutput" xml:space="preserve"><value>輸出尺寸：{0} × {1} 畫素</value></data>
+  <data name="HashResultDescription" xml:space="preserve"><value>SHA-256 校驗識別檔案內容。複製它以與另一個檔案的校驗和進行比較。</value></data>
+  <data name="CopyHashResult" xml:space="preserve"><value>複製校驗和</value></data>
+  <data name="OpenOutputFolder" xml:space="preserve"><value>開啟輸出資料夾</value></data>
+  <data name="MoreItemButton.Content" xml:space="preserve"><value>更多行動</value></data>
+  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>在“設定”中啟用此功能並首先完成配對或服務設定。</value></data>
+  <data name="SettingsRecoveryFailed" xml:space="preserve"><value>無法完全還原先前的設定。再次更改設定之前，請重新啟動 DropSpace。診斷 ID：{1}。</value></data>
+  <data name="SettingsStageRecovery" xml:space="preserve"><value>還原設定</value></data>
+  <data name="MediaControlFailed" xml:space="preserve"><value>播放器無法完成此操作。請再試一次。</value></data>
+  <data name="MediaNoSession.Text" xml:space="preserve"><value>在支援的播放器中播放音樂，即可在這裡查看。</value></data>
+  <data name="WidgetClock.Text" xml:space="preserve"><value>時鐘</value></data>
+  <data name="WidgetCalendar.Text" xml:space="preserve"><value>日曆</value></data>
+  <data name="MediaPlayLabel" xml:space="preserve"><value>播放</value></data>
+  <data name="IslandNextPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一個島嶼頁面</value></data>
+  <data name="MediaPrevious.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一曲目</value></data>
+  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>估計位置。該玩家沒有提供可靠的時間表；歌詞可能不同步並且無法搜尋。</value></data>
+  <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一個島嶼頁面</value></data>
+  <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一曲目</value></data>
+  <data name="MediaPauseLabel" xml:space="preserve"><value>暫停</value></data>
+  <data name="WidgetSettingsAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>開啟設定</value></data>
+  <data name="WidgetsEmpty.Text" xml:space="preserve"><value>在「設定」中選擇小工具，建立此頁面。</value></data>
+  <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>播放位置</value></data>
+  <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>資源</value></data>
+  <data name="WidgetsEnabled" xml:space="preserve"><value>啟用小工具</value></data>
+  <data name="MusicSpectrum" xml:space="preserve"><value>顯示音訊頻譜</value></data>
+  <data name="ActivitiesNotifications" xml:space="preserve"><value>顯示 Windows 通知</value></data>
+  <data name="IslandAutoHide" xml:space="preserve"><value>播放停止後自動隱藏</value></data>
+  <data name="MusicProgress" xml:space="preserve"><value>顯示進度</value></data>
+  <data name="MusicApplications" xml:space="preserve"><value>媒體應用</value></data>
+  <data name="WidgetRow" xml:space="preserve"><value>列</value></data>
+  <data name="LyricsMode" xml:space="preserve"><value>模式</value></data>
+  <data name="WidgetsCompactHelp" xml:space="preserve"><value>收合小工具適用於顯式開啟的小工具檢視。他們從不讓閒置的島嶼可見。</value></data>
+  <data name="NavMusic.Content" xml:space="preserve"><value>音樂</value></data>
+  <data name="MusicLyricsSection" xml:space="preserve"><value>歌詞</value></data>
+  <data name="LyricsWords" xml:space="preserve"><value>逐字同步醒目提示</value></data>
+  <data name="WidgetAdd" xml:space="preserve"><value>新增</value></data>
+  <data name="MusicAllApplications" xml:space="preserve"><value>允許所有媒體應用程式</value></data>
+  <data name="LyricsScrolling" xml:space="preserve"><value>滾動長歌詞</value></data>
+  <data name="MusicEnabled" xml:space="preserve"><value>啟用音樂動態島</value></data>
+  <data name="LyricsWidth" xml:space="preserve"><value>最大歌詞寬度</value></data>
+  <data name="LyricsWidthUnlimited" xml:space="preserve"><value>無限</value></data>
+  <data name="MusicApplicationsEmpty" xml:space="preserve"><value>播放音樂以發現媒體應用程式。</value></data>
+  <data name="WidgetCenter" xml:space="preserve"><value>置中</value></data>
+  <data name="LyricsProvider" xml:space="preserve"><value>優先歌詞來源</value></data>
+  <data name="LyricsFallbackHelp" xml:space="preserve"><value>啟用後，查詢遵循首選提供商 → 可選備份 → 剩餘提供商。如果沒有備份或剩餘提供商搜尋，則僅使用首選提供商。本機模式保持離線狀態。</value></data>
+  <data name="LyricsBackupProvider" xml:space="preserve"><value>備用歌詞來源</value></data>
+  <data name="LyricsBackupProviderNone" xml:space="preserve"><value>無</value></data>
+  <data name="LyricsSearchRemainingProviders" xml:space="preserve"><value>搜尋其餘歌詞來源</value></data>
+  <data name="WidgetSelected" xml:space="preserve"><value>已選擇</value></data>
+  <data name="WidgetNoRoom" xml:space="preserve"><value>沒有足夠的空白空間。首先調整大小或刪除另一個小工具。</value></data>
+  <data name="LyricsDelay" xml:space="preserve"><value>歌詞偏移（毫秒）</value></data>
+  <data name="SettingsPageAbout" xml:space="preserve"><value>關於</value></data>
+  <data name="MusicPlaybackSection" xml:space="preserve"><value>播放</value></data>
+  <data name="LyricsProviderAmll" xml:space="preserve"><value>AMLL TTML</value></data>
+  <data name="LyricsProviderKugou" xml:space="preserve"><value>Kugou</value></data>
+  <data name="SettingsPageUpdates" xml:space="preserve"><value>更新</value></data>
+  <data name="SettingsPageSystemActivities" xml:space="preserve"><value>系統活動</value></data>
+  <data name="WidgetColumn" xml:space="preserve"><value>欄</value></data>
+  <data name="PageTitleMusic" xml:space="preserve"><value>音樂</value></data>
+  <data name="ChooseFolder" xml:space="preserve"><value>選擇資料夾</value></data>
+  <data name="MusicDynamicWidth" xml:space="preserve"><value>動態歌詞寬度</value></data>
+  <data name="ActivitiesVolume" xml:space="preserve"><value>顯示音量變化</value></data>
+  <data name="IslandRightHoldMove" xml:space="preserve"><value>按住滑鼠右鍵移動</value></data>
+  <data name="LyricsOnline" xml:space="preserve"><value>線上</value></data>
+  <data name="WidgetHeight" xml:space="preserve"><value>高度</value></data>
+  <data name="MusicArtwork" xml:space="preserve"><value>顯示專輯封面</value></data>
+  <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>本機 LRC</value></data>
+  <data name="IslandHideDelay" xml:space="preserve"><value>隱藏延遲</value></data>
+  <data name="WidgetRight" xml:space="preserve"><value>右</value></data>
+  <data name="WidgetLeft" xml:space="preserve"><value>左</value></data>
+  <data name="LyricsEnabled" xml:space="preserve"><value>啟用歌詞</value></data>
+  <data name="LyricsLoading" xml:space="preserve"><value>正在載入歌詞...</value></data>
+  <data name="LyricsNotFound" xml:space="preserve"><value>找不到符合的歌詞</value></data>
+  <data name="LyricsFailed" xml:space="preserve"><value>歌詞暫時無法獲取。選擇重新整理重試。</value></data>
+  <data name="WidgetDropFailed" xml:space="preserve"><value>無法將此小工具拖放到此處。嘗試使用網格單元或使用位置控制。</value></data>
+  <data name="WidgetRemove" xml:space="preserve"><value>刪除小工具</value></data>
+  <data name="SettingsPageIsland" xml:space="preserve"><value>動態島</value></data>
+  <data name="ClearLyricsCache" xml:space="preserve"><value>清除歌詞快取</value></data>
+  <data name="LyricsCacheSize" xml:space="preserve"><value>歌詞快取限制 (GB)</value></data>
+  <data name="WidgetSelect" xml:space="preserve"><value>選擇一個小工具以編輯其位置和大小。</value></data>
+  <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
+  <data name="SettingsPageGeneral" xml:space="preserve"><value>一般</value></data>
+  <data name="WidgetWidth" xml:space="preserve"><value>寬度</value></data>
+  <data name="LyricsProviderNetEase" xml:space="preserve"><value>NetEase Cloud Music</value></data>
+  <data name="LyricsLocal" xml:space="preserve"><value>本機 LRC</value></data>
+  <data name="WidgetsEditorMode" xml:space="preserve"><value>小工具編輯模式</value></data>
+  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>無法儲存此變更。您之前的設定已還原。</value></data>
+  <data name="WidgetsCompactMode" xml:space="preserve"><value>收合·左/中/右</value></data>
+  <data name="IslandExpandedScale" xml:space="preserve"><value>展開比例</value></data>
+  <data name="WidgetsReset" xml:space="preserve"><value>重置小工具佈局</value></data>
+  <data name="ActivitiesFullscreen" xml:space="preserve"><value>禁止全螢幕應用程式上的活動</value></data>
+  <data name="WidgetNone" xml:space="preserve"><value>無</value></data>
+  <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
+  <data name="LyricsFolder" xml:space="preserve"><value>本機歌詞資料夾</value></data>
+  <data name="LyricsCompact" xml:space="preserve"><value>在收合的動態島中顯示歌詞</value></data>
+  <data name="PageDescriptionMusic" xml:space="preserve"><value>現在播放，歌詞，還有你的音樂島。</value></data>
+  <data name="SettingsPageWidgets" xml:space="preserve"><value>小工具</value></data>
+  <data name="IslandCompactScale" xml:space="preserve"><value>收合比例</value></data>
+  <data name="WidgetLibrary" xml:space="preserve"><value>小工具庫</value></data>
+  <data name="SettingsPageDevices" xml:space="preserve"><value>裝置／共用</value></data>
+  <data name="WidgetsEditorHelp" xml:space="preserve"><value>拖曳到突出顯示的插槽；相同大小的小工具可以交換。選擇一個小工具並使用箭頭輕移它，或編輯位置和大小，然後套用佈局。復原可還原您上次的變更。</value></data>
+  <data name="WidgetsExpandedMode" xml:space="preserve"><value>展開·4行×8列</value></data>
+  <data name="LyricsSecondary" xml:space="preserve"><value>顯示第二行歌詞</value></data>
+  <data name="WidgetSettingsName" xml:space="preserve"><value>設定捷徑</value></data>
+  <data name="WidgetBattery.Text" xml:space="preserve"><value>電源</value></data>
+  <data name="ClipboardIslandPin.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>切換固定狀態</value></data>
+  <data name="ClipboardIslandEmpty.Text" xml:space="preserve"><value>複製的內容將出現在此。</value></data>
+  <data name="ClipboardIslandResume" xml:space="preserve"><value>繼續記錄</value></data>
+  <data name="WidgetClipboardPause.Text" xml:space="preserve"><value>剪貼簿記錄</value></data>
+  <data name="ClipboardIslandOpenMain.Content" xml:space="preserve"><value>開啟完整歷史記錄</value></data>
+  <data name="StopwatchReset.Text" xml:space="preserve"><value>重設秒錶</value></data>
+  <data name="ClipboardIslandActionFailed" xml:space="preserve"><value>無法完成此操作。再試一次。</value></data>
+  <data name="StopwatchPause" xml:space="preserve"><value>暫停</value></data>
+  <data name="StopwatchStart" xml:space="preserve"><value>開始</value></data>
+  <data name="ClipboardIslandTitle.Text" xml:space="preserve"><value>剪貼簿</value></data>
+  <data name="WidgetUptime.Text" xml:space="preserve"><value>持續執行時間</value></data>
+  <data name="WidgetStopwatch.Text" xml:space="preserve"><value>秒錶</value></data>
+  <data name="ClipboardIslandCopy.Content" xml:space="preserve"><value>複製</value></data>
+  <data name="ClipboardIslandPause" xml:space="preserve"><value>暫停記錄</value></data>
+  <data name="ClipboardIslandRemove.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>從 DropSpace 中刪除</value></data>
+  <data name="WidgetSize" xml:space="preserve"><value>尺寸</value></data>
+  <data name="ActivityMuted" xml:space="preserve"><value>靜音</value></data>
+  <data name="ActivityVolume" xml:space="preserve"><value>音量</value></data>
+  <data name="NotificationAccessUnavailable" xml:space="preserve"><value>通知存取許可權不可用或未被授予。在 Windows 設定中啟用已安裝的 DropSpace 應用程式的通知存取許可權。</value></data>
+  <data name="NeteaseEnhancementTitle" xml:space="preserve"><value>NetEase Music 增強</value></data>
+  <data name="NeteaseEnhancementDescription" xml:space="preserve"><value>在 DropSpace 中啟用完整的媒體控制、播放進度和相關功能。</value></data>
+  <data name="NeteaseEnhancementInstall" xml:space="preserve"><value>增強 NetEase Music</value></data>
+  <data name="NeteaseEnhancementUpdate" xml:space="preserve"><value>檢查更新</value></data>
+  <data name="NeteaseEnhancementReinstall" xml:space="preserve"><value>重新安裝</value></data>
+  <data name="NeteaseEnhancementRemove" xml:space="preserve"><value>刪除增強功能</value></data>
+  <data name="NeteaseEnhancementConfirmTitle" xml:space="preserve"><value>增強 NetEase Music</value></data>
+  <data name="NeteaseEnhancementConfirmBody" xml:space="preserve"><value>DropSpace 將自動安裝 InfLink-rs 及其所需的執行時元件，以為 NetEase Music 提供完整的 Windows 媒體支援。這些是獨立的第三方開源專案。 NetEase Music 將重新啟動，並且在驗證控制項時播放將短暫變更。</value></data>
+  <data name="NeteaseEnhancementCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="NeteaseEnhancementConfirm" xml:space="preserve"><value>確認並安裝</value></data>
+  <data name="NeteaseEnhancementNotInstalled" xml:space="preserve"><value>準備增強</value></data>
+  <data name="NeteaseEnhancementDetecting" xml:space="preserve"><value>正在檢查 NetEase Music...</value></data>
+  <data name="NeteaseEnhancementPreparing" xml:space="preserve"><value>正在準備增強元件...</value></data>
+  <data name="NeteaseEnhancementInstalling" xml:space="preserve"><value>正在安裝 InfLink-rs...</value></data>
+  <data name="NeteaseEnhancementRestarting" xml:space="preserve"><value>正在重新啟動 NetEase Music...</value></data>
+  <data name="NeteaseEnhancementVerifying" xml:space="preserve"><value>驗證媒體控制...</value></data>
+  <data name="NeteaseEnhancementInstalled" xml:space="preserve"><value>✓ 安裝增強元件</value></data>
+  <data name="NeteaseEnhancementEnhanced" xml:space="preserve"><value>✓ 增強 - 啟用完整的媒體控制</value></data>
+  <data name="NeteaseEnhancementRemoving" xml:space="preserve"><value>正在刪除增強功能...</value></data>
+  <data name="NeteaseEnhancementRemoved" xml:space="preserve"><value>增強功能已刪除</value></data>
+  <data name="NeteaseEnhancementFailed" xml:space="preserve"><value>增強無法完成</value></data>
+  <data name="NeteaseEnhancementErrorUnexpected" xml:space="preserve"><value>操作失敗。您可以重試；詳細資訊可在診斷中找到。</value></data>
+  <data name="NeteaseEnhancementErrorNotFound" xml:space="preserve"><value>在此電腦上找不到 NetEase Music。</value></data>
+  <data name="NeteaseEnhancementErrorVerification" xml:space="preserve"><value>完整媒體控制驗證失敗。已還原之前的安裝狀態。播放器或增強元件可能缺乏某些功能。</value></data>
+  <data name="NeteaseEnhancementErrorPermission" xml:space="preserve"><value>Windows 拒絕存取播放器安裝。以管理員身分執行 DropSpace 並重試。</value></data>
+  <data name="NeteaseEnhancementErrorConflict" xml:space="preserve"><value>無法安全地更換現有元件。您現有的安裝已保留。</value></data>
+  <data name="NeteaseEnhancementErrorIntegrity" xml:space="preserve"><value>元件完整性驗證失敗。此下載中的任何內容均未安裝。</value></data>
+  <data name="NeteaseEnhancementErrorNetwork" xml:space="preserve"><value>無法存取官方元件來源。請稍後重試。</value></data>
+  <data name="NeteaseEnhancementErrorRuntime" xml:space="preserve"><value>所需的執行時元件不可用。未安裝增強功能。</value></data>
+  <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>自動還原無法完成。使用重新安裝或刪除增強功能進行復原。</value></data>
+  <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>操作被取消。</value></data>
+  <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC 時鐘</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>專注 · 25 分鐘</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>計時器 · 5 分鐘</value></data>
+  <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>系統磁碟可用空間</value></data>
+  <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>網路介面卡</value></data>
+  <data name="WidgetCalculator.Text" xml:space="preserve"><value>小算盤</value></data>
+  <data name="WidgetPinnedItems.Text" xml:space="preserve"><value>固定專案</value></data>
+  <data name="WidgetWeekProgress.Text" xml:space="preserve"><value>ISO週·進度</value></data>
+  <data name="WidgetNetworkConnected" xml:space="preserve"><value>已連線</value></data>
+  <data name="WidgetNetworkDisconnected" xml:space="preserve"><value>已中斷連線</value></data>
+  <data name="WidgetLaunchFailed" xml:space="preserve"><value>無法開啟</value></data>
+  <data name="WidgetApplyLayout" xml:space="preserve"><value>套用版面配置</value></data>
+  <data name="WidgetUndo" xml:space="preserve"><value>復原</value></data>
+  <data name="WidgetMove" xml:space="preserve"><value>移動</value></data>
+  <data name="LyricsOriginalFontSize" xml:space="preserve"><value>原歌詞大小</value></data>
+  <data name="LyricsTranslationFontSize" xml:space="preserve"><value>譯文大小</value></data>
+  <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
+  <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>翻譯歌詞預覽</value></data>
+  <data name="LyricsResetFonts" xml:space="preserve"><value>重設歌詞大小</value></data>
+  <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌詞</value></data>
+  <data name="AiLyricsDescription" xml:space="preserve"><value>在這台電腦上，將缺少的歌詞譯文補充為您所選的簡體中文或 English。語言符合的歌詞來源譯文會優先使用。首次完成整首歌詞翻譯可能需要幾分鐘，視裝置效能與歌詞長度而定。完成的譯文會逐行顯示。AI 可能誤譯；不會為 AI 翻譯上傳歌詞。</value></data>
+  <data name="AiLyricsEnabled" xml:space="preserve"><value>使用AI歌詞翻譯</value></data>
+  <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU 加速</value></data>
+  <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>首選相容的 GPU 進行 AI 翻譯。如果 GPU 加速不可用或失敗，應用程式將改用 CPU。關閉此功能即可僅使用 CPU。更改此首選項不會開啟 AI 或下載模型。</value></data>
+  <data name="AiLyricsModel" xml:space="preserve"><value>翻譯模型</value></data>
+  <data name="AiLyricsStandardModel" xml:space="preserve"><value>先前的標準模型（Q4）</value></data>
+  <data name="AiLyricsSmallerModel" xml:space="preserve"><value>先前的精簡模型（IQ3）</value></data>
+  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0</value></data>
+  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0</value></data>
+  <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>較大的模型，需要更多記憶體與 GPU 記憶體。</value></data>
+  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>本機翻譯模型。</value></data>
+  <data name="AiLyricsLegacyModels" xml:space="preserve"><value>以前的模型檔案</value></data>
+  <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>這些舊模型檔案不再用於翻譯。您可以刪除它們以釋放磁碟空間。</value></data>
+  <data name="AiLyricsDeleteLegacyModel" xml:space="preserve"><value>刪除 {0}</value></data>
+  <data name="AiLyricsModelSize" xml:space="preserve"><value>{0} GB（{1} 位元組）</value></data>
+  <data name="AiLyricsModelDetails" xml:space="preserve"><value>{0}
+下載大小：{1}
+來源：{2}</value></data>
+  <data name="AiLyricsDownloadProgress" xml:space="preserve"><value>翻譯模型下載進度</value></data>
+  <data name="AiLyricsModelProgress" xml:space="preserve"><value>{0}模型下載進度</value></data>
+  <data name="AiLyricsDownload" xml:space="preserve"><value>下載模型</value></data>
+  <data name="AiLyricsCancelDownload" xml:space="preserve"><value>取消下載</value></data>
+  <data name="AiLyricsResumeDownload" xml:space="preserve"><value>重試/還原下載</value></data>
+  <data name="AiLyricsDownloadHelp" xml:space="preserve"><value>您可以在 AI 關閉時下載任一模型並保留兩個模型。僅使用選定的型號。盡可能還原中斷的下載。</value></data>
+  <data name="AiLyricsConfirmTitle" xml:space="preserve"><value>下載翻譯模型？</value></data>
+  <data name="AiLyricsConfirmBody" xml:space="preserve"><value>{0}
+{1}
+{2}
+來源：{3}
+
+這會將模型下載到這台電腦。網際網路連線僅用於下載；不會將歌詞傳送至模型來源。翻譯在本機執行。您可以取消，稍後再繼續下載。</value></data>
+  <data name="AiLyricsConfirmDownload" xml:space="preserve"><value>下載</value></data>
+  <data name="AiLyricsNotNow" xml:space="preserve"><value>稍後再說</value></data>
+  <data name="AiLyricsChecking" xml:space="preserve"><value>檢查下載的模型...</value></data>
+  <data name="AiLyricsReady" xml:space="preserve"><value>已下載 · 可以使用</value></data>
+  <data name="AiLyricsNeedsDownload" xml:space="preserve"><value>在開啟 AI 翻譯之前下載此模型。</value></data>
+  <data name="AiLyricsDownloading" xml:space="preserve"><value>正在下載模型...先前的進度將在可用時還原。</value></data>
+  <data name="AiLyricsVerifying" xml:space="preserve"><value>模型已下載，正在驗證…</value></data>
+  <data name="AiLyricsDownloadComplete" xml:space="preserve"><value>模型已下載並驗證。準備使用。</value></data>
+  <data name="AiLyricsDownloadCanceled" xml:space="preserve"><value>下載已取消。重試以還原已儲存的進度。</value></data>
+  <data name="AiLyricsDownloadFailed" xml:space="preserve"><value>下載無法完成。檢查您的連線和可用磁碟空間，然後重試。儲存的進度將在可能的情況下還原；驗證失敗的模型會重新下載。</value></data>
+  <data name="AiLyricsInspectFailed" xml:space="preserve"><value>無法檢查下載的模型。檢查應用程式的資料資料夾是否可訪問，然後重新開啟此頁面。</value></data>
+  <data name="AiLyricsOperationFailed" xml:space="preserve"><value>此更改無法完成。請再試一次。</value></data>
+  <data name="LyricsGlowTitle" xml:space="preserve"><value>動態島輝光</value></data>
+  <data name="LyricsSimplifiedGlow" xml:space="preserve"><value>簡化輝光</value></data>
+  <data name="LyricsSimplifiedGlowHelp" xml:space="preserve"><value>由整個底部邊緣與各圓角下方 45° 向下投射柔和光線，兩端自然淡出。關閉此選項後，輝光會環繞整個動態島。</value></data>
+  <data name="LyricsGlowOff" xml:space="preserve"><value>關閉</value></data>
+  <data name="LyricsGlowAi" xml:space="preserve"><value>AI 歌詞</value></data>
+  <data name="LyricsGlowMusic" xml:space="preserve"><value>音樂</value></data>
+  <data name="LyricsGlowDescription" xml:space="preserve"><value>顯示 AI 譯文時，「AI 歌詞」模式會發出輝光。「音樂」模式會在播放時發出輝光，即使 AI 已關閉。啟用 AI 時會選擇「AI 歌詞」；停用 AI 時會選擇「關閉」。您可以在這裡調整。</value></data>
+  <data name="LyricsGlowKeyboardHelp" xml:space="preserve"><value>使用方向鍵選擇「關閉」、「AI 歌詞」或「音樂」。Home 選擇「關閉」；End 選擇「音樂」。</value></data>
+  <data name="LyricsGlowAccessibleValue" xml:space="preserve"><value>動態島輝光：{0}</value></data>
+  <data name="AiLyricsDownloadHelpSingle" xml:space="preserve"><value>您可以在 AI 關閉時下載模型。盡可能還原中斷的下載。</value></data>
+  <data name="AiLyricsStandardHelp" xml:space="preserve"><value>以前的騰訊 Q4 型號。僅保留用於檢查和刪除舊的下載。</value></data>
+  <data name="AiLyricsCompactHelp" xml:space="preserve"><value>以前的第三方 IQ3 型號。僅保留用於檢查和刪除舊的下載。</value></data>
+  <data name="LyricsFontSize" xml:space="preserve"><value>歌詞大小</value></data>
+  <data name="LyricsFontSizeNumber" xml:space="preserve"><value>歌詞大小，12 至 28</value></data>
+  <data name="LyricsFontSizeHelp" xml:space="preserve"><value>拖曳或輸入 12 至 28 的大小，可以使用小數。原文與譯文會一起縮放。</value></data>
+  <data name="LyricsFontSizeKeyboardHelp" xml:space="preserve"><value>方向鍵每次調整 0.1，Page Up 或 Page Down 每次調整 1；也可以在數字欄位輸入精確大小。</value></data>
+  <data name="LyricsFontSizeInvalid" xml:space="preserve"><value>輸入 12 到 28 之間的數字。預覽保留最後的有效尺寸。</value></data>
+  <data name="LyricsFontSizeRestored" xml:space="preserve"><value>已還原最後的有效大小。輸入 12 到 28 之間的數字。</value></data>
+  <data name="AiLyricsTranslationPaused" xml:space="preserve"><value>AI 翻譯在連續三次失敗後暫停。原歌詞不變。當您準備好重試時繼續。</value></data>
+  <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>繼續 AI 翻譯</value></data>
+  <data name="AiLyricsDeleteModel" xml:space="preserve"><value>刪除模型</value></data>
+  <data name="AiLyricsClearCache" xml:space="preserve"><value>清除歌詞快取</value></data>
+  <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>刪除 {0} 及其部分下載？如果啟用此模型，AI 翻譯將會關閉。其他模型和原始歌詞均保留。</value></data>
+  <data name="AiLyricsModelDeleted" xml:space="preserve"><value>模型已移除。您可以稍後再次下載。</value></data>
+  <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>刪除快取的原始歌詞、提供者翻譯和 AI 翻譯？目前的推斷將停止。下載的模型和您的歌詞檔案將被保留。</value></data>
+  <data name="AiLyricsCacheCleared" xml:space="preserve"><value>歌詞快取已清除。</value></data>
+  <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>離線執行時包含在App中；不需要額外的執行時間下載。執行時提取最多使用大約 {0} MiB 的額外磁碟空間。允許額外 64 MiB 可用磁碟空間用於模型下載和復原。</value></data>
+  <data name="AiLyricsTranslating" xml:space="preserve"><value>本機翻譯...第一次完整翻譯可能需要幾分鐘。完成的翻譯逐行顯示；未完成的臺詞保留原來的歌詞。</value></data>
+  <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>AI翻譯暫時無法使用。原歌詞不變。</value></data>
+  <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI 翻譯準備就緒。</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>線上歌詞將當前歌曲標題、藝術家、專輯和持續時間傳送到您設定允許的歌詞提供者。全新安裝首先啟用網易線上歌詞，無需備份，並啟用剩餘提供者搜尋。您可以隨時停用歌詞或更改提供者。選擇本機 LRC 讀取您自己的歌詞檔案，無需提供者請求。 AI 翻譯本身保留在此裝置上。</value></data>
+  <data name="AiLyricsClearingCache" xml:space="preserve"><value>正在清除 AI 翻譯快取...</value></data>
+  <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>選擇在背景執行的內容</value></data>
+  <data name="FirstRunPrivacyBody" xml:space="preserve"><value>暫存空間不需啟用剪貼簿記錄即可使用。啟用後，DropSpace 會在本機儲存複製的文字、影像與檔案參照，即使視窗已關閉並隱藏至系統匣也會持續記錄。您可以在「剪貼簿」與「設定」中暫停記錄、清除歷史記錄並調整保留規則。隱藏至系統匣不會結束程式；請選擇「結束」以停止 DropSpace。這些選擇之後都可以變更。</value></data>
+  <data name="FirstRunClipboardChoice" xml:space="preserve"><value>啟用本機剪貼簿記錄</value></data>
+  <data name="FirstRunStartupChoice" xml:space="preserve"><value>當我登入 Windows 時啟動 DropSpace</value></data>
+  <data name="FirstRunContinue" xml:space="preserve"><value>儲存選擇並繼續</value></data>
+  <data name="FirstRunSkip" xml:space="preserve"><value>關閉兩者後繼續</value></data>
+  <data name="LyricsCacheClearFailed" xml:space="preserve"><value>無法清除歌詞快取。再試一次。</value></data>
+  <data name="LyricsCacheMigrationFailed" xml:space="preserve"><value>一些舊的歌詞快取檔案無法刪除。清除歌詞快取以重試。下載的模型和您的歌詞檔案將被保留。</value></data>
+  <data name="MusicRefresh" xml:space="preserve"><value>重新整理音樂</value></data>
+  <data name="MusicRefreshHelp" xml:space="preserve"><value>重新連結音樂、藝術作品和歌詞，無需重新啟動 DropSpace。設定和快取的歌詞將被保留。</value></data>
+  <data name="MusicReconnecting" xml:space="preserve"><value>重新連線音樂...</value></data>
+  <data name="MusicReconnected" xml:space="preserve"><value>音樂重新連線</value></data>
+  <data name="MusicReconnectFailed" xml:space="preserve"><value>無法重新連線音樂。再次嘗試重新整理按鈕。</value></data>
+  <data name="MediaNextLyricLabel" xml:space="preserve"><value>下一句歌詞</value></data>
+  <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>強制讓動態島顯示在全螢幕程式上方</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>允許啟用內容或住宅的島嶼出現在全螢幕應用程式上。關閉時，使用隱藏延遲。</value></data>
+  <data name="LyricsShowAiLabel" xml:space="preserve"><value>顯示 AI 歌詞標籤</value></data>
+  <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>本機翻譯無法確認足夠的可用記憶體。釋放記憶體或選擇較小的型號，然後重試。</value></data>
+  <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU 後端</value></data>
+  <data name="AiLyricsGpuAutomatic" xml:space="preserve"><value>自動</value></data>
+  <data name="AiLyricsCudaComponents" xml:space="preserve"><value>開啟DLC元件管理器</value></data>
+  <data name="AiLyricsCudaTitle" xml:space="preserve"><value>下載CUDA加速元件</value></data>
+  <data name="AiLyricsCudaDownloadBody" xml:space="preserve"><value>檢測到 NVIDIA GPU。 CUDA 需要大約 {0} MiB 的單獨執行時間下載。您現有的 AI 模型將會重複使用。在DLC中下載或刪除它；在此之前，Vulkan 仍然可用，並具有 CPU 後備。</value></data>
+  <data name="AiLyricsActualBackend" xml:space="preserve"><value>最後推理後端：{0}</value></data>
+  <data name="AiLyricsBackendPending" xml:space="preserve"><value>沒有推理正在執行。等待執行。</value></data>
+  <data name="AiLyricsSelectedBackend" xml:space="preserve"><value>選定的後端：{0}</value></data>
+  <data name="AiLyricsBackendStarting" xml:space="preserve"><value>正在準備背景處理程序；推論尚未開始。</value></data>
+  <data name="AiLyricsBackendExecuting" xml:space="preserve"><value>目前執行後端：{0}。等待這個推斷結果。</value></data>
+  <data name="AiLyricsBackendCached" xml:space="preserve"><value>快取命中。沒有針對此結果進行任何推理。</value></data>
+  <data name="AiLyricsLastBackend" xml:space="preserve"><value>最後完成的推理：{0} ({1})</value></data>
+  <data name="AiLyricsRuntimeFailure" xml:space="preserve"><value>執行時間記錄：已要求{0}、已嘗試{1}； {2}；原因：{3}；退出程式碼：{4}。</value></data>
+  <data name="AiLyricsExitNotObserved" xml:space="preserve"><value>沒有觀察到</value></data>
+  <data name="AiLyricsWorkerStopped" xml:space="preserve"><value>應用程式已終止此背景處理程序。</value></data>
+  <data name="AiLyricsWorkerExited" xml:space="preserve"><value>沒有要求強制終止。</value></data>
+  <data name="AiLyricsCpuFallbackAttempted" xml:space="preserve"><value>CPU 已嘗試回退；檢視最後完成的推理以獲得成功的結果。</value></data>
+  <data name="AiLyricsInferenceFailed" xml:space="preserve"><value>這次嘗試沒有完成。</value></data>
+  <data name="AiLyricsRetryGpu" xml:space="preserve"><value>在下一次推理時重試 GPU</value></data>
+  <data name="AiLyricsFailureTimeout" xml:space="preserve"><value>Worker 啟動或推理逾時</value></data>
+  <data name="AiLyricsFailureMemory" xml:space="preserve"><value>記憶體不足或超出記憶體預算</value></data>
+  <data name="AiLyricsFailureGpuAdmission" xml:space="preserve"><value>GPU 裝置或可用顯示記憶體未通過使用條件檢查</value></data>
+  <data name="AiLyricsFailureArchitecture" xml:space="preserve"><value>CUDA 核心與裝置或驅動程式不相容</value></data>
+  <data name="AiLyricsFailureDevice" xml:space="preserve"><value>CUDA 裝置或驅動程式不可用</value></data>
+  <data name="AiLyricsFailureRuntime" xml:space="preserve"><value>執行時載入或工作程式啟動失敗</value></data>
+  <data name="AiLyricsFailureCompute" xml:space="preserve"><value>GPU計算或解碼失敗</value></data>
+  <data name="AiLyricsFailureModel" xml:space="preserve"><value>模型或推理上下文載入失敗</value></data>
+  <data name="AiLyricsFailureValidation" xml:space="preserve"><value>元件完整性或背景處理程序回應驗證失敗</value></data>
+  <data name="AiLyricsFailureUnknown" xml:space="preserve"><value>背景處理程序未傳回有效回應；詳情請參閱本機診斷。</value></data>
+  <data name="SettingsRecoveredPreferencesKept" xml:space="preserve"><value>無法讀取某些 UI 設定。還原了安全值並保留了可用的偏好。原始設定位於資料隔離資料夾中。請檢查您的設定。</value></data>
+  <data name="SettingsRecoveredDefaults" xml:space="preserve"><value>無法安全讀取原始設定。正在使用預設值，AI 開關可能與您先前的選擇不同。原始檔案位於資料隔離資料夾中。請檢查並還原您的首選項。</value></data>
+  <data name="DlcDeleteEnabledModel" xml:space="preserve"><value>這是目前的 AI 歌詞模型。刪除等待主動推理退出。您的 AI 首選項將保持啟用狀態；安裝或選擇可用的模型以再次翻譯。</value></data>
+  <data name="AiLyricsCudaFallback" xml:space="preserve"><value>CUDA元件未安裝； Vulkan / CPU 仍可使用。</value></data>
+  <data name="SettingsPageDlc" xml:space="preserve"><value>DLC</value></data>
+  <data name="SettingsPageDownloads" xml:space="preserve"><value>下載</value></data>
+  <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
+  <data name="DlcDescription" xml:space="preserve"><value>管理選用模型、執行時間和功能元件。僅當您選擇它們時才會開始下載。</value></data>
+  <data name="DlcManage" xml:space="preserve"><value>管理 DLC 中的下載</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>已下載</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>未下載</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>沒有下載的元件。</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>所有可用元件已下載。</value></data>
+  <data name="DlcRefresh" xml:space="preserve"><value>重新整理已安裝的元件</value></data>
+  <data name="DlcModelPurpose" xml:space="preserve"><value>離線AI歌詞翻譯。</value></data>
+  <data name="DlcLargeModelPurpose" xml:space="preserve"><value>可選的較大模型用於離線 AI 歌詞翻譯。</value></data>
+  <data name="DlcLegacyModelPurpose" xml:space="preserve"><value>之前下載的模型；只能用於移除。</value></data>
+  <data name="DlcInstalledSize" xml:space="preserve"><value>在磁碟上：{0}</value></data>
+  <data name="DlcDownloadSize" xml:space="preserve"><value>下載：{0}</value></data>
+  <data name="DlcSizeFormat" xml:space="preserve"><value>{0} GB（{1} 位元組）</value></data>
+  <data name="DlcUnknownSize" xml:space="preserve"><value>未知</value></data>
+  <data name="DlcDownload" xml:space="preserve"><value>下載</value></data>
+  <data name="DlcResume" xml:space="preserve"><value>繼續下載</value></data>
+  <data name="DlcDelete" xml:space="preserve"><value>解除安裝</value></data>
+  <data name="DlcRetry" xml:space="preserve"><value>重試</value></data>
+  <data name="DlcCancel" xml:space="preserve"><value>取消下載</value></data>
+  <data name="DlcChecking" xml:space="preserve"><value>檢查本機元件...</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>未下載</value></data>
+  <data name="DlcReady" xml:space="preserve"><value>已安裝</value></data>
+  <data name="DlcIncomplete" xml:space="preserve"><value>下載不完整。還原或刪除下載的檔案。</value></data>
+  <data name="DlcDownloading" xml:space="preserve"><value>正在下載...</value></data>
+  <data name="DlcVerifying" xml:space="preserve"><value>驗證並安裝...</value></data>
+  <data name="DlcCanceling" xml:space="preserve"><value>正在取消下載...</value></data>
+  <data name="DlcCanceled" xml:space="preserve"><value>下載已取消。選擇下載以繼續。</value></data>
+  <data name="DlcRemoving" xml:space="preserve"><value>停止 AI 並解除安裝...</value></data>
+  <data name="DlcDownloadFailed" xml:space="preserve"><value>下載失敗。重試以繼續。</value></data>
+  <data name="DlcDeleteFailed" xml:space="preserve"><value>解除安裝失敗。重試釋放資源並刪除元件。</value></data>
+  <data name="DlcInspectFailed" xml:space="preserve"><value>無法檢查本機元件。重試。</value></data>
+  <data name="DlcDownloadConfirm" xml:space="preserve"><value>要下載 {0} 嗎？
+下載大小：{1}
+
+下載不會啟用 AI，也不會變更您選擇的模型或 GPU 模式。</value></data>
+  <data name="DlcDeleteConfirm" xml:space="preserve"><value>解除安裝 {0} 及其部分下載？ AI使用該元件將首先停止並釋放資源。您的 AI 首選項、歌詞快取和檔案將被保留。</value></data>
+  <data name="DlcSource" xml:space="preserve"><value>來源：{0}</value></data>
+  <data name="DlcPackageProgress" xml:space="preserve"><value>{0}下載進度</value></data>
+  <data name="DlcPackageAction" xml:space="preserve"><value>{0}：{1}</value></data>
+  <data name="DlcOperationFailed" xml:space="preserve"><value>無法開啟此操作。再試一次。</value></data>
+  <data name="DlcCudaPurpose" xml:space="preserve"><value>在相容的 NVIDIA GPU 上離線 AI 歌詞加速；重複使用已安裝的模型。</value></data>
+  <data name="DlcCudaUnsupported" xml:space="preserve"><value>需要相容的 NVIDIA 驅動程式。</value></data>
+  <data name="DownloadCustom" xml:space="preserve"><value>下載自訂檔案</value></data>
+  <data name="DownloadUrl" xml:space="preserve"><value>下載URL</value></data>
+  <data name="DownloadSaveTo" xml:space="preserve"><value>儲存至</value></data>
+  <data name="DownloadFileName" xml:space="preserve"><value>檔案名稱</value></data>
+  <data name="DownloadAutoName" xml:space="preserve"><value>留空以從 URL 推斷</value></data>
+  <data name="DownloadStart" xml:space="preserve"><value>開始下載</value></data>
+  <data name="DownloadOpenFolder" xml:space="preserve"><value>開啟資料夾</value></data>
+  <data name="DownloadChoose" xml:space="preserve"><value>選擇</value></data>
+  <data name="DownloadSettings" xml:space="preserve"><value>下載設定</value></data>
+  <data name="DownloadConcurrentCount" xml:space="preserve"><value>同時下載</value></data>
+  <data name="DownloadConnections" xml:space="preserve"><value>最大連線數 (1–256)</value></data>
+  <data name="DownloadConnectionsHint" xml:space="preserve"><value>檔案、模型與元件共用此設定。連線數會隨傳輸進度增加。小型檔案與不支援安全分段請求的伺服器會使用較少連線。</value></data>
+  <data name="DownloadSpeed" xml:space="preserve"><value>速度限制（MiB/s）</value></data>
+  <data name="DownloadUnlimited" xml:space="preserve"><value>無限制·0為無限制； 1 MiB/s = 1,048,576 位元組/秒</value></data>
+  <data name="DownloadDefaultDirectory" xml:space="preserve"><value>預設下載資料夾</value></data>
+  <data name="DownloadError" xml:space="preserve"><value>操作失敗。檢查 URL、資料夾存取許可權和磁碟空間，然後重試。</value></data>
+  <data name="DownloadPause" xml:space="preserve"><value>暫停</value></data>
+  <data name="DownloadResume" xml:space="preserve"><value>繼續</value></data>
+  <data name="DownloadCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="DownloadRetry" xml:space="preserve"><value>重試</value></data>
+  <data name="DownloadUnknownSize" xml:space="preserve"><value>大小未知</value></data>
+  <data name="DownloadActiveConnections" xml:space="preserve"><value>使用中的連線：{0}</value></data>
+  <data name="DownloadStateQueued" xml:space="preserve"><value>已排入佇列</value></data>
+  <data name="DownloadStateResolving" xml:space="preserve"><value>正在連線</value></data>
+  <data name="DownloadStateDownloadingFile" xml:space="preserve"><value>正在下載</value></data>
+  <data name="DownloadStateFinalizing" xml:space="preserve"><value>驗證並儲存</value></data>
+  <data name="DownloadStateCompleted" xml:space="preserve"><value>已完成</value></data>
+  <data name="DownloadStatePaused" xml:space="preserve"><value>已暫停</value></data>
+  <data name="DownloadStateFailed" xml:space="preserve"><value>下載失敗，可重試</value></data>
+  <data name="DownloadStateCancelled" xml:space="preserve"><value>取消</value></data>
+  <data name="QqMusicCheck" xml:space="preserve"><value>重試</value></data>
+  <data name="QqMusicCheckFailed" xml:space="preserve"><value>無法連線。稍後再試。</value></data>
+  <data name="QqMusicChecking" xml:space="preserve"><value>正在連線…</value></data>
+  <data name="QqMusicCloseLogin" xml:space="preserve"><value>關閉</value></data>
+  <data name="QqMusicCompleteLogin" xml:space="preserve"><value>等待登入...</value></data>
+  <data name="QqMusicLoginHelp" xml:space="preserve"><value>使用QQ或WeChat登入，然後選擇「儲存」。</value></data>
+  <data name="QqMusicLoginMissing" xml:space="preserve"><value>請先登入。</value></data>
+  <data name="QqMusicLoginTitle" xml:space="preserve"><value>QQ Music 登入</value></data>
+  <data name="QqMusicNavigationBlocked" xml:space="preserve"><value>該頁面不可用。</value></data>
+  <data name="QqMusicOpening" xml:space="preserve"><value>正在開啟登入...</value></data>
+  <data name="QqMusicPageFailed" xml:space="preserve"><value>無法開啟登入。稍後再試。</value></data>
+  <data name="QqMusicSaveFailed" xml:space="preserve"><value>無法儲存變更。請重試。</value></data>
+  <data name="QqMusicSignIn" xml:space="preserve"><value>登入 QQ Music</value></data>
+  <data name="QqMusicSignOut" xml:space="preserve"><value>登出</value></data>
+  <data name="QqMusicStateConnected" xml:space="preserve"><value>已登入</value></data>
+  <data name="QqMusicStateExpired" xml:space="preserve"><value>登入已過期。請重新登入。</value></data>
+  <data name="QqMusicStateRejected" xml:space="preserve"><value>無法連線到 QQ Music。稍後再試。</value></data>
+  <data name="QqMusicStateSaved" xml:space="preserve"><value>已登入</value></data>
+  <data name="QqMusicStateSignedOut" xml:space="preserve"><value>登入以取得 QQ Music 的歌詞</value></data>
+  <data name="QqMusicStateStorageError" xml:space="preserve"><value>無法還原登入。請重新登入。</value></data>
+  <data name="QqMusicUseLogin" xml:space="preserve"><value>儲存</value></data>
+  <data name="QqMusicLoginReady" xml:space="preserve"><value>已登入</value></data>
+  <data name="QqMusicSignInAgain" xml:space="preserve"><value>重新登入</value></data>
+  <data name="DlcVisualCppTitle" xml:space="preserve"><value>Microsoft Visual C++ Runtime</value></data>
+  <data name="DlcVisualCppPurpose" xml:space="preserve"><value>NetEase Music 增強所需。</value></data>
+  <data name="DlcVisualCppShared" xml:space="preserve"><value>由 Windows 管理，可由其他應用程式使用。</value></data>
+  <data name="DlcVisualCppInstallNotice" xml:space="preserve"><value>執行時將從 Microsoft 下載並安裝。 Windows 可能會請求管理員許可權。</value></data>
+  <data name="DlcNeteaseRemoveNotice" xml:space="preserve"><value>刪除增強功能將重新啟動 NetEase Music。您的資料庫和播放清單將會保留。</value></data>
+  <data name="DownloadMoreHistory" xml:space="preserve"><value>更多下載歷史記錄</value></data>
+  <data name="DownloadRemoveHistory" xml:space="preserve"><value>從歷史記錄中刪除</value></data>
+  <data name="DownloadRecoveryWarning" xml:space="preserve"><value>某些下載無法還原。檢查可用儲存和資料夾許可權。</value></data>
+  <data name="DownloadQueueTimedOut" xml:space="preserve"><value>下載佇列等待已過期。請重試。</value></data>
+  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>下載逾時。保留了可還原的進度。</value></data>
+  <data name="DownloadStageChecking" xml:space="preserve"><value>檢查現有檔案</value></data>
+  <data name="DownloadStageQueued" xml:space="preserve"><value>等待下載</value></data>
+  <data name="DownloadStageWaitingConnection" xml:space="preserve"><value>等待連線</value></data>
+  <data name="DownloadStageConnecting" xml:space="preserve"><value>正在連線</value></data>
+  <data name="DownloadStageProbing" xml:space="preserve"><value>檢查下載連線</value></data>
+  <data name="DownloadStageTransferring" xml:space="preserve"><value>正在下載</value></data>
+  <data name="DownloadStageRetryWaiting" xml:space="preserve"><value>等待重試</value></data>
+  <data name="DownloadStageMerging" xml:space="preserve"><value>合併檔案</value></data>
+  <data name="DownloadStageVerifying" xml:space="preserve"><value>驗證檔案</value></data>
+  <data name="DownloadStagePublishing" xml:space="preserve"><value>完成安裝</value></data>
+  <data name="DownloadStageCompleted" xml:space="preserve"><value>下載完成</value></data>
+  <data name="DownloadTransferDetail" xml:space="preserve"><value>{0} / {1} · {2} MiB/s · {3} 連線</value></data>
+  <data name="DownloadRetryDetail" xml:space="preserve"><value>重試 {0}</value></data>
+  <data name="IslandResident" xml:space="preserve"><value>保持動態島可見</value></data>
+  <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} 秒</value></data>
+  <data name="IslandAppearance" xml:space="preserve"><value>動態島外觀</value></data>
+  <data name="IslandAppearanceFollow" xml:space="preserve"><value>跟隨 Windows</value></data>
+  <data name="IslandAppearanceLight" xml:space="preserve"><value>淺色</value></data>
+  <data name="IslandAppearanceDark" xml:space="preserve"><value>深色</value></data>
+  <data name="IslandContentPriority" xml:space="preserve"><value>動態島內容優先順序</value></data>
+  <data name="IslandContentPriorityMusic" xml:space="preserve"><value>音樂</value></data>
+  <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>暫存空間</value></data>
+  <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>閒置時顯示標誌</value></data>
+  <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB（已停用）</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌詞翻譯目標</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>歌詞譯文可獨立選擇簡體中文或 English，不受介面語言影響。</value></data>
+</root>

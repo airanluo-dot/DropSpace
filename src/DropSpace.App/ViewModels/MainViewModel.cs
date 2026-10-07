@@ -187,7 +187,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public string StatusMessage
     {
-        get => _statusMessage;
+        get => _strings.Relocalize(_statusMessage);
         private set
         {
             if (SetProperty(ref _statusMessage, value))
@@ -202,7 +202,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private string _settingsRecoveryMessage = string.Empty;
     public string SettingsRecoveryMessage
     {
-        get => _settingsRecoveryMessage;
+        get => _strings.Relocalize(_settingsRecoveryMessage);
         set
         {
             if (SetProperty(ref _settingsRecoveryMessage, value)) OnPropertyChanged(nameof(HasSettingsRecoveryMessage));
@@ -340,12 +340,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                     PageTitle = _strings.Get(keys.Item1);
                     PageDescription = _strings.Get(keys.Item2);
                     ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
+                    OnPropertyChanged(string.Empty);
                 }
                 OnPropertyChanged(nameof(LastUpdateCheckText));
                 OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
                 foreach (var card in Items)
                 {
                     RefreshPrimaryQuickActions(card);
+                    if (languageChanged) card.RefreshLanguage();
                 }
             }
         }
@@ -563,7 +565,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public string UpdateStatusText => string.IsNullOrWhiteSpace(UpdateStatus.Message)
         ? _strings.Get("UpdateNotChecked")
-        : UpdateStatus.Message;
+        : _strings.Relocalize(UpdateStatus.Message);
 
     public string UpdateProgressText => UpdateStatus.Progress is { Stage: DropSpace.Core.Downloads.DownloadStage.Queued }
         ? _strings.Get("DownloadStageQueued") : UpdateStatus.Progress is { } progress
@@ -602,7 +604,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public bool HasWindowsShareIdentity => _windowsShareIntegration.HasPackageIdentity;
 
-    public string WindowsShareIntegrationStatus => _windowsShareIntegration.StatusText;
+    public string WindowsShareIntegrationStatus => _strings.Relocalize(_windowsShareIntegration.StatusText);
 
     public Task<bool> OpenDropTraySettingsAsync() =>
         _windowsShareIntegration.OpenDropTraySettingsAsync();
@@ -620,7 +622,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public string StorageSummary
     {
-        get => _storageSummary;
+        get => _strings.Relocalize(_storageSummary);
         private set
         {
             if (SetProperty(ref _storageSummary, value))

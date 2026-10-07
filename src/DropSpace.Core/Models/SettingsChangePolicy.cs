@@ -40,6 +40,7 @@ public static class SettingsChangePolicy
         MaxTextCharacters = Pick(baseline.MaxTextCharacters, requested.MaxTextCharacters, latest.MaxTextCharacters),
         Theme = Pick(baseline.Theme, requested.Theme, latest.Theme),
         Language = Pick(baseline.Language, requested.Language, latest.Language),
+        LyricsTranslationTarget = Pick(baseline.LyricsTranslationTarget, requested.LyricsTranslationTarget, latest.LyricsTranslationTarget),
         CloseBehavior = Pick(baseline.CloseBehavior, requested.CloseBehavior, latest.CloseBehavior),
         CloseExplanationShown = Pick(baseline.CloseExplanationShown, requested.CloseExplanationShown, latest.CloseExplanationShown),
         LaunchPage = Pick(baseline.LaunchPage, requested.LaunchPage, latest.LaunchPage),

@@ -13,18 +13,13 @@
   const audio = stage.querySelector('[data-lyrics-audio]');
   const play = stage.querySelector('[data-lyrics-play]');
   const status = stage.querySelector('[data-lyrics-status]');
-  const isChinese = document.documentElement.lang.toLowerCase().startsWith('zh');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const contrast = matchMedia('(forced-colors: active)');
-  const words = isChinese ? {
-    play: '播放示例', pause: '暂停示例', off: '关闭 · 光晕已隐藏',
-    ai: 'AI · 演示翻译工作时的柔和光晕', music: '音乐 · 光晕随示例节奏呼吸',
-    reduced: '已遵循减少动态效果设置，光晕保持静止', error: '音频暂不可用，仍可体验无声光效'
-  } : {
-    play: 'Play sample', pause: 'Pause sample', off: 'Off · the glow is hidden',
-    ai: 'AI · a soft glow while translation works', music: 'Music · light follows the sample rhythm',
-    reduced: 'Reduced motion is on; the glow stays still', error: 'Audio is unavailable; the silent preview still works'
-  };
+  const words = new Proxy({}, {get:(_, key) => window.DropSpaceI18n.t('demo.' + String(key))});
+  addEventListener('dropspace-language-change', () => {
+    status.textContent = reducedMotion.matches && stage.dataset.glowMode !== 'off' ? words.reduced : words[stage.dataset.glowMode];
+    stage.querySelector('[data-lyrics-play-label]').textContent = audio.paused ? words.play : words.pause;
+  });
   const padding = 40, aroundSteps = 256, distanceSteps = 160;
   const paletteColors = [[255,147,78],[255,79,171],[69,137,255]];
   const lookup = new Uint32Array(aroundSteps * distanceSteps);

@@ -9,7 +9,9 @@ The website source is in `website/_source`:
 
 ```text
 src/                         HTML, CSS, JavaScript, images, and localized page sources
-scripts/i18n.mjs             English and Simplified Chinese content
+src/locales/*.json           Ten complete interface-language resources
+src/localization-runtime.js Shared-catalog language selection and DOM binding
+scripts/i18n.mjs             Shared catalog/resource loading
 scripts/build.mjs            Static-site and JSON-endpoint generator
 scripts/sync-releases.mjs    GitHub Releases to local release-data conversion
 scripts/release-contract.mjs Release and latest-change JSON schemas
@@ -17,8 +19,16 @@ data/releases.json           Local development fixture
 package.json                 Available Node.js commands
 ```
 
-The generated site provides `/en/`, `/zh-cn/`, and localized changelog pages. Edit source files in
-`website/_source`; generated deployment output is produced by the build script.
+The generated site provides one homepage at `/DropSpace/` and one changelog at
+`/DropSpace/changelog/`, each with ten runtime interface languages and complete static English
+content. `/en/`, `/zh-cn/` and their changelog documents are compatibility redirects, not canonical
+content pages. Static showcase mode uses a unified `/index.html` and explicit legacy files.
+Edit `website/_source`; generated deployment output is produced by the build script.
+
+The shared catalog is `localization/languages.json`; resource IDs and reviewed source fingerprints
+are checked by `scripts/check-localization.mjs` before website builds and artifact publication.
+See `website/_source/README.md` for language matching, storage fallback, redirects, fixed/sample
+exceptions and the focused verification workflow. Keep the global passive test budget intact.
 
 Common local commands are:
 
@@ -42,7 +52,7 @@ The static build generates two versioned endpoints:
 
 `releases.json` is the updater-facing list of recent releases and their assets.
 `latest-change.json` is presentation-oriented metadata for the latest release headline and
-localized highlights. Their schema and normalization logic live in
+English-only highlights (the legacy locale fields both carry the same English body). Their schema and normalization logic live in
 `website/_source/scripts/release-contract.mjs`; `build.mjs` writes the final JSON files.
 
 The metadata flow is:

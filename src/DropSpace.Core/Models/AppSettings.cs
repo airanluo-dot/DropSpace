@@ -19,9 +19,25 @@ public enum IslandContentPriority
 
 public enum AppLanguagePreference
 {
-    System,
-    English,
-    SimplifiedChinese,
+    // Persisted values 0, 1, and 2 are retained for existing settings.
+    System = 0,
+    English = 1,
+    SimplifiedChinese = 2,
+    TraditionalChinese = 3,
+    Japanese = 4,
+    Korean = 5,
+    German = 6,
+    French = 7,
+    Spanish = 8,
+    BrazilianPortuguese = 9,
+    Russian = 10,
+}
+
+// Lyrics always has exactly these two targets, independently of interface languages.
+public enum LyricsTranslationTarget
+{
+    English = 0,
+    SimplifiedChinese = 1,
 }
 
 public enum CloseBehavior
@@ -114,6 +130,8 @@ public sealed record AppSettings
     public ThemePreference Theme { get; init; } = ThemePreference.System;
 
     public AppLanguagePreference Language { get; init; } = AppLanguagePreference.System;
+
+    public LyricsTranslationTarget LyricsTranslationTarget { get; init; } = LyricsTranslationTarget.English;
 
     public CloseBehavior CloseBehavior { get; init; } = CloseBehavior.HideToTray;
 
@@ -241,6 +259,11 @@ public sealed record AppSettings
         if (!Enum.IsDefined(Language))
         {
             throw new ArgumentOutOfRangeException(nameof(Language));
+        }
+
+        if (!Enum.IsDefined(LyricsTranslationTarget))
+        {
+            throw new ArgumentOutOfRangeException(nameof(LyricsTranslationTarget));
         }
 
         if (!Enum.IsDefined(CloseBehavior))

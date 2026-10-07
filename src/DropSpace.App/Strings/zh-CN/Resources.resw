@@ -233,7 +233,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>可在首次设置或此处开启，使用当前用户启动项，无需管理员权限。</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>开机自启动</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>显示语言</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>选择跟随系统时使用 Windows 显示语言。</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>仅更改界面文案。歌词翻译使用独立的语言设置。</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>显示语言</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>跟随系统</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -617,7 +617,7 @@
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>静夜里，歌声仍在继续。</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>恢复默认歌词字号</value></data>
   <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌词</value></data>
-  <data name="AiLyricsDescription" xml:space="preserve"><value>在本机将缺失的译文补充为 App 当前语言，优先使用语言匹配的歌词源译文。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。已完成的译文会逐行显示。AI 可能误译含义；不会为 AI 翻译上传歌词。</value></data>
+  <data name="AiLyricsDescription" xml:space="preserve"><value>在本机将缺失的译文补充为您所选的简体中文或 English，优先使用语言匹配的歌词源译文。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。已完成的译文会逐行显示。AI 可能误译含义；不会为 AI 翻译上传歌词。</value></data>
   <data name="AiLyricsEnabled" xml:space="preserve"><value>启用 AI 歌词翻译</value></data>
   <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU 加速</value></data>
   <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>优先使用兼容的 GPU 加速 AI 翻译；GPU 不可用或运行失败时自动改用 CPU。关闭后仅使用 CPU。调整此选项不会启用 AI 或下载模型。</value></data>
@@ -875,4 +875,6 @@
   <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>临时空间</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>空闲时显示 Logo</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB（已关闭）</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌词翻译目标</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>独立于界面语言，选择简体中文或 English 歌词译文。</value></data>
 </root>

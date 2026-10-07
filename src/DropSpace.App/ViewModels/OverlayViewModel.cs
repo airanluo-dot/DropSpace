@@ -485,6 +485,11 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     private void NotifySettingsChanges(AppSettings previous, AppSettings next)
     {
+        if (previous.Language != next.Language)
+        {
+            foreach (var card in RecentItems) card.RefreshLanguage();
+            OnPropertyChanged(string.Empty);
+        }
         if (previous.IslandContentPriority != next.IslandContentPriority) OnPropertyChanged(nameof(ContentPriority));
         if (previous.OverlayMonitor != next.OverlayMonitor) OnPropertyChanged(nameof(MonitorPreference));
         if (previous.OverlayMotion != next.OverlayMotion) OnPropertyChanged(nameof(MotionPreference));

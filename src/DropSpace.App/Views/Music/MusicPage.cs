@@ -6,6 +6,7 @@ using DropSpace.App.Views.Island;
 using DropSpace.App.Views.Settings;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using DropSpace.Core.Policies;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -357,7 +358,7 @@ public sealed class MusicPage : UserControl
         _lyricsScroll.Visibility = hasTrack && lyricsEnabled && lines.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         var lyricsOptions = string.Concat(
-            _strings.Culture.Name, "|",
+            LyricsTranslationTargetPolicy.ToLanguageTag(_media.Settings.LyricsTranslationTarget), "|",
             _media.Settings.Lyrics.Enabled, "|",
             _media.Settings.Lyrics.SecondaryLyrics, "|", _media.Settings.Lyrics.ShowAiLyricsLabel, "|", _media.Settings.Lyrics.OriginalFontSize, "|", _media.Settings.Lyrics.TranslationFontSize);
         var trackChanged = !string.Equals(_lyricsTrackIdentity, _media.Session.TrackIdentity, StringComparison.Ordinal);
@@ -420,7 +421,7 @@ public sealed class MusicPage : UserControl
         if (original.Text != line.Text) original.Text = line.Text;
         if (original.FontSize != _media.Settings.Lyrics.OriginalFontSize)
             original.FontSize = _media.Settings.Lyrics.OriginalFontSize;
-        var secondary = LyricsDisplayPolicy.SecondaryPresentation(line, _strings.Culture.Name,
+        var secondary = LyricsDisplayPolicy.SecondaryPresentation(line, LyricsTranslationTargetPolicy.ToLanguageTag(_media.Settings.LyricsTranslationTarget),
             _media.Settings.Lyrics.Enabled && _media.Settings.Lyrics.SecondaryLyrics, _media.Settings.Lyrics.ShowAiLyricsLabel);
         if (row.Children.Count == 1 && !string.IsNullOrEmpty(secondary))
             row.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });

@@ -1,16 +1,15 @@
-<!DOCTYPE html><html lang="en"><head>
+<!doctype html>
+<html lang="en"><head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DropSpace — A Temporary Space for Windows</title>
   <meta name="description" content="Drag files to the top of your Windows screen, keep them in a temporary space, and bring them back when you need them.">
-  <link rel="canonical" href="https://airanluo-dot.github.io/DropSpace/en/">
-  <link rel="alternate" hreflang="en" href="https://airanluo-dot.github.io/DropSpace/en/">
-  <link rel="alternate" hreflang="zh-CN" href="https://airanluo-dot.github.io/DropSpace/zh-cn/">
+  <link rel="canonical" href="https://airanluo-dot.github.io/DropSpace/">
   <meta name="theme-color" content="#050506">
   <meta property="og:type" content="website">
   <meta property="og:title" content="DropSpace — A Temporary Space for Windows">
   <meta property="og:description" content="Drag it. Keep it. Use it later.">
-  <meta property="og:url" content="https://airanluo-dot.github.io/DropSpace/en/">
+  <meta property="og:url" content="https://airanluo-dot.github.io/DropSpace/">
   <meta property="og:image" content="https://airanluo-dot.github.io/DropSpace/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="DropSpace — A Temporary Space for Windows">
@@ -25,236 +24,237 @@
   </script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
+  <a class="skip-link" href="#main"><span data-i18n="ui.skip.to.content">Skip to content</span></a>
   <header class="site-header" data-header="">
-    <nav class="nav shell" aria-label="Primary navigation">
-      <a class="brand" href="#top" aria-label="DropSpace home">
+    <nav class="nav shell" aria-label="Primary navigation" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.primary.navigation&quot;}">
+      <a class="brand" href="#top" aria-label="DropSpace home" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.dropspace.home&quot;}">
         <img src="./assets/dropspace-logo.png" width="42" height="42" alt="">
-        <span>DropSpace</span>
+        <span data-i18n-exempt="fixed-or-sample">DropSpace</span>
       </a>
       <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#download">Download</a>
-        <a href="./changelog/index.html">Changelog</a>
-        <a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="#features"><span data-i18n="ui.features">Features</span></a>
+        <a href="#download"><span data-i18n="ui.download">Download</span></a>
+        <a href="./changelog/index.html"><span data-i18n="ui.changelog">Changelog</span></a>
+        <a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer" data-i18n-exempt="fixed-or-sample">GitHub</a>
       </div>
-      <a class="language-switch" data-language-switch="" href="../zh-cn/" aria-label="切换到中文">中文</a>
-      <a class="button button-small button-primary nav-download" href="{{INSTALLER_URL}}" data-download="installer">Download</a>
+
+      <select class="language-switch" data-language-selector="" aria-label="Interface language" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.interface.language&quot;}"></select><a class="button button-small button-primary nav-download" href="{{INSTALLER_URL}}" data-download="installer"><span data-i18n="ui.download">Download</span></a>
     </nav>
   </header>
 
   <main id="main">
     <section class="hero shell hero-cinematic" id="top">
       <div class="hero-copy">
-        <h1>Drag it. Keep it.<br>Use it later.</h1>
-        <p>A temporary space for Windows—right at the top of your screen.</p>
+        <h1><span data-i18n="ui.drag.it.keep.it">Drag it. Keep it.</span><br><span data-i18n="ui.use.it.later">Use it later.</span></h1>
+        <p><span data-i18n="ui.a.temporary.space.for.windows.right.at.the.top.of.your.screen">A temporary space for Windows—right at the top of your screen.</span></p>
         <div class="actions">
           <a class="button button-primary" href="{{INSTALLER_URL}}" data-download="installer">
             <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4.4 10.3 3v8.2H3V4.4Zm8.3-1.6L21 1v10.2h-9.7V2.8ZM3 12.2h7.3V21L3 19.6v-7.4Zm8.3 0H21V23l-9.7-1.8v-9Z"></path></svg>
-            Download for Windows
+            <span data-i18n="ui.download.for.windows">Download for Windows</span>
           </a>
-          <a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+          <a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer"><span data-i18n="ui.view.on.github">View on GitHub</span></a>
         </div>
-        <p class="stable-line" aria-live="polite"><span class="release-live-dot" aria-hidden="true"></span><span class="release-live-copy" data-stable-version="">Latest Stable · {{STABLE_TAG}}</span></p>
+        <p class="stable-line" aria-live="polite"><span class="release-live-dot" aria-hidden="true"></span><span class="release-live-copy" data-stable-version="" data-i18n="release.latestStable" data-i18n-args="{&quot;tag&quot;:&quot;{{STABLE_TAG}}&quot;}">Latest Stable · {{STABLE_TAG}}</span></p>
       </div>
 
-      <div class="hero-stage"><div class="desktop-demo" data-demo="" aria-label="Animated demonstration: drag a file to the top of the screen to place it in DropSpace">
-        <div class="screen-bar"><i></i><i></i><i></i><span>Desktop</span></div>
+      <div class="hero-stage"><div class="desktop-demo" data-demo="" aria-label="Animated demonstration: drag a file to the top of the screen to place it in DropSpace" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.animated.demonstration.drag.a.file.to.the.top.of.the.screen.to.place.it.in.dropspa&quot;}">
+        <div class="screen-bar"><i></i><i></i><i></i><span><span data-i18n="ui.desktop">Desktop</span></span></div>
         <div class="island" data-island="">
           <img src="./assets/favicon.png" alt="" width="26" height="26">
-          <span class="island-label">DropSpace</span>
+          <span class="island-label" data-i18n-exempt="fixed-or-sample" data-drop-label="Drop Ready" data-i18n-attrs="{&quot;data-drop-label&quot;:&quot;ui.drop.ready&quot;}">DropSpace</span>
           <strong class="island-count">3</strong>
         </div>
         <div class="desktop-file" data-file="">
           <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 64 64"><path d="M13 5h25l13 13v41H13z"></path><path d="M38 5v14h13"></path><path d="M21 33h22M21 42h17"></path></svg>
-          <span>Project Brief.pdf</span>
+          <span data-i18n-exempt="fixed-or-sample">Project Brief.pdf</span>
         </div>
         <div class="drop-trail" aria-hidden="true"></div>
         <div class="space-popover" data-popover="">
-          <div class="popover-head"><div><strong>Temporary Space</strong><span>Ready when you are</span></div><b>3 items</b></div>
-          <div class="file-row"><span class="file-type pdf">PDF</span><div><strong>Project Brief.pdf</strong><small>2.4 MB · just now</small></div><i>•••</i></div>
-          <div class="file-row"><span class="file-type image">IMG</span><div><strong>Design Notes.png</strong><small>1.1 MB · 2 min ago</small></div><i>•••</i></div>
-          <div class="file-row"><span class="file-type doc">DOC</span><div><strong>Client Deck.pptx</strong><small>6.7 MB · 8 min ago</small></div><i>•••</i></div>
-          <small class="safe-note">Removing a reference never deletes the original file.</small>
+          <div class="popover-head"><div><strong><span data-i18n="ui.temporary.space">Temporary Space</span></strong><span><span data-i18n="ui.ready.when.you.are">Ready when you are</span></span></div><b><span data-i18n="ui.3.items">3 items</span></b></div>
+          <div class="file-row"><span class="file-type pdf" data-i18n-exempt="fixed-or-sample">PDF</span><div><strong data-i18n-exempt="fixed-or-sample">Project Brief.pdf</strong><small><span data-i18n="ui.2.4.mb.just.now">2.4 MB · just now</span></small></div><i>•••</i></div>
+          <div class="file-row"><span class="file-type image" data-i18n-exempt="fixed-or-sample">IMG</span><div><strong data-i18n-exempt="fixed-or-sample">Design Notes.png</strong><small><span data-i18n="ui.1.1.mb.2.min.ago">1.1 MB · 2 min ago</span></small></div><i>•••</i></div>
+          <div class="file-row"><span class="file-type doc" data-i18n-exempt="fixed-or-sample">DOC</span><div><strong data-i18n-exempt="fixed-or-sample">Client Deck.pptx</strong><small><span data-i18n="ui.6.7.mb.8.min.ago">6.7 MB · 8 min ago</span></small></div><i>•••</i></div>
+          <small class="safe-note"><span data-i18n="ui.removing.a.reference.never.deletes.the.original.file">Removing a reference never deletes the original file.</span></small>
         </div>
-        <div class="demo-caption"><span>1. Drag from anywhere</span><span>2. Drop at the top</span><span>3. Use it later</span></div>
+        <div class="demo-caption"><span><span data-i18n="ui.1.drag.from.anywhere">1. Drag from anywhere</span></span><span><span data-i18n="ui.2.drop.at.the.top">2. Drop at the top</span></span><span><span data-i18n="ui.3.use.it.later">3. Use it later</span></span></div>
       </div></div>
     </section>
 
     <section class="temporary band shell" id="features">
       <div class="section-copy">
-        <p class="section-index">01 / TEMPORARY SPACE</p>
-        <h2>Without the<br>temporary mess.</h2>
-        <p>DropSpace keeps file and folder references at your fingertips without moving or duplicating the originals. Your files stay exactly where you left them.</p>
+        <p class="section-index"><span data-i18n="ui.01.temporary.space">01 / TEMPORARY SPACE</span></p>
+        <h2><span data-i18n="ui.without.the">Without the</span><br><span data-i18n="ui.temporary.mess">temporary mess.</span></h2>
+        <p><span data-i18n="ui.dropspace.keeps.file.and.folder.references.at.your.fingertips.without.moving.or.du">DropSpace keeps file and folder references at your fingertips without moving or duplicating the originals. Your files stay exactly where you left them.</span></p>
       </div>
-      <div class="reference-flow" aria-label="Explorer file reference is added to Temporary Space while the original stays in place">
+      <div class="reference-flow" aria-label="Explorer file reference is added to Temporary Space while the original stays in place" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.explorer.file.reference.is.added.to.temporary.space.while.the.original.stays.in.pl&quot;}">
         <div class="explorer-window">
-          <div class="window-title"><span></span><span></span><span></span><b>Documents / Projects</b></div>
-          <div class="explorer-body"><aside>Home<br>Desktop<br>Downloads<br><strong>Documents</strong><br>Pictures</aside><div class="files"><small>Name <i>Date modified</i></small><p><b class="mini-file pdf">P</b>Project Brief.pdf <i>Today</i></p><p><b class="mini-file image">I</b>Design Notes.png <i>Today</i></p><p><b class="mini-file doc">D</b>Client Deck.pptx <i>Yesterday</i></p></div></div>
+          <div class="window-title"><span></span><span></span><span></span><b><span data-i18n="ui.documents.projects">Documents / Projects</span></b></div>
+          <div class="explorer-body"><aside><span data-i18n="ui.home">Home</span><br><span data-i18n="ui.desktop">Desktop</span><br><span data-i18n="ui.downloads">Downloads</span><br><strong><span data-i18n="ui.documents">Documents</span></strong><br><span data-i18n="ui.pictures">Pictures</span></aside><div class="files"><small><span data-i18n="ui.name">Name</span> <i><span data-i18n="ui.date.modified">Date modified</span></i></small><p data-i18n-exempt="fixed-or-sample"><b class="mini-file pdf" data-i18n-exempt="fixed-or-sample">P</b>Project Brief.pdf <i data-i18n="ui.today">Today</i></p><p data-i18n-exempt="fixed-or-sample"><b class="mini-file image" data-i18n-exempt="fixed-or-sample">I</b>Design Notes.png <i data-i18n="ui.today">Today</i></p><p data-i18n-exempt="fixed-or-sample"><b class="mini-file doc" data-i18n-exempt="fixed-or-sample">D</b>Client Deck.pptx <i data-i18n="ui.yesterday">Yesterday</i></p></div></div>
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="flow-arrow" aria-hidden="true" viewBox="0 0 130 38"><path d="M2 19h116M104 5l14 14-14 14"></path></svg>
-        <div class="reference-card"><span class="file-type pdf">PDF</span><div><strong>Project Brief.pdf</strong><small>Reference · source unchanged</small></div></div>
-        <div class="source-safe"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg><span><strong>Original stays in place</strong><small>Nothing is moved or copied.</small></span></div>
+        <div class="reference-card"><span class="file-type pdf" data-i18n-exempt="fixed-or-sample">PDF</span><div><strong data-i18n-exempt="fixed-or-sample">Project Brief.pdf</strong><small><span data-i18n="ui.reference.source.unchanged">Reference · source unchanged</span></small></div></div>
+        <div class="source-safe"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg><span><strong><span data-i18n="ui.original.stays.in.place">Original stays in place</span></strong><small><span data-i18n="ui.nothing.is.moved.or.copied">Nothing is moved or copied.</span></small></span></div>
       </div>
     </section>
 
     <section class="modes shell">
-      <div class="section-heading split-heading"><div><p class="section-index">02 / TOP-SCREEN ACCESS</p><h2>One Island.<br>Ready for every drop.</h2></div><p>The Dynamic Island stays out of the way, then moves fluidly through Compact, Drop Ready, and Expanded as your files need it.</p></div>
+      <div class="section-heading split-heading"><div><p class="section-index"><span data-i18n="ui.02.top.screen.access">02 / TOP-SCREEN ACCESS</span></p><h2><span data-i18n="ui.one.island">One Island.</span><br><span data-i18n="ui.ready.for.every.drop">Ready for every drop.</span></h2></div><p><span data-i18n="ui.the.dynamic.island.stays.out.of.the.way.then.moves.fluidly.through.compact.drop.re">The Dynamic Island stays out of the way, then moves fluidly through Compact, Drop Ready, and Expanded as your files need it.</span></p></div>
       <div class="mode-stage" data-mode-stage="">
-        <div class="island-showcase-label"><span aria-hidden="true"></span><strong>Dynamic Island</strong><small>One continuous surface</small></div>
+        <div class="island-showcase-label"><span aria-hidden="true"></span><strong><span data-i18n="ui.dynamic.island">Dynamic Island</span></strong><small><span data-i18n="ui.one.continuous.surface">One continuous surface</span></small></div>
         <div class="mode-screen">
-          <div class="mode-overlay compact"><img src="./assets/favicon.png" alt=""><span>Temporary Space</span><b>3</b></div>
-          <div class="mode-overlay ready"><span></span><strong>Drop Ready</strong><small>Release to add files</small></div>
-          <div class="mode-overlay expanded"><div><strong>Temporary Space</strong><small>3 recent items</small></div><div class="tiny-rows"><span>Project Brief.pdf</span><span>Design Notes.png</span><span>Client Deck.pptx</span></div></div>
-          <div class="state-labels"><span>Compact</span><span>Drop Ready</span><span>Expanded</span></div>
+          <div class="mode-overlay compact"><img src="./assets/favicon.png" alt=""><span><span data-i18n="ui.temporary.space">Temporary Space</span></span><b>3</b></div>
+          <div class="mode-overlay ready"><span></span><strong><span data-i18n="ui.drop.ready">Drop Ready</span></strong><small><span data-i18n="ui.release.to.add.files">Release to add files</span></small></div>
+          <div class="mode-overlay expanded"><div><strong><span data-i18n="ui.temporary.space">Temporary Space</span></strong><small><span data-i18n="ui.3.recent.items">3 recent items</span></small></div><div class="tiny-rows"><span data-i18n-exempt="fixed-or-sample">Project Brief.pdf</span><span data-i18n-exempt="fixed-or-sample">Design Notes.png</span><span data-i18n-exempt="fixed-or-sample">Client Deck.pptx</span></div></div>
+          <div class="state-labels"><span><span data-i18n="ui.compact">Compact</span></span><span><span data-i18n="ui.drop.ready">Drop Ready</span></span><span><span data-i18n="ui.expanded">Expanded</span></span></div>
         </div>
       </div>
     </section>
 
     <section class="native-story shell" id="native-island" aria-labelledby="native-title">
-      <div class="section-heading split-heading"><div><p class="section-index">03 / NATIVE ISLAND</p><h2 id="native-title">A little space.<br>A lot closer.</h2></div><p>Widgets, music, files and clipboard. Four distinct pages, one familiar place at the top of your screen.</p></div>
+      <div class="section-heading split-heading"><div><p class="section-index"><span data-i18n="ui.03.native.island">03 / NATIVE ISLAND</span></p><h2 id="native-title"><span data-i18n="ui.a.little.space">A little space.</span><br><span data-i18n="ui.a.lot.closer">A lot closer.</span></h2></div><p><span data-i18n="ui.widgets.music.files.and.clipboard.four.distinct.pages.one.familiar.place.at.the.to">Widgets, music, files and clipboard. Four distinct pages, one familiar place at the top of your screen.</span></p></div>
       <div class="native-stage" data-native-showcase="">
-        <div class="native-stage-top"><span>YOUR DESKTOP, WITHIN REACH</span><span>Dynamic Island</span></div>
+        <div class="native-stage-top"><span><span data-i18n="ui.your.desktop.within.reach">YOUR DESKTOP, WITHIN REACH</span></span><span><span data-i18n="ui.dynamic.island">Dynamic Island</span></span></div>
         <div class="native-surface">
-          <div class="native-tabs" role="tablist" aria-label="Explore the four Island pages">
-            <button id="native-tab-widgets" role="tab" aria-selected="true" aria-controls="native-panel-widgets" data-native-tab="widgets">Widgets</button>
-            <button id="native-tab-music" role="tab" aria-selected="false" aria-controls="native-panel-music" tabindex="-1" data-native-tab="music">Music</button>
-            <button id="native-tab-files" role="tab" aria-selected="false" aria-controls="native-panel-files" tabindex="-1" data-native-tab="files">Files</button>
-            <button id="native-tab-clipboard" role="tab" aria-selected="false" aria-controls="native-panel-clipboard" tabindex="-1" data-native-tab="clipboard">Clipboard</button>
+          <div class="native-tabs" role="tablist" aria-label="Explore the four Island pages" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.explore.the.four.island.pages&quot;}">
+            <button id="native-tab-widgets" role="tab" aria-selected="true" aria-controls="native-panel-widgets" data-native-tab="widgets"><span data-i18n="ui.widgets">Widgets</span></button>
+            <button id="native-tab-music" role="tab" aria-selected="false" aria-controls="native-panel-music" tabindex="-1" data-native-tab="music"><span data-i18n="ui.music">Music</span></button>
+            <button id="native-tab-files" role="tab" aria-selected="false" aria-controls="native-panel-files" tabindex="-1" data-native-tab="files"><span data-i18n="ui.files">Files</span></button>
+            <button id="native-tab-clipboard" role="tab" aria-selected="false" aria-controls="native-panel-clipboard" tabindex="-1" data-native-tab="clipboard"><span data-i18n="ui.clipboard">Clipboard</span></button>
           </div>
-          <div class="native-panel" id="native-panel-widgets" role="tabpanel" aria-labelledby="native-tab-widgets" tabindex="0"><div class="native-glance"><div><small>Clock</small><strong>09:41</strong></div><div><small>Calendar</small><strong>15 <em>SEP</em></strong></div><div><small>Battery</small><strong>82<em>%</em></strong></div></div><p>Your everyday essentials, a glance away.</p></div>
-          <div class="native-panel" id="native-panel-music" role="tabpanel" aria-labelledby="native-tab-music" tabindex="0" hidden=""><div class="native-track"><span class="native-art" aria-hidden="true">♪</span><div><small>NOW PLAYING</small><strong>Stay in your flow.</strong><span>Playback, lyrics and audio levels</span></div><span class="native-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div><p>Keep your music close without leaving your work.</p></div>
-          <div class="native-panel" id="native-panel-files" role="tabpanel" aria-labelledby="native-tab-files" tabindex="0" hidden=""><div class="native-file"><span class="file-type pdf">PDF</span><div><strong>Project Brief.pdf</strong><small>Reference · source unchanged</small></div></div><p>A place for the files you need next. Originals stay in place.</p></div>
-          <div class="native-panel" id="native-panel-clipboard" role="tabpanel" aria-labelledby="native-tab-clipboard" tabindex="0" hidden=""><div class="native-file"><span class="clip-icon text">T</span><div><strong>Pick up where you left off.</strong><small>Clipboard History</small></div></div><p>Recent copied content, separate from your staged files.</p></div>
+          <div class="native-panel" id="native-panel-widgets" role="tabpanel" aria-labelledby="native-tab-widgets" tabindex="0"><div class="native-glance"><div><small><span data-i18n="ui.clock">Clock</span></small><strong>09:41</strong></div><div><small><span data-i18n="ui.calendar">Calendar</span></small><strong>15 <em data-i18n="ui.september.short">SEP</em></strong></div><div><small><span data-i18n="ui.battery">Battery</span></small><strong>82<em>%</em></strong></div></div><p><span data-i18n="ui.your.everyday.essentials.a.glance.away">Your everyday essentials, a glance away.</span></p></div>
+          <div class="native-panel" id="native-panel-music" role="tabpanel" aria-labelledby="native-tab-music" tabindex="0" hidden=""><div class="native-track"><span class="native-art" aria-hidden="true">♪</span><div><small><span data-i18n="ui.now.playing">NOW PLAYING</span></small><strong><span data-i18n="ui.stay.in.your.flow">Stay in your flow.</span></strong><span><span data-i18n="ui.playback.lyrics.and.audio.levels">Playback, lyrics and audio levels</span></span></div><span class="native-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div><p><span data-i18n="ui.keep.your.music.close.without.leaving.your.work">Keep your music close without leaving your work.</span></p></div>
+          <div class="native-panel" id="native-panel-files" role="tabpanel" aria-labelledby="native-tab-files" tabindex="0" hidden=""><div class="native-file"><span class="file-type pdf" data-i18n-exempt="fixed-or-sample">PDF</span><div><strong data-i18n-exempt="fixed-or-sample">Project Brief.pdf</strong><small><span data-i18n="ui.reference.source.unchanged">Reference · source unchanged</span></small></div></div><p><span data-i18n="ui.a.place.for.the.files.you.need.next.originals.stay.in.place">A place for the files you need next. Originals stay in place.</span></p></div>
+          <div class="native-panel" id="native-panel-clipboard" role="tabpanel" aria-labelledby="native-tab-clipboard" tabindex="0" hidden=""><div class="native-file"><span class="clip-icon text" data-i18n-exempt="fixed-or-sample">T</span><div><strong><span data-i18n="ui.pick.up.where.you.left.off">Pick up where you left off.</span></strong><small><span data-i18n="ui.clipboard.history">Clipboard History</span></small></div></div><p><span data-i18n="ui.recent.copied.content.separate.from.your.staged.files">Recent copied content, separate from your staged files.</span></p></div>
         </div>
-        <p class="native-caption">Interactive website illustration · sample content, not a live desktop</p>
+        <p class="native-caption"><span data-i18n="ui.interactive.website.illustration.sample.content.not.a.live.desktop">Interactive website illustration · sample content, not a live desktop</span></p>
       </div>
-      <div class="native-footnotes"><span>Four pages. No wraparound.</span><span>Playback keeps your selected page.</span><span>Drag a file to reveal its drop target.</span></div>
+      <div class="native-footnotes"><span><span data-i18n="ui.four.pages.no.wraparound">Four pages. No wraparound.</span></span><span><span data-i18n="ui.playback.keeps.your.selected.page">Playback keeps your selected page.</span></span><span><span data-i18n="ui.drag.a.file.to.reveal.its.drop.target">Drag a file to reveal its drop target.</span></span></div>
     </section>
 
     <div class="daily-pair shell"><section class="widget-story band shell" id="widgets" aria-labelledby="widgets-title">
-      <div class="section-copy"><p class="section-index">04 / WIDGETS</p><h2 id="widgets-title">Small things.<br>Your arrangement.</h2><p>Keep useful widgets together on a flexible grid. Arrange them around your day and choose a smaller size where supported.</p><ul class="native-details"><li>New widgets find an empty space. Your layout stays put.</li><li>Drop onto a same-size widget to swap their positions.</li><li>A clear selection outline keeps editing easy to follow.</li></ul></div>
-      <figure class="widget-preview"><div class="widget-preview-head"><strong>Make room for your day.</strong><span>4 × 8</span></div><div class="widget-board" aria-label="Illustration of eight widgets on a four by eight grid">
-        <div class="widget-tile widget-clock"><span>Clock</span><strong>09:41</strong></div><div class="widget-tile widget-calendar"><span>Calendar</span><strong>15</strong><small>SEP</small></div><div class="widget-tile widget-resource"><span>Resource usage</span><div class="widget-meter"><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="widget-tile widget-battery"><span>Battery</span><strong>82%</strong></div><div class="widget-tile widget-settings"><b aria-hidden="true">⚙</b><span>Settings</span></div><div class="widget-tile widget-uptime"><span>Uptime</span><strong>2h 18m</strong></div><div class="widget-tile widget-stopwatch"><span>Stopwatch</span><strong>00:32</strong></div><div class="widget-tile widget-capture"><b aria-hidden="true">Ⅱ</b><span>Capture</span></div>
-      </div><figcaption>Clock, calendar, resource usage, settings, battery, uptime, stopwatch and clipboard capture.</figcaption></figure>
-    </section><section class="music-story band shell" id="music" aria-labelledby="music-title"><div class="section-copy"><p class="section-index">05 / MUSIC</p><h2 id="music-title">Stay with<br>the music.</h2><p>Control playback, follow lyrics and see audio levels in the Island. Open the dedicated Music page when you want more room.</p><ul class="native-details"><li>Follow lyrics from your preferred source, with automatic matching when needed.</li><li>Keep playback controls and lyrics together, without switching windows.</li><li>See audio levels from the playing app alongside your music.</li></ul><p class="native-limitation">Lyrics and audio visualization depend on your player. When playback timing is unavailable, estimated lyric progress may be out of sync.</p></div>
-      <figure class="music-preview"><div class="music-preview-header"><span class="native-art" aria-hidden="true">♪</span><div><small>YOUR MUSIC, AT A GLANCE</small><strong>Room for the next note.</strong><span>Music controls · lyrics · spectrum</span></div></div><div class="music-lyrics" aria-hidden="true"><p>A little room to breathe.</p><p>Keep the moment close.</p><p>Let the day unfold.</p></div><div class="music-progress" aria-hidden="true"><i></i></div><div class="music-preview-bottom"><span>01:24</span><span class="music-controls" aria-hidden="true">↶ &nbsp; Ⅱ &nbsp; ↷</span><span>03:42</span></div><figcaption>Website illustration with original sample lyrics. Player support varies.</figcaption></figure>
-      
+      <div class="section-copy"><p class="section-index"><span data-i18n="ui.04.widgets">04 / WIDGETS</span></p><h2 id="widgets-title"><span data-i18n="ui.small.things">Small things.</span><br><span data-i18n="ui.your.arrangement">Your arrangement.</span></h2><p><span data-i18n="ui.keep.useful.widgets.together.on.a.flexible.grid.arrange.them.around.your.day.and.c">Keep useful widgets together on a flexible grid. Arrange them around your day and choose a smaller size where supported.</span></p><ul class="native-details"><li><span data-i18n="ui.new.widgets.find.an.empty.space.your.layout.stays.put">New widgets find an empty space. Your layout stays put.</span></li><li><span data-i18n="ui.drop.onto.a.same.size.widget.to.swap.their.positions">Drop onto a same-size widget to swap their positions.</span></li><li><span data-i18n="ui.a.clear.selection.outline.keeps.editing.easy.to.follow">A clear selection outline keeps editing easy to follow.</span></li></ul></div>
+      <figure class="widget-preview"><div class="widget-preview-head"><strong><span data-i18n="ui.make.room.for.your.day">Make room for your day.</span></strong><span>4 × 8</span></div><div class="widget-board" aria-label="Illustration of eight widgets on a four by eight grid" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.illustration.of.eight.widgets.on.a.four.by.eight.grid&quot;}">
+        <div class="widget-tile widget-clock"><span><span data-i18n="ui.clock">Clock</span></span><strong>09:41</strong></div><div class="widget-tile widget-calendar"><span><span data-i18n="ui.calendar">Calendar</span></span><strong>15</strong><small data-i18n="ui.september.short">SEP</small></div><div class="widget-tile widget-resource"><span><span data-i18n="ui.resource.usage">Resource usage</span></span><div class="widget-meter"><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="widget-tile widget-battery"><span><span data-i18n="ui.battery">Battery</span></span><strong>82%</strong></div><div class="widget-tile widget-settings"><b aria-hidden="true">⚙</b><span><span data-i18n="ui.settings">Settings</span></span></div><div class="widget-tile widget-uptime"><span><span data-i18n="ui.uptime">Uptime</span></span><strong data-i18n="ui.uptime.example">2h 18m</strong></div><div class="widget-tile widget-stopwatch"><span><span data-i18n="ui.stopwatch">Stopwatch</span></span><strong>00:32</strong></div><div class="widget-tile widget-capture"><b aria-hidden="true">Ⅱ</b><span><span data-i18n="ui.capture">Capture</span></span></div>
+      </div><figcaption><span data-i18n="ui.clock.calendar.resource.usage.settings.battery.uptime.stopwatch.and.clipboard.capt">Clock, calendar, resource usage, settings, battery, uptime, stopwatch and clipboard capture.</span></figcaption></figure>
+    </section><section class="music-story band shell" id="music" aria-labelledby="music-title"><div class="section-copy"><p class="section-index"><span data-i18n="ui.05.music">05 / MUSIC</span></p><h2 id="music-title"><span data-i18n="ui.stay.with">Stay with</span><br><span data-i18n="ui.the.music">the music.</span></h2><p><span data-i18n="ui.control.playback.follow.lyrics.and.see.audio.levels.in.the.island.open.the.dedicat">Control playback, follow lyrics and see audio levels in the Island. Open the dedicated Music page when you want more room.</span></p><ul class="native-details"><li><span data-i18n="ui.follow.lyrics.from.your.preferred.source.with.automatic.matching.when.needed">Follow lyrics from your preferred source, with automatic matching when needed.</span></li><li><span data-i18n="ui.keep.playback.controls.and.lyrics.together.without.switching.windows">Keep playback controls and lyrics together, without switching windows.</span></li><li><span data-i18n="ui.see.audio.levels.from.the.playing.app.alongside.your.music">See audio levels from the playing app alongside your music.</span></li></ul><p class="native-limitation"><span data-i18n="ui.lyrics.and.audio.visualization.depend.on.your.player.when.playback.timing.is.unava">Lyrics and audio visualization depend on your player. When playback timing is unavailable, estimated lyric progress may be out of sync.</span></p></div>
+      <figure class="music-preview"><div class="music-preview-header"><span class="native-art" aria-hidden="true">♪</span><div><small><span data-i18n="ui.your.music.at.a.glance">YOUR MUSIC, AT A GLANCE</span></small><strong><span data-i18n="ui.room.for.the.next.note">Room for the next note.</span></strong><span><span data-i18n="ui.music.controls.lyrics.spectrum">Music controls · lyrics · spectrum</span></span></div></div><div class="music-lyrics" aria-hidden="true" data-i18n-exempt="sample-lyrics" lang="en"><p>A little room to breathe.</p><p>Keep the moment close.</p><p>Let the day unfold.</p></div><div class="music-progress" aria-hidden="true"><i></i></div><div class="music-preview-bottom"><span>01:24</span><span class="music-controls" aria-hidden="true">↶ &nbsp; Ⅱ &nbsp; ↷</span><span>03:42</span></div><figcaption><span data-i18n="ui.website.illustration.with.original.sample.lyrics.player.support.varies">Website illustration with original sample lyrics. Player support varies.</span></figcaption></figure>
+
     </section></div>
 
-    
+
 
     <section class="lyrics-story shell" id="ai-lyrics" aria-labelledby="lyrics-title">
-      <div class="section-heading split-heading"><div><p class="section-index">06 / AI LYRICS</p><h2 id="lyrics-title">Feel the music.<br>Follow the meaning.</h2></div><p>Original lyrics, with a translation into your App language. Keep the words close, and the rest of your desktop yours.</p></div>
-      <div class="lyrics-stage" data-lyrics-demo data-glow-mode="music">
-        <div class="lyrics-stage-top"><span>YOUR WORDS. YOUR PACE.</span><span>AI lyrics · Dynamic Island</span></div>
-        <div class="lyrics-island-wrap" data-lyrics-viewport>
-          <div class="lyrics-device" data-lyrics-device>
-          <canvas class="lyrics-halo" data-lyrics-halo aria-hidden="true"></canvas>
-          <div class="lyrics-island" data-lyrics-island>
-            <div class="lyrics-track"><span class="lyrics-album" aria-hidden="true"><i></i><i></i><i></i></span><div><small>ORIGINAL DEMO</small><strong>Room to breathe</strong><span>DropSpace · a small instrumental</span></div><span class="lyrics-local-badge">On device</span></div>
-            <div class="lyrics-lines" role="region" aria-label="Sample lyrics" tabindex="0"><div class="lyrics-lines-content"><p class="lyrics-previous">Let the busy world go by.</p><p class="lyrics-current">A little room to breathe.</p><p class="lyrics-translation" lang="zh-CN">留一点空间，自在呼吸。</p><p class="lyrics-next">Keep this moment close.</p></div></div>
-            <div class="lyrics-playback"><span class="lyrics-waveform" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="lyrics-preview-transport" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M5 3h4v14H5zM12 3h4v14h-4z"/></svg></span></div>
+      <div class="section-heading split-heading"><div><p class="section-index"><span data-i18n="ui.06.ai.lyrics">06 / AI LYRICS</span></p><h2 id="lyrics-title"><span data-i18n="ui.feel.the.music">Feel the music.</span><br><span data-i18n="ui.follow.the.meaning">Follow the meaning.</span></h2></div><p><span data-i18n="ui.original.lyrics.with.a.translation.into.simplified.chinese.or.english.choose.the.t">Original lyrics, with a translation into Simplified Chinese or English. Choose the translation target separately from your interface language.</span></p></div>
+      <div class="lyrics-stage" data-lyrics-demo="" data-glow-mode="music">
+        <div class="lyrics-stage-top"><span><span data-i18n="ui.your.words.your.pace">YOUR WORDS. YOUR PACE.</span></span><span><span data-i18n="ui.ai.lyrics.dynamic.island">AI lyrics · Dynamic Island</span></span></div>
+        <div class="lyrics-island-wrap" data-lyrics-viewport="">
+          <div class="lyrics-device" data-lyrics-device="">
+          <canvas class="lyrics-halo" data-lyrics-halo="" aria-hidden="true"></canvas>
+          <div class="lyrics-island" data-lyrics-island="">
+            <div class="lyrics-track"><span class="lyrics-album" aria-hidden="true"><i></i><i></i><i></i></span><div><small><span data-i18n="ui.original.demo">ORIGINAL DEMO</span></small><strong data-i18n-exempt="fixed-or-sample">Room to breathe</strong><span data-i18n-exempt="fixed-or-sample">DropSpace · a small instrumental</span></div><span class="lyrics-local-badge"><span data-i18n="ui.on.device">On device</span></span></div>
+            <div class="lyrics-lines" role="region" aria-label="Sample lyrics" tabindex="0" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.sample.lyrics&quot;}"><div class="lyrics-lines-content" data-i18n-exempt="sample-lyrics" lang="en"><p class="lyrics-previous">Let the busy world go by.</p><p class="lyrics-current">A little room to breathe.</p><p class="lyrics-translation" lang="zh-CN">留一点空间，自在呼吸。</p><p class="lyrics-next">Keep this moment close.</p></div></div>
+            <div class="lyrics-playback"><span class="lyrics-waveform" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="lyrics-preview-transport" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M5 3h4v14H5zM12 3h4v14h-4z"></path></svg></span></div>
           </div>
         </div>
         </div>
         <div class="lyrics-demo-controls">
-          <fieldset class="lyrics-mode-control"><legend>Glow</legend><div><button type="button" data-glow-choice="off" aria-pressed="false">Off</button><button type="button" data-glow-choice="ai" aria-pressed="false">AI</button><button type="button" data-glow-choice="music" aria-pressed="true">Music</button></div></fieldset>
-          <button class="lyrics-play" type="button" data-lyrics-play aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path class="play-symbol" d="m6 3 11 7-11 7z"/><path class="pause-symbol" d="M5 3h4v14H5zM12 3h4v14h-4z"/></svg><span data-lyrics-play-label>Play sample</span></button>
+          <fieldset class="lyrics-mode-control"><legend><span data-i18n="ui.glow">Glow</span></legend><div><button type="button" data-glow-choice="off" aria-pressed="false"><span data-i18n="ui.off">Off</span></button><button type="button" data-glow-choice="ai" aria-pressed="false" data-i18n-exempt="fixed-or-sample">AI</button><button type="button" data-glow-choice="music" aria-pressed="true"><span data-i18n="ui.music">Music</span></button></div></fieldset>
+          <button class="lyrics-play" type="button" data-lyrics-play="" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path class="play-symbol" d="m6 3 11 7-11 7z"></path><path class="pause-symbol" d="M5 3h4v14H5zM12 3h4v14h-4z"></path></svg><span data-lyrics-play-label=""><span data-i18n="ui.play.sample">Play sample</span></span></button>
         </div>
-        <p class="lyrics-demo-status" data-lyrics-status aria-live="polite">Music · light follows the sample rhythm</p>
-        <p class="lyrics-demo-caption">Interactive illustration with original sample lyrics and music. Translation shown as an example; audio starts only when you press play.</p>
-        <audio data-lyrics-audio src="./assets/lyrics-demo.wav" preload="none" loop></audio>
+        <p class="lyrics-demo-status" data-lyrics-status="" aria-live="polite"><span data-i18n="ui.music.light.follows.the.sample.rhythm">Music · light follows the sample rhythm</span></p>
+        <p class="lyrics-demo-caption"><span data-i18n="ui.interactive.illustration.with.original.sample.lyrics.and.music.translation.shown.a">Interactive illustration with original sample lyrics and music. Translation shown as an example; audio starts only when you press play.</span></p>
+        <audio data-lyrics-audio="" src="./assets/lyrics-demo.wav" preload="none" loop=""></audio>
       </div>
       <div class="lyrics-benefits">
-        <article><span class="lyrics-feature-number" aria-hidden="true">01</span><h3>Your language, in line.</h3><p>The translation target follows your App language. A translation already supplied by your lyric provider takes priority; local AI fills in when one is missing.</p></article>
-        <article><span class="lyrics-feature-number" aria-hidden="true">02</span><h3>A model, only if you want it.</h3><p>AI lyrics is off by default. Download the local model only when you choose. After setup, translation runs on your device with available lyrics. Fetching lyrics and downloading the model still need a connection.</p></article>
-        <article><span class="lyrics-feature-number" aria-hidden="true">03</span><h3>Make it comfortable.</h3><p>Turn the glow off, show it during AI work, or let it breathe with music. Soft orange, pink and blue light drifts beyond the Island while its shape stays still.</p></article>
+        <article><span class="lyrics-feature-number" aria-hidden="true">01</span><h3><span data-i18n="ui.choose.your.translation">Choose your translation.</span></h3><p><span data-i18n="ui.choose.simplified.chinese.or.english.as.the.lyric.translation.target.independently">Choose Simplified Chinese or English as the lyric translation target, independently of the interface language. A translation already supplied by your lyric provider takes priority; local AI fills in when one is missing.</span></p></article>
+        <article><span class="lyrics-feature-number" aria-hidden="true">02</span><h3><span data-i18n="ui.a.model.only.if.you.want.it">A model, only if you want it.</span></h3><p><span data-i18n="ui.ai.lyrics.is.off.by.default.download.the.local.model.only.when.you.choose.after.se">AI lyrics is off by default. Download the local model only when you choose. After setup, translation runs on your device with available lyrics. Fetching lyrics and downloading the model still need a connection.</span></p></article>
+        <article><span class="lyrics-feature-number" aria-hidden="true">03</span><h3><span data-i18n="ui.make.it.comfortable">Make it comfortable.</span></h3><p><span data-i18n="ui.turn.the.glow.off.show.it.during.ai.work.or.let.it.breathe.with.music.soft.orange.">Turn the glow off, show it during AI work, or let it breathe with music. Soft orange, pink and blue light drifts beyond the Island while its shape stays still.</span></p></article>
       </div>
-      <p class="lyrics-accuracy">First-time translation can take several minutes. Language coverage and quality depend on the model, lyric source and song. AI can change meaning or omit details; the original lyrics stay available.</p>
+      <p class="lyrics-accuracy"><span data-i18n="ui.first.time.translation.can.take.several.minutes.language.coverage.and.quality.depe">First-time translation can take several minutes. Language coverage and quality depend on the model, lyric source and song. AI can change meaning or omit details; the original lyrics stay available.</span></p>
     </section>
 
     <section class="clipboard band shell">
       <div class="section-copy">
-        <p class="section-index">07 / CLIPBOARD HISTORY</p>
-        <h2>History that<br>stays useful.</h2>
-        <p>Find copied text, links, images, files and folders. Pause recording when you need to, pin what matters, and search everything in one place.</p>
-        <div class="duplicate-rule"><div><code>A</code><code>A</code><code>A</code><b>→</b><code>A</code></div><small>Consecutive duplicates collapse.</small><div><code>A</code><code class="blue">B</code><code>A</code><b>→</b><code>A</code><code class="blue">B</code><code>A</code></div><small>Useful A → B → A history stays.</small></div>
+        <p class="section-index"><span data-i18n="ui.07.clipboard.history">07 / CLIPBOARD HISTORY</span></p>
+        <h2><span data-i18n="ui.history.that">History that</span><br><span data-i18n="ui.stays.useful">stays useful.</span></h2>
+        <p><span data-i18n="ui.find.copied.text.links.images.files.and.folders.pause.recording.when.you.need.to.p">Find copied text, links, images, files and folders. Pause recording when you need to, pin what matters, and search everything in one place.</span></p>
+        <div class="duplicate-rule"><div><code data-i18n-exempt="fixed-or-sample">A</code><code data-i18n-exempt="fixed-or-sample">A</code><code data-i18n-exempt="fixed-or-sample">A</code><b>→</b><code data-i18n-exempt="fixed-or-sample">A</code></div><small><span data-i18n="ui.consecutive.duplicates.collapse">Consecutive duplicates collapse.</span></small><div><code data-i18n-exempt="fixed-or-sample">A</code><code class="blue" data-i18n-exempt="fixed-or-sample">B</code><code data-i18n-exempt="fixed-or-sample">A</code><b>→</b><code data-i18n-exempt="fixed-or-sample">A</code><code class="blue" data-i18n-exempt="fixed-or-sample">B</code><code data-i18n-exempt="fixed-or-sample">A</code></div><small><span data-i18n="ui.useful.a.b.a.history.stays">Useful A → B → A history stays.</span></small></div>
       </div>
       <div class="clipboard-window">
-        <div class="clipboard-title"><strong>Clipboard History</strong><div><span>⌕</span><span>Ⅱ</span><span>×</span></div></div>
-        <div class="filter-row"><b>All</b><span>Text</span><span>Links</span><span>Images</span><span>Files</span><i>Pinned</i></div>
-        <div class="clip-row"><span class="clip-icon text">T</span><div><strong>Design is not just what it looks like…</strong><small>Text · 3 min ago</small></div><b>⌖</b></div>
-        <div class="clip-row"><span class="clip-icon link">↗</span><div><strong>github.com/airanluo-dot/DropSpace</strong><small>Link · 8 min ago</small></div><b>⌖</b></div>
-        <div class="clip-row"><span class="clip-icon image">▧</span><div><strong>Screenshot 2026-08-11.png</strong><small>Image · 14 min ago</small></div><b>⌖</b></div>
-        <div class="clip-row"><span class="clip-icon file">▤</span><div><strong>Release Notes.md</strong><small>File · 22 min ago</small></div><b>···</b></div>
+        <div class="clipboard-title"><strong><span data-i18n="ui.clipboard.history">Clipboard History</span></strong><div><span>⌕</span><span>Ⅱ</span><span>×</span></div></div>
+        <div class="filter-row"><b><span data-i18n="ui.all">All</span></b><span><span data-i18n="ui.text">Text</span></span><span><span data-i18n="ui.links">Links</span></span><span><span data-i18n="ui.images">Images</span></span><span><span data-i18n="ui.files">Files</span></span><i><span data-i18n="ui.pinned">Pinned</span></i></div>
+        <div class="clip-row"><span class="clip-icon text" data-i18n-exempt="fixed-or-sample">T</span><div><strong data-i18n-exempt="fixed-or-sample">Design is not just what it looks like…</strong><small><span data-i18n="ui.text.3.min.ago">Text · 3 min ago</span></small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon link">↗</span><div><strong data-i18n-exempt="fixed-or-sample">github.com/airanluo-dot/DropSpace</strong><small><span data-i18n="ui.link.8.min.ago">Link · 8 min ago</span></small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon image">▧</span><div><strong data-i18n-exempt="fixed-or-sample">Screenshot 2026-08-11.png</strong><small><span data-i18n="ui.image.14.min.ago">Image · 14 min ago</span></small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon file">▤</span><div><strong data-i18n-exempt="fixed-or-sample">Release Notes.md</strong><small><span data-i18n="ui.file.22.min.ago">File · 22 min ago</span></small></div><b>···</b></div>
       </div>
     </section>
 
     <section class="drag shell">
-      <div class="section-heading"><p class="section-index">08 / DRAG &amp; DROP</p><h2>Built for the drag.</h2><p>Explorer, Desktop, Compact, Expanded, or the main window—DropSpace meets the file where your workflow already is.</p></div>
+      <div class="section-heading"><p class="section-index"><span data-i18n="ui.08.drag.drop">08 / DRAG &amp; DROP</span></p><h2><span data-i18n="ui.built.for.the.drag">Built for the drag.</span></h2><p><span data-i18n="ui.explorer.desktop.compact.expanded.or.the.main.window.dropspace.meets.the.file.wher">Explorer, Desktop, Compact, Expanded, or the main window—DropSpace meets the file where your workflow already is.</span></p></div>
       <div class="drag-rail">
-        <div><span>Explorer / Desktop</span><strong>→ Compact Island</strong><i class="mini-island"></i></div>
-        <div><span>Explorer / Desktop</span><strong>→ Expanded Island</strong><i class="mini-expanded"><b></b><b></b><b></b></i></div>
-        <div><span>Main Window</span><strong>Drag in / out</strong><i class="mini-window"><b></b><b></b><b></b></i></div>
+        <div><span><span data-i18n="ui.explorer.desktop">Explorer / Desktop</span></span><strong><span data-i18n="ui.compact.island">→ Compact Island</span></strong><i class="mini-island"></i></div>
+        <div><span><span data-i18n="ui.explorer.desktop">Explorer / Desktop</span></span><strong><span data-i18n="ui.expanded.island">→ Expanded Island</span></strong><i class="mini-expanded"><b></b><b></b><b></b></i></div>
+        <div><span><span data-i18n="ui.main.window">Main Window</span></span><strong><span data-i18n="ui.drag.in.out">Drag in / out</span></strong><i class="mini-window"><b></b><b></b><b></b></i></div>
       </div>
-      <div class="feature-rail" aria-label="Additional DropSpace features">
-        <span><b>⌕</b>Search</span><span><b>⌖</b>Pinned items</span><span><b>▱</b>Folders</span><span><b>▤</b>Tray access</span><span><b>⊞</b>Start with Windows</span><span><b>↻</b>Stable &amp; Beta updates</span>
+      <div class="feature-rail" aria-label="Additional DropSpace features" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.additional.dropspace.features&quot;}">
+        <span><b>⌕</b><span data-i18n="ui.search">Search</span></span><span><b>⌖</b><span data-i18n="ui.pinned.items">Pinned items</span></span><span><b>▱</b><span data-i18n="ui.folders">Folders</span></span><span><b>▤</b><span data-i18n="ui.tray.access">Tray access</span></span><span><b>⊞</b><span data-i18n="ui.start.with.windows">Start with Windows</span></span><span><b>↻</b><span data-i18n="ui.stable.beta.updates">Stable &amp; Beta updates</span></span>
       </div>
     </section>
 
     <section class="product-media band shell" aria-labelledby="product-media-title">
-      <div class="section-heading split-heading"><div><p class="section-index">09 / PRODUCT PREVIEW</p><h2 id="product-media-title">See the flow, not just a feature list.</h2></div><p>See how files move through your workspace. These website illustrations use sample content to show the flow.</p></div>
+      <div class="section-heading split-heading"><div><p class="section-index"><span data-i18n="ui.09.product.preview">09 / PRODUCT PREVIEW</span></p><h2 id="product-media-title"><span data-i18n="ui.see.the.flow.not.just.a.feature.list">See the flow, not just a feature list.</span></h2></div><p><span data-i18n="ui.see.how.files.move.through.your.workspace.these.website.illustrations.use.sample.c">See how files move through your workspace. These website illustrations use sample content to show the flow.</span></p></div>
       <div class="media-grid">
-        <figure class="media-frame"><video autoplay="" muted="" loop="" playsinline="" poster="./assets/product-overview.webp" aria-label="Drop a file at the top"><source src="./assets/drag-demo.webm" type="video/webm"></video><figcaption>Drop a file at the top</figcaption></figure>
-        <figure class="media-frame"><img src="./assets/product-overview.webp" width="1280" height="720" loading="lazy" alt="Temporary Space overview"><figcaption>Temporary Space overview</figcaption></figure>
+        <figure class="media-frame"><video autoplay="" muted="" loop="" playsinline="" poster="./assets/product-overview.webp" aria-label="Drop a file at the top" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.drop.a.file.at.the.top&quot;}"><source src="./assets/drag-demo.webm" type="video/webm"></video><figcaption><span data-i18n="ui.drop.a.file.at.the.top">Drop a file at the top</span></figcaption></figure>
+        <figure class="media-frame"><img src="./assets/product-overview.webp" width="1280" height="720" loading="lazy" alt="Temporary Space overview" data-i18n-attrs="{&quot;alt&quot;:&quot;ui.temporary.space.overview&quot;}"><figcaption><span data-i18n="ui.temporary.space.overview">Temporary Space overview</span></figcaption></figure>
       </div>
     </section>
 
     <section class="download band shell download-gallery" id="download">
-      <div class="download-intro"><p class="section-index">10 / DOWNLOAD</p><h2>Ready when<br>you are.</h2><p data-stable-version="">Latest Stable · {{STABLE_TAG}}</p><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><a href="{{STABLE_URL}}" data-release-url="" target="_blank" rel="noopener noreferrer">Release notes <span>↗</span></a><a href="{{CHECKSUM_URL}}" data-download="checksums">SHA-256 checksums <span>↗</span></a></div>
+      <div class="download-intro"><p class="section-index"><span data-i18n="ui.10.download">10 / DOWNLOAD</span></p><h2><span data-i18n="ui.ready.when">Ready when</span><br><span data-i18n="ui.you.are">you are.</span></h2><p data-stable-version="" data-i18n="release.latestStable" data-i18n-args="{&quot;tag&quot;:&quot;{{STABLE_TAG}}&quot;}">Latest Stable · {{STABLE_TAG}}</p><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><a href="{{STABLE_URL}}" data-release-url="" target="_blank" rel="noopener noreferrer"><span data-i18n="ui.release.notes">Release notes</span> <span>↗</span></a><a href="{{CHECKSUM_URL}}" data-download="checksums"><span data-i18n="ui.sha.256.checksums">SHA-256 checksums</span> <span>↗</span></a></div>
       <div class="download-options">
-        <a class="download-card recommended" href="{{INSTALLER_URL}}" data-download="installer"><img src="./assets/favicon.png" alt=""><div><strong>Download Installer</strong><span>Recommended for most users</span><small>DropSpaceSetup.exe</small></div><b>↓</b><em>RECOMMENDED</em></a>
-        <a class="download-card" href="{{PORTABLE_URL}}" data-download="portable"><span class="download-icon">▱</span><div><strong>Portable</strong><span>Run without installing</span><small>DropSpace.exe</small></div><b>↓</b></a>
-        <a class="download-card" href="{{MSIX_URL}}" data-download="msix"><span class="download-icon">◇</span><div><strong>MSIX</strong><span>Windows app package</span><small>DropSpace-x64.msix</small></div><b>↓</b></a>
+        <a class="download-card recommended" href="{{INSTALLER_URL}}" data-download="installer"><img src="./assets/favicon.png" alt=""><div><strong><span data-i18n="ui.download.installer">Download Installer</span></strong><span><span data-i18n="ui.recommended.for.most.users">Recommended for most users</span></span><small data-i18n-exempt="fixed-or-sample">DropSpaceSetup.exe</small></div><b>↓</b><em><span data-i18n="ui.recommended">RECOMMENDED</span></em></a>
+        <a class="download-card" href="{{PORTABLE_URL}}" data-download="portable"><span class="download-icon">▱</span><div><strong><span data-i18n="ui.portable">Portable</span></strong><span><span data-i18n="ui.run.without.installing">Run without installing</span></span><small data-i18n-exempt="fixed-or-sample">DropSpace.exe</small></div><b>↓</b></a>
+        <a class="download-card" href="{{MSIX_URL}}" data-download="msix"><span class="download-icon">◇</span><div><strong data-i18n-exempt="fixed-or-sample">MSIX</strong><span><span data-i18n="ui.windows.app.package">Windows app package</span></span><small data-i18n-exempt="fixed-or-sample">DropSpace-x64.msix</small></div><b>↓</b></a>
       </div>
     </section>
 
-    <section class="release-readiness shell" aria-label="System requirements and download verification">
-      <article><p class="section-index">11 / SYSTEM REQUIREMENTS</p><h2>Check your Windows version.</h2><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><p>Current Beta: 64-bit Windows build 20348 or later</p><p class="system-result" data-system-check="" data-windows="Windows detected. Find your Windows build in Settings → System → About, then compare it with the release requirements." data-other="This device is not reporting Windows. DropSpace downloads are for 64-bit Windows; see the release notes for system requirements.">Checking this device…</p></article>
-      <article id="known-limitations"><p class="section-index">12 / KNOWN LIMITATIONS</p><h2>Know before you install.</h2><p>Unsigned packages may trigger a SmartScreen warning. Windows Drop Tray can use the same top-edge gesture; Windows sharing integration requires a trusted package identity.</p></article>
-      <article><p class="section-index">13 / VERIFY YOUR DOWNLOAD</p><h2>Check the file you received.</h2><p>Download only from the official GitHub Release. Compare the file's SHA-256 with SHA256SUMS.txt; a matching hash proves file integrity, but not publisher identity.</p><a class="button button-ghost" href="{{CHECKSUM_URL}}" data-download="checksums">Verification guide</a></article>
+    <section class="release-readiness shell" aria-label="System requirements and download verification" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.system.requirements.and.download.verification&quot;}">
+      <article><p class="section-index"><span data-i18n="ui.11.system.requirements">11 / SYSTEM REQUIREMENTS</span></p><h2><span data-i18n="ui.check.your.windows.version">Check your Windows version.</span></h2><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><p><span data-i18n="ui.current.beta.64.bit.windows.build.20348.or.later">Current Beta: 64-bit Windows build 20348 or later</span></p><p class="system-result" data-system-check="" data-windows="Windows detected. Find your Windows build in Settings → System → About, then compare it with the release requirements." data-other="This device is not reporting Windows. DropSpace downloads are for 64-bit Windows; see the release notes for system requirements." data-i18n-attrs="{&quot;data-windows&quot;:&quot;ui.windows.detected.find.your.windows.build.in.settings.system.about.then.compare.it.&quot;,&quot;data-other&quot;:&quot;ui.this.device.is.not.reporting.windows.dropspace.downloads.are.for.64.bit.windows.se&quot;}"><span data-i18n="ui.checking.this.device">Checking this device…</span></p></article>
+      <article id="known-limitations"><p class="section-index"><span data-i18n="ui.12.known.limitations">12 / KNOWN LIMITATIONS</span></p><h2><span data-i18n="ui.know.before.you.install">Know before you install.</span></h2><p><span data-i18n="ui.unsigned.packages.may.trigger.a.smartscreen.warning.windows.drop.tray.can.use.the.">Unsigned packages may trigger a SmartScreen warning. Windows Drop Tray can use the same top-edge gesture; Windows sharing integration requires a trusted package identity.</span></p></article>
+      <article><p class="section-index"><span data-i18n="ui.13.verify.your.download">13 / VERIFY YOUR DOWNLOAD</span></p><h2><span data-i18n="ui.check.the.file.you.received">Check the file you received.</span></h2><p><span data-i18n="ui.download.only.from.the.official.github.release.compare.the.file.s.sha.256.with.sha">Download only from the official GitHub Release. Compare the file's SHA-256 with SHA256SUMS.txt; a matching hash proves file integrity, but not publisher identity.</span></p><a class="button button-ghost" href="{{CHECKSUM_URL}}" data-download="checksums"><span data-i18n="ui.verification.guide">Verification guide</span></a></article>
     </section>
 
     <section class="whats-new shell" id="changelog" data-latest-change="">
-      <div><p class="section-index">14 / WHAT'S NEW</p><h2 data-latest-change-headline="">{{LATEST_CHANGE_HEADLINE}}</h2><a class="release-title" href="{{LATEST_CHANGE_URL}}" data-latest-change-url="" target="_blank" rel="noopener noreferrer"><span data-latest-change-tag="">{{LATEST_CHANGE_TAG}}</span><span aria-hidden="true"> — </span><span data-latest-change-title="">{{LATEST_CHANGE_TITLE}}</span></a><p data-latest-change-date="">{{LATEST_CHANGE_DATE}}</p></div>
-      <div class="release-list"><div class="release-highlights" data-latest-change-highlights="">{{LATEST_CHANGE_HIGHLIGHTS}}</div><a class="button button-ghost" href="./changelog/index.html">View full changelog</a></div>
+      <div><p class="section-index"><span data-i18n="ui.14.what.s.new">14 / WHAT'S NEW</span></p><h2 data-latest-change-headline="" data-i18n-exempt="release-body" lang="en">{{LATEST_CHANGE_HEADLINE}}</h2><a class="release-title" href="{{LATEST_CHANGE_URL}}" data-latest-change-url="" target="_blank" rel="noopener noreferrer"><span data-latest-change-tag="" lang="en">{{LATEST_CHANGE_TAG}}</span><span aria-hidden="true"> — </span><span data-latest-change-title="" data-i18n-exempt="release-body" lang="en">{{LATEST_CHANGE_TITLE}}</span></a><p data-latest-change-date="" lang="en">{{LATEST_CHANGE_DATE}}</p></div>
+      <div class="release-list"><div class="release-highlights" data-latest-change-highlights="" data-i18n-exempt="release-body" lang="en">{{LATEST_CHANGE_HIGHLIGHTS}}</div><a class="button button-ghost" href="./changelog/index.html"><span data-i18n="ui.view.full.changelog">View full changelog</span></a></div>
     </section>
 
     <section class="open-source band shell">
-      <div><p class="section-index">15 / OPEN SOURCE</p><h2>Open by design.</h2><p>DropSpace is built in the open, with its code, decisions, privacy model and release history available to everyone.</p></div>
-      <div><div class="actions"><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">View Source</a><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/stargazers" target="_blank" rel="noopener noreferrer">Star on GitHub</a><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/issues" target="_blank" rel="noopener noreferrer">Report an Issue</a></div><p>Apache-2.0 · Copyright 2026 Airan Luo</p></div>
+      <div><p class="section-index"><span data-i18n="ui.15.open.source">15 / OPEN SOURCE</span></p><h2><span data-i18n="ui.open.by.design">Open by design.</span></h2><p><span data-i18n="ui.dropspace.is.built.in.the.open.with.its.code.decisions.privacy.model.and.release.h">DropSpace is built in the open, with its code, decisions, privacy model and release history available to everyone.</span></p></div>
+      <div><div class="actions"><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer"><span data-i18n="ui.view.source">View Source</span></a><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/stargazers" target="_blank" rel="noopener noreferrer"><span data-i18n="ui.star.on.github">Star on GitHub</span></a><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/issues" target="_blank" rel="noopener noreferrer"><span data-i18n="ui.report.an.issue">Report an Issue</span></a></div><p data-i18n-exempt="fixed-or-sample">Apache-2.0 · Copyright 2026 Airan Luo</p></div>
     </section>
 
     <section class="faq shell" id="faq">
-      <div class="section-heading"><p class="section-index">16 / FAQ</p><h2>Good to know.</h2></div>
+      <div class="section-heading"><p class="section-index"><span data-i18n="ui.16.faq">16 / FAQ</span></p><h2><span data-i18n="ui.good.to.know">Good to know.</span></h2></div>
       <div class="faq-list">
-        <details><summary>What is DropSpace?</summary><p>A local-first Windows workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island.</p></details>
-        <details><summary>Does DropSpace move my files?</summary><p>No. Temporary Space stores references. Adding or removing a reference does not move, copy, or delete the original file.</p></details>
-        <details><summary>Can I add folders?</summary><p>Yes. DropSpace can hold file and folder references through drag and drop or its picker.</p></details>
-        <details><summary>What is Clipboard History?</summary><p>A local history of captured text, URLs, images, files, and folders. You can search, pin, pause, clear, and apply retention limits.</p></details>
-        <details><summary>What's the difference between Installer and Portable?</summary><p>The recommended per-user Installer adds Start Menu integration, an uninstaller, and in-place update support. Portable runs directly without installation; updates are notify/download-only.</p></details>
-        <details><summary>What are the minimum system requirements?</summary><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><p>Current Beta: 64-bit Windows build 20348 or later</p></details>
-        <details><summary>What about the Windows 11 Drop Tray?</summary><p>Windows may own the same top-edge drag gesture. DropSpace Settings links to the official Multitasking page; direct drops onto visible Compact and Expanded surfaces remain supported.</p></details>
-        <details><summary>Does DropSpace upload clipboard content?</summary><p>Clipboard history is stored locally. Update checks use public release metadata and official download endpoints. Sharing uses the connections you explicitly enable.</p></details>
-        <details><summary>How do updates work?</summary><p>Stable receives Stable releases. Beta can receive Stable and Beta releases. DropSpace verifies download size and SHA-256. Installation options depend on the package; release notes explain any manual upgrade steps.</p></details>
+        <details><summary><span data-i18n="ui.what.is.dropspace">What is DropSpace?</span></summary><p><span data-i18n="ui.a.local.first.windows.workspace.for.temporarily.holding.file.references.and.recent">A local-first Windows workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island.</span></p></details>
+        <details><summary><span data-i18n="ui.does.dropspace.move.my.files">Does DropSpace move my files?</span></summary><p><span data-i18n="ui.no.temporary.space.stores.references.adding.or.removing.a.reference.does.not.move.">No. Temporary Space stores references. Adding or removing a reference does not move, copy, or delete the original file.</span></p></details>
+        <details><summary><span data-i18n="ui.can.i.add.folders">Can I add folders?</span></summary><p><span data-i18n="ui.yes.dropspace.can.hold.file.and.folder.references.through.drag.and.drop.or.its.pic">Yes. DropSpace can hold file and folder references through drag and drop or its picker.</span></p></details>
+        <details><summary><span data-i18n="ui.what.is.clipboard.history">What is Clipboard History?</span></summary><p><span data-i18n="ui.a.local.history.of.captured.text.urls.images.files.and.folders.you.can.search.pin.">A local history of captured text, URLs, images, files, and folders. You can search, pin, pause, clear, and apply retention limits.</span></p></details>
+        <details><summary><span data-i18n="ui.what.s.the.difference.between.installer.and.portable">What's the difference between Installer and Portable?</span></summary><p><span data-i18n="ui.the.recommended.per.user.installer.adds.start.menu.integration.an.uninstaller.and.">The recommended per-user Installer adds Start Menu integration, an uninstaller, and in-place update support. Portable runs directly without installation; updates are notify/download-only.</span></p></details>
+        <details><summary><span data-i18n="ui.what.are.the.minimum.system.requirements">What are the minimum system requirements?</span></summary><p data-stable-requirements="">{{STABLE_REQUIREMENTS}}</p><p><span data-i18n="ui.current.beta.64.bit.windows.build.20348.or.later">Current Beta: 64-bit Windows build 20348 or later</span></p></details>
+        <details><summary><span data-i18n="ui.what.about.the.windows.11.drop.tray">What about the Windows 11 Drop Tray?</span></summary><p><span data-i18n="ui.windows.may.own.the.same.top.edge.drag.gesture.dropspace.settings.links.to.the.off">Windows may own the same top-edge drag gesture. DropSpace Settings links to the official Multitasking page; direct drops onto visible Compact and Expanded surfaces remain supported.</span></p></details>
+        <details><summary><span data-i18n="ui.does.dropspace.upload.clipboard.content">Does DropSpace upload clipboard content?</span></summary><p><span data-i18n="ui.clipboard.history.is.stored.locally.update.checks.use.public.release.metadata.and.">Clipboard history is stored locally. Update checks use public release metadata and official download endpoints. Sharing uses the connections you explicitly enable.</span></p></details>
+        <details><summary><span data-i18n="ui.how.do.updates.work">How do updates work?</span></summary><p><span data-i18n="ui.stable.receives.stable.releases.beta.can.receive.stable.and.beta.releases.dropspac">Stable receives Stable releases. Beta can receive Stable and Beta releases. DropSpace verifies download size and SHA-256. Installation options depend on the package; release notes explain any manual upgrade steps.</span></p></details>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer"><div class="shell footer-inner"><a class="brand" href="#top"><img src="./assets/dropspace-logo.png" width="42" height="42" alt=""><span>DropSpace</span></a><nav aria-label="Footer"><a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/airanluo-dot/DropSpace/releases" target="_blank" rel="noopener noreferrer">Releases</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Privacy</a></nav><p>© 2026 Airan Luo.</p></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><a class="brand" href="#top"><img src="./assets/dropspace-logo.png" width="42" height="42" alt=""><span data-i18n-exempt="fixed-or-sample">DropSpace</span></a><nav aria-label="Footer" data-i18n-attrs="{&quot;aria-label&quot;:&quot;ui.footer&quot;}"><a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer" data-i18n-exempt="fixed-or-sample">GitHub</a><a href="https://github.com/airanluo-dot/DropSpace/releases" target="_blank" rel="noopener noreferrer"><span data-i18n="ui.releases">Releases</span></a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"><span data-i18n="ui.license">License</span></a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer"><span data-i18n="ui.privacy">Privacy</span></a></nav><p data-i18n-exempt="fixed-or-sample">© 2026 Airan Luo.</p></div></footer>
   <script type="module" src="./script.js"></script>
   <script defer="defer" src="./lyrics-demo.js"></script>
+
 
 
 </body></html>

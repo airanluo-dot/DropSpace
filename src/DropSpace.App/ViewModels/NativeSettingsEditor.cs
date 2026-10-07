@@ -99,7 +99,7 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
         }
     }
     public AppSettings Settings => _main.Settings;
-    public string Error { get => _error; private set => SetProperty(ref _error, value); }
+    public string Error { get => _strings.Relocalize(_error); private set => SetProperty(ref _error, value); }
     public async Task<bool> CheckNotificationAccessAsync(bool enabled)
     {
         if (!enabled) return true;
@@ -143,7 +143,10 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
         { _logger.LogWarning("Lyrics folder picker failed ({Category}).", exception.GetType().Name); Error = _strings.Get("NativeSettingsSaveFailed"); }
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
-    { if (args.PropertyName == nameof(MainViewModel.Settings)) OnPropertyChanged(nameof(Settings)); }
+    {
+        if (args.PropertyName == nameof(MainViewModel.Settings)) OnPropertyChanged(nameof(Settings));
+        if (args.PropertyName == nameof(MainViewModel.Language)) OnPropertyChanged(nameof(Error));
+    }
     public async ValueTask DisposeAsync()
     { await FlushEditsAsync(); await _editSave; await FlushDownloadLimitsAsync(); await _downloadSave; _main.PropertyChanged -= OnChanged; _stop.Cancel(); await _save.WaitAsync(); _save.Release(); }
 }

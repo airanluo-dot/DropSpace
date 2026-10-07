@@ -1,0 +1,1006 @@
+{
+  "schemaVersion": 1,
+  "language": "zh-TW",
+  "scope": "website",
+  "resources": {
+    "ui.skip.to.content": [
+      "ac576a66d4563e600314a2ce6e731725e9826fd88baf2399e05f60bfb177dbc0",
+      "85fb64afff9cf0d27e00562ff104a20cea4fdb449f9fe78d77d595c41188208d"
+    ],
+    "ui.features": [
+      "5697d03daef4de9cf8db7cb11755f71358a32b4acca94909a9d449f71040d2dd",
+      "25f5ce57a1909740c1f26740d3f32767c9ac8f7122bf01b0845629716fb496eb"
+    ],
+    "ui.download": [
+      "d6eafe82359100423c93c5ce53c352c1b51ca1e699215fcec3f5c5dd9bf12d24",
+      "d477c75aa6561c9fb7b7fea6add7ff9bbea04ab9dcc27220dc3da37aa98f6afe"
+    ],
+    "ui.changelog": [
+      "ead07c84baac57a9542f388a07a2a5209456ce790b04251bc9bd7d179ea85cb1",
+      "7243d7f96455cd78cba025181d64c3a5d60777fa790d974be63c6f765ccc0a6b"
+    ],
+    "ui.drag.it.keep.it": [
+      "ef5558933878485001cf491a1d6fa72d4f5f84d7a95f33c3ee7a30e1ccf688a6",
+      "90e7fb479c309a5cf1c55f3b1d7b7149b583bfd9d5e6a96f5320e5281024fc40"
+    ],
+    "ui.use.it.later": [
+      "bf6db7fce85e51a30571b8c3b9f3b3881511e685f44dd382b666e4eae7637b1e",
+      "efccfe6a236c882793776edcd906a110d3eca17ba174487842e1e3c3b73797ed"
+    ],
+    "ui.a.temporary.space.for.windows.right.at.the.top.of.your.screen": [
+      "c150bb85010a7094ee92156346d97331969b628f9084e20b4eb4431d2b4bb598",
+      "4ff02d99b9effcf836fbf88f4e26c07ca2ca5cba77681d1bd120d167e315f63a"
+    ],
+    "ui.download.for.windows": [
+      "62eaf8ed6a90d53f45447fe47aeff74eb01a5ce687ef7a1e469cddb510a01eff",
+      "7afc1149408844f437d72d5ede74d7a3bbc91a9a521ff7e31c2dd2e43e75b116"
+    ],
+    "ui.view.on.github": [
+      "20672423d71690888afb7caa922ea2a23592d49346341b1eee292de65189a296",
+      "6fd666f7bcdbc8c89e5f4331251d460294168cc5a553e25e27d8f5c21f3c49d6"
+    ],
+    "ui.desktop": [
+      "9bd88f2485acbb9426ad3dd9e06842ede8c7516d0ba8559298675f09419681fa",
+      "f48d334495f6e4f4c822216de40c5476fa9cd7a42783e6cc01300e7c387ed40c"
+    ],
+    "ui.temporary.space": [
+      "55f1713797bbf120b0e17f3ec738d50b5cb87303868c168b1336b44786d3db56",
+      "12c588dd47d2ad851daa48b0d9de76ba41b8537f9a2b9601409377b1afa73d02"
+    ],
+    "ui.ready.when.you.are": [
+      "34ef570432852cd659e15beafbe7651f0bb47a68a03a9c8e0448c9ff93cf476c",
+      "f2fbf0434afbe01e3130443697521af247a144f4d51cc16e985eef377920bea1"
+    ],
+    "ui.3.items": [
+      "0caa3a694d7820885909fcfba89d2b59c5512efcbec5abb10a706090bf9ee2ae",
+      "38d3f4798f576e267327e6ef247c8bad9e0745f7b43f88064e0b42f38b320199"
+    ],
+    "ui.2.4.mb.just.now": [
+      "8b1c1e9cf95ea4350c099e3d170daaf3d448a24e8d5b482d3fcb6e3ce17a0fc8",
+      "46d437ec2a7c6c44fa03d26c5b6a7894f0e3d482fd4165bc7bbf04e2f60ee10f"
+    ],
+    "ui.1.1.mb.2.min.ago": [
+      "91aa4a002f22ce2dcff0a9c250ceab808d6ec11136009640e4e99f4e63abac0a",
+      "241ba854ebf5f640daa441aaba2643c446ca8ad7133e722d3b93cf02730edddc"
+    ],
+    "ui.6.7.mb.8.min.ago": [
+      "2bfe9b2296273cabeb3288352b9d08e3f48b05f368ae60b4a74a88b11da727db",
+      "f53385f25cadafb9567b79a20bb84e3bf704ac657f082db63dc5e5a0dd7ce625"
+    ],
+    "ui.removing.a.reference.never.deletes.the.original.file": [
+      "c17f532d218af7fa0cb36afd065363ca651c5ae159e3427fb94c60e1152b6c75",
+      "cedf32d3446ee4a3c7c6ec5917017021789a0910119f0d1b14bfa6bb35b212b2"
+    ],
+    "ui.1.drag.from.anywhere": [
+      "8c70c1ece0ba380c1a465af1faa13a216b71001abb7bdec9c5bd1c1b5cf0a9a2",
+      "a760088ad5c5e52057606ecd854246920b41348aaccaa5fba44c4b16c626b3fc"
+    ],
+    "ui.2.drop.at.the.top": [
+      "aefd2becc0c90b129629532e956960ca6bc9f885538247ec9d76c1d1b75cc6b3",
+      "0180a3f9864db3fb1bc6f78457c50f94949dafb5606264b9f6adaef26a14744b"
+    ],
+    "ui.3.use.it.later": [
+      "4fb6d15ca12f95f00684578fa61d5cdf27146c26315f03e628f7b30c00bbfaad",
+      "2b9837a26f9e83f842a0e89a87fd5a8133a23dac6a69b9215d2e2cff385a2e0d"
+    ],
+    "ui.01.temporary.space": [
+      "36f72a6f4aab839697cfca8d294b9b3a6c0a05d9b817e25fd990a593a60053dc",
+      "8d76356b2c28198314de3c0fe99f29578d11ce75fababd8077dd3d770b807150"
+    ],
+    "ui.without.the": [
+      "8b36ddc059b1320c44a2ff536cb1d509dc01894b5983f38f0b1d957a42c009b6",
+      "e96625e10c455ca7d267bc15ceeba2a04f58586b28e86e41844d9f8d03909185"
+    ],
+    "ui.temporary.mess": [
+      "c7d150ca8a409f80ccf191f402f22f71f1eaef5e77b3a5dc17201a2998ad500c",
+      "bff6c1327a35c78b1e46144ba02a7bfd3e81cd6b616f55335f550f1679604942"
+    ],
+    "ui.dropspace.keeps.file.and.folder.references.at.your.fingertips.without.moving.or.du": [
+      "f750caf08bebdbec439d90748bac1bf06b9abf17317e9393cb95ee605ecbc5d5",
+      "1c74a364e6eee5b5c25e9e230f781f911104a10199f61f9d8b5afc519ebff05b"
+    ],
+    "ui.documents.projects": [
+      "7645e9d5befd8be84cb2cedee4c3560297a7227c6f74d8f158684e572b9e2eba",
+      "b9a51123a06f383617fc2f2d94876a71a29f475298bf0613248784ee85974692"
+    ],
+    "ui.home": [
+      "3a78695388b38b5cceefaf6796b0137877514593543b91af2752d5a17e3d736c",
+      "a782f2754c833394b95d20ed9727eb0915b24dbce8a0dea6747fe04db412f53a"
+    ],
+    "ui.downloads": [
+      "d5fdc1af021e2d360ff80496c4c5d698e77fc3015a157ea08e8e60cf81690a46",
+      "d477c75aa6561c9fb7b7fea6add7ff9bbea04ab9dcc27220dc3da37aa98f6afe"
+    ],
+    "ui.documents": [
+      "b4e929d8bcfe04189801a8ed61496d177d9e30d1b2826f4c9c4d00b3e705fa8b",
+      "39932f24fe11a6baf55145a8ea05e1abd8f773d4a98a0785ca27183f2ececedb"
+    ],
+    "ui.pictures": [
+      "1e6245009d6770359aa1b1876ba50934316e7da4a22cd516deebcbe60eaf70c4",
+      "b210350f38fc32fba64e1afeeb2ef62a5b18990ddbd778795d6ee9e6d7111745"
+    ],
+    "ui.name": [
+      "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50",
+      "a5274f38130516bfdf9973d82fbf471ba3d80c722877242232a6d1b42da50222"
+    ],
+    "ui.date.modified": [
+      "eb5e7a5e3d6890dcf14dc744427076a3dce87b48f7c19dd760a39238f99d708e",
+      "2cbced881b2df35a46223dfd6014a6501da0f519dae9760251345ed9376da099"
+    ],
+    "ui.reference.source.unchanged": [
+      "cca3ddab0f8ff2fe974f3955c6b0e92716e484043211d95323b581e52363a66f",
+      "ba1f4ba460ef0dc0519acfd02fe518a281eaa46dfabbb685e576d29c07c2f256"
+    ],
+    "ui.original.stays.in.place": [
+      "936a57b6c121d630b78fd4a1c07db7d8da3b78c52307ca037ec0fd16672013c8",
+      "de30d05b61f78311b28f032d69c0d9cae0677121c99a1527566781b4fc187b19"
+    ],
+    "ui.nothing.is.moved.or.copied": [
+      "8ed9c7521dbcb128804448fc099e838457423bf80ffbefa05de2679817a71a9a",
+      "ee3b9a946186481a9abe79137a50e25d0ac1c34c78323174c5f4d85dfa55dff4"
+    ],
+    "ui.02.top.screen.access": [
+      "c3654e461c4f011f812c76d13e37b8140234f79b2512f7bda6225a9cfdb1b9ec",
+      "76486611ac8c6dd115ca54a99ca3ffa0b8d95b59fc40de892bb0aa4d5010ae44"
+    ],
+    "ui.one.island": [
+      "00139d61515cb7f4cb4c9dc6253f669e92402e3cf25d023d99123615fb4d7f8c",
+      "82232f767048cc45153091d61d87ed992df8d7ef0a99bd03000b817806f26e39"
+    ],
+    "ui.ready.for.every.drop": [
+      "7b14da5588a18a513ac76fbb50773c41d5377179479e17e6aef12af2429cfaf5",
+      "c3f26c418255f57b0bbccb8959c5ba133f4cd3ae460a4962b5a26b7d49e4176c"
+    ],
+    "ui.the.dynamic.island.stays.out.of.the.way.then.moves.fluidly.through.compact.drop.re": [
+      "19e8402e4d9b7796175959bfdca965eee619f3842cac55598e6254b35577e03a",
+      "7c1f1a696dc55cffa71ba59da537ad562efce1959c1c92ff30f7009357feb905"
+    ],
+    "ui.dynamic.island": [
+      "8e97be4670d8277edab39c45c2edf83b9722e0943ff83933e9a0436cd2c9ca5b",
+      "3dc4b3b0ba66f0c9bb1b28f5eb1bc964d987ac6b440ea369463056a691caf7b3"
+    ],
+    "ui.one.continuous.surface": [
+      "f4bac505a0548b09bfbc996fe5cb9ee5171e5fb866a6e1814b21a94e3af9d2a0",
+      "5710b898e2a84cb0243c022b983c4b2ed308e41d5711ea7fec7923e873faec0e"
+    ],
+    "ui.drop.ready": [
+      "0799716349454de1640fc8ee5f628e2e704fdb265f74f638eb6a6de1ca079cec",
+      "168cdcfe42f2a41d717d7a5f466db6223726f1fb31a589fa2d2d851324117b2f"
+    ],
+    "ui.release.to.add.files": [
+      "724effe8573f61bbd48486c031b2f0f4c4d8d8b13a5afcf7ff2ed058df8bfad2",
+      "25fd2dd8cfc5e40413004ddee771609885a18aa34bb320ad38f9520872976325"
+    ],
+    "ui.3.recent.items": [
+      "d38494111db9a7007079e7476f67159286b01dc0696e2b72f512a15ad52d6fc2",
+      "c49ea92fadfc58fc0d5dad200d748fae3ca7d1c12a578f9210655bbacafdf9b9"
+    ],
+    "ui.compact": [
+      "99452646e34b69704c9134a093d5ce5af823cc6d4ed3566fe8ad3ba1555057ae",
+      "de2ee8000be5edf768bcd1bc53630f24a6d1288b936d97d5f5a6ab3f4ee787ac"
+    ],
+    "ui.expanded": [
+      "e72d5d8d0b167d21b4e4a89e0837a1e819195d18b5f7fb9a2cb2d48613b444cd",
+      "ccd4ff23f93b9172ac0e9ff9289dea95b649b2b3c646f496b50d5d956a45f6a7"
+    ],
+    "ui.03.native.island": [
+      "4a175f4d233e698d69c3aa73eb7f2b7e946bd29769c6fc3c3561075593735b72",
+      "a0e17cc6db08ee27fd211927e864778696046f026f0c5861d7cc90dd4876c983"
+    ],
+    "ui.a.little.space": [
+      "b76288f905ee1568b913438282b26028fe77d841882a7ed3f5e11bfee924ce4a",
+      "37c182941627776e976e5ae1ad146fa802726e943af88f7fa6058aa4b494b819"
+    ],
+    "ui.a.lot.closer": [
+      "383015efd0f3ac029f04f16feb61b55adfa321c5b474fe2d5e27e7985f8e4fb2",
+      "b5bc84d2d9b1ce52d0a64d8f724dc4402c30b839bc7994d2b10a65dbe3283805"
+    ],
+    "ui.widgets.music.files.and.clipboard.four.distinct.pages.one.familiar.place.at.the.to": [
+      "1e5615f0fc7eab78cdd61cb64077008dd2cb13d553907a5d2c61f86db011e565",
+      "804385bfd208eaef1d118d9a62705e87986f2cf897b3fc39ac30efa32bd34ef7"
+    ],
+    "ui.your.desktop.within.reach": [
+      "fc6db6c1128bee3b356e7d8e6d13d1ce9b137e5d7a1eaadff62795d5c71d968c",
+      "b39f71319a6c5734890bf6ef79a978dd0f8cd751f9021248ccf386e17be0e4a5"
+    ],
+    "ui.widgets": [
+      "1fda79ffb65973572d06d113cb166a10754223f2c0f232b29c79508497e49bdb",
+      "ddaad9d375cdd0c8de9fd3a168a75e29017a1abba71ecd4aaa9110a6f8370dff"
+    ],
+    "ui.music": [
+      "6eb00b4b2614a144d41ccdf709017a675953fae2df6cfd6b397bd9e4d8708461",
+      "78998a594b50647db74fc03a35648107432e15d1ac16d689c6c3ff25f3f06aa2"
+    ],
+    "ui.files": [
+      "abc7e9892806b047b4d4786b3685285543f76ca314c4c76246d5f6544c7856c9",
+      "a11ac5efe91d04d2016660dc10df5a7ca22d85329a8948c7d69cf07214a82ebe"
+    ],
+    "ui.clipboard": [
+      "285d69f0c5d1a00bb2eccde0cb4c93367b3e94955acff9fabd895f81a0c45c59",
+      "ab3d79cdd79e3e35d688131fed89182aa6c542abdacd284703cd83555db6a23d"
+    ],
+    "ui.clock": [
+      "93ff9273de4b131b4cc3187f9d59229bf3e2c50626cbc733f6e44e3cd7b47d25",
+      "119cdf1764de600b31cb1eaa65b45c5bdbbfb9c7ed571e0c87943d73aa1389e3"
+    ],
+    "ui.calendar": [
+      "d5d0a30b517e3beab07609d7e54c378db5e15066f22280af453f587f7eec7474",
+      "58b1e031212e48a75e5176e9df30bb361a55e355f0402f1d817889c3c878a586"
+    ],
+    "ui.battery": [
+      "dfcb7c1619d5abd12f2df162337eaaba53ebe837d8de991db4d4d8a958867815",
+      "1ce227a37e3d808e4e46c7b8128c5c6a8fc870684f9699184fefefe33be5c1d0"
+    ],
+    "ui.your.everyday.essentials.a.glance.away": [
+      "8efa0f90617136513ddfa34fb5b4aae1d702fb0f665e65d14b6585ff01979b9c",
+      "4d559f5818bd8256d421ddd3d1bc8c8116860911b7fabbffdac854c8da6bca15"
+    ],
+    "ui.now.playing": [
+      "e6a95e23db97d828ed8f5d98dbef500315c9c5942e1d635ea151750cef509b59",
+      "e6666b2eb3327899a00d3a789e435dd56a5fa7923629bca608ee2e1f580263ce"
+    ],
+    "ui.stay.in.your.flow": [
+      "72956c4900a189b81db21e7ee192cfe45615767382d72c1817222c842968d4e6",
+      "b0c658a17274e32a36b0ab3e1527cbc695eb0cdfde5c6a0cf9d60ba58a67fdff"
+    ],
+    "ui.playback.lyrics.and.audio.levels": [
+      "c3ac61d2bc3cef95b3ef1c6027aadbe4c0f1dca85e9b3d6d05d3b3b4940021a3",
+      "a4d43714fc5e7922bd8b5ac45f36cc71ffa55225a2fdd9efd5f9159aa02c28f2"
+    ],
+    "ui.keep.your.music.close.without.leaving.your.work": [
+      "44608de2c7c8f7ba7f328f255fd91827947284195b02e1e37e040639cff3a9ae",
+      "c1f5516e281968cbe3508edf65cc225dea323ce6623841b17cac63ccaa5f5d29"
+    ],
+    "ui.a.place.for.the.files.you.need.next.originals.stay.in.place": [
+      "2edb3873c14dc42eaafa8e094e2778275b865ca6b78b1852f4281168ed3868c7",
+      "261a910f52d7592c46c0b81be1c28a22253384322e67dda4d134378a7ebc7add"
+    ],
+    "ui.pick.up.where.you.left.off": [
+      "44f88bc6c6fc452085e6474bca3d5185a7402756c63155b675803a6ba46d56fe",
+      "8df5f74e441d44da841bd50b3dfeeef0ab059e8822581f30406bcb265b317e7a"
+    ],
+    "ui.clipboard.history": [
+      "7f62794169a71496db114eac0b3db2746c01b98fec9a48ff28412246b84905eb",
+      "93474feea43f8f7415b6583433c14662b8ece636fa9c6d5e81a1005882149e98"
+    ],
+    "ui.recent.copied.content.separate.from.your.staged.files": [
+      "a2c80072a06729b322a154634419333126c0684dfa2d5cab8dbfd084d6bf5d8d",
+      "3819e26fc4a4a4ce293884c7e79d88c18bb925ad6414a9b5c1543e90ea845c60"
+    ],
+    "ui.interactive.website.illustration.sample.content.not.a.live.desktop": [
+      "bcad530d0415cd6ff2ec71ecea2793f193357a78a878b85616dded7214dba0d7",
+      "37568d975acba91a3dbace5cdd9ac2837be4372623ae7756b4eb6fd9e5d3cbf5"
+    ],
+    "ui.four.pages.no.wraparound": [
+      "c96262e9ade32ad79f3cfbab32e1c5a837fd63c86d9ed945c1872f905e95db26",
+      "e171db312328f417537fe12c99238afd44b08e648c5f554fb6dd21a4d22e6719"
+    ],
+    "ui.playback.keeps.your.selected.page": [
+      "3365e97b44e87cefc8e8a52e39e52728034bbb7c322e869d5ba5536fcd66dcd4",
+      "31ba9ae3cc3a98afb34b919fd9e9ac016d8b0ab072e7fe9997c1d19bc39bcdf4"
+    ],
+    "ui.drag.a.file.to.reveal.its.drop.target": [
+      "fa58f19457ce95a91131f7f33b10f923a5f1d4c731bdd49dfd524a7572d3e50f",
+      "38eca48dfc135f7ea890f3f9fdd11658355302a20b048e49e0a84e7d3a57d0a3"
+    ],
+    "ui.04.widgets": [
+      "367a6b15dbf6927fc4060ee8dd4e28e0f5139f85cbf9f6e30802c2fccd8349f4",
+      "dbea3202e1e206130f1ecbbba81607c166c1e164932e33b7a292bd6de148ba72"
+    ],
+    "ui.small.things": [
+      "709feb1c26a58c8d5c6046208cc7761947019c80ca3276a9a71e2c3bc48c5391",
+      "29b4084a2b10942b03825ee497deef846d7e87891cf438c79681bb0b3137c4f8"
+    ],
+    "ui.your.arrangement": [
+      "f5feb6ef484520851b157f882e5f7f0ceb0b45e21b69696431c81f1f34099d4f",
+      "645c378488e9ddaa2f5ab2f5bc938d89e13100f82fb6ae4a3de1d61f5c3771c7"
+    ],
+    "ui.keep.useful.widgets.together.on.a.flexible.grid.arrange.them.around.your.day.and.c": [
+      "5659a0431c06206c0670257de08195ba00c7385b9947cb87447faaba64d50b2a",
+      "320891e99efc93a46fa776b0561ae28755ef748b38aac844672e0fa6775119ee"
+    ],
+    "ui.new.widgets.find.an.empty.space.your.layout.stays.put": [
+      "d856a9d2e0608b67be378a3acc0e0653463e8ca62049d1495a62dee7ac483b60",
+      "d8391f4a5df6c26e07bff51ba26f0200660a5b2d7b10582db92a54ecd66f2938"
+    ],
+    "ui.drop.onto.a.same.size.widget.to.swap.their.positions": [
+      "afdec62992bb052daf8a666ca79e14419cb0d3bc6575f1496535dfc277e194e0",
+      "df772392ff0dbf0b7d8a7608cb2c48553345ccd5ab448fe3c2afc5416eaa1ad3"
+    ],
+    "ui.a.clear.selection.outline.keeps.editing.easy.to.follow": [
+      "5a4daa01d9f664607717d2839d8cafcec44124096710b9d50827ae97170e3097",
+      "c3903f500bbe630a07b9f70c8b16b6fb913d802a5893dc98e2891934c97230a5"
+    ],
+    "ui.make.room.for.your.day": [
+      "4a8c59a3bf9c3ea993b0fa7979ec1a5277fdd8fe091526f9199dfaae1153eb86",
+      "de0ec14879dfefdf6a2b6fe8923ce191acaca8a9dfd6c5262454df6e2493c960"
+    ],
+    "ui.resource.usage": [
+      "cafb2a6cb8d83cd632dc7da20113e8f1b25033d006eb38d97ce997602914f776",
+      "57f61ab3509be739065eb75b5e7399288d489f122b0925ccee8530e6d8104581"
+    ],
+    "ui.settings": [
+      "74a883a037bc227f91891ab654a753d3a99f31ab06ae5b5d2b6e594a692b41f8",
+      "0d8619aae051ae343ea983e969d29b7bd7a618eb1b25a6c87c133c5e3ee25264"
+    ],
+    "ui.uptime": [
+      "d63ab4711473b0398feb4b56622605d5d2ec7ecd3b1bb5070a7dd56de96aaf88",
+      "d36efd2f17fe016dd1cc036790bda394744c4004d629481765ec114ba897ba6c"
+    ],
+    "ui.stopwatch": [
+      "cb880222ede338d39f730074babaed16fd8a3750c813e2a678dc44e86e994ffa",
+      "52f74d1ad031427e364f535df0bbd3e777fe722d3367b14627997faf06f05e40"
+    ],
+    "ui.capture": [
+      "1900b478a5860384597f32d4b22c4bfb537daf25016106d3657d44442b183f2b",
+      "c66f092f080acd6556ffc2bfc701e2b73a4a11b86d7f941e34abbe5dc56cad1c"
+    ],
+    "ui.clock.calendar.resource.usage.settings.battery.uptime.stopwatch.and.clipboard.capt": [
+      "95e28789ddc642541a1a0d4173cf2df5f81a50f65909d0b0acfdc53c98088251",
+      "d7bc85eb9f6bc5505c22bf5296fe27449cc85a4b5e5dfb14349d16567bee7d54"
+    ],
+    "ui.05.music": [
+      "f08f40daf7e85bf8badaaa2f990f67bff0ba24b740fd1abc72e30f6b8cbbe21a",
+      "2162b96614e4338b70a9383f6090f4d1d91843c5342556700ed612b77ab73228"
+    ],
+    "ui.stay.with": [
+      "a2232700890c1b253a3789c620ce5379f6fe0e6587fb8a5718708312fcceea15",
+      "c0ea49a6acd6c7a31dec90591710ef841f414389db2ceee72da9a94ebd66447e"
+    ],
+    "ui.the.music": [
+      "53a017188231cf6354118e1b470e898517a54ee62eae2ff9e1627b217a7409b2",
+      "f890ff29c490b07d8c6199142b1d75fb1b8148d6b33e78412fe408cc8552e03e"
+    ],
+    "ui.control.playback.follow.lyrics.and.see.audio.levels.in.the.island.open.the.dedicat": [
+      "163463bf55b55fcfe31596c6f8cc78639851d27f8ba29f637f49bbed9f6c154e",
+      "04790e3d6b40b82f9d97379a722450927cd12eaca64fbe3b61db4151dc5a1631"
+    ],
+    "ui.follow.lyrics.from.your.preferred.source.with.automatic.matching.when.needed": [
+      "a88d97ffb13b8b1650d88a75fd3752c2d0856f114421f630b64c95cd0e9fe4ab",
+      "764bfa6e23d887f4d1175a711d76b6ad8f9975f650da183dc24cb57a07e07ba6"
+    ],
+    "ui.keep.playback.controls.and.lyrics.together.without.switching.windows": [
+      "42b793baae75e48edf0953f3a7bfe77808190364ae999f15662df0e10ee5d421",
+      "acf8092bc8c7f06a7ddf61fc1d98975eec62c3eaf8584c190ec1cf1035ac23c6"
+    ],
+    "ui.see.audio.levels.from.the.playing.app.alongside.your.music": [
+      "0876994fb0c899a71715e4f61b5955c4352024735b9e1dc7ad9cfe951f3e9690",
+      "8d922a0e8ce890d37b0469f5d498c09e5e2a604b093cca79199e2ad00de6e958"
+    ],
+    "ui.lyrics.and.audio.visualization.depend.on.your.player.when.playback.timing.is.unava": [
+      "51e1be8df41bd8915f4a66f53a55e88d95d8bcdc91f9da413b27ea5df30d41af",
+      "48d06f9d9e5d46083fdbdd567313c3e212d3bcddebcc879f8e75ea2d45d6a175"
+    ],
+    "ui.your.music.at.a.glance": [
+      "014bc263d4b01751db0f064a40faf13dd3498529196a762f43aca9e18b25a708",
+      "a79bf54a8eda11162bf5f31aa6da0dedb9109e02ad7feb36a9ba94d827f2f2ef"
+    ],
+    "ui.room.for.the.next.note": [
+      "41f5410754b66957a00f00fe36d28bd7cf9628fbcbba25c616f536f99d0fc762",
+      "e83601f507f868f4226f686d10815d465df2ca47f977b4af533666f42c153e3c"
+    ],
+    "ui.music.controls.lyrics.spectrum": [
+      "9770898f859385936e062975e75d205d2186c99eb90c58c54fa9e94cee393142",
+      "e7f80f0670f2fd501d3bfef4a6481da047daf236a05ef1c53469ded39b64247d"
+    ],
+    "ui.website.illustration.with.original.sample.lyrics.player.support.varies": [
+      "aa361e47d22f822e9ef5d4b97b46dc0d573f7394b05565305ba23fadee22ea99",
+      "6e64fbc3571a5ed2c7d1080da91aecf185e8f3d77d01d893ad0a849acad7ec72"
+    ],
+    "ui.06.ai.lyrics": [
+      "146a73a66808c52a15ff51f533b1f667de58f77fec492816b239079d959210bb",
+      "8b552bf6bf5fcd6e2d81953c70f5c4041519fdc72248f995a90113881cc5f054"
+    ],
+    "ui.feel.the.music": [
+      "62709c89e31a31a03164922d827b420dcdfe98d78536c34a55b26f0c572a9c0c",
+      "4e8917e19690c145820ef591227eeefbc1e9fb654cd9f245d5dde99f84868177"
+    ],
+    "ui.follow.the.meaning": [
+      "a3602e3509cd4c93a8a8de71d95e2fa00292352ef4efb520bad9c2493abd1399",
+      "c4f6ef77dce8d48f41f0aeaa7678f2e7cd0ede0686d74f5dfc836066e562332a"
+    ],
+    "ui.original.lyrics.with.a.translation.into.simplified.chinese.or.english.choose.the.t": [
+      "495b3bbe1b0bff850f9dc66ebfd30cb245231a90a2290f62760801bb2d9bc15e",
+      "bcaa6a4aa7967deda6570b5f5e3ff5aef1c7a690004e27cc163be5ee1705d24e"
+    ],
+    "ui.your.words.your.pace": [
+      "9017dd9422c27c3978bec9178422cbec18bf799283765dd62a5bc68904178c1b",
+      "859c2e1d85e3b5783f5b496de97ca042078c4398757bb154d37bf1e22183c85b"
+    ],
+    "ui.ai.lyrics.dynamic.island": [
+      "ad99e5430b364694efc03a8c92243cb2fb29b9c82153a8e660df33167d3752b5",
+      "c25432faa1acd14e1e0f4d1dc1ed92838e56de1154a1888df8a4374ba8da7f82"
+    ],
+    "ui.original.demo": [
+      "e8f4beeae9ef78e1231a663bce753d0e85f2be3110d7062746f5e316c7f7cc0e",
+      "1fc7513e32dbe4f056056fb9b1d9397d1d02b755dd05f6843615aa38fbded96c"
+    ],
+    "ui.on.device": [
+      "d822e6257a23a940d628fcd13aac14bb035d76c50c2da59d2f3c8bfc5b9e07fb",
+      "a57d10c15f8eb25e3babdae80a47ab6cecc5955f1c2cf81795055db9eb158dff"
+    ],
+    "ui.glow": [
+      "f534ed976dc8838f13bb15cd2eb51bb48099a845ad95089627072682a6ddbb54",
+      "22e8af21fadd7e116a6eda45cc069335fa25b32a63830cdfa2efdb94c8f22eca"
+    ],
+    "ui.off": [
+      "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1",
+      "c7fdddf79eaa8c4f71f4976d88201a632dad2c10b518207c8dac164252ff63ce"
+    ],
+    "ui.play.sample": [
+      "751594636b34e9a30f4de2be10b2694a78da943a0bc80f275f43283d3b5d39a1",
+      "dcdf136d70dfc4e353c4642c68a14d7e0f55097a9f0719c98bf3124fac99adaa"
+    ],
+    "ui.music.light.follows.the.sample.rhythm": [
+      "67bec45d73e7059560d889473046919d9020d976a5b3be1cb0367d90cb28a3eb",
+      "7305e81c24791e225ad2f5f826726e674e1e1b4360f34c46dabe74c7ea5798e1"
+    ],
+    "ui.interactive.illustration.with.original.sample.lyrics.and.music.translation.shown.a": [
+      "1ab6fcc1e806066b1abbc4b35a92afadb36c2293f04128351b645d6d689caf23",
+      "e64a97872adda7dcb934c797a614f9ac0e7a3623fcfdbc52858dc75a2d546b1c"
+    ],
+    "ui.choose.your.translation": [
+      "cf76ef9d809a7bef71c119cbb52e3f611307b6a0408c45a1e5cc505a5352988b",
+      "9991d8b601bad32d6f9607637e16d08ab089b5f7ebbed52bf475c984e1600ab7"
+    ],
+    "ui.choose.simplified.chinese.or.english.as.the.lyric.translation.target.independently": [
+      "dca312a419e939089ac6d85ecaf6cd5d767b167def70a151894b9884a547173a",
+      "ed5db1b702bc1ee5f3b1299589c42621517de12cbfb6a5b33d29f6575f53c20e"
+    ],
+    "ui.a.model.only.if.you.want.it": [
+      "7eaad1197feda581591ca585ba5288531d801fd2451f6c9cfbbf73fd1a5f472f",
+      "204515564ba3ca46c749d0aed4e5a0e7b2566ff2282d58a098d13a8816245df1"
+    ],
+    "ui.ai.lyrics.is.off.by.default.download.the.local.model.only.when.you.choose.after.se": [
+      "51cb9b72150e92d3b1cb8a7db264a3a9a92d5759d925a8395ddfbb500f95c0f5",
+      "db3c8e7e9f758498bcdabbe489e585e3e3582df1dfea945477260ffb762588be"
+    ],
+    "ui.make.it.comfortable": [
+      "ad8e0ccb4a7d53d601f17c5972ae7c48634b1f64729b98cd87bacce717934caf",
+      "fc5a35f1b09dcc25bc634e6201e8e9618043d3272668a98f0f5069000c9d1414"
+    ],
+    "ui.turn.the.glow.off.show.it.during.ai.work.or.let.it.breathe.with.music.soft.orange.": [
+      "36cb493d63b0c097ebc2b2e3f8260839f1f3d5132d340deb45905f5953019fb2",
+      "22f8139498ba70de7848de3be9c68bb00922deab4049c87822389edb67e1e141"
+    ],
+    "ui.first.time.translation.can.take.several.minutes.language.coverage.and.quality.depe": [
+      "71677f240cac4992b2850a4157b28607f0e70bc53ca535414e76a72a885f8003",
+      "22ecc5b06945ed8a70ac694033c60e06612fcdb5702a1760bedba11a1a993a08"
+    ],
+    "ui.07.clipboard.history": [
+      "b495ec84f70a1551082af3ccf70963de8f453bd80064424657e3a8a5944539a6",
+      "fe3cbea4b412731ae7e4f820d3720a84a95adef7d717fc25e36c796f38bc8968"
+    ],
+    "ui.history.that": [
+      "d8c46aecc1177305b7d47fad77c91f092249d8e629337e85512a823a775ec352",
+      "e94deeb7db4c3b2cb23fc9a02319fa75f83968ab126757ce4bd5d4dbc1dbe59b"
+    ],
+    "ui.stays.useful": [
+      "a530604a4692be905742f4a39212f3e9c10dba78e3f522cb93b2a5cfd2648d84",
+      "e611e7ad5b79a9ac1192a696d79ea61de9d28483c1ea7d82fde545b75811eb42"
+    ],
+    "ui.find.copied.text.links.images.files.and.folders.pause.recording.when.you.need.to.p": [
+      "b307d2c94966c5a0131926b8e717858df500128bddc28d3e6d073067add5cdc3",
+      "a541f5dea19bf4eb23a9abf2d6ec80f8ba96c651204c9477db8fe23ff860aaae"
+    ],
+    "ui.consecutive.duplicates.collapse": [
+      "3fbee3aae5f383d0538d1b5f5bc235ed4c3df74d8bd933402b24dc262d324578",
+      "59957a7b0caf05eaafc74a491e9a8447b36fcb431100f56f95303705cec47501"
+    ],
+    "ui.useful.a.b.a.history.stays": [
+      "691d2fba87fc747f241c3ba32adf8879084d8ed87bf6fdffe5d49a53af16be19",
+      "f0656294a14a965cf801ed6a89e9f4c88e5309908b5ef12b4c9cb423fc99d731"
+    ],
+    "ui.all": [
+      "a52ace420f2175d08b1577a1bea5445e36801229c074ef9ed6c55a73401fd9c2",
+      "5c55a67935af8f4508ba05d6d81c9eb240a2ea0ba886d8428b985e305470da3f"
+    ],
+    "ui.text": [
+      "71988c4d8e0803ba4519f0b2864c1331c14a1890bf8694e251379177bfedb5c3",
+      "14b69bd6eeb0839b41f193e8190713b89e19d280bf1b688bfff962dca31362b9"
+    ],
+    "ui.links": [
+      "9024c197d84940e47ff6aa631b7711c4cbff4e7fb2fe1a574a3592b662983a0d",
+      "e9b3cec96921890961b9118c7093b955944937318bc0f593d2217aa3d0e06ffe"
+    ],
+    "ui.images": [
+      "be7e2f20129365c2899b2c11bfc465541e61b1858f45bf0248cf99b9271bc707",
+      "b210350f38fc32fba64e1afeeb2ef62a5b18990ddbd778795d6ee9e6d7111745"
+    ],
+    "ui.pinned": [
+      "f20c879465551f0d1457a13d4390d0f1ece456b115d75463169c5d55341b9b1e",
+      "6571042f79d1ffc0969d8da226d4060367d07101bf5ee65fbb3e6e3b96ededb9"
+    ],
+    "ui.text.3.min.ago": [
+      "68f3641093b58bd5f67405a41a494730bf01cbbea8c7008139f1c6ac0c03976b",
+      "445f00c97522dac0ad97ea8af0afcd8969162c055d5f9df45cb3f2b672355adb"
+    ],
+    "ui.link.8.min.ago": [
+      "3caf2b9d6a45623bc503f3caa09ba750f878acbdbf373994771d93c628d85657",
+      "bb2bcdf9b857742623cf0aca3c068d1b69230fcf7eb6b0cce3c066008148936e"
+    ],
+    "ui.image.14.min.ago": [
+      "62bd924805d46f94d5a648a7227c7629babde05d1385e403f220a86fe5031a79",
+      "44c945c620fabd9df9ce4dcf10e588c4479d29d665bb4813b0522d491da0850e"
+    ],
+    "ui.file.22.min.ago": [
+      "646983be0cbf3b868689d7a009a029fc3418976e1f605c6f861dfdaae502838e",
+      "7ca88aecea7a7e340be85d6038251572e302c0e07e738158997974709997f318"
+    ],
+    "ui.08.drag.drop": [
+      "81605f728ce1f1eef448ca5464a941a39868210472785ccbae4e9d651334a65d",
+      "f97e33030400b9b744ba25b97df1e5af63469714f8e4ced6aa107442ca871947"
+    ],
+    "ui.built.for.the.drag": [
+      "31a7751446d4af1dd1d1ed09239c7560a3cfff41efb21e41ac920434cce282a7",
+      "6f0dfbf32d743c172a4c677595e56a58e66101232d6b50af2fc93f562e07b538"
+    ],
+    "ui.explorer.desktop.compact.expanded.or.the.main.window.dropspace.meets.the.file.wher": [
+      "1c91990c67663348232224e5b9b96e58e474ee98cc1f111ba3724aff69ab4e76",
+      "cefd678650cfa3c20e0342f69d2df2e3235c8e54dea5970f37477322856c07fd"
+    ],
+    "ui.explorer.desktop": [
+      "eed165a81ccc280866280e054bf301cdaf7373939d13778f8f550616e087e3dd",
+      "0543855884a8619bfb0ab9fff150f511908a9b06f07a9389facddab3921e34b7"
+    ],
+    "ui.compact.island": [
+      "a16648bca61f20b9761e0c0715cb8b7620319272417f2a52a822c27d7cbac9de",
+      "90e763583cf225b463c4a8657d0a4e9c9b24d1b70d956f9efa11755a0bcaf630"
+    ],
+    "ui.expanded.island": [
+      "ab5c2a0c22c5b9a3d4fa3e2d87e733d626a679969475d997578b4b304e68f10a",
+      "d763823edda0dbddd56f30326cd2384c1972decae841e0229a763b50d00acb9a"
+    ],
+    "ui.main.window": [
+      "5940facc799a2e4b39b028cefe0d2cc74e3dc08fbc682bdfb2904c4cbe449006",
+      "0633a5c475a3deca2fa6eff05afaa8a8b962e2615cbbc7943ac4510b474abf55"
+    ],
+    "ui.drag.in.out": [
+      "7f6daff38dfbd058d618afd875c5a6b9470c3dc6eefff0e4fcf13288e48c1a7b",
+      "8ddb72be327fe4341887729f1112c25fb6e95ab06cde38be7163cea83699738b"
+    ],
+    "ui.search": [
+      "49c266baaaa70981ea188fa714d5c40cf13830d786a861c9943ae0d26a7f3fe9",
+      "03c481a6ab85c30da4de8b33ea31651a234100ae8c6d720b47966440901d642f"
+    ],
+    "ui.pinned.items": [
+      "dffe30b761e58266c21e00e7ca5f83d832f02960e4f0b5c23821ce4a7fdf2e05",
+      "9b3eb1a6991e0cbdd44db29abe502f4da105411dd1d234c1c43228a255346e81"
+    ],
+    "ui.folders": [
+      "c4d6bb200f4c058a9b16e900cb5495e59b52fda24cf011eedef8645c90051a8c",
+      "aabc6623539f4ded8cc959114cb39aa77fa17ca4541c2835c4c9ef85e6de4f2a"
+    ],
+    "ui.tray.access": [
+      "bb175af3ece41079c3ac3fd00adf700b16c917a647b744db02e432667aeca772",
+      "4833dfa34198dcfc91cb9d02bc21952dc921ea64c5de539b5bdf7f6b244c3716"
+    ],
+    "ui.start.with.windows": [
+      "0bfcd9317d0d439103d99966cfa0fc130b2b2aab4035fc319cd096f0c90e305e",
+      "aa0ea9d1b472b6418824bbb5392b5aa3c0e22cfe8cb23ba9848d1cce9e73ee43"
+    ],
+    "ui.stable.beta.updates": [
+      "f0d09c18beb9d24a6f5746a460407bc92da7ae03796aedd5bd8c15ea43610135",
+      "4385a60bb10ab026116982eaa40eb4ee68054473c47d8afa41988513719eaf8c"
+    ],
+    "ui.09.product.preview": [
+      "2aa31240ee530c99841ab55ccb8a1fae56cff4cfd594a80e347fb94ca2155d94",
+      "c326018827e0804f4ee42cbf95bce4f29af4b887593953e6cfd4f8a4a0f97fab"
+    ],
+    "ui.see.the.flow.not.just.a.feature.list": [
+      "0d7b42dd7dc029f1f107baa7e8ec75c572d5ce8a7dded6462a130c44617b1154",
+      "caf0570c462930e1e5fa95ec9faef555aefe0cde892a393dac23de1db8548199"
+    ],
+    "ui.see.how.files.move.through.your.workspace.these.website.illustrations.use.sample.c": [
+      "bac061cd4c2256326d0205518707b452c579b6ea5744a18ba5388ed29facfd91",
+      "31577235a775c9702a5c5619383855553921994a65021c0631a0b4ea4cb9b0c5"
+    ],
+    "ui.drop.a.file.at.the.top": [
+      "ad1dd73cc51d8d6f4b0fa0c35bb648dca25f82a251e8da631206214997b2f00f",
+      "b4650ebefeec96f3a34a4a378c72f7a5bb7772a689b860ebba8057f384534939"
+    ],
+    "ui.temporary.space.overview": [
+      "3dc597dc7636a2c831e6ba1e93014bd354810df41eed60d12ba6b6cf382a9468",
+      "fb2e1400be188d511943c737e5c04cfe6686b42c792a002fb7e38ecf748e158c"
+    ],
+    "ui.10.download": [
+      "7ff3415fac448cfb20e646035355fbed45df64ef7d0dc6f7ad38dbc73a218803",
+      "0a1d28de45d6fde145f152121b40cb7279d5d66abff5ddefddf617467d780a65"
+    ],
+    "ui.ready.when": [
+      "89e934003d8d2eccd7d4926d8dc5785b7f0cd54a13cb3cb631274a3c2fdcdaa2",
+      "1ff73769168dd04f7595a76c149f723b625fce4b8c174feb8c7bdb66af0e72f5"
+    ],
+    "ui.you.are": [
+      "2fdfc2a747a1a8f3d57f7809e1305861a9bcfe28c49b9d2ae9e7d7464a8fcb79",
+      "fa880816f1ae166d9a3079961530df565e17899256199f821d2fedeb1717b3d8"
+    ],
+    "ui.release.notes": [
+      "1254829bd9996472de64de2e8c130a27d2a3841c0209bfeefcad382cd3609ace",
+      "fb1b52af7f9d8871e03daf4c8667b3fca277076a1bd0fa563f286ec2fef5912f"
+    ],
+    "ui.sha.256.checksums": [
+      "afb0c967a52e978791e3f682380889fbcbab60ff1dba438eb389fb485ac2d0aa",
+      "52d50e977ac944590ed4fbe9e9c8ac9d7441a2fdd7a869dbd4ecb9f886b95c7a"
+    ],
+    "ui.download.installer": [
+      "5adff11f4fa29d4835bdcd41fa747031e996adf4e0d845f39ba866da4f6e265f",
+      "dd64841db0197acbd623ab921380d01e81bb601e1cb4bc97c226034804af839d"
+    ],
+    "ui.recommended.for.most.users": [
+      "0db2fde7f78ea2e872f21806d3a07f0978673db68186ed487eb99107b8387bab",
+      "c6862660b1ce35aba9bfd1e5d00fb56831762a01620349ccf1ebe60323a9def8"
+    ],
+    "ui.recommended": [
+      "baa505ce432ce6252c86d670d3635ab3a32095a03f4d475e4f4ea5d7922aa916",
+      "042d7d5a058bdb92f323ab99396e38f8203197e86fc7d6b07f0d7f21f46395d1"
+    ],
+    "ui.portable": [
+      "db6fbf13e454e01e76801e40421f261c9b9e76f9ccf2378d99ad190c12196f6e",
+      "481a4bdda0512a4811e22266aa4e728c350c646045fdb8dac3e4659b08dff1d5"
+    ],
+    "ui.run.without.installing": [
+      "46dbb6c235db62445d887733d58de7ff59de3dffdf387e07f212d8f5676483d4",
+      "c22c048a504fad2e564ad6c2d67f2ead6cd1c2fa1d31fd23db67e87f7b8cf69b"
+    ],
+    "ui.windows.app.package": [
+      "443115ccdfb0a68b6bd9808cfcf7afa2af298e3b73de836b6d24812be112e3e9",
+      "32aeaed8ee3c6a1e5b8b496dfc5ade48b6071f95ba8f115c03854d0a5122d3b0"
+    ],
+    "ui.11.system.requirements": [
+      "201e6f6f9bef68c4b94a0e39c6b649666b7e3743a5531fb7f821788bc25ca7c9",
+      "c5f652c0d3c0c900de005b6753ec2283c660ebad852b2a003e3f806a3319e356"
+    ],
+    "ui.check.your.windows.version": [
+      "de9f1c862e95a1d8396541da550a22f425e0855f4f2bd1ef0ff036bff91d3637",
+      "9ccd30b6fcafe6109c7b32787efe34cca19020de04c50e4864cc97d7a785f48b"
+    ],
+    "ui.current.beta.64.bit.windows.build.20348.or.later": [
+      "19409911fb598025d9840983b871528c65070a80980703f07bc8fc564c2dce2a",
+      "c1c8a6764f7a298ec1b3572794aca17e3c70b926d630aa46cce4cb2779239eca"
+    ],
+    "ui.checking.this.device": [
+      "cf10577f82e2c5eb45e89d78bbe762a3d4fd9374bf742a042a080581738519f6",
+      "1bb988258538b1829f7466adbddc52ce1780b13198a27d14bb9f92f8a839fcab"
+    ],
+    "ui.12.known.limitations": [
+      "f889bc3ee7f90ffd453e0d33dfceffa48a6d29788fe8ee6a52f10b7a133c0e68",
+      "5e0990f32a606a92d3f5c0858110dd0decb164812746be96acd8a1c04c124db3"
+    ],
+    "ui.know.before.you.install": [
+      "92591568f055878b7f8ad55716393909122d21c8b4a27047b367565915520f19",
+      "9bc60b5aa5ee75d35429a1b63bd01e257da3cfe6867eab2babe952ccf1065ed0"
+    ],
+    "ui.unsigned.packages.may.trigger.a.smartscreen.warning.windows.drop.tray.can.use.the.": [
+      "545ac10e430eebb608ca309f951125699465d229533c9ac04aacc986ff704de7",
+      "09e9839287a6f5d6635e11e1ff0b8d79ca10facf2ce70c40fc9dfc4084b4e616"
+    ],
+    "ui.13.verify.your.download": [
+      "6f6ba6c7e0227af1bdfedbecb3ea1ee62856aba187e1febc2380e645c9582446",
+      "ce170eff45209d0e1e89d1c99b31a208794bbe7e77b5c77025f4fea873118e3d"
+    ],
+    "ui.check.the.file.you.received": [
+      "60788cf95dbe0d6ed014a3e5389d7470ba235c5625dd566e767886a3eaf3b99e",
+      "9078ebcdafe712fdbad19b36c4d06a4f53f4991e421634528e1d025fc235ff78"
+    ],
+    "ui.download.only.from.the.official.github.release.compare.the.file.s.sha.256.with.sha": [
+      "0882ce489cd1bee47e1352f3d7640107f253129744f01c478c3d44a4e8226474",
+      "7780cfa4412e10cb35888901757633fb8edc26cb36a3902fa5552c5ba721bd52"
+    ],
+    "ui.verification.guide": [
+      "20f6b26df64a4ed40a5da24ef773661a37680d5f29999f358449949897bbc353",
+      "953c5d02eff55fd834534247889d8a54e9894d650c6d60315d204178b034e0b3"
+    ],
+    "ui.14.what.s.new": [
+      "7d3f1473bc4a6c4f8f3001b2135a840f7262c2e78ccab16174ea89d85231107c",
+      "1d282b6ae55561dd529a3e3bc60fccd914f121cff8eda6d5da7c26613666694d"
+    ],
+    "ui.view.full.changelog": [
+      "490e02a1acbc661c5ed4315522736fedd52758653cf80ce8da178482b665bcf2",
+      "af6d7f7f8321f212cfd107d3eeb968ed873020bd13ebc789a9557c5443ba955a"
+    ],
+    "ui.15.open.source": [
+      "dbcc60f48822f2e90d9960f9549c91b2089023f95c1315534783f70bcf5c056c",
+      "8aba5bb2692a4f8b2fbc6df892eec733d7481014f396c99cb45b16c729a3a8e9"
+    ],
+    "ui.open.by.design": [
+      "be15b90aeb7d423c73f2e9bd0e33fc073bf00586bc0c5c156cf918b7e9fe1ea6",
+      "edef2980b1e5fb62c1ef6b8baa6edfb3e4180963e355005eba9c8f82d6248d76"
+    ],
+    "ui.dropspace.is.built.in.the.open.with.its.code.decisions.privacy.model.and.release.h": [
+      "74289e17880d0729225b224a2ac7fa7dfb23b7be62c91a50310c817fb1638d2f",
+      "b93888cf4327c4002ace4f3c3327757754d21014613a396a122e585c846bd64a"
+    ],
+    "ui.view.source": [
+      "73f201c29050dcef5ba313581197a6313c26a55fbb0d2850edd060341f614a9d",
+      "1ee878aa772c8be83e146236fe9f38925f1ec3c2217e3238cb0fe6da82b4f441"
+    ],
+    "ui.star.on.github": [
+      "9000a7b3a28531fc48a5eec38524ec3ce0e526c770f4c49a62c9d6bf9dd39cb4",
+      "06c267cace8aa76db6b8110500802c8e51ed57abc3663cd58f1e1344e0e0b679"
+    ],
+    "ui.report.an.issue": [
+      "f6a30a10bc27be0af728295f9f11b6e9ec6f6dabd0c0651f77a28d4ffbc07ba4",
+      "4839b161ab6205b4864b22a86c1cad229fa69af5ca5e0e0a3607c85a5243931d"
+    ],
+    "ui.16.faq": [
+      "5e7782746e75416ac684af29b2773d395aec58778d952c7caaea81827a9c306e",
+      "c93e0dc852b9ce218c05352486881c929b478d8546e1c9db9706f1c5161561b1"
+    ],
+    "ui.good.to.know": [
+      "dd3343693e8c1d29d67c51ce8b80c20a5f1a21571af1df770ef7661020c20a93",
+      "ab2b954686c71fd23b74b36acc8a7126211f5855383909a2908cb1590ded2ff3"
+    ],
+    "ui.what.is.dropspace": [
+      "d7d6e7bab295430bd6fbce546f87a2d5945975f3a34cdd0ffa65da9e1e711dfe",
+      "6f0677026a67eb8f67f1c72cd36c38fe5a7beb0b423b84bf322943a17b0cc076"
+    ],
+    "ui.a.local.first.windows.workspace.for.temporarily.holding.file.references.and.recent": [
+      "3482dd23f4053625145d96ef1c1488c4aac9b25ccd9d48fac04c5a9dcbf1dd27",
+      "d411db854f44770edc4cfa6184b0fd49bb682a3605b5481622cfdc3002cfcf95"
+    ],
+    "ui.does.dropspace.move.my.files": [
+      "1eb3109fa643e5d087465a58bda7ce32eebdaa461bda4fba03567ef6c1c90dfa",
+      "ea6251555b931c0ae6c56c1ab6076aa4d88e1d3c82a1af5a93692aca09d4e4ee"
+    ],
+    "ui.no.temporary.space.stores.references.adding.or.removing.a.reference.does.not.move.": [
+      "6298296abfe95545e30a665185a42df19b42e112a734c4c5fcd0798899779b03",
+      "2f36b4521a39a7d6013104ca25eddb3e36db20a05ad3ab5dbd3716070e8a8932"
+    ],
+    "ui.can.i.add.folders": [
+      "efc9281878d0c4b702b9fd50016c3d82493512273a5a306d90fbff590ef3be17",
+      "e1de7771dac01e042231bb925127f71d022df9c0e6a217557b71a7c55da874ec"
+    ],
+    "ui.yes.dropspace.can.hold.file.and.folder.references.through.drag.and.drop.or.its.pic": [
+      "38ab3271a1fce3e7755424603064b91a8177dff44da12b5614387c65415bc99b",
+      "7f5ae20754997b3459c15b60470353ea7b7bf7e65f9525049c47bba8382576f5"
+    ],
+    "ui.what.is.clipboard.history": [
+      "5ef86a64028bedb909fe5d72617bf15f92f73ce2cf22a38887898baa6696590e",
+      "dac52441a209eafb54528a1274b7b57adb81d24f4f1907f9b3029df034de0638"
+    ],
+    "ui.a.local.history.of.captured.text.urls.images.files.and.folders.you.can.search.pin.": [
+      "04943c2589d9e04dfb92f34706f238063d4cfbb4b9cdbf7fe2f9879da4c1dc7b",
+      "c3ca7a373f391a9f17c559ab3985058c22c59bf83eb6d056d7b8f892fade6737"
+    ],
+    "ui.what.s.the.difference.between.installer.and.portable": [
+      "b3bb24655509f2feabf4ccb4551ccdd11c1c7cd3741afcd73866d65d21567fd1",
+      "88473ea6d53fa69e80d4fda8e39511283b887770d4a15ead8b6d42d403487478"
+    ],
+    "ui.the.recommended.per.user.installer.adds.start.menu.integration.an.uninstaller.and.": [
+      "1ade8c3f1482659f9ff4a4c74e217d7f192279e58bc4eeaf0820e44716a61ad9",
+      "99a8d4bc1bea132e919d8bb8cc796bd29f8dbcf046295a0a8e59de77b718426e"
+    ],
+    "ui.what.are.the.minimum.system.requirements": [
+      "26e8a02d5c96717ba69ab40e2e1f577780b41490bf1ab52c90d68f0bc9b37ec6",
+      "6480ee24108094a08032c775698118a8a7cbc7f5a314aa07f92c42d10ee73615"
+    ],
+    "ui.what.about.the.windows.11.drop.tray": [
+      "17ddffc4038e043488faf99557d5600c17c732f5ba911e74b78b3dbff3b8930d",
+      "fb35799a46ff72c9433a87e5e62c13beafec6830f529aa91cf8d4c19d388ffc3"
+    ],
+    "ui.windows.may.own.the.same.top.edge.drag.gesture.dropspace.settings.links.to.the.off": [
+      "f074ec9ba066c79735291150172b72272e7171cba0cc81258413e23d7836cfa4",
+      "f7651a788e272af5bcd950dded721e519db45c163b057fd6fc5118742eb14a3c"
+    ],
+    "ui.does.dropspace.upload.clipboard.content": [
+      "01f73f1ab380859577cf2355c19c0d24d828a1b1c25df72ce8e5d42fc086104c",
+      "aa269b05d79fe6b1d1bf369e616e75da55fe9c7fc26bf8121240c91b3b4ee6ac"
+    ],
+    "ui.clipboard.history.is.stored.locally.update.checks.use.public.release.metadata.and.": [
+      "06a1623c33fda1eb34aabb6805a13bf0e4eb90c37e3c333594fa789a13428605",
+      "a2dbb3f722cf4e6a4b0ff6203fd5dc31256de12deaf397dccec38569d843cd2e"
+    ],
+    "ui.how.do.updates.work": [
+      "1d680e02d8fff3f097a21392e8f56ec1dc939d2d6f08e9f62eef1ad0f702501b",
+      "da213a107db2faa1282727d565b6708f2ecc1af8d6452e4669940c9398bc5cc7"
+    ],
+    "ui.stable.receives.stable.releases.beta.can.receive.stable.and.beta.releases.dropspac": [
+      "0576c787f2e7881457c9df059486e4aa8cee1ced093ca703ed097a13f519b93a",
+      "a38a697eb24fed14e30f75c464fe99083ef3a29a7a220c23ce2febf19094f0a1"
+    ],
+    "ui.releases": [
+      "1a6f7cae06cc1fc970e8cf6853f2fca490446395409e26d830eae6b7e6581b38",
+      "4a3c21a863c36183103afda04f63e736de3869b90553090e8431670af2dbbcf6"
+    ],
+    "ui.license": [
+      "c011d6097bfbc8e936280addcf2e3e7d06ea2223ffd596973191b800a7035c32",
+      "fcc652b37415f198cad7cb3f33ca8306a76591569ba22bb50f3104e5fab1cc87"
+    ],
+    "ui.privacy": [
+      "54a57c3147c49f33de5898b87084ad2b14c4ab308f762454bf92aca907478ad5",
+      "2015d55629505fd1673acb4ff80203ce06d21620b0788ba8722d25448f8d1839"
+    ],
+    "ui.primary.navigation": [
+      "e1bfe7eccc45465f536688db2ec9f2cc8a09819fe80bdd9f4dc098363eb9f0b4",
+      "8f347997bc92b85d45ff88b8795b650988e366f72200214884cb8ab37e04441d"
+    ],
+    "ui.dropspace.home": [
+      "795b0df17e43461f21f960fb059fbc7f8e20f452cb44d6fdd38f4c6e5283be9a",
+      "941fd76470c06ac8b309412723f063438fa898022c880e42db8ef258cccf0c4d"
+    ],
+    "ui.interface.language": [
+      "8027f432a7fb7c273a1a0fde87de4212b6738673e1d06213c02b5a191eaf8ab4",
+      "a05c0cdf78bce722f5cd55135c687fc47efc203f42c37856dae7c63bb7c7a39b"
+    ],
+    "ui.animated.demonstration.drag.a.file.to.the.top.of.the.screen.to.place.it.in.dropspa": [
+      "ffa778ec39e9219cad3f9eddcf21d0d84d3d67de8bc9c596ab64f534eb111dda",
+      "1dbdbfb6a89c94dd75427e67fef53f8d9e74235db83c43717569b15fdb2d3b9b"
+    ],
+    "ui.explorer.file.reference.is.added.to.temporary.space.while.the.original.stays.in.pl": [
+      "f6263522eee97263656b968e38affcbfcd2e2a9684b6546b8728019ab4b17d88",
+      "d4dec3806d3ee1c404a288dab24f6627f8b7fb56f132805150448df8df7e9c0e"
+    ],
+    "ui.explore.the.four.island.pages": [
+      "ee679a0c7accd3598c92703ddf77d2418b2b7769b8c02f1b90a50ca2fa33bd54",
+      "55081e89681ce22ad80eb98aeb15069c8c758ad2983f59719a01c297692b1602"
+    ],
+    "ui.illustration.of.eight.widgets.on.a.four.by.eight.grid": [
+      "87b88c9c59f5f927c9660f49f6b0c0e9b0bda65d65a3711f824621f855bbb12f",
+      "62950267e106cf73d136957d97d15d8725973b7b9d3c99162d3d5362599ccb95"
+    ],
+    "ui.sample.lyrics": [
+      "709a97bea79416ea7d2342f704f5fbc94b95e4e678eeaf798d757059eb53ef08",
+      "73ece39879c6146bbb614381345723c408153d59d91a94b09e8414a49e5458f0"
+    ],
+    "ui.additional.dropspace.features": [
+      "790b69c0b3897e86d78d5e996a284994caa55ffef317c96ad7ca2fc7314e98df",
+      "bf9f5a66ae0d0b4cd156eee3be10d049bb12a59b48fe97679b3cf39295984c85"
+    ],
+    "ui.system.requirements.and.download.verification": [
+      "7b6432df984e9608b14edd3c44b7485ea21e138c9300fc6ccdf71e685dc9113b",
+      "982cac089b05259ab1ceaaa399e7a80e1f23e9f7696351e393947b40541b735c"
+    ],
+    "ui.windows.detected.find.your.windows.build.in.settings.system.about.then.compare.it.": [
+      "4bacba0601268da091edb31dfa233a64c684fa23f97a5e8ba737e21af41f4259",
+      "71f16dff09169378d91fccfbc2c2e0f65c0f2ed6fe95ee37a178eea1562bc9a1"
+    ],
+    "ui.this.device.is.not.reporting.windows.dropspace.downloads.are.for.64.bit.windows.se": [
+      "df69bf975d5127ba5a24e3448683d620b53c0b087369d6ed29f7e527d6846bd3",
+      "31ac3de2bf9f2727c54f9fcce6b68c79eaeeb7c30ce420bab0930c2fa309ec40"
+    ],
+    "ui.footer": [
+      "26c87bb51e6978fe3987340c0056537a696a85a7d46c8bf3291ed13c45b34958",
+      "750a5089bb18a429951fddfc2b8e034a6be94b553315bd30ca494c6e2a7af781"
+    ],
+    "ui.changelog.2": [
+      "ecec88c33adb7591ee6aa88e29b62ad52ef443611cba5e0f0ecac9b5725afdba",
+      "7243d7f96455cd78cba025181d64c3a5d60777fa790d974be63c6f765ccc0a6b"
+    ],
+    "ui.what.s.new": [
+      "4ea05523105e1ec28906d0b6d4bbbacd3eab1e6422f3134b0ecbd16a5af3ee0a",
+      "42ac4db4bc98ac7362487274953ebdbe0ede8e5f73b3589a2ce2c8276f76e1bd"
+    ],
+    "ui.stable.releases.for.most.users.plus.an.optional.beta.channel.for.early.builds.the.": [
+      "7e6764d2e9a599f5b80d3226e58254e152d38ada12fa603cd40ddecadc115c52",
+      "63f6354b2d8b5cca64e3c17f6167b5774eb7386b6540ba62c065035f23839958"
+    ],
+    "ui.beta.channel": [
+      "a63d82f4acdbeab5f4d78d3451170bb595ad5c14cb676fda626940ceaa243613",
+      "cd7111b800db1f739065fbff2b16fafb637c27c02135d66a56bfa5e5205a604a"
+    ],
+    "ui.beta.releases.remain.available.through.github.releases.and.the.optional.in.app.bet": [
+      "d5991df8af7605c4c8be5932fe60c1504113798d588c06121d070520f5dd3e6b",
+      "e03d23953cd2428ac539b72a9406ea2d2e291bd99f216755cb8787832aefc460"
+    ],
+    "ui.all.releases": [
+      "3b8c94fdc381d39290c2545f91db072b7a8ae3e12b22bf54b1da598ed684f271",
+      "25efb3d5b616c16afda7fafec7dcb159a4c10ae4019c68d5b62540f55bafe4c2"
+    ],
+    "meta.home.title": [
+      "c08271aad856e73030d7afc03eb6b71114372d6461346c38ecae5dd265c318ed",
+      "af65deef2bea9bc08c037122b3f778b4ce8da4f6def171b8d8f3afe39842427f"
+    ],
+    "meta.home.description": [
+      "436e72f535d71b0043cbeed699ac2b5e01a6889202807fca25512cc7671a1679",
+      "cda72d4cb5452ebb5eb503a9c82ab4224cf72f00ce244cde4a9fdd127d7d5645"
+    ],
+    "meta.home.ogDescription": [
+      "c8f00faf342305809af175cf372fcc1f9c32b6ad6aba0c4aa2f5a87312d88c35",
+      "d05c6519f896d6fd8032ccddd65e17ee0aa01ebbcd44945f178c660a64790ea5"
+    ],
+    "meta.changelog.title": [
+      "f9c5d24b7f0eeda6d14a09e6901a7b29771d0d92f65ad556f8a41d13c8aea795",
+      "b3b9fc2767b26dd085c4a8323466f600df4f4319b0828c8e9154597c060b08a6"
+    ],
+    "meta.changelog.description": [
+      "921a1d8be22a497477704b8d081f7764e404f9772152bcf65b6503bde489ada3",
+      "eaffd1cdb427a0b477e8ce44ed635c8d5dca275f8efc84b5a662d15b0fc1262a"
+    ],
+    "release.latestStable": [
+      "9a4c5a3eea7bd2b652b8731db884d41f39d90f47433b51e398f8f54b74e9387b",
+      "73ff8b7cc08a8c41cfc5be1bdd5494d04964601e895e299046a371fbe06b0b68"
+    ],
+    "release.stable": [
+      "90ee305714d7103317705bfffd734c654b78807e5a0f51fcc61bc1d81105ebd1",
+      "e458d7fb0f85c71f54779b64b26f95101995b88438101e4a3931d0cd82b320f7"
+    ],
+    "release.beta": [
+      "703390318bd55aef50b7823d2b90a846debff99e6e3d401a24a921b733912a6d",
+      "703390318bd55aef50b7823d2b90a846debff99e6e3d401a24a921b733912a6d"
+    ],
+    "release.download": [
+      "f808eebbf4fbe0ff65534371b362911577c9710dc05deaee595f6ba92bbae938",
+      "453c8a0e8058b168a3737b9075ac937810aac3141b94de46ec2010c4b1ae8c6a"
+    ],
+    "release.notes": [
+      "9c5fb076fd94e8bfeabf65d04c4add71e1bed47424a7ba3b45651434ad075933",
+      "e6dcbc7334714c6f814bdb98e9e80e6b062db99e8f5f85331b4e6f02a857fd2b"
+    ],
+    "requirements.hint": [
+      "e5f991d4c9a2afc0f05f90a0c88987f24db6c975f4909c62d08fb40552c7d2db",
+      "a63bdc41eb103eb9da732062f662f7871e1e873dfa998686c4627949d7cd03c9"
+    ],
+    "requirements.minimum": [
+      "b908965e892c40f4275b11d8adef252bba3ed508502ae77e9ed6e51ed8e99213",
+      "b23a22a6076bb1b643de14f0afcb1eb6239abb8e00a58f5fe7fcd3908ea31edb"
+    ],
+    "requirements.unknown": [
+      "fa73d634cc1b28cdeca3db56f37376ab979e492fa2f135907a87c5e99b1232c1",
+      "94172c5e155d483de5a671004a54ab7a6ed36f71db00a68a28ede56f73f32b66"
+    ],
+    "demo.play": [
+      "751594636b34e9a30f4de2be10b2694a78da943a0bc80f275f43283d3b5d39a1",
+      "dcdf136d70dfc4e353c4642c68a14d7e0f55097a9f0719c98bf3124fac99adaa"
+    ],
+    "demo.pause": [
+      "358ce1693d59606f052bce7d54cd0c421519752a67044d638c18e8a208ea3144",
+      "5dfda54e341e4e3f87d615c4d84198d538d829e5f471c6160f0e1a1ae46bc414"
+    ],
+    "demo.off": [
+      "b8a1dee64ab526ac66756d078c5ddf21872cb5b51f70501f8d28697e401214e6",
+      "8c6a5886ae3329cca948da031f56a92f2d570a312877dd556e045a4b4ec10c45"
+    ],
+    "demo.ai": [
+      "fd4acfab9f7c1b053ccd9b31b86324e6deaccfd02e8590a583d98006097d2073",
+      "e64dc880ecfd52f691e95c12d8567a25e1b18a31d59de488a6fc97fc764b18d0"
+    ],
+    "demo.music": [
+      "67bec45d73e7059560d889473046919d9020d976a5b3be1cb0367d90cb28a3eb",
+      "7305e81c24791e225ad2f5f826726e674e1e1b4360f34c46dabe74c7ea5798e1"
+    ],
+    "demo.reduced": [
+      "e6790462b004090c25c835223d9289911e404c0a63827bf3f4a36c4ca0deb344",
+      "98a0700efb27f9de4a84b19ef2bb1c3f12ef83cf692769f4cbaa842ee2e6aa82"
+    ],
+    "demo.error": [
+      "47507183bb196829626a48f1b2c628b4c8ac22fd2f6ecc3d8ba97bde80878cbd",
+      "8f94c6b7fee96290942005821b87c71e396f9f29ae8d89fe26e70669c300b933"
+    ],
+    "error.title": [
+      "9c3f01c02dd9d804719f8bff00fe9fad6f075c6bf145b94c9d3be42da522030b",
+      "f735a6ba4bd763d8cacbc72407b0c27ab35732a638190225445709be1256820d"
+    ],
+    "error.heading": [
+      "e47d5e03ffbaf31df32378e0df4a78caea5be018878a02c420f5c635665509b8",
+      "3fad06614ef5143670b0fccbeb0c7fa244baa70e30ca71db447e10ed147b433e"
+    ],
+    "error.description": [
+      "b9ca03a750732de80a0cbb5aa906f4dfdd1baaf756d55399057fd655f2f35ef8",
+      "a1fbd77baed88d224c3ced5239b0e1a3ce1cfa49f5af4f0338f2bfcb13a5aa3b"
+    ],
+    "error.home": [
+      "6706378979ad15e36c8c410cd371fb3271e217bf46ad045ea23bc3b3825756a5",
+      "482bd78bb8e3ac595f1ce388d00608b3f74de0108bdad069be28fed057e21725"
+    ],
+    "ui.today": [
+      "2b065c7c9ce466e5ebcad757987d5d660ee4c9ea708bc62c43444b53334738ba",
+      "d5f5a7a010731feb6cc67fcbde1bc7133c86019f6d88186e5075344f59de5ff5"
+    ],
+    "ui.yesterday": [
+      "566181254b293aa66653e43313be9e39c12d44f9ac4fcd3236ef1e9c50a2903f",
+      "0c184871f658375afc6e0d4f2c2616bce1395c280a5a1e75a17a7bdebcbff8c5"
+    ],
+    "ui.september.short": [
+      "b6cb1069c3484df57bbf6ca296030eacc3d0d9121da1be9358cb3c92d3257975",
+      "0bc8c1a9a3b8f442707b8d490abaa434074008cbed93d85cad96fb8c8502ca25"
+    ],
+    "ui.uptime.example": [
+      "09ea128f0d9d793d1464345e41c0b822a9db31d9872ce4bb187d9870e7dad7a1",
+      "5c7fc02e1c5cb5b9b57a9c3d939987d436c71d978de4569ba129e7b8b73f7220"
+    ]
+  },
+  "reviewedBy": "website: individually translated/reviewed semantic UI IDs; regional/native terms inspected",
+  "reviewedAt": "2026-10-07T21:43:38.499Z",
+  "initialReviewMethod": "website: individually translated/reviewed semantic UI IDs; regional/native terms inspected"
+}

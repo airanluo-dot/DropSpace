@@ -1,6 +1,6 @@
 # Reuses the exact language asset already shipped in Beta16. Never requests a
 # model source, executes the old App, or touches any CUDA archive.
-param()
+param([string]$PrAssetDirectory)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -14,8 +14,13 @@ function Assert-Model([string]$Path) {
 }
 if (Test-Path -LiteralPath $target) { Assert-Model $target; Write-Host 'Reused verified language asset from the exact cache.'; return }
 $releaseVersion = (Get-Content (Join-Path $repo 'RELEASE_VERSION') -Raw).Trim()
-$prAssetDirectory = if ($releaseVersion -ceq 'v0.3.1-beta.18') { 'artifacts/beta18-pr-validation' } else { 'artifacts/beta17-pr-validation' }
-$prAsset = Join-Path $repo "$prAssetDirectory/lid.176.bin"
+if ([string]::IsNullOrWhiteSpace($PrAssetDirectory)) {
+    $PrAssetDirectory = if ($releaseVersion -ceq 'v0.3.1-beta.18') { 'artifacts/beta18-pr-validation' } else { 'artifacts/beta17-pr-validation' }
+}
+if ($PrAssetDirectory -cnotin @('artifacts/beta17-pr-validation','artifacts/beta18-pr-validation','artifacts/next-beta-pr-validation')) {
+    throw 'Unrecognized immutable PR language asset location.'
+}
+$prAsset = Join-Path $repo "$PrAssetDirectory/lid.176.bin"
 if (Test-Path -LiteralPath $prAsset) {
     Assert-Model $prAsset
     New-Item (Split-Path $target -Parent) -ItemType Directory -Force | Out-Null

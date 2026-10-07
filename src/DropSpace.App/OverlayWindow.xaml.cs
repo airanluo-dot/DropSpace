@@ -2051,8 +2051,11 @@ public sealed partial class OverlayWindow : Window
 
     public void RefreshLanguage()
     {
+        Root.Language = _strings.Culture.Name;
+        XamlResourceOverride.Apply(this, "OverlayWindow");
         XamlResourceOverride.ApplyTree(Root);
-        WidgetsExpanded.ViewModel = _widgetViewModel;
+        WidgetsExpanded.RefreshLanguage();
+        CancelPlacementButton.Content = _strings.Get("CommonCancel");
     }
     private void OnNextPageClicked(object sender, RoutedEventArgs args)
     {
