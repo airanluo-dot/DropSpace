@@ -11,6 +11,9 @@ namespace DropSpace.App.Views;
 public sealed partial class MainPage
 {
     private Action? _openDlcSettings;
+    private DlcPage? _dlcSettingsPage;
+    private DownloadPanel? _downloadSettingsPanel;
+    private string _selectedSettingsPage = "General";
 
     private void OpenDlcSettings() => _openDlcSettings?.Invoke();
 
@@ -39,6 +42,18 @@ public sealed partial class MainPage
             else groups[uid == "DevicesSharingSection" ? "Devices" : uid == "UpdatesSection" ? "Updates" : "General"].Children.Add(section);
         }
         var island = new SettingsForm(editor, _strings);
+        island.AddChoice("IslandAppearance", new[]
+        {
+            (ThemePreference.System, _strings.Get("IslandAppearanceFollow")),
+            (ThemePreference.Light, _strings.Get("IslandAppearanceLight")),
+            (ThemePreference.Dark, _strings.Get("IslandAppearanceDark")),
+        }, s => s.IslandAppearance.Theme,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { Theme = v } });
+        island.AddChoice("IslandContentPriority", new[]
+        {
+            (IslandContentPriority.Music, _strings.Get("IslandContentPriorityMusic")),
+            (IslandContentPriority.TemporarySpace, _strings.Get("IslandContentPriorityTemporarySpace")),
+        }, s => s.IslandContentPriority, (s, v) => s with { IslandContentPriority = v });
         island.AddToggle("IslandShowLogoWhenIdle", s => s.IslandAppearance.ShowLogoWhenIdle,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { ShowLogoWhenIdle = v } });
         island.AddToggle("IslandResident", s => s.IslandAppearance.Resident,
@@ -62,8 +77,10 @@ public sealed partial class MainPage
         island.AddToggle("IslandRightHoldMove", s => s.IslandAppearance.RightClickHoldToMove, (s,v) => s with { IslandAppearance = s.IslandAppearance with { RightClickHoldToMove = v } });
         groups["Island"].Children.Insert(0, island);
         groups["Widgets"].Children.Add(new WidgetEditorView(editor, _strings));
-        groups["DLC"].Children.Add(new DlcPage(dlc, _strings, editor));
-        groups["Downloads"].Children.Add(new DownloadPanel(editor, _strings, _windowHandle));
+        _dlcSettingsPage = new DlcPage(dlc, _strings, editor);
+        _downloadSettingsPanel = new DownloadPanel(editor, _strings, _windowHandle);
+        groups["DLC"].Children.Add(_dlcSettingsPage);
+        groups["Downloads"].Children.Add(_downloadSettingsPanel);
         var activities = new SettingsForm(editor, _strings);
         activities.AddToggle("ActivitiesNotifications", s => s.SystemActivities.ShowWindowsNotifications, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowWindowsNotifications = v } }, editor.CheckNotificationAccessAsync);
         activities.AddToggle("ActivitiesVolume", s => s.SystemActivities.ShowVolumeChanges, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowVolumeChanges = v } });
@@ -93,14 +110,28 @@ public sealed partial class MainPage
             };
             navigation.MenuItems.Add(new NavigationViewItem { Content = _strings.Get(resourceKey), Tag = key });
         }
-        navigation.SelectionChanged += (_, args) => { if (args.SelectedItem is NavigationViewItem { Tag: string key }) pageHost.Content = pages[key]; };
+        navigation.SelectionChanged += (_, args) =>
+        {
+            if (args.SelectedItem is not NavigationViewItem { Tag: string key }) return;
+            _selectedSettingsPage = key;
+            UpdatePresentationActivity();
+            pageHost.Content = pages[key];
+        };
         navigation.SelectedItem = navigation.MenuItems[0]; pageHost.Content = pages["General"];
         _openDlcSettings = async () =>
         {
+            var revision = Volatile.Read(ref _navigationRevision) + 1;
             await RunAsync(() => SelectSectionAsync("Settings"));
+            if (_dialogLifetime.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision) ||
+                _viewModel.CurrentSection != "Settings") return;
             navigation.SelectedItem = navigation.MenuItems.OfType<NavigationViewItem>().Single(item => Equals(item.Tag, "DLC"));
         };
         SettingsPages.Content = navigation;
+    }
+    private void UpdateSettingsPresentationActivity(bool active)
+    {
+        _dlcSettingsPage?.SetActive(active && _selectedSettingsPage == "DLC");
+        _downloadSettingsPanel?.SetActive(active && _selectedSettingsPage == "Downloads");
     }
     private static bool ContainsElement(DependencyObject root, DependencyObject target)
     {

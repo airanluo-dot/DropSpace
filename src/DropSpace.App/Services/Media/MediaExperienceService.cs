@@ -395,8 +395,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(settings.OverlayMotion);
                         _experience.UpdateMedia(session.IsActive && !string.IsNullOrWhiteSpace(session.TrackTitle),
                             session.PlaybackState == MediaPlaybackState.Playing,
-                            settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds, contentIdentity:
-                            string.Join("\u001f", session.SessionId, session.SourceAppUserModelId, session.TrackTitle));
+                            settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds,
+                            contentIdentity: session.TrackIdentity);
                         RenderFrame(); UpdateFrameTimer();
                         return Task.CompletedTask;
                     }).WaitAsync(token).ConfigureAwait(false);
@@ -517,8 +517,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             if (Volatile.Read(ref previewClosed) != 0 &&
                                 !IsLateNativeVeto(latestSource, original)) return;
                             cleaned = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(original, targetLanguage);
+                            if (!AiLyrics.TryObserveSource(cleaned,
+                                () => IsLyricsRequestCurrent(session, settings, generation, token))) return;
                             Volatile.Write(ref observedSource, cleaned);
-                            AiLyrics.ObserveSource(cleaned);
                         }
                         _dispatcher.TryEnqueue(() =>
                         {
@@ -549,9 +550,10 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 var latestSource = Volatile.Read(ref observedSource);
                 // A native veto observed during asynchronous preparation is never downgraded.
                 if (latestSource is not null && IsLateNativeVeto(finalSource, latestSource)) finalSource = latestSource;
+                if (!AiLyrics.TryObserveSource(finalSource,
+                    () => IsLyricsRequestCurrent(session, settings, generation, token))) return;
                 result = result with { Document = finalSource };
                 Volatile.Write(ref observedSource, finalSource);
-                AiLyrics.ObserveSource(finalSource);
             }
             sourceResult = result;
             trace.Write("source-result", new { status = result.Status.ToString(), result.TranslationLookupIncomplete, document = LyricsRequestTrace.Describe(result.Document) });

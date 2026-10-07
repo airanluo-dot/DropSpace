@@ -80,6 +80,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public OverlayMonitorPreference MonitorPreference =>
         (_pendingSettings ?? _mainViewModel.Settings).OverlayMonitor;
 
+    public IslandContentPriority ContentPriority =>
+        (_pendingSettings ?? _mainViewModel.Settings).IslandContentPriority;
+
     public OverlayMotionPreference MotionPreference =>
         (_pendingSettings ?? _mainViewModel.Settings).OverlayMotion;
 
@@ -482,6 +485,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     private void NotifySettingsChanges(AppSettings previous, AppSettings next)
     {
+        if (previous.IslandContentPriority != next.IslandContentPriority) OnPropertyChanged(nameof(ContentPriority));
         if (previous.OverlayMonitor != next.OverlayMonitor) OnPropertyChanged(nameof(MonitorPreference));
         if (previous.OverlayMotion != next.OverlayMotion) OnPropertyChanged(nameof(MotionPreference));
         if (previous.FileDragWakeMode != next.FileDragWakeMode) OnPropertyChanged(nameof(FileDragWakeMode));

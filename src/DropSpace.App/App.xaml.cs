@@ -172,6 +172,14 @@ public partial class App : Application
 
             language.Apply(requestedSmokeLanguage is null ? persistedSettings.Language : smokeLanguage);
 
+            // The payload store drains every durable deferred-delete obligation in its constructor.
+            // Resolve it on a worker before MainViewModel DI can run that disk work on the UI thread.
+            var startupServices = _services;
+            var startupToken = _appLifetimeCancellation.Token;
+            try { await Task.Run(() => startupServices.GetRequiredService<IPayloadStore>(), startupToken); }
+            catch (OperationCanceledException) when (startupToken.IsCancellationRequested) { return; }
+            if (startupToken.IsCancellationRequested) return;
+
             var viewModel = _services.GetRequiredService<MainViewModel>();
             var strings = _services.GetRequiredService<IAppStringLocalizer>();
             XamlResourceOverride.Initialize(strings);

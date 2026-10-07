@@ -41,21 +41,21 @@ jobs:
             websiteOnly=names.length>0&&names.some(n=>n.startsWith('website/'))&&names.every(n=>n.startsWith('website/')||n==='.github/workflows/ci.yml');
             maintenance=websiteOnly||(names.length>0&&names.every(n=>allowed.has(n)));
             // Exact corrective Betas require complete App-input comparison and immutable asset binding.
-            if(!websiteOnly&&['v0.3.1-beta.15','v0.3.1-beta.16','v0.3.1-beta.17'].includes(fs.readFileSync('RELEASE_VERSION','utf8').trim()))maintenance=false;
+            if(!websiteOnly&&['v0.3.1-beta.15','v0.3.1-beta.16','v0.3.1-beta.17','v0.3.1-beta.18'].includes(fs.readFileSync('RELEASE_VERSION','utf8').trim()))maintenance=false;
           } catch(e) { maintenance=false; websiteOnly=false; console.log(e.message); }
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\nrelease_version=${fs.readFileSync('RELEASE_VERSION','utf8').trim()}\n`);
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,websiteOnly?'Website-only changes: no application binaries built, no application test pass claimed.\n':maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
           JS
 
   produce-windows:
-    name: ${{ needs.change-scope.outputs.release_version == 'v0.3.1-beta.17' && 'Legacy Windows producer (inactive)' || 'Build and test (x64)' }}
+    name: Legacy Windows producer
     # GitHub requires contents:write even to read unpublished draft assets.
     # The candidate step only reads the pinned draft and verifies immutable bytes.
     permissions:
       contents: write
       actions: read
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.release_version != 'v0.3.1-beta.17'
+    if: needs.change-scope.outputs.maintenance_only != 'true' && !contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.change-scope.outputs.release_version)
     runs-on: windows-2025
     timeout-minutes: 60
     outputs:
@@ -543,7 +543,7 @@ jobs:
         if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && steps.reviewed-beta16.outputs.reuse != 'true' }}
         shell: pwsh
         run: |
-          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11','v0.3.1-beta.15') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
+          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11','v0.3.1-beta.15','v0.3.1-beta.18') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
           "OWNER_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
           if ($waived -eq 'true') { 'Owner waived functional tests for this exact release. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
 
@@ -899,13 +899,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  beta17-windows:
-    # Only the active route owns the required check name; a skipped legacy job
-    # cannot satisfy the Beta17 requirement. Owner waived all further tests;
-    # PRs compile only and explicitly record that waiver; main packages.
-    name: Build and test (x64)
+  focused-windows:
+    # The final required check verifies the selected producer's real outcome.
+    # Exact Beta17/Beta18 PRs compile only;
+    # final main packages. Beta18 runs its eight Core and two Infrastructure cases once.
+    name: Isolated Windows producer
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.release_version == 'v0.3.1-beta.17'
+    if: needs.change-scope.outputs.maintenance_only != 'true' && contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.change-scope.outputs.release_version)
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
@@ -913,6 +913,19 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Select exact isolated candidate route
+        id: candidate-route
+        shell: pwsh
+        run: |
+          $tag = (Get-Content RELEASE_VERSION -Raw).Trim()
+          if ($tag -ceq 'v0.3.1-beta.18') { $series = 'beta18'; $producer = 'Beta18'; $flags = ''; $verify = 'verify' }
+          elseif ($tag -ceq 'v0.3.1-beta.17') { $series = 'beta17'; $producer = 'Beta17'; $flags = '-SkipTests'; $verify = 'verify-build-only' }
+          else { throw 'Unsupported isolated candidate route.' }
+          "series=$series" >> $env:GITHUB_OUTPUT
+          "build_script=scripts/Build-$($producer)Candidate.ps1" >> $env:GITHUB_OUTPUT
+          "build_flags=$flags" >> $env:GITHUB_OUTPUT
+          "validation_script=scripts/$series-release-validation.mjs" >> $env:GITHUB_OUTPUT
+          "verify_command=$verify" >> $env:GITHUB_OUTPUT
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.401
@@ -920,25 +933,25 @@ jobs:
           cache-dependency-path: Directory.Packages.props
       - name: Locate successful same-tree merged PR build before final packaging
         if: github.event_name == 'workflow_dispatch'
-        id: beta17-validation
+        id: pr-validation
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/beta17-release-validation.mjs find
+        run: node ${{ steps.candidate-route.outputs.validation_script }} find
       - name: Download only that PR validation evidence
         if: github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
-          artifact-ids: ${{ steps.beta17-validation.outputs.artifact_id }}
-          run-id: ${{ steps.beta17-validation.outputs.run_id }}
+          artifact-ids: ${{ steps.pr-validation.outputs.artifact_id }}
+          run-id: ${{ steps.pr-validation.outputs.run_id }}
           github-token: ${{ github.token }}
-          path: artifacts/beta17-pr-validation
-      - name: Verify actual PR checkout and explicit build-only waiver receipt
+          path: artifacts/${{ steps.candidate-route.outputs.series }}-pr-validation
+      - name: Verify actual PR checkout and compilation-only receipt
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/beta17-release-validation.mjs verify-build-only artifacts/beta17-pr-validation
-      # Explicit owner request: skip every further test suite for Beta17.
-      # Actual source approval, full build and payload/commit checks remain.
+        run: node ${{ steps.candidate-route.outputs.validation_script }} ${{ steps.candidate-route.outputs.verify_command }} artifacts/${{ steps.candidate-route.outputs.series }}-pr-validation
+      # The owner limits Beta18 to its recorded focused cases; Beta17 retains
+      # its historical waiver. Source/full-build/payload binding remains required.
       - name: Restore locked dependency graph
         shell: pwsh
         run: |
@@ -962,39 +975,40 @@ jobs:
         with:
           path: artifacts/lyrics-language/lid.176.bin
           key: dropspace-bundled-language-7e69ec5451bc261cc7844e49e4792a85d7f09c06789ec800fc4a44aec362764e
-      - name: Reuse existing Beta17 language bytes for the packaging correction
+      - name: Reuse immutable previously bundled language bytes
         if: github.event_name == 'pull_request' && steps.language-cache.outputs.cache-hit != 'true'
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           # Immutable successful PR #103 artifact; only the fixed-hash language
-          # asset is reused. This PR still performs its own full build; further tests are owner-waived.
+          # asset is reused. This PR performs its own full build without functional tests.
           artifact-ids: 11468175429
           run-id: 37588748222
           github-token: ${{ github.token }}
-          path: artifacts/beta17-pr-validation
+          path: artifacts/${{ steps.candidate-route.outputs.series }}-pr-validation
       - name: Reuse verified language bytes from cache or existing Beta16 App
         shell: pwsh
         run: ./scripts/Reuse-BundledLyricsLanguageModel.ps1
       - name: Bind existing independent CUDA component metadata to this checkout
         run: python scripts/stage-reviewed-cuda-metadata.py --app-commit ${{ github.sha }}
-      - name: Compile full Windows App and XAML; all further tests owner-waived
+      - name: Compile full Windows App and XAML without PR tests
         if: github.event_name == 'pull_request'
         shell: pwsh
-        run: ./scripts/Build-Beta17Candidate.ps1 -ValidateOnly -SkipTests
-      - name: Retain actual complete build and explicit test-waiver receipt
+        run: ./${{ steps.candidate-route.outputs.build_script }} -ValidateOnly ${{ steps.candidate-route.outputs.build_flags }}
+      - name: Retain actual complete build and compilation-only receipt
         if: github.event_name == 'pull_request' && success()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: dropspace-beta17-validation-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/beta17-validation/*
+          name: dropspace-${{ steps.candidate-route.outputs.series }}-validation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/${{ steps.candidate-route.outputs.series }}-validation/*
           if-no-files-found: error
           retention-days: 14
-      - name: Produce final-commit packages and verify actual payload bytes; tests waived
+
+      - name: Produce final-commit packages with only budgeted validation
         if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./scripts/Build-Beta17Candidate.ps1 -SkipTests
+        run: ./${{ steps.candidate-route.outputs.build_script }} ${{ steps.candidate-route.outputs.build_flags }}
       - name: Retain final-main packages for unchanged-byte publication
         if: github.event_name == 'workflow_dispatch' && success()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -1011,19 +1025,50 @@ jobs:
             artifacts/release/update-manifest.json
             artifacts/release/SHA256SUMS.txt
             artifacts/release/ci-release-receipt.json
+            artifacts/release/focused-validation.json
+            artifacts/release/focused.trx
+            artifacts/release/focused-infrastructure.trx
           if-no-files-found: error
           retention-days: 7
       - name: Retain actual build and package byte evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: dropspace-beta17-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          name: dropspace-${{ steps.candidate-route.outputs.series }}-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            artifacts/beta17-validation/*.trx
-            artifacts/beta17-validation/*.txt
-            artifacts/beta17-validation/*.json
+            artifacts/${{ steps.candidate-route.outputs.series }}-validation/*.trx
+            artifacts/${{ steps.candidate-route.outputs.series }}-validation/*.txt
+            artifacts/${{ steps.candidate-route.outputs.series }}-validation/*.json
             artifacts/music-visual/**
             artifacts/runtime-inspection/**
             artifacts/diagnostics/**
           if-no-files-found: warn
           retention-days: 14
+
+  required-validation:
+    name: Build and test (x64)
+    needs: [change-scope, produce-windows, focused-windows]
+    if: ${{ always() }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Require the selected producer outcome
+        shell: bash
+        env:
+          SCOPE_RESULT: ${{ needs.change-scope.result }}
+          MAINTENANCE_ONLY: ${{ needs.change-scope.outputs.maintenance_only }}
+          RELEASE_VERSION: ${{ needs.change-scope.outputs.release_version }}
+          FOCUSED_RESULT: ${{ needs.focused-windows.result }}
+          LEGACY_RESULT: ${{ needs.produce-windows.result }}
+        run: |
+          set -euo pipefail
+          [[ "$SCOPE_RESULT" == success ]]
+          if [[ "$MAINTENANCE_ONLY" == true ]]; then
+            [[ "$FOCUSED_RESULT" == skipped && "$LEGACY_RESULT" == skipped ]]
+            echo 'Maintenance-only source scope: no App build or functional test pass is claimed.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$RELEASE_VERSION" == v0.3.1-beta.17 || "$RELEASE_VERSION" == v0.3.1-beta.18 ]]; then
+            [[ "$FOCUSED_RESULT" == success && "$LEGACY_RESULT" == skipped ]]
+            echo 'The selected isolated Windows producer succeeded; see its recorded build and validation scope.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            [[ "$LEGACY_RESULT" == success && "$FOCUSED_RESULT" == skipped ]]
+            echo 'The selected legacy Windows producer succeeded; see its actual validation results.' >> "$GITHUB_STEP_SUMMARY"
+          fi

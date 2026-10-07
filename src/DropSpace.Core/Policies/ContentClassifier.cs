@@ -86,9 +86,46 @@ public static partial class ContentClassifier
 
     public static string BuildSearchText(string title, string? body, int maximumCharacters = 65_536)
     {
+        if (TryBuildAsciiSearchText(title, body, maximumCharacters, out var ascii)) return ascii;
+        // Unicode retains the existing whole-string normalization and exact prefix semantics.
         var source = string.Concat(title, " ", body ?? string.Empty);
         var normalized = SearchNormalizer.Normalize(source);
         return normalized.Length <= maximumCharacters ? normalized : normalized[..maximumCharacters];
+    }
+
+    private static bool TryBuildAsciiSearchText(string? title, string? body, int maximumCharacters, out string result)
+    {
+        result = string.Empty;
+        if (maximumCharacters <= 0 ||
+            title.AsSpan().IndexOfAnyExceptInRange('\0', '\u007f') >= 0 ||
+            body.AsSpan().IndexOfAnyExceptInRange('\0', '\u007f') >= 0) return false;
+        // ASCII has no decompositions or combining marks. Bound allocation and
+        // per-character casing to the retained prefix instead of the entire clipboard body.
+        var builder = new StringBuilder(Math.Min(maximumCharacters, 256));
+        var pendingWhitespace = false;
+        bool AppendPart(ReadOnlySpan<char> part)
+        {
+            foreach (var character in part)
+            {
+                if (char.IsWhiteSpace(character))
+                {
+                    pendingWhitespace = builder.Length > 0;
+                    continue;
+                }
+                if (pendingWhitespace)
+                {
+                    builder.Append(' ');
+                    pendingWhitespace = false;
+                    if (builder.Length == maximumCharacters) return false;
+                }
+                builder.Append(character is >= 'A' and <= 'Z' ? (char)(character + ('a' - 'A')) : character);
+                if (builder.Length == maximumCharacters) return false;
+            }
+            return true;
+        }
+        if (AppendPart(title.AsSpan()) && AppendPart(" ".AsSpan())) AppendPart(body.AsSpan());
+        result = builder.ToString();
+        return true;
     }
 
     private static bool TryCreateUrl(string text, out UrlMetadata? metadata)

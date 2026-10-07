@@ -13,7 +13,9 @@ function Assert-Model([string]$Path) {
     }
 }
 if (Test-Path -LiteralPath $target) { Assert-Model $target; Write-Host 'Reused verified language asset from the exact cache.'; return }
-$prAsset = Join-Path $repo 'artifacts/beta17-pr-validation/lid.176.bin'
+$releaseVersion = (Get-Content (Join-Path $repo 'RELEASE_VERSION') -Raw).Trim()
+$prAssetDirectory = if ($releaseVersion -ceq 'v0.3.1-beta.18') { 'artifacts/beta18-pr-validation' } else { 'artifacts/beta17-pr-validation' }
+$prAsset = Join-Path $repo "$prAssetDirectory/lid.176.bin"
 if (Test-Path -LiteralPath $prAsset) {
     Assert-Model $prAsset
     New-Item (Split-Path $target -Parent) -ItemType Directory -Force | Out-Null
@@ -25,8 +27,8 @@ if ($env:GITHUB_REF -ceq 'refs/heads/main') {
     throw 'Final packaging requires the verified PR language asset; no repeated old-App download fallback.'
 }
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_REPOSITORY -cne 'airanluo-dot/DropSpace' -or
-    (Get-Content (Join-Path $repo 'RELEASE_VERSION') -Raw).Trim() -cne 'v0.3.1-beta.17') {
-    throw 'Published asset reuse is limited to the isolated Beta17 producer.'
+    $releaseVersion -cnotin @('v0.3.1-beta.17','v0.3.1-beta.18')) {
+    throw 'Published asset reuse is limited to the reviewed Beta17/Beta18 producers.'
 }
 $work = Join-Path $env:RUNNER_TEMP ('DropSpace-beta16-language-' + [guid]::NewGuid().ToString('N'))
 New-Item $work -ItemType Directory | Out-Null

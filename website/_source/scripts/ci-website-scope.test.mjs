@@ -36,8 +36,10 @@ function classify(names, {version = 'v0.3.1-beta.16', event = 'pull_request', ba
     console: {log() {}},
   });
   const routing = output.get('output');
-  assert.match(routing, /^maintenance_only=(true|false)\n$/);
-  return {maintenance: routing === 'maintenance_only=true\n', summary: output.get('summary'), calls};
+  const fields = routing?.match(/^maintenance_only=(true|false)\nrelease_version=([^\r\n]+)\n$/);
+  assert.ok(fields, 'Both production classification outputs are required');
+  assert.equal(fields[2], version.trim());
+  return {maintenance: fields[1] === 'true', summary: output.get('summary'), calls};
 }
 
 test('actual workflow routes website-only changes without claiming application validation', () => {

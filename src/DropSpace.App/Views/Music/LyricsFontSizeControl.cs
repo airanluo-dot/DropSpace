@@ -10,7 +10,6 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using VirtualKey = Windows.System.VirtualKey;
 
 namespace DropSpace.App.Views.Music;
@@ -80,7 +79,7 @@ public sealed class LyricsFontSizeControl : UserControl
         reset.Click += OnReset;
         body.Children.Add(reset);
         Content = new Border { Padding = new Thickness(14), CornerRadius = new CornerRadius(8),
-            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"], Child = body };
+            Style = (Style)Application.Current.Resources["DropSpaceCardStyle"], Child = body };
         _slider.ValueChanged += OnSliderChanged;
         _slider.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnPointerPressed), true);
         _slider.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnPointerFinished), true);

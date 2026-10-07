@@ -45,6 +45,7 @@ public sealed class MusicPage : UserControl
     private string _sourcesKey = string.Empty;
     private readonly LyricsRowCollection<StackPanel> _lyricRowCache;
     private readonly MediaRenderQueue _refreshQueue = new();
+    private bool _presentationActive;
     private string _lyricsTrackIdentity = string.Empty;
     private int _lastHighlightedLyric = -1;
     private int _lastCenteredLyric = -1;
@@ -56,6 +57,7 @@ public sealed class MusicPage : UserControl
         _enhancement = enhancement; _experience = experience;
         _lyricRowCache = new(MaximumDisplayedLyricsLines, CreateLyricRow, UpdateLyricRow);
         _nowPlaying = new MediaExpandedView { ViewModel = media, MinHeight = 280, Height = 380 };
+        _nowPlaying.SetActive(false);
         // This action belongs only to the main Music page, never the shared island player.
         _refreshMusic = new Button
         {
@@ -186,6 +188,7 @@ public sealed class MusicPage : UserControl
     {
         if (_pageStop is not null) return;
         _pageStop = new(); ++_pageGeneration;
+        _nowPlaying.SetActive(_presentationActive && Visibility == Visibility.Visible);
         _refreshMusic.IsEnabled = true;
         _restartStatus.Text = string.Empty;
         _editor.PropertyChanged += OnSettings;
@@ -197,6 +200,7 @@ public sealed class MusicPage : UserControl
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         CancelRefresh();
+        _nowPlaying.SetActive(false);
         var pageStop = _pageStop;
         _pageStop = null; ++_pageGeneration;
         pageStop?.Cancel();
@@ -252,7 +256,13 @@ public sealed class MusicPage : UserControl
             RequestRefresh();
         }
     }
-    private bool CanRefresh => IsLoaded && _pageStop is not null && Visibility == Visibility.Visible;
+    internal void SetActive(bool active)
+    {
+        _presentationActive = active;
+        _nowPlaying.SetActive(active && Visibility == Visibility.Visible);
+        if (CanRefresh) RequestRefresh(); else CancelRefresh();
+    }
+    private bool CanRefresh => _presentationActive && IsLoaded && _pageStop is not null && Visibility == Visibility.Visible;
     private void RequestRefresh()
     {
         if (_refreshQueue.Request(CanRefresh)) CompositionTarget.Rendering += OnRendering;
@@ -269,6 +279,7 @@ public sealed class MusicPage : UserControl
     }
     private void OnVisibilityChanged(DependencyObject sender, DependencyProperty property)
     {
+        _nowPlaying.SetActive(_presentationActive && Visibility == Visibility.Visible);
         if (CanRefresh) RequestRefresh(); else CancelRefresh();
     }
     private void Refresh()
@@ -331,8 +342,7 @@ public sealed class MusicPage : UserControl
     {
         Padding = padding,
         CornerRadius = new CornerRadius(8),
-        Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-        BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        Style = (Style)Application.Current.Resources["DropSpaceCardStyle"],
         BorderThickness = new Thickness(1),
         Child = content,
     };

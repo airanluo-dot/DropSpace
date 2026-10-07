@@ -49,6 +49,7 @@ public sealed partial class MainPage : Page
     private readonly DropLinkHost _dropLinkHost;
     private readonly SharingUseCase _sharing;
     private readonly NativeSettingsEditor _settingsEditor;
+    private readonly Music.MusicPage _musicPage;
     private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
     private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
     private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
@@ -58,6 +59,8 @@ public sealed partial class MainPage : Page
     private bool _syncingSettings;
     private bool _quickActionsSettingsBuilt;
     private bool _subscriptionsAttached;
+    private bool _presentationActive;
+    private long _navigationRevision;
 
     public MainPage(
         MainViewModel viewModel,
@@ -119,7 +122,8 @@ public sealed partial class MainPage : Page
             MaxClipboardFileMegabytesNumber, MaxClipboardFileTotalMegabytesNumber, MaxClipboardFileItemsNumber })
             slider.InteractionCompleted += async (_, _) => await _settingsEditor.FlushEditsAsync();
         DataContext = viewModel;
-        MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings);
+        _musicPage = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings);
+        MusicContent.Content = _musicPage;
         BuildSettingsPages(settingsEditor, dlc);
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
         Loaded += OnLoaded;
@@ -208,8 +212,23 @@ public sealed partial class MainPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs args) => Retire();
 
+    internal void SetPresentationActive(bool active)
+    {
+        _presentationActive = active;
+        UpdatePresentationActivity();
+    }
+
+    private void UpdatePresentationActivity()
+    {
+        var active = _presentationActive && !_dialogLifetime.IsCancellationRequested;
+        _musicPage.SetActive(active && _viewModel.IsMusicVisible);
+        UpdateSettingsPresentationActivity(active && _viewModel.CurrentSection == "Settings");
+    }
+
     internal void Retire()
     {
+        SetPresentationActive(false);
+        Interlocked.Increment(ref _navigationRevision);
         _dialogLifetime.Cancel();
         if (!_subscriptionsAttached)
         {
@@ -258,8 +277,14 @@ public sealed partial class MainPage : Page
 
     private async Task SelectSectionAsync(string section)
     {
+        var revision = Interlocked.Increment(ref _navigationRevision);
+        var ownerToken = _dialogLifetime.Token;
         await _settingsEditor.FlushEditsAsync();
+        if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return;
         await _settingsEditor.FlushDownloadLimitsAsync();
+        // A newer request may bypass a flush that already drained its pending queue.
+        // Only the latest live request may publish its destination after that save.
+        if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return;
         _syncingNavigation = true;
         try
         {
@@ -1877,7 +1902,7 @@ public sealed partial class MainPage : Page
         QuickActionsSettingsPanel.Children.Add(new TextBlock
         {
             Text = _strings.Get("QuickActionsDescription"),
-            Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray),
+            Style = (Style)Application.Current.Resources["DropSpaceSecondaryTextStyle"],
             TextWrapping = TextWrapping.Wrap,
         });
 
@@ -2187,6 +2212,7 @@ public sealed partial class MainPage : Page
 
     private void UpdateSectionChrome()
     {
+        UpdatePresentationActivity();
         var section = _viewModel.CurrentSection;
         HeaderDescription.HorizontalAlignment = section is "Settings" or "Music" ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
         AddButton.Visibility = section == "Space" ? Visibility.Visible : Visibility.Collapsed;

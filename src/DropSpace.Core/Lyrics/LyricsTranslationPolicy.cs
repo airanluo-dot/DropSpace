@@ -59,7 +59,8 @@ public static class LyricsTranslationPolicy
         document.TranslationAdmission!.Decision == LyricsWholeTrackDecision.OriginalTarget ||
         HasMatchingProviderTranslation(document, targetLanguage) && document.Lines.Where(line =>
             !LyricsLanguagePolicy.IsCredit(line.Text) && !string.IsNullOrWhiteSpace(line.Text))
-            .All(line => LyricsLanguagePolicy.ProviderTranslation(line) is not null);
+            .All(line => LyricsLanguagePolicy.ProviderTranslation(line) is { } translation &&
+                LyricsLanguagePolicy.SameSourceLanguage(translation.Language, targetLanguage));
 
     public static bool NeedsProviderTranslationLookup(LyricsDocument document, string targetLanguage)
     {

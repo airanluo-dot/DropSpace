@@ -12,7 +12,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Views.Music;
 
@@ -119,8 +118,7 @@ public sealed class AiLyricsSettingsCard : UserControl
         AutomationProperties.SetHelpText(simplifiedGlow, strings.Get("LyricsSimplifiedGlowHelp"));
         body.Children.Add(glowAppearance);
         Content = new Border { Padding = new Thickness(16), CornerRadius = new CornerRadius(8),
-            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            Style = (Style)Application.Current.Resources["DropSpaceCardStyle"],
             BorderThickness = new Thickness(1), Child = body };
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;

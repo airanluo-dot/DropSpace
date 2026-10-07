@@ -302,6 +302,9 @@ public sealed class UndoCoordinator(
         }
         finally
         {
+            // A failed expiration leaves the active operation available for retry.
+            // Retire only this timer's field before closing its cancellation source.
+            Interlocked.CompareExchange(ref _expirationCancellation, null, cancellation);
             cancellation.Dispose();
             _expirationTasks.TryRemove(active.State.Token, out _);
         }
@@ -378,8 +381,9 @@ public sealed class UndoCoordinator(
 
     private void CancelExpiration()
     {
-        _expirationCancellation?.Cancel();
-        _expirationCancellation = null;
+        var cancellation = Interlocked.Exchange(ref _expirationCancellation, null);
+        try { cancellation?.Cancel(); }
+        catch (ObjectDisposedException) { /* Its expiration task already retired the timer. */ }
     }
 
     private void PublishState(UndoState? state)

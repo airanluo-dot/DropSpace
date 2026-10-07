@@ -112,6 +112,7 @@ public sealed partial class InfLinkDeploymentService : IDisposable
             var previous = await GetManagedReceiptAsync(prepared.Installation, cancellationToken).ConfigureAwait(false);
             if (previous is { Committed: false }) throw new EnhancementDeploymentException("PendingTransaction");
             if (previous is not null && !string.Equals(previous.ProfilePath, prepared.ProfilePath, StringComparison.OrdinalIgnoreCase)) throw new EnhancementDeploymentException("ProfileChanged");
+            await RetireUnusedBackupsAsync().ConfigureAwait(false);
             string loader = Path.Combine(Path.GetDirectoryName(prepared.Installation.ExecutablePath)!, "msimg32.dll");
             string plugin = Path.Combine(prepared.ProfilePath, "plugins", "InfLink-rs.plugin");
             AssertNoConflictingPlugins(prepared.ProfilePath, plugin);
@@ -153,6 +154,7 @@ public sealed partial class InfLinkDeploymentService : IDisposable
                 await RestoreFilesAsync(receipt, CancellationToken.None).ConfigureAwait(false);
                 if (previous is null) File.Delete(ReceiptPath(prepared.Installation));
                 else await SaveReceiptAsync(previous, CancellationToken.None).ConfigureAwait(false);
+                await RetireUnusedBackupsAsync().ConfigureAwait(false);
                 throw;
             }
         }
@@ -168,6 +170,7 @@ public sealed partial class InfLinkDeploymentService : IDisposable
             foreach (var file in receipt.Files)
                 if (!HashEquals(await HashAsync(file.TargetPath, cancellationToken).ConfigureAwait(false), file.InstalledHash)) throw new EnhancementDeploymentException("ManagedFileChanged");
             await SaveReceiptAsync(receipt with { Committed = true }, cancellationToken).ConfigureAwait(false);
+            await RetireUnusedBackupsAsync().ConfigureAwait(false);
         }
         finally { gate.Release(); }
     }
@@ -191,6 +194,7 @@ public sealed partial class InfLinkDeploymentService : IDisposable
             await RestoreFilesAsync(receipt, cancellationToken).ConfigureAwait(false);
             if (prior is null) File.Delete(ReceiptPath(receipt.Installation));
             else await SaveReceiptAsync(prior, cancellationToken).ConfigureAwait(false);
+            await RetireUnusedBackupsAsync().ConfigureAwait(false);
         }
         finally { gate.Release(); }
     }
@@ -211,6 +215,7 @@ public sealed partial class InfLinkDeploymentService : IDisposable
                 await RetryFileMutationAsync(() => File.Delete(file.TargetPath), cancellationToken).ConfigureAwait(false);
             }
             File.Delete(ReceiptPath(installation));
+            await RetireUnusedBackupsAsync().ConfigureAwait(false);
         }
         finally { gate.Release(); }
     }

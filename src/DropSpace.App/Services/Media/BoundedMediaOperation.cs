@@ -10,8 +10,10 @@ internal sealed class BoundedMediaOperation(int maximumOutstanding = 16, int max
     private readonly object _gate = new();
     private readonly Dictionary<object, int> _owners = new(ReferenceEqualityComparer.Instance);
     private int _outstanding;
+    private TaskCompletionSource _idle = Completed();
 
     internal int Outstanding { get { lock (_gate) return _outstanding; } }
+    internal Task DrainAsync() { lock (_gate) return _idle.Task; }
 
     public async Task<T> RunAsync<T>(object owner, Func<CancellationToken, Task<T>> operation,
         TimeSpan timeout, CancellationToken token)
@@ -23,6 +25,7 @@ internal sealed class BoundedMediaOperation(int maximumOutstanding = 16, int max
             if (_outstanding >= maximumOutstanding || count >= maximumPerOwner)
                 throw new InvalidOperationException("The media publisher still has uncompleted operations.");
             _owners[owner] = count + 1;
+            if (_outstanding == 0) _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
             _outstanding++;
         }
 
@@ -87,7 +90,14 @@ internal sealed class BoundedMediaOperation(int maximumOutstanding = 16, int max
         {
             if (_owners[owner] == 1) _owners.Remove(owner);
             else _owners[owner]--;
-            _outstanding--;
+            if (--_outstanding == 0) _idle.TrySetResult();
         }
+    }
+
+    private static TaskCompletionSource Completed()
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        completion.SetResult();
+        return completion;
     }
 }

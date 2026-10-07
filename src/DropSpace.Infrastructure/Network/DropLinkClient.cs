@@ -19,6 +19,7 @@ public sealed class DropLinkClient(
     TransferRepository transfers)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly TimeSpan CleanupNotificationTimeout = TimeSpan.FromSeconds(5);
 
     public async Task<DeviceDescriptor> GetDeviceAsync(Uri endpoint, string expectedFingerprint, CancellationToken cancellationToken = default)
     {
@@ -57,19 +58,19 @@ public sealed class DropLinkClient(
             var sas = DropLinkPairingService.ComputeSas(secret, handshake.Hello, offer.LocalHello);
             if (sas != offer.Sas)
             {
-                await SendPairingDecisionAsync(client, offer, offer.Sas, false, PairingDecision.Reject, CancellationToken.None).ConfigureAwait(false);
+                await NotifyBestEffortAsync(token => SendPairingDecisionAsync(client, offer, offer.Sas, false, PairingDecision.Reject, token)).ConfigureAwait(false);
                 throw new UnauthorizedAccessException("The displayed pairing SAS did not match the remote transcript.");
             }
 
             if (confirmSas is null)
             {
-                await SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Reject, CancellationToken.None).ConfigureAwait(false);
+                await NotifyBestEffortAsync(token => SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Reject, token)).ConfigureAwait(false);
                 throw new UnauthorizedAccessException("Pairing requires an explicit local SAS confirmation.");
             }
 
             if (!await confirmSas(sas, cancellationToken).ConfigureAwait(false))
             {
-                await SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Reject, CancellationToken.None).ConfigureAwait(false);
+                await NotifyBestEffortAsync(token => SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Reject, token)).ConfigureAwait(false);
                 throw new UnauthorizedAccessException("Pairing confirmation was declined.");
             }
 
@@ -80,14 +81,7 @@ public sealed class DropLinkClient(
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                try
-                {
-                    await SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Cancel, CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (Exception exception) when (exception is HttpRequestException or IOException or UnauthorizedAccessException)
-                {
-                    // The local cancellation remains authoritative if the peer is already gone.
-                }
+                await NotifyBestEffortAsync(token => SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Cancel, token)).ConfigureAwait(false);
 
                 throw;
             }
@@ -214,14 +208,7 @@ public sealed class DropLinkClient(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            try
-            {
-                await CancelTransferAsync(authenticated, offer.SessionId, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception exception) when (exception is HttpRequestException or IOException or UnauthorizedAccessException)
-            {
-                // Cancellation remains authoritative even when the peer has already disconnected.
-            }
+            await NotifyBestEffortAsync(token => CancelTransferAsync(authenticated, offer.SessionId, token)).ConfigureAwait(false);
 
             throw;
         }
@@ -271,6 +258,22 @@ public sealed class DropLinkClient(
             new { },
             HttpMethod.Post,
             cancellationToken);
+
+    private static async Task NotifyBestEffortAsync(Func<CancellationToken, Task> notification)
+    {
+        // Local rejection/cancellation must not inherit the file-transfer timeout.
+        // Await the bounded request so its client and secret remain owned until it retires.
+        using var deadline = new CancellationTokenSource(CleanupNotificationTimeout);
+        try
+        {
+            await notification(deadline.Token).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException or
+            UnauthorizedAccessException or JsonException or OperationCanceledException)
+        {
+            // A missing, invalid or slow peer cannot replace the local decision.
+        }
+    }
 
     private static async Task<PairingConfirmationResponse> SendPairingDecisionAsync(
         HttpClient client,
@@ -350,7 +353,9 @@ public sealed class DropLinkClient(
         try
         {
             var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            return new AuthenticatedClient(CreateClient(endpoint, peer.IdentityFingerprint), peer.Id, identity.DeviceId, secret);
+            return new AuthenticatedClient(
+                CreateClient(endpoint, peer.IdentityFingerprint, DropLinkProtocolPolicy.MaximumAuthenticatedResponseBytes),
+                peer.Id, identity.DeviceId, secret);
         }
         catch
         {
@@ -391,7 +396,10 @@ public sealed class DropLinkClient(
         return request;
     }
 
-    private static HttpClient CreateClient(Uri endpoint, string fingerprint)
+    private static HttpClient CreateClient(
+        Uri endpoint,
+        string fingerprint,
+        int maximumResponseBytes = DropLinkProtocolPolicy.MaximumUnauthenticatedResponseBytes)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         if (endpoint.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(endpoint.UserInfo) ||
@@ -413,7 +421,12 @@ public sealed class DropLinkClient(
                 return string.Equals(actual, normalized, StringComparison.OrdinalIgnoreCase);
             },
         };
-        return new HttpClient(handler) { BaseAddress = new Uri(endpoint.ToString().TrimEnd('/') + "/"), Timeout = TimeSpan.FromMinutes(10) };
+        return new HttpClient(handler)
+        {
+            BaseAddress = new Uri(endpoint.ToString().TrimEnd('/') + "/"),
+            Timeout = TimeSpan.FromMinutes(10),
+            MaxResponseContentBufferSize = maximumResponseBytes,
+        };
     }
 
     private static Task<List<SourceFile>> EnumerateFilesAsync(IReadOnlyList<string> sourcePaths, TransferLimits limits, CancellationToken cancellationToken) =>

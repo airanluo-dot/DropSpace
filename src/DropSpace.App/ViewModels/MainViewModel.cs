@@ -67,6 +67,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private int _spaceItemCount;
     private long _spaceRevision;
     private long _reloadRevision;
+    private ProjectionLoadJournal? _clipboardReloadCaptures;
+    private readonly HashSet<ProjectionLoadJournal> _projectionLoads = [];
+    private bool _batchProjectionRefreshQueued;
     private ItemCardViewModel? _selectedItem;
     private AppSettings _settings = new();
     private string _storageSummary = string.Empty;
@@ -164,6 +167,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             {
                 // Invalidate an in-flight old query immediately, including the debounce interval.
                 Interlocked.Increment(ref _reloadRevision);
+                _clipboardReloadCaptures = null;
                 TrackBackgroundTask(DebouncedReloadAsync(), "search refresh");
             }
         }
@@ -735,6 +739,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task NavigateAsync(string section, CancellationToken cancellationToken = default)
     {
         Interlocked.Increment(ref _reloadRevision);
+        _clipboardReloadCaptures = null;
         CurrentSection = section;
         IsSettingsVisible = string.Equals(section, "Settings", StringComparison.Ordinal);
         switch (section)
@@ -779,6 +784,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ObjectDisposedException.ThrowIf(_disposed, this);
         var revision = Interlocked.Increment(ref _reloadRevision);
         var request = new ItemProjectionRequest(CurrentSection, SearchText);
+        // Captures arriving after the query snapshot must survive replacement of the first page.
+        // This journal belongs only to this reload and is bounded by the live projection cap.
+        var journal = new ProjectionLoadJournal();
+        var captureClipboard = request.Section == "Clipboard" && string.IsNullOrWhiteSpace(request.SearchText);
+        _clipboardReloadCaptures = captureClipboard ? journal : null;
+        _projectionLoads.Add(journal);
         IsBusy = true;
         try
         {
@@ -790,11 +801,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 return;
             }
 
+            IReadOnlyList<DropItem> projectedItems = page.Items.Where(item => !journal.RemovedIds.Contains(item.Id)).ToArray();
+            var liveOverflow = journal.CaptureOverflow;
+            if (journal.Captures.Count > 0)
+            {
+                var captures = journal.Captures.Where(item => !journal.RemovedIds.Contains(item.Id)).ToArray();
+                var capturedIds = captures.Select(item => item.Id).ToHashSet();
+                var merged = captures.Concat(projectedItems.Where(item => !capturedIds.Contains(item.Id))).ToArray();
+                liveOverflow |= merged.Length > MaximumLiveClipboardItems;
+                projectedItems = merged.Take(MaximumLiveClipboardItems).ToArray();
+            }
+
             Items.Clear();
-            AppendProjectionItems(page.Items);
+            AppendProjectionItems(projectedItems);
             ApplyBatchProjectionState();
             _projectionCursor = page.NextCursor;
             HasMoreItems = page.HasMore;
+            if (liveOverflow)
+            {
+                // If removal filtered every visible row, the journal still owns the
+                // old retained boundary from which evicted persisted rows can be read.
+                var tail = Items.LastOrDefault()?.Item ?? journal.Captures.Last();
+                _projectionCursor = new ItemQueryCursor(0, tail.CreatedAtUtc, tail.Id);
+                HasMoreItems = true;
+            }
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
 
@@ -804,6 +834,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
         finally
         {
+            _projectionLoads.Remove(journal);
+            if (ReferenceEquals(_clipboardReloadCaptures, journal)) _clipboardReloadCaptures = null;
             if (revision == Volatile.Read(ref _reloadRevision))
             {
                 IsBusy = false;
@@ -814,7 +846,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task LoadMoreItemsAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (!HasMoreItems || IsSettingsVisible || _projectionCursor is null)
+        if (IsBusy || !HasMoreItems || IsSettingsVisible || _projectionCursor is null)
         {
             return;
         }
@@ -824,6 +856,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
 
+        var journal = new ProjectionLoadJournal();
+        _projectionLoads.Add(journal);
         try
         {
             var revision = Volatile.Read(ref _reloadRevision);
@@ -839,7 +873,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 return;
             }
 
-            AppendProjectionItems(page.Items);
+            AppendProjectionItems(page.Items.Where(item => !journal.RemovedIds.Contains(item.Id)));
             ApplyBatchProjectionState();
             _projectionCursor = page.NextCursor;
             HasMoreItems = page.HasMore;
@@ -848,6 +882,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
         finally
         {
+            _projectionLoads.Remove(journal);
             _projectionLoadGate.Release();
         }
     }
@@ -1130,12 +1165,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task RemoveAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        await _workspaceMutations.BeginRemovalAsync(
+        var removal = await _workspaceMutations.BeginRemovalAsync(
             [card.Id],
             UndoOperationKind.RemoveItem,
             "UndoRemovedItem",
             cancellationToken);
 
+        // Undo may complete while this operation is waiting to return to the UI.
+        // Only the still-current removal may retire rows or mark pending pages.
+        if (_disposed || removal is null) return;
+        if (!string.Equals(_undo.State?.Token, removal.Token, StringComparison.Ordinal))
+        {
+            // A replacement operation may have committed this removal while an
+            // unsuccessful Undo suppressed its state-event refresh. Read storage
+            // instead of applying this old mutation to a newer projection.
+            await RefreshAfterUndoFinalizationAsync(_lifetimeCancellation.Token);
+            return;
+        }
+        foreach (var journal in _projectionLoads) journal.RemovedIds.Add(card.Id);
         ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
         ApplyBatchProjectionState();
         ItemCount = Items.Count;
@@ -1161,9 +1208,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             throw new ArgumentOutOfRangeException(nameof(limit));
         }
 
-        var items = await _repository.QueryAsync(
+        // SQLite's async methods execute synchronously, including on a warmed database.
+        // Keep recent-item reads off the overlay/UI caller and build cards on its context.
+        var items = await Task.Run(() => _repository.QueryAsync(
             new ItemQuery(Source: source, Limit: limit),
-            cancellationToken);
+            cancellationToken), cancellationToken);
         var cards = items.Select(item =>
         {
             var card = new ItemCardViewModel(item, _strings);
@@ -1365,6 +1414,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         _undo.StateChanged -= OnUndoStateChanged;
         _queryCancellation?.Cancel();
         _lifetimeCancellation.Cancel();
+        _clipboardReloadCaptures = null;
         _disposed = true;
     }
 
@@ -1541,6 +1591,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
         if (CurrentSection == "Clipboard" && string.IsNullOrWhiteSpace(SearchText))
         {
+            if (_clipboardReloadCaptures is { } captures)
+            {
+                if (captures.RemovedIds.Contains(item.Id)) return;
+                captures.Captures.RemoveAll(captured => captured.Id == item.Id);
+                captures.Captures.Insert(0, item);
+                if (captures.Captures.Count > MaximumLiveClipboardItems)
+                {
+                    captures.CaptureOverflow = true;
+                    captures.Captures.RemoveAt(captures.Captures.Count - 1);
+                }
+            }
             var existing = Items.FirstOrDefault(card => card.Id == item.Id);
             if (existing is not null)
             {
@@ -1561,7 +1622,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
+            QueueBatchProjectionRefresh();
         }
+    }
+
+    private void QueueBatchProjectionRefresh()
+    {
+        if (_batchProjectionRefreshQueued) return;
+        _batchProjectionRefreshQueued = true;
+        if (!_dispatcher.TryEnqueue(() =>
+        {
+            _batchProjectionRefreshQueued = false;
+            if (!_disposed) ApplyBatchProjectionState();
+        })) _batchProjectionRefreshQueued = false;
+    }
+
+    // Each pending page owns only the removals that can invalidate its snapshot.
+    // Undo starts a new reload, so its fresh page has no predecessor's tombstones.
+    private sealed class ProjectionLoadJournal
+    {
+        public List<DropItem> Captures { get; } = [];
+        public HashSet<Guid> RemovedIds { get; } = [];
+        public bool CaptureOverflow { get; set; }
     }
 
     private void TrimLiveClipboardProjection(int retainedLimit)
@@ -1573,7 +1655,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         var tail = Items[^1].Item;
         _projectionCursor = new ItemQueryCursor(0, tail.CreatedAtUtc, tail.Id);
         HasMoreItems = true;
-        Interlocked.Increment(ref _reloadRevision);
+        // A pending first-page reload merges its capture journal and computes its own tail.
+        // Keep that reload alive so initial history and its loading completion are not lost.
+        if (_clipboardReloadCaptures is null) Interlocked.Increment(ref _reloadRevision);
     }
 
     private void OnClipboardStatusChanged(object? sender, ClipboardCaptureStatus status)

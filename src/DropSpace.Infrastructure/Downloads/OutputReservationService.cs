@@ -42,27 +42,36 @@ public sealed class OutputReservationService : IOutputReservationService
 
             var markerPath = outputPath + MarkerSuffix;
             DownloadStorage.Safe(directory, markerPath);
+            var ownsMarker = false;
             try
             {
                 using var marker = new FileStream(markerPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 256, FileOptions.WriteThrough);
+                ownsMarker = true;
                 var content = $"{taskId:D}|{Environment.ProcessId.ToString(CultureInfo.InvariantCulture)}|{DateTimeOffset.UtcNow:O}";
                 var bytes = Encoding.UTF8.GetBytes(content);
                 marker.Write(bytes);
                 marker.Flush(true);
                 return Task.FromResult(new OutputReservation(taskId, outputPath, markerPath));
             }
-            catch (IOException) when (IsMarkerCollision(markerPath) || PathExists(outputPath))
+            catch (IOException) when (!ownsMarker && (IsMarkerCollision(markerPath) || PathExists(outputPath)))
             {
                 // Another task may own the marker. Reclaim only markers whose owner process is gone.
                 // Retry the same candidate after a stale marker is removed.
                 if (TryReclaimStaleMarker(markerPath)) index--;
             }
-            catch (UnauthorizedAccessException) when (IsMarkerCollision(markerPath) || PathExists(outputPath))
+            catch (UnauthorizedAccessException) when (!ownsMarker && (IsMarkerCollision(markerPath) || PathExists(outputPath)))
             {
                 // A concurrent commit may remove its marker between CreateNew failing and
                 // this filter running. Its committed output is also collision evidence.
                 // Real directory permission failures still propagate when neither exists.
                 if (TryReclaimStaleMarker(markerPath)) index--;
+            }
+            catch
+            {
+                // A failed write/flush of our newly created marker is a storage failure,
+                // not a collision with another owner. Remove that partial and stop retrying.
+                if (ownsMarker) TryDeleteMarker(markerPath);
+                throw;
             }
         }
 
@@ -76,11 +85,13 @@ public sealed class OutputReservationService : IOutputReservationService
         Func<OutputReservation, Task> beforeCommit, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(reservation);
+        ArgumentNullException.ThrowIfNull(beforeCommit);
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingPath);
         if (!Path.IsPathRooted(stagingPath) || !File.Exists(stagingPath)) throw new FileNotFoundException("The staging output does not exist.", stagingPath);
         cancellationToken.ThrowIfCancellationRequested();
 
         var current = reservation;
+        var currentTracked = false;
         for (var attempt = 0; attempt < 100_000; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -89,12 +100,16 @@ public sealed class OutputReservationService : IOutputReservationService
             {
                 await ReleaseAsync(current, cancellationToken).ConfigureAwait(false);
                 current = await ReserveAsync(current.TaskId, Path.GetDirectoryName(current.OutputPath)!, Path.GetFileName(current.OutputPath), cancellationToken).ConfigureAwait(false);
+                // Transfer replacement ownership before the loop's cancellation check.
+                await beforeCommit(current).ConfigureAwait(false);
+                currentTracked = true;
                 continue;
             }
 
             try
             {
-                await beforeCommit(current).ConfigureAwait(false);
+                if (!currentTracked) await beforeCommit(current).ConfigureAwait(false);
+                currentTracked = true;
                 File.Move(stagingPath, current.OutputPath, overwrite: false);
                 return current with { CleanupPending = !TryDeleteMarker(current.MarkerPath) };
             }
@@ -102,6 +117,8 @@ public sealed class OutputReservationService : IOutputReservationService
             {
                 await ReleaseAsync(current, cancellationToken).ConfigureAwait(false);
                 current = await ReserveAsync(current.TaskId, Path.GetDirectoryName(current.OutputPath)!, Path.GetFileName(current.OutputPath), cancellationToken).ConfigureAwait(false);
+                await beforeCommit(current).ConfigureAwait(false);
+                currentTracked = true;
             }
         }
 

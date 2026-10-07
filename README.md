@@ -13,13 +13,13 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 DropSpace **v0.2.1 is the Stable baseline**. The latest public App release verified during Beta17 preparation was **v0.3.1-beta.16**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, Windows release automation, and the product/engineering specifications that define its safety boundaries.
 
-The current Beta target is `v0.3.1-beta.17` (Beta 17).
+The current Beta target is `v0.3.1-beta.18` (Beta 18).
 
 Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Verified public upgrade baseline: [v0.3.1-beta.16](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.16); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
 Beta17 collects the completed response, media presentation, database intake and download-lifetime optimizations, plus the independently versioned CUDA component delivery. It preserves existing product behavior, the whole-track native-translation protection introduced in Beta16 and optional AI translation off by default. No new DLC framework or Bilibili feature is included.
 
-The [optimization reports](docs/dev/performance-continuation-2026-10-07.md) distinguish calling-thread occupation, total task duration and native Windows experience. The [Beta17 release audit](docs/dev/beta17-release-audit.md) and [release notes](.github/release-notes/v0.3.1-beta.17.md) explain the preparation and remaining limitations. Actual release results come from the same-source-tree Windows producer's immutable Actions receipt and final release attachments. Preparation is not a successful build or publication; the exact Windows candidate and final package/update bindings must pass before release.
+The [optimization reports](docs/dev/performance-continuation-2026-10-07.md) distinguish calling-thread occupation, total task duration and native Windows experience. The [Beta17 release audit](docs/dev/beta17-release-audit.md) and [release notes](.github/release-notes/v0.3.1-beta.18.md) explain the preparation and remaining limitations. Actual release results come from the same-source-tree Windows producer's immutable Actions receipt and final release attachments. Preparation is not a successful build or publication; the exact Windows candidate and final package/update bindings must pass before release.
 
 The unchanged optional CUDA archive is reused from its [independent component release](https://github.com/airanluo-dot/DropSpace/releases/tag/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1). Trust, hashes, interface compatibility, App-source metadata and installed-component reuse remain enforced. Prior App release assets and download addresses remain available.
 

@@ -39,7 +39,10 @@ public sealed class WindowsVolumeActivityService(ILogger<WindowsVolumeActivitySe
     private void Observe(CancellationToken token, TaskCompletionSource ready)
     {
         var initialized = ProcessLoopbackInterop.CoInitializeEx(0, 0) >= 0;
-        using var events = new BlockingCollection<VolumeEvent>(32);
+        // The queue carries one wake-up; the latest state stays retained separately.
+        using var events = new BlockingCollection<bool>(1);
+        var eventGate = new object();
+        VolumeEvent? pendingVolume = null;
         IMMDeviceEnumerator? enumerator = null;
         IAudioEndpointVolume? endpoint = null;
         EndpointCallback? endpointCallback = null;
@@ -47,15 +50,24 @@ public sealed class WindowsVolumeActivityService(ILogger<WindowsVolumeActivitySe
         var deviceCallback = new DeviceCallback(() =>
         {
             Interlocked.Exchange(ref deviceChangePending, 1);
-            Enqueue(new(true, null, 0));
+            Wake();
         });
         var registered = false;
         var generation = 0;
 
-        void Enqueue(VolumeEvent value)
+        void Wake()
         {
             if (token.IsCancellationRequested) return;
-            try { events.TryAdd(value); } catch (InvalidOperationException) { }
+            try { events.TryAdd(true); } catch (InvalidOperationException) { }
+        }
+        void Enqueue(VolumeActivitySnapshot snapshot, int sourceGeneration)
+        {
+            lock (eventGate)
+            {
+                if (token.IsCancellationRequested || sourceGeneration != generation) return;
+                pendingVolume = new(snapshot, sourceGeneration);
+            }
+            Wake();
         }
         void DetachEndpoint()
         {
@@ -68,14 +80,19 @@ public sealed class WindowsVolumeActivityService(ILogger<WindowsVolumeActivitySe
         void AttachEndpoint()
         {
             DetachEndpoint();
-            var sourceGeneration = ++generation;
+            int sourceGeneration;
+            lock (eventGate)
+            {
+                sourceGeneration = ++generation;
+                pendingVolume = null;
+            }
             IMMDevice? device = null;
             try
             {
                 enumerator!.GetDefaultAudioEndpoint(0, 1, out device);
                 device.Activate(typeof(IAudioEndpointVolume).GUID, 0x17, 0, out var value);
                 endpoint = (IAudioEndpointVolume)value;
-                endpointCallback = new EndpointCallback(snapshot => Enqueue(new(false, snapshot, sourceGeneration)));
+                endpointCallback = new EndpointCallback(snapshot => Enqueue(snapshot, sourceGeneration));
                 endpoint.RegisterControlChangeNotify(endpointCallback);
                 endpoint.GetMasterVolumeLevelScalar(out var volume);
                 endpoint.GetMute(out var muted);
@@ -93,10 +110,13 @@ public sealed class WindowsVolumeActivityService(ILogger<WindowsVolumeActivitySe
             enumerator = (IMMDeviceEnumerator)(object)new DeviceEnumerator();
             enumerator.RegisterEndpointNotificationCallback(deviceCallback); registered = true;
             AttachEndpoint(); ready.TrySetResult();
-            foreach (var change in events.GetConsumingEnumerable(token))
+            foreach (var _ in events.GetConsumingEnumerable(token))
             {
-                if (Interlocked.Exchange(ref deviceChangePending, 0) != 0 || change.DeviceChanged) { AttachEndpoint(); continue; }
-                if (change.Generation != generation || change.Snapshot is not { } snapshot) continue;
+                if (Interlocked.Exchange(ref deviceChangePending, 0) != 0) { AttachEndpoint(); continue; }
+                VolumeEvent? change;
+                lock (eventGate) { change = pendingVolume; pendingVolume = null; }
+                if (change is null || change.Generation != generation) continue;
+                var snapshot = change.Snapshot;
                 if (Current is { } old && old.Percent == snapshot.Percent && old.Muted == snapshot.Muted) continue;
                 Current = snapshot;
                 if (Changed is not { } handlers) continue;
@@ -130,7 +150,7 @@ public sealed class WindowsVolumeActivityService(ILogger<WindowsVolumeActivitySe
         try { if (_disposed) return; _disposed = true; await StopCoreAsync().ConfigureAwait(false); }
         finally { _lifecycle.Release(); }
     }
-    private sealed record VolumeEvent(bool DeviceChanged, VolumeActivitySnapshot? Snapshot, int Generation);
+    private sealed record VolumeEvent(VolumeActivitySnapshot Snapshot, int Generation);
 
     [ComVisible(true), ClassInterface(ClassInterfaceType.None)]
     public sealed class EndpointCallback(Action<VolumeActivitySnapshot> publish) : IAudioEndpointVolumeCallback, ProcessLoopbackInterop.IAgileObject

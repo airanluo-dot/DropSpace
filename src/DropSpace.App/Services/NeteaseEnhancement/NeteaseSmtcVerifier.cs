@@ -17,7 +17,10 @@ public sealed class NeteaseSmtcVerifier : IDisposable
     private static readonly TimeSpan ControlTimeout = TimeSpan.FromSeconds(8);
     private readonly Func<CancellationToken, Task<IProbeManager>> _createManager;
     private readonly TimeProvider _time;
-    private readonly DispatcherQueue? _dispatcher;
+    private readonly object _ownershipGate = new();
+    private readonly Media.BoundedMediaOperation _nativeOperations = new(1, 1);
+    private readonly Media.MediaWorkCancellation _stop = new(CancellationToken.None);
+    private Task _cleanup = Task.CompletedTask;
     private readonly TimeSpan _controlTimeout;
     private readonly SemaphoreSlim _connectionGate = new(1, 1);
     private IProbeManager? _manager;
@@ -26,21 +29,39 @@ public sealed class NeteaseSmtcVerifier : IDisposable
     private bool _disposed;
     internal Action<string>? Diagnostic { get; set; }
 
-    public NeteaseSmtcVerifier(DispatcherQueue dispatcher) : this(CreateManagerAsync, TimeProvider.System, ControlTimeout)
-    { _dispatcher = dispatcher; }
+    public NeteaseSmtcVerifier(DispatcherQueue dispatcher) : this(CreateManagerAsync, TimeProvider.System, ControlTimeout) { }
     internal NeteaseSmtcVerifier(Func<CancellationToken, Task<IProbeManager>> createManager,
         TimeProvider time, TimeSpan controlTimeout)
     { _createManager = createManager; _time = time; _controlTimeout = controlTimeout; }
 
     // The manager outlives player processes; session COM objects do not. Capture
     // the old generation before stopping the player, never dispatch to it again.
-    public Task InvalidateBeforeRestartAsync(CancellationToken token = default) =>
-        _dispatcher is not null && !_dispatcher.HasThreadAccess
-            ? _dispatcher.EnqueueAsync(() => InvalidateCoreAsync(token)) : InvalidateCoreAsync(token);
+    public Task InvalidateBeforeRestartAsync(CancellationToken token = default) => RunNativeAsync(async nativeToken =>
+    {
+        await InvalidateCoreAsync(nativeToken).ConfigureAwait(false);
+        return true;
+    }, ControlTimeout, token);
+
+    private Task<T> RunNativeAsync<T>(Func<CancellationToken, Task<T>> operation, TimeSpan timeout, CancellationToken token)
+    {
+        lock (_ownershipGate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return RunAsync();
+        }
+        async Task<T> RunAsync()
+        {
+            using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, _stop.Token);
+            // One retained owner covers discovery, controls and subscription cleanup.
+            // A timed-out native call keeps this slot until it actually completes.
+            return await _nativeOperations.RunAsync(this, operation, timeout, lifetime.Token).ConfigureAwait(false);
+        }
+    }
 
     private async Task InvalidateCoreAsync(CancellationToken token)
     {
         var manager = await GetManagerAsync(token);
+        token.ThrowIfCancellationRequested();
         _retired.Clear();
         _retired.UnionWith(_lastDiscovered);
         _lastDiscovered.Clear();
@@ -48,23 +69,37 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         {
             foreach (var session in manager.GetSessions().Take(512))
             {
+                token.ThrowIfCancellationRequested();
                 try { if (IsNeteaseSource(session.Source)) _retired.Add(session.Identity); }
                 catch (Exception exception) when (IsRecoverable(exception)) { _retired.Add(session.Identity); Report("Discovery.BeforeRestart", exception); }
             }
         }
         catch (Exception exception) when (IsRecoverable(exception)) { Report("Discovery.BeforeRestart", exception); }
+        token.ThrowIfCancellationRequested();
         Diagnostic?.Invoke("SessionGenerationRetired");
     }
 
-    public Task<NeteaseMediaCapabilities> VerifyAsync(TimeSpan timeout, bool exerciseControls,
-        CancellationToken cancellationToken = default) =>
-        _dispatcher is not null && !_dispatcher.HasThreadAccess
-            ? _dispatcher.EnqueueAsync(() => VerifyCoreAsync(timeout, exerciseControls, cancellationToken))
-            : VerifyCoreAsync(timeout, exerciseControls, cancellationToken);
+    public async Task<NeteaseMediaCapabilities> VerifyAsync(TimeSpan timeout, bool exerciseControls,
+        CancellationToken cancellationToken = default)
+    {
+        // Keep the existing verification deadline and allow its bounded playback
+        // restoration to finish. Native stalls still release the caller's wait.
+        var waitBudget = timeout + (exerciseControls ? _controlTimeout * 8 : TimeSpan.Zero);
+        try
+        {
+            return await RunNativeAsync(nativeToken => VerifyCoreAsync(timeout, exerciseControls, nativeToken),
+                waitBudget, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Diagnostic?.Invoke("VerificationTimeout");
+            return NeteaseMediaCapabilities.Empty;
+        }
+    }
 
-    // Preserve this context across awaits: native async operations and session event
-    // registration belong to the same apartment throughout discovery and control.
-    // All waits and artwork reads remain asynchronous; deployment never runs here.
+    // SMTC manager/session objects are Agile. All native calls, including synchronous
+    // property getters and event add/remove, stay on the retained worker, never the UI.
     private async Task<NeteaseMediaCapabilities> VerifyCoreAsync(TimeSpan timeout, bool exerciseControls,
         CancellationToken cancellationToken)
     {
@@ -74,7 +109,7 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         var evidence = NeteaseMediaCapabilities.Empty;
         var changes = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
         { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
-        void Signal() => changes.Writer.TryWrite(true);
+        void Signal() { if (!token.IsCancellationRequested) changes.Writer.TryWrite(true); }
         var samples = new Dictionary<object, ProgressSample>(ReferenceEqualityComparer.Instance);
         var playAttempts = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
         var invalid = new HashSet<object>(_retired, ReferenceEqualityComparer.Instance);
@@ -108,6 +143,7 @@ public sealed class NeteaseSmtcVerifier : IDisposable
                 {
                     foreach (var session in manager.GetSessions().Take(512))
                     {
+                        token.ThrowIfCancellationRequested();
                         try { if (!invalid.Contains(session.Identity) && IsNeteaseSource(session.Source)) sessions.Add(session); }
                         catch (Exception exception) when (IsRecoverable(exception)) { Report("Discovery.Source", exception); Retire(session, exception); }
                         if (sessions.Count == 16) break;
@@ -260,7 +296,20 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_manager is not null) return _manager;
-            try { return _manager = await _createManager(token); }
+            try
+            {
+                var manager = await _createManager(token);
+                try
+                {
+                    token.ThrowIfCancellationRequested();
+                    return _manager = manager;
+                }
+                catch
+                {
+                    if (manager is IDisposable disposable) disposable.Dispose();
+                    throw;
+                }
+            }
             catch (Exception exception) when (IsRecoverable(exception))
             {
                 Report("ManagerConnectionUnavailable", exception);
@@ -272,16 +321,24 @@ public sealed class NeteaseSmtcVerifier : IDisposable
 
     private IDisposable Subscribe(IProbeSession session, Action changed, string phase)
     {
+        var active = 1;
         try
         {
-            var lease = session.Subscribe(changed);
+            var lease = session.Subscribe(() => { if (Volatile.Read(ref active) != 0) changed(); });
             return new Subscription(() =>
             {
+                // Retire callbacks before a potentially blocking native unsubscribe.
+                Interlocked.Exchange(ref active, 0);
                 try { lease.Dispose(); }
                 catch (Exception exception) when (IsRecoverable(exception)) { Report("Unsubscribe", exception); }
             });
         }
-        catch (Exception exception) when (IsRecoverable(exception)) { Report(phase, exception); throw; }
+        catch (Exception exception)
+        {
+            Interlocked.Exchange(ref active, 0);
+            if (IsRecoverable(exception)) Report(phase, exception);
+            throw;
+        }
     }
 
     private async Task<ProbeSnapshot> ReadAsync(IProbeSession session, CancellationToken token, string phase)
@@ -295,15 +352,26 @@ public sealed class NeteaseSmtcVerifier : IDisposable
 
     public void Dispose()
     {
-        _connectionGate.Wait();
-        try
+        lock (_ownershipGate)
         {
             if (_disposed) return;
             _disposed = true;
+            _stop.Request();
+            _cleanup = Task.Run(DisposeAfterNativeAsync);
+            _ = Media.MediaSoftRestartOperation.ObserveAsync(_cleanup);
+        }
+    }
+
+    private async Task DisposeAfterNativeAsync()
+    {
+        try
+        {
+            // Never detach a live owner's manager or block the UI on native removal.
+            await _nativeOperations.DrainAsync().ConfigureAwait(false);
             if (_manager is IDisposable disposable) disposable.Dispose();
             _manager = null;
         }
-        finally { _connectionGate.Release(); }
+        finally { await _stop.CompleteWhenAsync(Task.CompletedTask).ConfigureAwait(false); }
     }
 
     private bool ObserveProgress(Dictionary<object, ProgressSample> samples, object identity, ProbeSnapshot snapshot)
@@ -397,7 +465,8 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
         deadline.CancelAfter(_controlTimeout);
         var changed = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropOldest });
-        using var subscription = Subscribe(session, () => changed.Writer.TryWrite(true), "Subscribe.Command." + command);
+        using var subscription = Subscribe(session,
+            () => { if (!deadline.IsCancellationRequested) changed.Writer.TryWrite(true); }, "Subscribe.Command." + command);
         // Subscribe before dispatch so synchronous completion events cannot be lost.
         try { Require(await session.CommandAsync(command, value, deadline.Token)); }
         catch (Exception exception) when (IsRecoverable(exception)) { Report("Command." + command, exception); throw; }
@@ -473,8 +542,13 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         IReadOnlyList<IProbeSession> GetSessions();
         IDisposable Subscribe(Action changed);
     }
-    private static async Task<IProbeManager> CreateManagerAsync(CancellationToken token) =>
-        new WindowsProbeManager(await GlobalSystemMediaTransportControlsSessionManager.RequestAsync().AsTask(token));
+    private static async Task<IProbeManager> CreateManagerAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var manager = await NativeAsyncLifetime.AwaitAsync(GlobalSystemMediaTransportControlsSessionManager.RequestAsync(), token).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        return new WindowsProbeManager(manager);
+    }
 
     private sealed class WindowsProbeManager : IProbeManager, IDisposable
     {
@@ -534,11 +608,15 @@ public sealed class NeteaseSmtcVerifier : IDisposable
             var phase = "Read.Metadata";
             try
             {
-                var metadata = await session.TryGetMediaPropertiesAsync().AsTask(token);
+                token.ThrowIfCancellationRequested();
+                var metadata = await NativeAsyncLifetime.AwaitAsync(session.TryGetMediaPropertiesAsync(), token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
                 phase = "Read.Playback";
                 var playback = session.GetPlaybackInfo();
+                token.ThrowIfCancellationRequested();
                 phase = "Read.Timeline";
                 var timeline = session.GetTimelineProperties();
+                token.ThrowIfCancellationRequested();
                 phase = "Read.Values";
                 var controls = playback.Controls;
                 var start = timeline.StartTime; var end = timeline.EndTime; var position = timeline.Position;
@@ -564,15 +642,21 @@ public sealed class NeteaseSmtcVerifier : IDisposable
             }
             catch (Exception exception) when (IsRecoverable(exception)) { exception.Data["SmtcStage"] = phase; throw; }
         }
-        public Task<bool> CommandAsync(ProbeCommand command, long value, CancellationToken token) => (command switch
+        public async Task<bool> CommandAsync(ProbeCommand command, long value, CancellationToken token)
         {
-            ProbeCommand.Play => session.TryPlayAsync(),
-            ProbeCommand.Pause => session.TryPauseAsync(),
-            ProbeCommand.Seek => session.TryChangePlaybackPositionAsync(value),
-            ProbeCommand.Next => session.TrySkipNextAsync(),
-            ProbeCommand.Previous => session.TrySkipPreviousAsync(),
-            _ => throw new ArgumentOutOfRangeException(nameof(command)),
-        }).AsTask(token);
+            token.ThrowIfCancellationRequested();
+            var accepted = await NativeAsyncLifetime.AwaitAsync(command switch
+            {
+                ProbeCommand.Play => session.TryPlayAsync(),
+                ProbeCommand.Pause => session.TryPauseAsync(),
+                ProbeCommand.Seek => session.TryChangePlaybackPositionAsync(value),
+                ProbeCommand.Next => session.TrySkipNextAsync(),
+                ProbeCommand.Previous => session.TrySkipPreviousAsync(),
+                _ => throw new ArgumentOutOfRangeException(nameof(command)),
+            }, token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            return accepted;
+        }
     }
     private static readonly Media.BoundedMediaOperation ArtworkReads = new(4, 1);
 

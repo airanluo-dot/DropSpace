@@ -4,7 +4,6 @@ using DropSpace.Infrastructure.Lyrics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Views.Music;
 
@@ -47,8 +46,7 @@ public sealed class QqMusicLoginCard : UserControl
         buttons.Children.Add(_signIn); buttons.Children.Add(_check); buttons.Children.Add(_signOut);
         body.Children.Add(buttons);
         Content = new Border { Padding = new Thickness(16), CornerRadius = new CornerRadius(8),
-            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            Style = (Style)Application.Current.Resources["DropSpaceCardStyle"],
             BorderThickness = new Thickness(1), Child = body };
         Loaded += async (_, _) => { _login.Session.Changed += OnChanged; await _login.Session.LoadAsync(); Refresh(); };
         Unloaded += (_, _) => _login.Session.Changed -= OnChanged;

@@ -120,6 +120,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _openMainWindow = openMainWindow;
+        _experience.UpdateContentPriority(_viewModel.ContentPriority);
         CreateMonitorSurfaces();
         var primaryMonitor = _primaryMonitor
             ?? throw new InvalidOperationException("No primary monitor was available after creating overlay surfaces.");
@@ -640,18 +641,13 @@ public sealed class OverlayWindowService : IDisposable
             });
             return;
         }
-        if (args.PropertyName != nameof(MainViewModel.Theme)) return;
-        _dispatcher.TryEnqueue(() =>
-        {
-            if (_disposed) return;
-            foreach (var window in _windows) window.ApplyTheme(_mainViewModel.Theme);
-        });
     }
 
     private void OnMediaSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (!_disposed && args.PropertyName == nameof(MediaViewModel.Settings))
         {
+            foreach (var window in _windows) window.ApplyTheme(_mediaViewModel.Settings.IslandAppearance.Theme);
             UpdateFullscreenRefreshTimer();
             ApplySnapshot(_viewModel.Snapshot);
         }
@@ -692,6 +688,10 @@ public sealed class OverlayWindowService : IDisposable
         {
             ApplySnapshot(_viewModel.Snapshot);
         }
+        else if (args.PropertyName == nameof(OverlayViewModel.ContentPriority))
+        {
+            _experience.UpdateContentPriority(_viewModel.ContentPriority);
+        }
         else if (args.PropertyName == nameof(OverlayViewModel.MotionPreference))
         {
             if (!_stateMachine.SetMotionPreference(_viewModel.MotionPreference))
@@ -707,10 +707,6 @@ public sealed class OverlayWindowService : IDisposable
         else if (args.PropertyName == nameof(OverlayViewModel.PlacementMode))
         {
             ApplySnapshot(_viewModel.Snapshot);
-        }
-        else if (args.PropertyName == nameof(OverlayViewModel.QuickPanelHotkey))
-        {
-            _ = RestartQuickPanelHotkeyAsync(_viewModel.QuickPanelHotkey);
         }
         else if (args.PropertyName == nameof(OverlayViewModel.SmartDragExcludedProcesses))
         {
@@ -861,21 +857,6 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private async Task RestartQuickPanelHotkeyAsync(string gesture)
-    {
-        try
-        {
-            if (!await _quickPanelHotkey.TryStartAsync(gesture).ConfigureAwait(false))
-            {
-                _logger.LogWarning("Quick Panel retained its previous registered hotkey after a registration conflict.");
-            }
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            _logger.LogWarning(exception, "Quick Panel hotkey restart failed safely.");
-        }
-    }
-
     private void OnQuickPanelHotkeyInvoked(object? sender, EventArgs args)
     {
         _dispatcher.TryEnqueue(() =>
@@ -983,7 +964,7 @@ public sealed class OverlayWindowService : IDisposable
                 _systemActivityViewModel);
             if (glowTransfers is not null && glowTransfers.TryGetValue(monitor.Id, out var transfer))
                 window.StageGlowHandoff(transfer);
-            window.ApplyTheme(_mainViewModel.Theme);
+            window.ApplyTheme(_mediaViewModel.Settings.IslandAppearance.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementEditRequested += OnOverlayPlacementEditRequested;
             window.PlacementCancelled += OnPlacementCancelled;

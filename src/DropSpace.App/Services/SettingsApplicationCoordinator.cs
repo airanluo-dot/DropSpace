@@ -104,17 +104,18 @@ public sealed class SettingsApplicationCoordinator(
             current = persisted;
             next = next.Validate();
 
-            if (!string.Equals(next.QuickPanelHotkey, current.QuickPanelHotkey, StringComparison.OrdinalIgnoreCase) &&
-                !quickPanelHotkey.CanRegister(next.QuickPanelHotkey))
-            {
-                throw new InvalidOperationException(
-                    "The requested Quick Panel hotkey is already registered by another application.");
-            }
-
             var rollback = new SettingsTransactionRollbackCoordinator();
             var stage = "SettingsStageAppearance";
             try
             {
+                if (!string.Equals(next.QuickPanelHotkey, current.QuickPanelHotkey, StringComparison.OrdinalIgnoreCase))
+                {
+                    // The real message-thread registration is part of this transaction.
+                    // A probe alone cannot reserve the gesture until persistence finishes.
+                    rollback.Committed("quick-panel-hotkey", () => ApplyHotkeyAsync(current.QuickPanelHotkey, CancellationToken.None));
+                    await ApplyHotkeyAsync(next.QuickPanelHotkey, cancellationToken);
+                }
+
                 if (uiPreflight is not null)
                 {
                     rollback.Committed("ui-preflight", () => uiPreflight(current, CancellationToken.None));
@@ -249,6 +250,15 @@ public sealed class SettingsApplicationCoordinator(
         finally
         {
             _gate.Release();
+        }
+    }
+
+    private async Task ApplyHotkeyAsync(string gesture, CancellationToken cancellationToken)
+    {
+        if (!await quickPanelHotkey.TryStartAsync(gesture, cancellationToken))
+        {
+            throw new InvalidOperationException(
+                "The requested Quick Panel hotkey could not be registered.");
         }
     }
 

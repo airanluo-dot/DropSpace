@@ -56,6 +56,8 @@ public sealed record LyricsSettings
 
 public sealed record IslandAppearanceSettings
 {
+    // Independent from the settings window theme. Missing on upgrade keeps Windows app appearance.
+    public ThemePreference Theme { get; init; } = ThemePreference.System;
     // Opt-in only. Missing fields in existing settings remain false; the old
     // fullscreen suppression preference is retained and resumes when this is off.
     public bool Resident { get; init; }

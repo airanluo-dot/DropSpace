@@ -11,7 +11,10 @@ Use Windows 11 Fluent design as a native utility, drawing structural cues from W
 The fixed host remains transparent. Only the bounded SystemBackdropElement owns
 Desktop Acrylic, using an island-specific input-active configuration so unfocusing
 the no-activate window does not replace its material. Surface has no outer stroke
-or shadow. App light/dark/system theme applies to both main and island windows.
+or shadow. The island owns an independent Follow Windows/light/dark appearance preference.
+Follow Windows uses the existing WinUI app-appearance source, while the main
+window retains its own theme. Theme resources refresh all content and interaction
+states, including outgoing content during transitions.
 High contrast and reduced-effects policies retain a readable solid fallback.
 IslandGeometry supplies the visible shape; animated values feed both XAML material
 corners and the native region. SetWindowRgn coordinates include the actual client

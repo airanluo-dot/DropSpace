@@ -514,7 +514,7 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>Left</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Loading lyrics…</value></data>
-  <data name="LyricsNotFound" xml:space="preserve"><value>No verified lyrics found for this track.</value></data>
+  <data name="LyricsNotFound" xml:space="preserve"><value>No matching lyrics</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>Lyrics are temporarily unavailable. Select Refresh to try again.</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>This widget could not be dropped here. Try a grid cell or use the position controls.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>
@@ -781,7 +781,7 @@ This downloads a model to this computer. Your internet connection is used only f
 Download size: {1}
 
 Downloading does not enable AI or change your selected model or GPU mode.</value></data>
-  <data name="DlcDeleteConfirm" xml:space="preserve"><value>Uninstall {0} and its partial downloads? AI using this component will stop and release resources first. If it is the selected model, AI translation will be turned off. Lyrics caches and your files are kept.</value></data>
+  <data name="DlcDeleteConfirm" xml:space="preserve"><value>Uninstall {0} and its partial downloads? AI using this component will stop and release resources first. Your AI preference, lyrics caches, and files are kept.</value></data>
   <data name="DlcSource" xml:space="preserve"><value>Source: {0}</value></data>
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} download progress</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}: {1}</value></data>
@@ -866,6 +866,13 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="DownloadRetryDetail" xml:space="preserve"><value>Retry {0}</value></data>
   <data name="IslandResident" xml:space="preserve"><value>Keep Dynamic Island visible</value></data>
   <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} s</value></data>
+  <data name="IslandAppearance" xml:space="preserve"><value>Island appearance</value></data>
+  <data name="IslandAppearanceFollow" xml:space="preserve"><value>Follow Windows</value></data>
+  <data name="IslandAppearanceLight" xml:space="preserve"><value>Light</value></data>
+  <data name="IslandAppearanceDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="IslandContentPriority" xml:space="preserve"><value>Island content priority</value></data>
+  <data name="IslandContentPriorityMusic" xml:space="preserve"><value>Music</value></data>
+  <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>Temporary Space</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Show logo when idle</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (disabled)</value></data>
 </root>

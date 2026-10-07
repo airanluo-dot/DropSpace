@@ -71,6 +71,7 @@ public sealed class JsonSettingsService : ISettingsService
                     ?? throw new JsonException("Settings must be an object.");
                 var beforePrivacyMigration = settings;
                 settings = SettingsMigration15.Apply(settings, document.RootElement);
+                settings = IslandAppearanceMigration.Apply(settings, document.RootElement);
                 settings = MigratePrivacyChoice(document.RootElement, settings);
                 var migratedVersion = document.RootElement.EnumerateObject().Any(property =>
                     string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase) &&
@@ -226,7 +227,8 @@ public sealed class JsonSettingsService : ISettingsService
         var settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
         if (settings is { Version: >= 1 and < AppSettings.CurrentVersion })
             settings = SettingsMigration14.Apply(SettingsMigration15.Apply(settings, document.RootElement)) with { Version = AppSettings.CurrentVersion };
-        return settings is null ? throw new JsonException("Settings must be an object.") : MigratePrivacyChoice(document.RootElement, settings);
+        return settings is null ? throw new JsonException("Settings must be an object.") :
+            MigratePrivacyChoice(document.RootElement, IslandAppearanceMigration.Apply(settings, document.RootElement));
     }
 
     private async Task SaveCoreAsync(AppSettings settings, CancellationToken cancellationToken)

@@ -236,8 +236,10 @@ export const sourcePaths = Object.freeze([
   'scripts/Build-Installer.ps1',
   // Exact Beta17 producer, asset reuse and validation/promotion are shipping inputs.
   'scripts/Build-Beta17Candidate.ps1',
+  'scripts/Build-Beta18Candidate.ps1',
   'scripts/Reuse-BundledLyricsLanguageModel.ps1',
   'scripts/beta17-release-validation.mjs',
+  'scripts/beta18-release-validation.mjs',
   'scripts/ci-release-promotion.mjs',
   'scripts/Inspect-OwnerWaivedPackages.ps1',
   'scripts/Collect-AiRuntimeNotices.ps1',
@@ -289,7 +291,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.17';
+export const experimentalBetaVersion = 'v0.3.1-beta.18';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
