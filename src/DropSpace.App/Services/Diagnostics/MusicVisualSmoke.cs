@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -65,6 +66,8 @@ internal static class MusicVisualSmoke
         Directory.CreateDirectory(output);
         var captures = new List<CaptureEvidence>();
         var lyricsLayoutChecks = new List<LyricsLayoutEvidence>();
+        var compactRenderChecks = new List<CompactRenderEvidence>();
+        var expandedRenderChecks = new List<ExpandedRenderEvidence>();
         var uiErrors = new List<string>();
         var status = "failed";
         var stage = "graphical-session";
@@ -105,6 +108,10 @@ internal static class MusicVisualSmoke
             // Keep one window alive for the whole run. Closing the last WinUI window between
             // captures can terminate the process before the remaining evidence is written.
             host = new Window { Title = "DropSpace synthetic visual diagnostic" };
+            stage = "compact-render-lifecycle";
+            compactRenderChecks.Add(await CheckCompactRenderLifecycleAsync(host, strings));
+            stage = "expanded-render-lifecycle";
+            expandedRenderChecks.Add(await CheckExpandedRenderLifecycleAsync(host, strings));
             stage = "lyrics-layout-regressions";
             await CheckLyricsLayoutsAsync(host, strings, lyricsLayoutChecks);
             foreach (var theme in new[] { ElementTheme.Light, ElementTheme.Dark })
@@ -128,7 +135,9 @@ internal static class MusicVisualSmoke
             if (sessions.IsAvailable || sessions.AvailableSources.Count != 0)
                 throw new InvalidOperationException("Native media discovery was activated during the fixture.");
             status = uiErrors.Count == 0 && captures.All(capture => capture.Failures.Count == 0) &&
-                lyricsLayoutChecks.All(check => check.Failures.Count == 0) ? "passed" : "failed";
+                lyricsLayoutChecks.All(check => check.Failures.Count == 0) &&
+                compactRenderChecks.All(check => check.Failures.Count == 0) &&
+                expandedRenderChecks.All(check => check.Failures.Count == 0) ? "passed" : "failed";
             stage = "complete";
             return status == "passed" ? 0 : 1;
         }
@@ -150,7 +159,7 @@ internal static class MusicVisualSmoke
                 os = Environment.OSVersion.VersionString,
                 capturedAtUtc = DateTimeOffset.UtcNow,
                 evidenceKind = "native-winui-control-render-target-bitmap",
-                dataSource = "synthetic-only", captures, lyricsLayoutChecks, uiErrors,
+                dataSource = "synthetic-only", captures, lyricsLayoutChecks, compactRenderChecks, expandedRenderChecks, uiErrors,
                 limitations = new[]
                 {
                     "Component captures use real controls in a diagnostic host, not the production overlay HWND or main-window shell.",
@@ -168,6 +177,116 @@ internal static class MusicVisualSmoke
         Width = width, Height = height, RequestedTheme = theme,
         Background = new SolidColorBrush(theme == ElementTheme.Dark ? Microsoft.UI.Colors.Black : Microsoft.UI.Colors.White),
     };
+
+    private static async Task<CompactRenderEvidence> CheckCompactRenderLifecycleAsync(Window window, IAppStringLocalizer strings)
+    {
+        var failures = new List<string>();
+        var media = CreateFixture(strings, "normal");
+        var compact = new MediaCompactView { ViewModel = media };
+        var root = CreateRoot(ElementTheme.Dark, 560, 180);
+        root.Children.Add(compact);
+        window.Content = root;
+        window.Activate();
+        await WaitForLayoutAsync(root);
+
+        var observedRefreshNotifications = 0;
+        void ObserveNotification(object? sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName is nameof(MediaViewModel.Position) or nameof(MediaViewModel.Lyrics))
+                observedRefreshNotifications++;
+        }
+        media.PropertyChanged += ObserveNotification;
+        var before = compact.RefreshCount;
+        for (var index = 0; index < 1000; index++)
+        {
+            media.Position += TimeSpan.FromMilliseconds(1);
+            media.Lyrics = media.Lyrics with { WordProgress = (index + 1) / 1000d };
+        }
+        media.PropertyChanged -= ObserveNotification;
+        if (compact.RefreshCount != before) failures.Add("A media notification performed synchronous presentation work.");
+        await WaitForPresentationFrameAsync(root);
+        var burstRefreshes = compact.RefreshCount - before;
+        if (burstRefreshes != 1) failures.Add("The notification burst did not render exactly once.");
+
+        compact.SetActive(false);
+        before = compact.RefreshCount;
+        for (var index = 0; index < 1000; index++) media.Position += TimeSpan.FromMilliseconds(1);
+        await WaitForPresentationFrameAsync(root);
+        var hiddenRefreshes = compact.RefreshCount - before;
+        if (hiddenRefreshes != 0) failures.Add("A hidden host performed compact presentation work.");
+
+        // Cancel a frame and re-open before CompositionTarget dispatches it. The
+        // replacement must own its frame, even if a retired callback was captured.
+        compact.SetActive(true);
+        compact.SetActive(false);
+        compact.SetActive(true);
+        before = compact.RefreshCount;
+        await WaitForPresentationFrameAsync(root);
+        var reopenRefreshes = compact.RefreshCount - before;
+        if (reopenRefreshes != 1) failures.Add("Rapid hide/re-open lost or duplicated the current frame.");
+
+        compact.SetActive(false);
+        var line = new LyricsLine(TimeSpan.Zero, TimeSpan.FromMinutes(1),
+            string.Join(" ", Enumerable.Repeat("Latest hidden lyric", 15)), null, []);
+        media.Session = media.Session with { TrackTitle = "Latest hidden synthetic song" };
+        media.SetLyricsDocument(new([line], LyricsProviderKind.LocalLrc));
+        media.Lyrics = new(line, -1, 0, 1);
+        before = compact.RefreshCount;
+        compact.RefreshForPresentation();
+        var preparedRefreshes = compact.RefreshCount - before;
+        var primary = Descendants(compact).OfType<TextBlock>().Single(element => element.Name == "BaseLine");
+        if (preparedRefreshes != 1 || primary.Text != LyricsDisplayPolicy.CompactText(media.CurrentLyricText) ||
+            compact.IdealIslandWidth <= 0 || compact.IdealIslandHeight <= 0)
+            failures.Add("First-frame geometry did not synchronously consume the latest hidden track.");
+        compact.RefreshForPresentation();
+        if (compact.RefreshCount != before + preparedRefreshes) failures.Add("Unchanged geometry repeated presentation work.");
+        await WaitForPresentationFrameAsync(root);
+        if (compact.RefreshCount != before + preparedRefreshes) failures.Add("Geometry preparation left a stale frame queued.");
+        window.Content = null;
+        return new(observedRefreshNotifications, burstRefreshes, hiddenRefreshes, reopenRefreshes, preparedRefreshes, failures);
+    }
+
+    private static async Task<ExpandedRenderEvidence> CheckExpandedRenderLifecycleAsync(Window window, IAppStringLocalizer strings)
+    {
+        var failures = new List<string>();
+        var media = CreateFixture(strings, "normal");
+        var expanded = new ExpandedIslandMusicView { ViewModel = media };
+        var root = CreateRoot(ElementTheme.Dark, 560, 340);
+        root.Children.Add(expanded);
+        window.Content = root;
+        window.Activate();
+        await WaitForLayoutAsync(root);
+        var progress = Descendants(expanded).OfType<Slider>().Single(element => element.Name == "Progress");
+        progress.Value += 10;
+        if (!expanded.HasPendingSeekWork) failures.Add("The visible seek fixture did not create pending work.");
+        expanded.SetActive(false);
+        var seekWorkRetired = !expanded.HasPendingSeekWork;
+        progress.Value += 1;
+        if (!seekWorkRetired || expanded.HasPendingSeekWork || expanded.IsTranslationActuallyVisible)
+            failures.Add("A hidden expanded host retained or restarted seek/translation presentation ownership.");
+
+        var before = expanded.RenderCount;
+        for (var index = 0; index < 1000; index++) media.Position += TimeSpan.FromMilliseconds(1);
+        await WaitForPresentationFrameAsync(root);
+        var hiddenRenders = expanded.RenderCount - before;
+        if (hiddenRenders != 0) failures.Add("A hidden expanded host performed presentation work.");
+        media.Session = media.Session with { TrackTitle = "Latest hidden expanded song" };
+        before = expanded.RenderCount;
+        expanded.RefreshForPresentation();
+        var preparedRenders = expanded.RenderCount - before;
+        if (preparedRenders != 1 || expanded.HasPendingSeekWork)
+            failures.Add("First expanded presentation did not consume the current track without stale seek state.");
+        expanded.SetActive(true);
+        expanded.SetActive(false);
+        expanded.SetActive(true);
+        before = expanded.RenderCount;
+        await WaitForPresentationFrameAsync(root);
+        var reopenRenders = expanded.RenderCount - before;
+        if (reopenRenders != 1 || expanded.HasPendingSeekWork || Math.Abs(progress.Value - media.PositionSeconds) > .01)
+            failures.Add("Rapid expanded hide/re-open lost its frame or retained the old seek preview.");
+        window.Content = null;
+        return new(hiddenRenders, reopenRenders, preparedRenders, seekWorkRetired, failures);
+    }
 
     private static async Task CheckLyricsLayoutsAsync(Window window, IAppStringLocalizer strings, List<LyricsLayoutEvidence> evidence)
     {
@@ -247,11 +366,12 @@ internal static class MusicVisualSmoke
                 transform.TranslateX = 0;
             }
             media.Position += TimeSpan.FromSeconds(4);
+            await WaitForPresentationFrameAsync(root);
             var offset = -transform.TranslateX;
             if ((offset > 0) != longTranslation) failures.Add("Translation marquee depended on original length or did not advance.");
             var width = secondary.ActualWidth;
             media.Settings = media.Settings with { Lyrics = media.Settings.Lyrics with { ShowAiLyricsLabel = false } };
-            root.UpdateLayout();
+            await WaitForPresentationFrameAsync(root);
             if (secondary.Text != translation || transform.TranslateX != 0 || secondary.ActualWidth >= width)
                 failures.Add("AI label toggle failed to remeasure and reset the translation.");
             if (media.LyricPresentation.Line?.TranslationOrigin != LyricsTranslationOrigin.LocalAi)
@@ -262,17 +382,20 @@ internal static class MusicVisualSmoke
             if (transform.TranslateX != 0) failures.Add("Viewport resize did not restart the readable leading hold.");
             var progressive = line with { Secondary = translation + " appended text" };
             media.SetLyricsDocument(new([progressive], LyricsProviderKind.LocalLrc));
-            root.UpdateLayout();
+            await WaitForPresentationFrameAsync(root);
             if (secondary.Text != progressive.Secondary || transform.TranslateX != 0)
                 failures.Add("Progressive text was not remeasured before the next highlight frame.");
             media.Position += TimeSpan.FromSeconds(4);
             media.IsReducedMotion = true;
+            await WaitForPresentationFrameAsync(root);
             if (transform.TranslateX != 0) failures.Add("Reduced motion did not stop the translation marquee.");
             media.IsReducedMotion = false;
             media.Position += TimeSpan.FromSeconds(4);
             media.Settings = media.Settings with { Lyrics = media.Settings.Lyrics with { Scrolling = false } };
+            await WaitForPresentationFrameAsync(root);
             if (transform.TranslateX != 0) failures.Add("Disabling scrolling did not restore the full-text leading edge.");
             media.Session = media.Session with { TrackTitle = "Next synthetic song" };
+            await WaitForPresentationFrameAsync(root);
             if (secondary.Visibility != Visibility.Collapsed || compact.IsTranslationActuallyVisible)
                 failures.Add("A track change retained the previous translation.");
             evidence.Add(new(fontSize, root.XamlRoot.RasterizationScale, longOriginal, longTranslation,
@@ -311,6 +434,7 @@ internal static class MusicVisualSmoke
             if (Math.Abs(compact.Height - body.Height) > .01 || !compact.IsTranslationVisibleWithin(body))
                 failures.Add("Measured compact lyrics exceeded the body or their translation was not visible.");
             media.Position += TimeSpan.FromSeconds(4);
+            await WaitForPresentationFrameAsync(root);
             var offset = -transform.TranslateX;
             if (offset <= 0) failures.Add("A multi-line provider translation did not use its independent marquee.");
             transform.TranslateY = body.Height + secondary.ActualHeight;
@@ -454,6 +578,23 @@ internal static class MusicVisualSmoke
         throw new TimeoutException("The native WinUI visual tree did not reach a loaded, nonzero, stable layout.");
     }
 
+    private static async Task WaitForPresentationFrameAsync(FrameworkElement root)
+    {
+        var frame = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnFrame(object? sender, object args)
+        {
+            CompositionTarget.Rendering -= OnFrame;
+            frame.TrySetResult();
+        }
+        CompositionTarget.Rendering += OnFrame;
+        try
+        {
+            await frame.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            root.UpdateLayout();
+        }
+        finally { CompositionTarget.Rendering -= OnFrame; }
+    }
+
     private static List<string> InspectLayout(FrameworkElement subject, FrameworkElement root, MediaViewModel media,
         IAppStringLocalizer strings, string surface, FrameworkElement[] elements)
     {
@@ -535,6 +676,10 @@ internal static class MusicVisualSmoke
     private sealed record LyricsLayoutEvidence(double FontSize, double ActualRasterizationScale,
         bool LongOriginal, bool LongTranslation, double TranslationWidth, double ViewportWidth, double MarqueeOffset,
         IReadOnlyList<string> Failures, string Surface = "compact-marquee");
+    private sealed record CompactRenderEvidence(int ObservedRefreshNotifications, long BurstRefreshes,
+        long HiddenRefreshes, long ReopenRefreshes, long PreparedRefreshes, IReadOnlyList<string> Failures);
+    private sealed record ExpandedRenderEvidence(long HiddenRenders, long ReopenRenders,
+        long PreparedRenders, bool SeekWorkRetired, IReadOnlyList<string> Failures);
     private sealed record CaptureEvidence(string File, string Surface, string Scenario, string Theme,
         int PixelWidth, int PixelHeight, double ActualWidth, double ActualHeight, double RasterizationScale,
         uint WindowDpi, double SystemTextScale, bool HighContrast, double ApplicationLyricFontSize,

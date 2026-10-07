@@ -77,7 +77,11 @@ public sealed class MediaViewModel : ObservableObject
         get => _session;
         internal set
         {
-            var trackChanged = !string.Equals(_session.TrackIdentity, value.TrackIdentity, StringComparison.Ordinal);
+            var previous = _session;
+            var previousTrack = previous.TrackIdentity;
+            var currentTrack = value.TrackIdentity;
+            var trackChanged = !string.Equals(previousTrack, currentTrack, StringComparison.Ordinal);
+            var hadSpectrumPresentation = HasSpectrumPresentationFor(previousTrack);
             if (!SetProperty(ref _session, value)) return;
             if (trackChanged)
             {
@@ -85,14 +89,39 @@ public sealed class MediaViewModel : ObservableObject
                 SetProperty(ref _currentLyricIndex, -1, nameof(CurrentLyricIndex));
                 OnPropertyChanged(nameof(LyricsLines));
             }
-            OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist));
-            NotifyLyricTextChanges();
-            OnPropertyChanged(nameof(SourceDisplayName));
-            OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(DurationSeconds)); OnPropertyChanged(nameof(PlaybackGlyph));
-            OnPropertyChanged(nameof(HasSpectrumPresentation));
-            OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
-            OnPropertyChanged(nameof(ArtistAlbum)); OnPropertyChanged(nameof(PlayPauseLabel)); OnPropertyChanged(nameof(TimelineStatus)); OnPropertyChanged(nameof(LyricsStatusText));
-            PlayPauseCommand.NotifyCanExecuteChanged(); PreviousCommand.NotifyCanExecuteChanged(); NextCommand.NotifyCanExecuteChanged(); SeekCommand.NotifyCanExecuteChanged();
+            var titleChanged = previous.TrackTitle != value.TrackTitle;
+            var artistChanged = previous.Artist != value.Artist;
+            var playbackChanged = (previous.PlaybackState == MediaPlaybackState.Playing) != IsPlaying;
+            var startChanged = previous.Timeline.Start != value.Timeline.Start;
+            if (titleChanged) OnPropertyChanged(nameof(Title));
+            if (artistChanged) OnPropertyChanged(nameof(Artist));
+            // Position and observation timestamps belong to the clock. They cannot
+            // invalidate the same track's title, lyric text or control capabilities.
+            if (trackChanged || startChanged) NotifyLyricTextChanges();
+            if (previous.SourceDisplayName != value.SourceDisplayName) OnPropertyChanged(nameof(SourceDisplayName));
+            if (playbackChanged)
+            {
+                OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(PlaybackGlyph)); OnPropertyChanged(nameof(PlayPauseLabel));
+            }
+            if (previous.Timeline.Duration != value.Timeline.Duration) OnPropertyChanged(nameof(DurationSeconds));
+            if (hadSpectrumPresentation != HasSpectrumPresentationFor(currentTrack)) OnPropertyChanged(nameof(HasSpectrumPresentation));
+            if (startChanged)
+            {
+                OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText));
+            }
+            if (previous.Timeline.End != value.Timeline.End ||
+                (previous.Timeline.Duration > TimeSpan.Zero) != (value.Timeline.Duration > TimeSpan.Zero))
+                OnPropertyChanged(nameof(RemainingText));
+            if (artistChanged || previous.AlbumTitle != value.AlbumTitle) OnPropertyChanged(nameof(ArtistAlbum));
+            if (titleChanged)
+            {
+                OnPropertyChanged(nameof(TimelineStatus)); OnPropertyChanged(nameof(LyricsStatusText));
+            }
+            if (playbackChanged || previous.CanPlay != value.CanPlay || previous.CanPause != value.CanPause)
+                PlayPauseCommand.NotifyCanExecuteChanged();
+            if (previous.CanSkipPrevious != value.CanSkipPrevious) PreviousCommand.NotifyCanExecuteChanged();
+            if (previous.CanSkipNext != value.CanSkipNext) NextCommand.NotifyCanExecuteChanged();
+            if (previous.CanSeek != value.CanSeek) SeekCommand.NotifyCanExecuteChanged();
         }
     }
     public LyricsHighlightFrame Lyrics
@@ -137,17 +166,19 @@ public sealed class MediaViewModel : ObservableObject
         get => _spectrum;
         internal set
         {
-            var previousTrack = _spectrumPresentationTrackIdentity;
+            var trackIdentity = Session.TrackIdentity;
+            var hadSpectrumPresentation = HasSpectrumPresentationFor(trackIdentity);
             if (IsPlaying && value.CaptureMode == AudioCaptureMode.ProcessLoopback)
-                _spectrumPresentationTrackIdentity = Session.TrackIdentity;
-            var changed = SetProperty(ref _spectrum, value);
-            if (changed || previousTrack != _spectrumPresentationTrackIdentity) OnPropertyChanged(nameof(HasSpectrumPresentation));
+                _spectrumPresentationTrackIdentity = trackIdentity;
+            SetProperty(ref _spectrum, value);
+            if (hadSpectrumPresentation != HasSpectrumPresentationFor(trackIdentity)) OnPropertyChanged(nameof(HasSpectrumPresentation));
         }
     }
     // Pausing capture may publish an empty frame. Keep the same session's
     // existing visual bars, now silent, without claiming new audio activity.
-    public bool HasSpectrumPresentation => Session.IsActive &&
-        string.Equals(_spectrumPresentationTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal) &&
+    public bool HasSpectrumPresentation => HasSpectrumPresentationFor(Session.TrackIdentity);
+    private bool HasSpectrumPresentationFor(string trackIdentity) => Session.IsActive &&
+        string.Equals(_spectrumPresentationTrackIdentity, trackIdentity, StringComparison.Ordinal) &&
         (Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback || Session.PlaybackState == MediaPlaybackState.Paused);
     public ImageSource? Artwork { get => _artwork; internal set => SetProperty(ref _artwork, value); }
     public AppSettings Settings
@@ -155,8 +186,10 @@ public sealed class MediaViewModel : ObservableObject
         get => _settings;
         internal set
         {
+            var languageChanged = _settings.Language != value.Language;
             if (!SetProperty(ref _settings, value)) return;
             NotifyLyricTextChanges(); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
+            if (languageChanged) OnPropertyChanged(nameof(PlayPauseLabel));
         }
     }
     public TimeSpan Position
