@@ -12,7 +12,8 @@ and the exact Beta18 producer/validation scripts. Also read the packaging,
 static bundle/resource inspection, reviewed runtime/language reuse, corrective
 release preparation, CUDA metadata staging/binding and update-manifest scripts
 called by this route. Confirmed the two selected Core test classes contain eight
-nonparameterized methods. Scope includes:
+nonparameterized methods; the later final lyric-state correction adds two
+parameterized Infrastructure cases under one exact method filter. Scope includes:
 
 - `.github/workflows/ci.yml`, `release.yml`, `deploy-website.yml`,
   `cuda-component-contracts.yml`, `secret-scan.yml`, `publish-release-bridge.yml`
@@ -36,7 +37,7 @@ which this release changes, so the component-contract workflow would run even
 though the isolated CI and Pages routes skip their legacy suites. It previously
 ran 29 expanded MSTest CUDA cases, nine Python methods and Node contract suites.
 The 29 MSTest cases alone exceed the maximum 21 allowed executions before the
-planned eight focused cases and one installer scenario.
+then-planned eight focused cases and one installer scenario.
 
 The workflow now reads the actual checked-out `RELEASE_VERSION`. For the exact
 `v0.3.1-beta.18` version, every Python/Node/MSTest fixture step and their dedicated
@@ -47,18 +48,45 @@ binding checker. The step summary states that fixtures are skipped, not passed,
 and that no native worker/model runs. All original tests and their historical
 routes remain intact; no cases or denominator were changed.
 
+## Actual required-check scheduling failure
+
+The first real PR run `37655149894` at head
+`31cc31e886688b273649f34aeb0074ab72ffdb10` completed as a workflow failure despite
+successful scope classification and isolated Windows compilation, with the
+legacy producer correctly skipped. The actual workflow file contains the
+required-check aggregator, but both the jobs API and check-suite
+`102009256636` contain only those three jobs: the literal `Build and test (x64)`
+job was never materialized. PR #110 consequently remained blocked. The only
+annotations were six cache-action Node deprecation warnings; no App compilation
+or workflow syntax error was reported.
+
+The aggregator now uses the explicit `${{ always() }}` job expression while
+retaining all three dependencies and its existing checks for actual success,
+failure, cancellation and intentional skip results. This is the minimum
+scheduling normalization. Bare `always()` is normally supported by GitHub, so
+the available API evidence does not establish a parser defect. The next real PR
+run must confirm that the required job is created and passes only after its
+selected producer succeeds; this source edit alone is not a verified resolution.
+No branch protection or synthetic check API was changed.
+
 ## Final source assessment
 
-- PR CI compiles the complete Windows App/XAML and records a compilation-only
+- PR CI compiles the complete Windows App/XAML and both selected test projects
+  with `--no-restore`, recording all three build logs in a compilation-only
   receipt. It performs no functional tests.
 - Final-main package production verifies a successful merged PR receipt with
-  the identical tree, then invokes the selected eight Core cases once and one
-  isolated installer/payload-hash/uninstall scenario. It has no broad-suite or
-  automatic retest fallback.
+  the identical tree, then invokes the selected eight Core cases once, the two
+  selected Infrastructure cases once, and one isolated installer/payload-hash/
+  uninstall scenario. The plan is 11 executions against the unchanged 2,124
+  baseline, below the maximum 21. It has no broad-suite or automatic retest
+  fallback.
 - Publication requires the exact successful main producer, verifies actual
-  focused TRX totals and immutable package hashes, and rechecks the final receipt
-  immediately before publishing. It promotes existing bytes and does not rebuild
-  or repeat tests.
+  separate Core/Infrastructure TRX totals of 8/2, aggregate total 10, both exact
+  project filters and immutable package hashes, and rechecks the final receipt
+  immediately before publishing. Schema-2 private validation binds both raw TRX
+  files and the exact source commit/tree. It promotes existing bytes and does not
+  rebuild or repeat tests. Both TRX files are retained through the intermediate
+  publication artifact without becoming public Release assets.
 - The eight public assets exclude private identity and execution receipts. CUDA
   descriptor/manifest reference the existing independent component; no unchanged
   CUDA archive is republished.

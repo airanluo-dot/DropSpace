@@ -62,7 +62,7 @@ settings work, failed overlay construction lifetime and tray-independent theme
 updates, provider target-language completeness and bounded local pairing cleanup.
 Services also fixed retryable device-secret reads, EXIF image geometry, dispatcher-bound image preflight, actual hotkey transaction ownership, retired OLE callbacks, final volume snapshot coalescing and dispatcher-bound NetEase native calls. All 16 new App findings are fixed in source.
 
-Round 3 reread the entire second-round-corrected source. Five new confirmed findings concern hidden widgets doing visual work, programmatic card brushes bypassing the island theme, monitor-edge OLE probe geometry, unbounded DropLink response buffering and path-only rollback deleting user replacements of published outputs. All five are fixed; their individual reports record the changes and source-only verification. No further confirmed Core issue was found. [Final feature checks](round3-feature-final-static.md) cover the selected cases and state/persistence boundaries. The subsequently authorized [lyrics empty-state wording](round3-lyrics-empty-state.md) uses “无匹配歌词” / “No matching lyrics” only for NotFound, retaining the retry message for genuine Failed; the existing state pipeline was traced and the two resource edits received final delta review. The user identified the reported animation/glow behavior as the reduced-motion setting and canceled those two bug requests; their existing renderers are retained.
+Round 3 reread the entire second-round-corrected source. Six confirmed findings in the third-round review/final-delta phase concern hidden widgets doing visual work, programmatic card brushes bypassing the island theme, monitor-edge OLE probe geometry, unbounded DropLink response buffering and path-only rollback deleting user replacements of published outputs, plus the subsequently reported lyrics outcome classification. All six are fixed; their individual reports record the changes and source-only verification. No further confirmed Core issue was found. [Final feature checks](round3-feature-final-static.md) cover the selected cases and state/persistence boundaries. The subsequently authorized [lyrics outcome correction](round3-lyrics-state-classification.md) preserves completed no-match evidence when another source fails or times out, while true all-failure remains retryable; this received focused final-delta review. The [lyrics empty-state wording](round3-lyrics-empty-state.md) uses “无匹配歌词” / “No matching lyrics” only for NotFound, retaining the retry message for genuine Failed; the existing state pipeline was traced and the two resource edits received final delta review. The user identified the reported animation/glow behavior as the reduced-motion setting and canceled those two bug requests; their existing renderers are retained.
 
 ## Verification and remaining limits
 
@@ -70,9 +70,7 @@ Round 3 reread the entire second-round-corrected source. Five new confirmed find
 at **2,124** cases, expanded before new tests, and the actual-execution ceiling at
 **21**. No original test is deleted or counted twice to enlarge that denominator.
 Source reads, parsing and compilation are distinct from functional test cases.
-The selected producer allows eight real focused Core cases once and one isolated
-installer payload installation/uninstallation, conservatively counted as one more
-scenario. Repeats must be added to the ledger; skipped suites are not reported as
+The selected producer allows eight real focused Core cases and two Infrastructure lyric-outcome cases, each executed once, plus one isolated installer payload installation/uninstallation, conservatively counted as one more scenario (planned total eleven). Repeats must be added to the ledger; skipped suites are not reported as
 passing. No case has executed at this audit draft's creation.
 
 This Linux session cannot observe interactive Windows light/dark transitions,

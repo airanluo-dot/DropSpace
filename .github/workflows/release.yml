@@ -708,6 +708,7 @@ jobs:
             ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/ci-release-receipt.json' || '' }}
             ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/focused-validation.json' || '' }}
             ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/focused.trx' || '' }}
+            ${{ steps.version.outputs.tag == 'v0.3.1-beta.18' && 'artifacts/release/focused-infrastructure.trx' || '' }}
           if-no-files-found: error
           retention-days: 2
 

@@ -5,12 +5,18 @@ $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_REPOSITORY -cne 'airanluo-dot/DropSpace' -or
     (Get-Content RELEASE_VERSION -Raw).Trim() -cne 'v0.3.1-beta.18' -or
     (& git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Exact isolated Beta18 checkout is required.' }
+$focusedRuns = @(& node --input-type=module -e "import {focusedRuns,plannedExecutionCount,originalSuiteCaseCount} from './scripts/beta18-release-validation.mjs'; if (focusedRuns.length !== 2 || focusedRuns.some(run => !run.filter || run.caseCount <= 0) || plannedExecutionCount > Math.floor(originalSuiteCaseCount / 100)) process.exit(1); console.log(JSON.stringify(focusedRuns));" | ConvertFrom-Json)
+if ($LASTEXITCODE -ne 0 -or $focusedRuns.Count -ne 2) { throw 'Exact budgeted focused projects are required; no full-suite fallback.' }
 if ($ValidateOnly) {
     if ($env:GITHUB_EVENT_NAME -cne 'pull_request') { throw 'Focused validation must qualify the actual PR checkout.' }
     $evidence = [IO.Path]::GetFullPath('artifacts/beta18-validation')
     New-Item $evidence -ItemType Directory -Force | Out-Null
     & dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false 2>&1 | Tee-Object "$evidence/app-build.txt"
     if ($LASTEXITCODE -ne 0) { throw 'Complete Windows App/XAML Release build failed.' }
+    foreach ($focusedRun in $focusedRuns) {
+        & dotnet build $focusedRun.project -c Release --no-restore -p:Platform=x64 2>&1 | Tee-Object (Join-Path $evidence $focusedRun.buildLog)
+        if ($LASTEXITCODE -ne 0) { throw "Selected $($focusedRun.id) test project compilation failed; no cases were executed." }
+    }
     & node scripts/beta18-release-validation.mjs record $evidence
     if ($LASTEXITCODE -ne 0) { throw 'Real PR validation evidence could not be bound.' }
     # PR-only caches cannot necessarily be restored by main. Retain these
@@ -23,12 +29,12 @@ if ($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or $env:GITHUB_REF -cne 're
 if ($LASTEXITCODE -ne 0) { throw 'Successful identical-tree PR validation is required before packaging.' }
 $evidence = [IO.Path]::GetFullPath('artifacts/beta18-validation')
 New-Item $evidence -ItemType Directory -Force | Out-Null
-$focused = & node --input-type=module -e "import {focusedFilter,focusedProject,focusedCaseCount,originalSuiteCaseCount} from './scripts/beta18-release-validation.mjs'; if (!focusedFilter || focusedCaseCount <= 0 || focusedCaseCount > Math.floor(originalSuiteCaseCount / 100)) process.exit(1); console.log(JSON.stringify({filter:focusedFilter,project:focusedProject}));" | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0) { throw 'Exact budgeted focused cases are required; no full-suite fallback.' }
-& dotnet restore $focused.project -p:Configuration=Release -p:RestoreLockedMode=true -p:Platform=x64
-if ($LASTEXITCODE -ne 0) { throw 'Focused test project locked restore failed.' }
-& dotnet test $focused.project -c Release --no-restore -p:Platform=x64 --filter $focused.filter --results-directory $evidence --logger 'trx;LogFileName=focused.trx'
-if ($LASTEXITCODE -ne 0) { throw 'Necessary focused cases failed; no automatic retest or broad fallback.' }
+foreach ($focusedRun in $focusedRuns) {
+    & dotnet restore $focusedRun.project -p:Configuration=Release -p:RestoreLockedMode=true -p:Platform=x64
+    if ($LASTEXITCODE -ne 0) { throw "Selected $($focusedRun.id) test project locked restore failed." }
+    & dotnet test $focusedRun.project -c Release --no-restore -p:Platform=x64 --filter $focusedRun.filter --results-directory $evidence --logger "trx;LogFileName=$($focusedRun.trx)"
+    if ($LASTEXITCODE -ne 0) { throw "Necessary $($focusedRun.id) focused cases failed; no automatic retest or broad fallback." }
+}
 & node scripts/beta18-release-validation.mjs record-focused $evidence
 if ($LASTEXITCODE -ne 0) { throw 'Actual focused execution count/results could not be bound.' }
 & ./scripts/Build-PortableExe.ps1 -NoRestore
@@ -88,7 +94,8 @@ try {
 if ($LASTEXITCODE -ne 0) { throw 'Final package runtime binding failed.' }
 & ./scripts/New-UpdateManifest.ps1
 & ./scripts/Test-UpdateManifest.ps1
-Copy-Item "$evidence/focused.trx", "$evidence/focused-validation.json" artifacts/release
+foreach ($focusedRun in $focusedRuns) { Copy-Item (Join-Path $evidence $focusedRun.trx) artifacts/release }
+Copy-Item "$evidence/focused-validation.json" artifacts/release
 $publicFiles = @('DropSpace.exe','DropSpaceSetup.exe','DropSpace-x64.msix','runtime-publication.json','cuda-runtime-download.json','cuda-runtime-manifest.json','update-manifest.json')
 $checksums = foreach ($name in $publicFiles) { "$( (Get-FileHash (Join-Path 'artifacts/release' $name) -Algorithm SHA256).Hash.ToLowerInvariant() )  $name" }
 $checksums | Set-Content artifacts/release/SHA256SUMS.txt -Encoding ascii

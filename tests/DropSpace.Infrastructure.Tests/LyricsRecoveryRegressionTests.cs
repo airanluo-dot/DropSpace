@@ -13,6 +13,40 @@ public sealed class LyricsRecoveryRegressionTests
     private static readonly LyricsSettings Settings = new() { Enabled = true, SearchRemainingProviders = false };
 
     [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task CompletedNoMatchIsDistinctFromAllProviderFailures(bool backupCompletesNoMatch)
+    {
+        var diagnostics = new System.Collections.Concurrent.ConcurrentQueue<LyricsDiagnostic>();
+        var calls = 0;
+        var primary = new Provider((_, _) =>
+        {
+            Interlocked.Increment(ref calls);
+            return Task.FromException<LyricsDocument>(new HttpRequestException("Primary unavailable"));
+        });
+        var backup = new Provider((_, _) =>
+        {
+            Interlocked.Increment(ref calls);
+            return backupCompletesNoMatch ? Task.FromResult(LyricsDocument.Empty) :
+                Task.FromException<LyricsDocument>(new HttpRequestException("Backup unavailable"));
+        }, LyricsProviderKind.QqMusic);
+        var service = new LyricsService(new([primary, backup]), diagnostics.Enqueue);
+        var settings = Settings with { BackupProvider = LyricsProviderKind.QqMusic };
+
+        var result = await service.QueryDetailedAsync(Query, settings, default, refresh: true).WaitAsync(Budget);
+
+        Assert.AreEqual(backupCompletesNoMatch ? LyricsQueryStatus.NotFound : LyricsQueryStatus.Failed, result.Status);
+        Assert.AreEqual(backupCompletesNoMatch ? LyricsBodyQuality.NoLyrics : LyricsBodyQuality.RequestFailed, result.Document.BodyQuality);
+        Assert.AreEqual(0, result.Document.Lines.Count);
+        Assert.AreEqual(2, calls);
+        Assert.IsTrue(result.TranslationLookupIncomplete, "A completed no-match must not hide the other provider's failure evidence.");
+        Assert.IsTrue(diagnostics.Any(value => value.Provider == LyricsProviderKind.NetEase &&
+            value.Stage == LyricsDiagnosticStage.Query && value.Outcome == LyricsDiagnosticOutcome.TransportFailure));
+        Assert.AreEqual(backupCompletesNoMatch, diagnostics.Any(value => value.Provider == LyricsProviderKind.QqMusic &&
+            value.Stage == LyricsDiagnosticStage.Query && value.Outcome == LyricsDiagnosticOutcome.NoMatch));
+    }
+
+    [TestMethod]
     public async Task RapidTrackChanges_CancelOldRequests_KeepProviderAndLatestCache()
     {
         var calls = 0;

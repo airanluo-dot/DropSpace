@@ -14,36 +14,48 @@ export const focusedFilter = 'FullyQualifiedName~IslandContentPriorityTests|Full
 export const focusedCaseCount = 8;
 export const originalSuiteCaseCount = 2124;
 export const focusedProject = 'tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj';
+export const infrastructureFilter = 'FullyQualifiedName=DropSpace.Infrastructure.Tests.LyricsRecoveryRegressionTests.CompletedNoMatchIsDistinctFromAllProviderFailures';
+export const infrastructureCaseCount = 2;
+export const infrastructureProject = 'tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj';
+export const focusedRuns = Object.freeze([
+  Object.freeze({id:'core',project:focusedProject,filter:focusedFilter,caseCount:focusedCaseCount,trx:'focused.trx',buildLog:'core-build.txt'}),
+  Object.freeze({id:'infrastructure',project:infrastructureProject,filter:infrastructureFilter,caseCount:infrastructureCaseCount,trx:'focused-infrastructure.trx',buildLog:'infrastructure-build.txt'}),
+]);
+export const focusedUnitCaseCount = focusedCaseCount + infrastructureCaseCount;
+export const plannedExecutionCount = focusedUnitCaseCount + 1; // One isolated installer scenario.
 const repository = 'airanluo-dot/DropSpace';
 const kind = 'beta18-windows-pr-build';
 const git = (...args) => execFileSync('git',args,{encoding:'utf8'}).trim();
 const read = filename => JSON.parse(fs.readFileSync(filename,'utf8').replace(/^\uFEFF/,''));
 const identity = filename => {const {bytes,sha256}=fileIdentity(filename);return {bytes,sha256};};
 
-export function verifyFocusedResults(xml) {
-  assert.ok(focusedFilter&&Number.isSafeInteger(focusedCaseCount)&&focusedCaseCount>0,'Exact focused cases must be configured before production');
-  assert.ok(Number.isSafeInteger(originalSuiteCaseCount)&&focusedCaseCount<=Math.floor(originalSuiteCaseCount/100),'Focused cases exceed the existing-suite one-percent budget');
+export function verifyFocusedResults(xml,expectedCaseCount=focusedCaseCount) {
+  assert.ok(focusedRuns.every(run=>run.filter&&Number.isSafeInteger(run.caseCount)&&run.caseCount>0),'Exact focused cases must be configured before production');
+  assert.ok(focusedRuns.some(run=>run.caseCount===expectedCaseCount),'Unreviewed focused execution count');
+  assert.ok(Number.isSafeInteger(originalSuiteCaseCount)&&plannedExecutionCount<=Math.floor(originalSuiteCaseCount/100),'Focused cases and installer exceed the existing-suite one-percent budget');
   const summaries=xml.match(/<Counters\b[^>]*\/>/g);
   assert.equal(summaries?.length,1,'One real TRX summary required');
   const counts=Object.fromEntries([...summaries[0].matchAll(/(\w+)="(\d+)"/g)].map(([,key,value])=>[key,Number(value)]));
-  assert.equal(counts.total,focusedCaseCount,'Actual execution count differs from reviewed focused case count');
-  assert.equal(counts.executed,focusedCaseCount);
-  assert.equal(counts.passed,focusedCaseCount,'Focused failures block publication');
+  assert.equal(counts.total,expectedCaseCount,'Actual execution count differs from reviewed focused case count');
+  assert.equal(counts.executed,expectedCaseCount);
+  assert.equal(counts.passed,expectedCaseCount,'Focused failures block publication');
   assert.equal(counts.failed,0);
   assert.equal(counts.notExecuted,0,'Skipped cases cannot qualify final packages');
-  return {total:focusedCaseCount,passed:focusedCaseCount};
+  return {total:expectedCaseCount,passed:expectedCaseCount};
 }
 
 export function verifyValidation(directory,receipt,expected) {
-  assert.equal(receipt.schemaVersion,1);
+  assert.equal(receipt.schemaVersion,2);
   assert.equal(receipt.kind,kind);
   for(const key of ['repository','runId','runAttempt','sourceTree','releaseVersion'])
     assert.equal(receipt[key],expected[key],`Validation ${key} mismatch`);
   assert.match(receipt.sourceCommit??'',/^[a-f0-9]{40}$/);
   assert.equal(receipt.appXamlBuild,true,'Complete Windows App/XAML build required');
+  assert.deepEqual(receipt.focusedTestProjectBuilds,focusedRuns.map(({id,project})=>({id,project})), 'Both selected test projects must compile before final-main execution');
   assert.deepEqual(receipt.tests,{status:'not-run',reason:'PR compilation only; focused cases run once during final-main package production'});
-  assert.deepEqual(Object.keys(receipt.files),['app-build.txt']);
-  assert.deepEqual(receipt.files['app-build.txt'],identity(path.join(directory,'app-build.txt')),'Actual build evidence changed');
+  const logs=['app-build.txt',...focusedRuns.map(run=>run.buildLog)];
+  assert.deepEqual(Object.keys(receipt.files),logs);
+  for(const name of logs)assert.deepEqual(receipt.files[name],identity(path.join(directory,name)),'Actual build evidence changed');
   return receipt;
 }
 
@@ -70,20 +82,22 @@ async function main() {
   if(command==='record-focused') {
     assert.equal(process.env.GITHUB_EVENT_NAME,'workflow_dispatch');
     assert.equal(process.env.GITHUB_REF,'refs/heads/main');
-    const trx=path.join(directory,'focused.trx');
-    const receipt={schemaVersion:1,sourceCommit:git('rev-parse','HEAD'),sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion,
-      filter:focusedFilter,originalSuiteCaseCount,results:verifyFocusedResults(fs.readFileSync(trx,'utf8')),
-      verificationScope:'One focused unit-test invocation; no native smoke/stress, model or GPU execution',
-      files:{'focused.trx':identity(trx)}};
+    const runs=focusedRuns.map(({id,project,filter,caseCount,trx})=>({id,project,filter,
+      results:verifyFocusedResults(fs.readFileSync(path.join(directory,trx),'utf8'),caseCount)}));
+    const receipt={schemaVersion:2,sourceCommit:git('rev-parse','HEAD'),sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion,
+      originalSuiteCaseCount,runs,results:{total:focusedUnitCaseCount,passed:focusedUnitCaseCount},
+      verificationScope:'One filtered invocation per selected Core/Infrastructure project; no native smoke/stress, model or GPU execution',
+      files:Object.fromEntries(focusedRuns.map(run=>[run.trx,identity(path.join(directory,run.trx))]))};
     fs.writeFileSync(path.join(directory,'focused-validation.json'),JSON.stringify(receipt,null,2)+'\n');
   } else if(command==='record') {
     assert.equal(process.env.GITHUB_EVENT_NAME,'pull_request');
-    const receipt={schemaVersion:1,kind,repository,
+    const receipt={schemaVersion:2,kind,repository,
       runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),
       sourceCommit:git('rev-parse','HEAD'),sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion,
       appXamlBuild:true,
+      focusedTestProjectBuilds:focusedRuns.map(({id,project})=>({id,project})),
       tests:{status:'not-run',reason:'PR compilation only; focused cases run once during final-main package production'},
-      files:{'app-build.txt':identity(path.join(directory,'app-build.txt'))}};
+      files:Object.fromEntries(['app-build.txt',...focusedRuns.map(run=>run.buildLog)].map(name=>[name,identity(path.join(directory,name))]))};
     verifyValidation(directory,receipt,receipt);
     fs.writeFileSync(path.join(directory,'validation-receipt.json'),JSON.stringify(receipt,null,2)+'\n');
   } else if(command==='find') {

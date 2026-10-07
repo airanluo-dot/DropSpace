@@ -22,3 +22,7 @@ Thus completed no-match outcomes now display the exact requested wording, and fa
 ## Static verification and limits
 
 Both resource XML documents parsed successfully. Direct resource reads confirmed the exact new NotFound values and unchanged Failed values. The inspected diff contains exactly one changed resource value in each locale. `git diff --check` completed without errors. **Executed cases: 0.** No tests, new tests, fixtures, probes, build, application/native execution, commit or remote mutation. This source/copy check does not claim a real provider or native Windows UI run.
+
+## Classification follow-up
+
+The downstream ViewModel mapping reviewed above is correct, but subsequent source tracing confirmed that provider aggregation can discard a completed no-match when another provider fails. The initial copy-only update was therefore insufficient to address that mixed-result classification. [R3-LYR-01](round3-lyrics-state-classification.md) records the completed-provider evidence fix, consistent document quality, retained all-provider-failure/retry behavior and the two selected regression rows. No screenshot-specific provider/network sequence is claimed.

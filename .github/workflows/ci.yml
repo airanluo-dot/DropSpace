@@ -902,7 +902,7 @@ jobs:
   focused-windows:
     # The final required check verifies the selected producer's real outcome.
     # Exact Beta17/Beta18 PRs compile only;
-    # final main packages. Beta18 runs only its eight budgeted Core cases once.
+    # final main packages. Beta18 runs its eight Core and two Infrastructure cases once.
     name: Isolated Windows producer
     needs: change-scope
     if: needs.change-scope.outputs.maintenance_only != 'true' && contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.change-scope.outputs.release_version)
@@ -1027,6 +1027,7 @@ jobs:
             artifacts/release/ci-release-receipt.json
             artifacts/release/focused-validation.json
             artifacts/release/focused.trx
+            artifacts/release/focused-infrastructure.trx
           if-no-files-found: error
           retention-days: 7
       - name: Retain actual build and package byte evidence
@@ -1047,7 +1048,7 @@ jobs:
   required-validation:
     name: Build and test (x64)
     needs: [change-scope, produce-windows, focused-windows]
-    if: always()
+    if: ${{ always() }}
     runs-on: ubuntu-26.04
     steps:
       - name: Require the selected producer outcome

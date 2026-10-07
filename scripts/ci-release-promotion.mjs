@@ -4,7 +4,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { fileIdentity, verifyReleaseBinding } from './ai-runtime-publication.mjs';
-import {focusedFilter,originalSuiteCaseCount,verifyFocusedResults} from './beta18-release-validation.mjs';
+import {focusedRuns,focusedUnitCaseCount,originalSuiteCaseCount,verifyFocusedResults} from './beta18-release-validation.mjs';
 
 const git = (...args) => execFileSync('git', args, {encoding:'utf8'}).trim();
 const payloads = ['DropSpace.exe','DropSpaceSetup.exe','DropSpace-x64.msix','runtime-publication.json','DropSpace.Identity.msix'];
@@ -45,14 +45,15 @@ export function verifyIndependentCudaMetadata(directory,sourceCommit,releaseVers
 }
 function verifyBeta18FocusedValidation(directory,sourceCommit) {
   const validation=read(path.join(directory,'focused-validation.json'));
-  assert.equal(validation.schemaVersion,1);
+  assert.equal(validation.schemaVersion,2);
   assert.equal(validation.sourceCommit,sourceCommit,'Focused execution used different App source');
   assert.equal(validation.releaseVersion,'v0.3.1-beta.18');
-  assert.equal(validation.filter,focusedFilter);
   assert.equal(validation.originalSuiteCaseCount,originalSuiteCaseCount);
-  const trx=path.join(directory,'focused.trx');
-  assert.deepEqual(validation.files,{'focused.trx':identity(trx)},'Actual focused execution evidence changed');
-  assert.deepEqual(validation.results,verifyFocusedResults(fs.readFileSync(trx,'utf8')));
+  const runs=focusedRuns.map(({id,project,filter,caseCount,trx})=>({id,project,filter,
+    results:verifyFocusedResults(fs.readFileSync(path.join(directory,trx),'utf8'),caseCount)}));
+  assert.deepEqual(validation.runs,runs,'Focused execution projects, filters or per-project results changed');
+  assert.deepEqual(validation.files,Object.fromEntries(focusedRuns.map(run=>[run.trx,identity(path.join(directory,run.trx))])),'Actual focused execution evidence changed');
+  assert.deepEqual(validation.results,{total:focusedUnitCaseCount,passed:focusedUnitCaseCount});
   return validation;
 }
 export function validateProducer(run, repository) {
