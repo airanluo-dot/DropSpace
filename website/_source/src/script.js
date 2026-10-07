@@ -1,3 +1,5 @@
+import { stableRequirements } from "./release-requirements.js";
+
 const header = document.querySelector("[data-header]");
 const demo = document.querySelector("[data-demo]");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -205,6 +207,9 @@ function applyCurrentReleases(releases) {
   const zh = document.documentElement.lang.toLowerCase().startsWith("zh");
   document.querySelectorAll("[data-stable-version]").forEach((node) => {
     node.textContent = `${zh ? "最新稳定版" : "Latest Stable"} · ${stable.tagName}`;
+  });
+  document.querySelectorAll("[data-stable-requirements]").forEach((node) => {
+    node.textContent = stableRequirements(stable, document.documentElement.lang);
   });
 
   const container = document.querySelector("[data-release-entries]");

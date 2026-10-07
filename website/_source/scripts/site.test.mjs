@@ -61,16 +61,73 @@ test("build emits independent English and Simplified Chinese pages", () => {
   assert.doesNotMatch(zh, /translatePage|createTreeWalker/);
 });
 
-test("download guidance and FAQs use the Chinese locale and current release requirements", () => {
+test("Stable requirements and downloads match the same Release in both locales", () => {
+  const release = releases.api.releases.find((item) => item.tagName === releases.stable.tag);
+  assert.ok(release && !release.isPrerelease && !release.isDraft);
+  // Read the requirement independently of the production presentation helper.
+  const line = release.body.split(/\r?\n/).find((item) => /^Requires\s+(?:64-bit\s+)?Windows\b/i.test(item));
+  assert.ok(line, `${release.tagName} must publish a Windows requirement`);
+  const requirement = line.match(/Windows\s*(\d+)?\s+build\s+(\d+)\s+or later/i);
+  assert.ok(requirement, `${release.tagName} must publish its minimum build`);
+  const windows = `Windows${requirement[1] ? ` ${requirement[1]}` : ""}`;
+  const build = requirement[2];
+  for (const [html, locale] of [[en, "en"], [zh, "zh-CN"]]) {
+    const document = new JSDOM(html).window.document;
+    const expected = locale === "en"
+      ? `Stable ${release.tagName}: 64-bit ${windows} build ${build} or later`
+      : `稳定版 ${release.tagName}: 需要 64 位 ${windows} Build ${build} 或更高版本`;
+    assert.equal(document.querySelectorAll("[data-stable-requirements]").length, 3);
+    for (const selector of [".download-intro", ".release-readiness article:first-child", ".faq-list details"]) {
+      assert.equal(document.querySelector(`${selector} [data-stable-requirements]`)?.textContent, expected);
+    }
+    for (const label of document.querySelectorAll("[data-stable-version]")) {
+      assert.equal(label.textContent, `${locale === "en" ? "Latest Stable" : "最新稳定版"} · ${release.tagName}`);
+    }
+    assert.equal(document.querySelector(".download-intro [data-release-url]")?.href, release.htmlUrl);
+    for (const link of document.querySelectorAll("[data-download]")) {
+      const asset = release.assets.find((item) => item.kind === link.dataset.download);
+      assert.ok(asset, `missing Stable ${link.dataset.download} asset`);
+      assert.equal(link.href, asset.downloadUrl);
+      assert.equal(new URL(link.href).pathname.split("/")[5], release.tagName);
+    }
+  }
+});
+
+test("system requirements and FAQ distinguish the current Beta baseline from Stable", () => {
+  for (const [html, summary, beta] of [[en, "What are the minimum system requirements?", /Beta\.25\+/], [zh, "最低系统要求是什么？", /Beta\.25 起/]]) {
+    const document = new JSDOM(html).window.document;
+    const faq = document.querySelector(".faq-list [data-stable-requirements]")?.closest("details");
+    assert.equal(faq?.querySelector("summary")?.textContent, summary);
+    for (const section of [document.querySelector(".release-readiness article:first-child"), faq]) {
+      assert.match(section?.textContent, beta);
+      assert.match(section?.textContent, /64(?:-bit| 位) Windows build 20348/i);
+    }
+  }
+});
+
+test("hero, metadata and product FAQ avoid blanket Windows 10 support", () => {
+  for (const [html, summary] of [[en, "What is DropSpace?"], [zh, "DropSpace 是什么？"]]) {
+    const document = new JSDOM(html).window.document;
+    const productFaq = [...document.querySelectorAll(".faq-list details")].find((item) => item.querySelector("summary")?.textContent === summary);
+    assert.ok(productFaq);
+    const structured = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent);
+    const copy = [
+      document.title,
+      document.querySelector(".hero-copy")?.textContent,
+      productFaq.textContent,
+      structured.operatingSystem,
+      ...[...document.querySelectorAll('meta[name="description"], meta[property^="og:"], meta[name^="twitter:"]')].map((item) => item.content)
+    ].join("\n");
+    assert.doesNotMatch(copy, /Windows\s*10/i);
+  }
+});
+
+test("download guidance and FAQs use the Chinese locale", () => {
   const document = new JSDOM(zh).window.document;
-  assert.match(document.querySelector(".download-intro > p:last-of-type").textContent, /系统要求请查看发布说明/);
-  assert.match(document.querySelector(".download-intro > p:last-of-type").textContent, /20348/);
-  assert.match(document.querySelector(".release-readiness article > h2 + p").textContent, /最低系统要求随版本而定/);
   assert.match(document.querySelector("[data-system-check]").dataset.windows, /已检测到 Windows/);
   assert.match(document.querySelector("[data-system-check]").dataset.other, /此设备未报告 Windows 系统/);
   assert.match(document.querySelector("#known-limitations > h2 + p").textContent, /未签名的安装包可能触发/);
   const answers = [...document.querySelectorAll(".faq-list details > p")].map((answer) => answer.textContent);
-  assert.ok(answers.some((answer) => answer.includes("支持的 Windows 版本随发布版本而定")));
   assert.ok(answers.some((answer) => answer.includes("剪贴板历史保存在本地")));
   assert.ok(answers.some((answer) => answer.includes("安装方式取决于所选安装包")));
   assert.doesNotMatch(en, /Beta 25/);

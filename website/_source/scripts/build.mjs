@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { changelogMeta, site, zh } from "./i18n.mjs";
 import { createLatestChangeApi, validateWebsiteReleaseData } from "./release-contract.mjs";
+import { releaseRequirementsHint, stableRequirements } from "../src/release-requirements.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const src = path.join(root, "src");
@@ -12,6 +13,7 @@ const staticShowcase = process.env.SITE_VARIANT === "static";
 const dist = path.join(root, staticShowcase ? "dist-static" : "dist");
 const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8")));
 const stable = releases.stable;
+const stableRelease = releases.api.releases.find((release) => release.tagName === stable.tag);
 const latestChange = createLatestChangeApi(releases.api);
 const siteOrigin = (process.env.SITE_ORIGIN ?? (staticShowcase ? "https://dropspace-static.arenvox.chatgpt.site" : "https://airanluo-dot.github.io/DropSpace")).replace(/\/$/, "");
 const basePath = new URL(`${siteOrigin}/`).pathname;
@@ -35,6 +37,7 @@ if (!staticShowcase) await mkdir(path.join(dist, "api", "v1"), { recursive: true
 
 const assetSources = {
   css: "styles.css",
+  requirementsJs: "release-requirements.js",
   js: "script.js",
   lyricsJs: "lyrics-demo.js",
   lyricsAudio: "assets/lyrics-demo.wav",
@@ -46,6 +49,7 @@ const assetUrls = {};
 for (const [key, relative] of Object.entries(assetSources)) {
   let contents = await readFile(path.join(src, relative));
   if (staticShowcase && key === "js") contents = Buffer.from(contents.toString().replace(/\/\/ BEGIN LIVE RELEASE RUNTIME[\s\S]*?\/\/ END LIVE RELEASE RUNTIME/g, ""));
+  if (key === "js") contents = Buffer.from(contents.toString().replace('"./release-requirements.js"', JSON.stringify(assetUrls.requirementsJs)));
   const extension = path.extname(relative);
   const stem = path.basename(relative, extension);
   const outputName = `${stem}.${hash(contents)}${extension}`;
@@ -228,6 +232,9 @@ async function render(templatePath, route, kind) {
   const dom = new JSDOM(template);
   const { document } = dom.window;
   translateDocument(document, route);
+  document.querySelectorAll("[data-stable-requirements]").forEach((node) => {
+    node.textContent = staticShowcase ? releaseRequirementsHint(locale) : stableRequirements(stableRelease, locale);
+  });
   rewriteLinks(document, route, kind);
   if (kind === "home") {
     // Show a real source/target pair in both locales, without claiming this
