@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "v0.3.1-beta.17",
+  "authorizedAt": "2026-10-07T08:45:41.429407+00:00",
+  "owner": "airanluo-dot",
+  "authorizationSource": "Current user session; explicit continuation of Beta publication authorization",
+  "ownerMessages": [
+    "减少测试数量，减少多余测试，直接尽快发布",
+    "我说了跳过测试立刻发布啊"
+  ],
+  "decision": "Skip all additional automated test suites and native smoke/stress runs for this Beta17 delivery; compile/package and verify actual payload bytes, source approval, commit binding and published entry metadata only.",
+  "preservedCompletedValidation": {
+    "windowsRun": 37593717586,
+    "fullAppXamlBuild": "passed",
+    "affectedInfrastructurePassed": 46,
+    "affectedAppPassed": 39,
+    "skipped": 0
+  },
+  "knownFailedDiagnostic": {
+    "run": 37594272314,
+    "scope": "Legacy broad portable smoke (1000 lifecycle cycles plus other stress scenarios)",
+    "failure": "Wake mode ownership diagnostic failed before lifecycle cycles",
+    "status": "failed; not passed or retried",
+    "rootCauseQualification": "Baseline service/ownership/activation-host sources unchanged. Diagnostic can probe Classic host discoverability while the authority legally remains Compact during its existing hidden deadline. Combined error does not identify the observed branch; no actual user-path regression established."
+  },
+  "limits": "No new test pass, physical Windows smoothness conclusion, GPU/model quality approval or native wake ownership pass is claimed. All previously completed validation results retained."
+}

@@ -1,23 +1,31 @@
 # One focused PR validation, followed by one final-main package producer.
-param([switch]$ValidateOnly)
+param([switch]$ValidateOnly, [switch]$SkipTests)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_REPOSITORY -cne 'airanluo-dot/DropSpace' -or
     (Get-Content RELEASE_VERSION -Raw).Trim() -cne 'v0.3.1-beta.17' -or
     (& git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Exact isolated Beta17 checkout is required.' }
+if ($SkipTests) {
+    & node scripts/beta17-release-validation.mjs verify-owner-waiver
+    if ($LASTEXITCODE -ne 0) { throw 'Exact owner authorization to skip Beta17 tests is required.' }
+}
 if ($ValidateOnly) {
     if ($env:GITHUB_EVENT_NAME -cne 'pull_request') { throw 'Focused validation must qualify the actual PR checkout.' }
     $evidence = [IO.Path]::GetFullPath('artifacts/beta17-validation')
     New-Item $evidence -ItemType Directory -Force | Out-Null
     & dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false 2>&1 | Tee-Object "$evidence/app-build.txt"
     if ($LASTEXITCODE -ne 0) { throw 'Complete Windows App/XAML Release build failed.' }
-    $filters = & node --input-type=module -e "import {focusedFilters} from './scripts/beta17-release-validation.mjs'; console.log(JSON.stringify(focusedFilters));" | ConvertFrom-Json
-    if ($LASTEXITCODE -ne 0) { throw 'Could not resolve the reviewed focused test filters.' }
-    & dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --filter $filters.infrastructure --results-directory $evidence --logger 'trx;LogFileName=infrastructure.trx'
-    if ($LASTEXITCODE -ne 0) { throw 'Affected Infrastructure/CUDA compatibility tests failed.' }
-    & dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --filter $filters.app --results-directory $evidence --logger 'trx;LogFileName=app.trx'
-    if ($LASTEXITCODE -ne 0) { throw 'Affected native-boundary App tests failed.' }
-    & node scripts/beta17-release-validation.mjs record $evidence
+    if ($SkipTests) {
+        & node scripts/beta17-release-validation.mjs record-build-only $evidence
+    } else {
+        $filters = & node --input-type=module -e "import {focusedFilters} from './scripts/beta17-release-validation.mjs'; console.log(JSON.stringify(focusedFilters));" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0) { throw 'Could not resolve the reviewed focused test filters.' }
+        & dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --filter $filters.infrastructure --results-directory $evidence --logger 'trx;LogFileName=infrastructure.trx'
+        if ($LASTEXITCODE -ne 0) { throw 'Affected Infrastructure/CUDA compatibility tests failed.' }
+        & dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --filter $filters.app --results-directory $evidence --logger 'trx;LogFileName=app.trx'
+        if ($LASTEXITCODE -ne 0) { throw 'Affected native-boundary App tests failed.' }
+        & node scripts/beta17-release-validation.mjs record $evidence
+    }
     if ($LASTEXITCODE -ne 0) { throw 'Real PR validation evidence could not be bound.' }
     # PR-only caches cannot necessarily be restored by main. Retain these
     # unchanged existing bytes with the validation evidence for final packaging.
@@ -25,7 +33,8 @@ if ($ValidateOnly) {
     return
 }
 if ($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or $env:GITHUB_REF -cne 'refs/heads/main') { throw 'Package production requires explicit dispatch on final main.' }
-& node scripts/beta17-release-validation.mjs verify artifacts/beta17-pr-validation
+$verifyCommand = if ($SkipTests) { 'verify-build-only' } else { 'verify' }
+& node scripts/beta17-release-validation.mjs $verifyCommand artifacts/beta17-pr-validation
 if ($LASTEXITCODE -ne 0) { throw 'Successful identical-tree PR validation is required before packaging.' }
 & ./scripts/Build-PortableExe.ps1 -NoRestore
 & ./scripts/Build-UnsignedPackage.ps1 -NoRestore
@@ -45,8 +54,51 @@ Copy-Item $packages[0].FullName artifacts/release/DropSpace-x64.msix
 Copy-Item artifacts/identity/DropSpace.Identity.msix artifacts/release/DropSpace.Identity.msix
 Copy-Item artifacts/cuda-runtime/win-x64/cuda-runtime-*.json artifacts/release
 & ./scripts/Test-MsixSymbolPolicy.ps1 -ArtifactRoot artifacts/msix
-& ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/runtime-inspection/portable.json
-& ./scripts/Test-MusicVisualSmoke.ps1 -Language en-US
+if ($SkipTests) {
+    # Launch only to obtain fresh single-file extracted bytes. No smoke flags,
+    # diagnostic assertions, UI observation or test pass are used or claimed.
+    $executable = [IO.Path]::GetFullPath('artifacts/release/DropSpace.exe')
+    $bundleRoot = Join-Path $env:RUNNER_TEMP ('DropSpace-beta17-bundle-' + [guid]::NewGuid().ToString('N'))
+    $dataRoot = Join-Path $env:RUNNER_TEMP ('DropSpace-beta17-data-' + [guid]::NewGuid().ToString('N'))
+    $previousBundleRoot = $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR
+    $previousDataRoot = $env:DROPSPACE_TEST_DATA_ROOT
+    $extractionProcess = $null
+    try {
+        New-Item $bundleRoot, $dataRoot -ItemType Directory | Out-Null
+        $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $bundleRoot
+        $env:DROPSPACE_TEST_DATA_ROOT = $dataRoot
+        $extractionProcess = Start-Process -FilePath $executable -ArgumentList '--test-mode' -WindowStyle Hidden -PassThru
+        $deadline = [DateTime]::UtcNow.AddSeconds(30)
+        do {
+            $assemblies = @(Get-ChildItem -LiteralPath $bundleRoot -Recurse -File -Filter DropSpace.dll)
+            if ($assemblies.Count -gt 1) { throw 'Fresh portable extraction contains ambiguous DropSpace.dll payloads.' }
+            if ($assemblies.Count -eq 1) { break }
+            if ($extractionProcess.HasExited) { throw 'Portable exited before its actual managed payload could be extracted.' }
+            Start-Sleep -Milliseconds 100
+        } while ([DateTime]::UtcNow -lt $deadline)
+        if ($assemblies.Count -ne 1) { throw 'Actual portable managed payload extraction was not observed.' }
+        if (-not $extractionProcess.HasExited) { $extractionProcess.Kill($true) }
+        $extractionProcess.WaitForExit()
+        $inspectionPath = 'artifacts/runtime-inspection/portable.json'
+        & ./scripts/Inspect-AiRuntimePayload.ps1 -AssemblyPath $assemblies[0].FullName -OutputPath $inspectionPath
+        $inspection = Get-Content -LiteralPath $inspectionPath -Raw | ConvertFrom-Json -AsHashtable
+        $inspection.package = [ordered]@{name='DropSpace.exe';bytes=(Get-Item $executable).Length;sha256=(Get-FileHash $executable -Algorithm SHA256).Hash.ToLowerInvariant()}
+        $inspection.verificationScope = 'fresh single-file extraction and actual resource/package bytes only; all tests and native smoke/stress waived'
+        $inspection | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $inspectionPath -Encoding utf8
+    } finally {
+        if ($null -ne $extractionProcess) {
+            if (-not $extractionProcess.HasExited) { $extractionProcess.Kill($true); $extractionProcess.WaitForExit() }
+            $extractionProcess.Dispose()
+        }
+        $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $previousBundleRoot
+        $env:DROPSPACE_TEST_DATA_ROOT = $previousDataRoot
+        if (Test-Path -LiteralPath $bundleRoot) { Remove-Item -LiteralPath $bundleRoot -Recurse -Force }
+        if (Test-Path -LiteralPath $dataRoot) { Remove-Item -LiteralPath $dataRoot -Recurse -Force }
+    }
+} else {
+    & ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/runtime-inspection/portable.json
+    & ./scripts/Test-MusicVisualSmoke.ps1 -Language en-US
+}
 & ./scripts/Inspect-AiRuntimePayload.ps1 -MsixPath artifacts/release/DropSpace-x64.msix -OutputPath artifacts/runtime-inspection/msix.json
 # Check the actual installed payload once in the disposable runner. This does
 # not reuse historical compiler-input waivers or claim upgrade/lifecycle coverage.
