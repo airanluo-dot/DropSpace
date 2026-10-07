@@ -1,0 +1,232 @@
+// Managed platform fixtures. These types replace only HWND/WinUI/dispatcher
+// dependencies; Generated.cs contains the complete selected production methods.
+using DropSpace.Core.Island;
+using DropSpace.Core.Models;
+using DropSpace.Core.Overlay;
+using Microsoft.Extensions.Logging.Abstractions;
+using DropSpace.App.Views.Island;
+
+namespace ProjectionProbe;
+
+partial class ServiceFixture
+{
+    public readonly IslandExperienceCoordinator Experience = new();
+    public readonly FakeTimer Timer = new();
+    public readonly CountingWindow Window = new();
+    public readonly FakeView View = new();
+    private IslandExperienceCoordinator _experience => Experience;
+    private FakeTimer _experienceExpiry => Timer;
+    private FakeView _viewModel => View;
+    private readonly FakeMedia _mediaViewModel = new();
+    private readonly FakeMonitorLayout _monitorLayout = new();
+    private readonly Monitor _primaryMonitor = new();
+    private readonly List<Monitor> _surfaceMonitors = [new()];
+    private readonly List<CountingWindow> _windows;
+    private readonly List<FakeActivationHost> _activationHosts = [new()];
+    private readonly Microsoft.Extensions.Logging.ILogger<ServiceFixture> _logger = NullLogger<ServiceFixture>.Instance;
+    private long _expiryGeneration;
+    private DateTimeOffset? _expiryDeadline;
+    private bool _disposed, _rebuildingSurfaces, _applyingSnapshot, _updatingFiles;
+    private string? _lastFullscreenMonitorId;
+    private DragTargetOwner _activeDragOwner;
+    public ServiceFixture()
+    {
+        _windows = [Window];
+        Experience.Changed += OnExperienceChanged;
+    }
+    public void Publish(OverlaySnapshot snapshot) { View.Snapshot = snapshot; OnSnapshotChanged(this, snapshot); }
+    public bool UpdatingFiles => _updatingFiles;
+    public void SetFileScope(bool active) => _updatingFiles = active;
+    public DateTimeOffset? Deadline => _expiryDeadline;
+    public long Generation => _expiryGeneration;
+    public (OverlayState Authority, OverlayState? Active, OverlayState? Inactive, OverlayState[] ActiveSequence) NestedWindowRetirement()
+    {
+        Publish(new(OverlayState.Compact, 1, false, 1));
+        Experience.DismissNow();
+        Window.Targets.Clear();
+        var inactive = new CountingWindow("secondary");
+        var completed = false;
+        inactive.OnApply = snapshot =>
+        {
+            if (completed || snapshot.State != OverlayState.Dismissing) return;
+            completed = true;
+            // Real Core dismissal and file-completion predicates, matching the
+            // inactive Window.HideImmediately -> CompleteFileDismissal path.
+            Experience.CompleteDismissal(Experience.HideGeneration);
+            if (Experience.CanCompleteFileDismissal(snapshot.Revision))
+                Publish(new(OverlayState.Hidden, 0, false, snapshot.Revision + 1));
+        };
+        _windows.Clear(); _windows.Add(inactive); _windows.Add(Window);
+        Publish(new(OverlayState.Dismissing, 0, false, 2));
+        return (Experience.Current.State, Window.Last?.State, inactive.Last?.State, Window.Targets.ToArray());
+    }
+    private string? GetForegroundFullscreenMonitorId() => null;
+    private enum DragTargetOwner { None, ActivationHost, VisualOverlay, SmartDetector }
+}
+
+partial class WindowFixture
+{
+    public readonly FakeCompact MusicCompact = new();
+    public readonly FakeElement MusicExpanded = new();
+    public readonly IslandExperienceCoordinator Experience = new();
+    public readonly FakeView View = new();
+    public int Applies, Hidden;
+    private IslandExperienceCoordinator _experience => Experience;
+    private FakeView _viewModel => View;
+    private readonly FakeMedia _mediaViewModel = new();
+    private readonly Monitor _monitor = new();
+    private readonly FakeMonitorLayout _monitorLayout = new();
+    private readonly IslandPageTransition _pageTransition = new();
+    private readonly FakeMotion _motion = new();
+    private readonly FakeMaterial _materialController = new();
+    private readonly Microsoft.Extensions.Logging.ILogger<WindowFixture> _logger = NullLogger<WindowFixture>.Instance;
+    private readonly FakeElement PreviousPageRail = new(), NextPageRail = new(), OtherPageCollapse = new(),
+        ActivityCompact = new(), FileCompactContent = new(), EmptyWakeLogo = new(), CompactPanel = new(),
+        CompactContentRoot = new(), CompactContentScaleHost = new(), WidgetsExpanded = new(), ClipboardExpanded = new();
+    private readonly FakePlacementEdit _placementEdit = new();
+    private bool _closing, _pageReducedMotion, _mediaGeometryRefreshPending, _preparingMediaGeometry;
+    private bool _suppressedForPlacementEdit = true;
+    private bool _placementEditActive, _isVisible, _isActiveWindow, _suppressedForFullscreen,
+        _forceFullscreenPresentation, _hideWhenSettled, _motionBlurEnabled;
+    private long _dismissalGeneration;
+    private double _compactSurfaceWidth;
+    private OverlaySnapshot? _presentationSnapshot;
+    private OverlayState _presentedState, _previousState;
+    private OverlayResolvedPlacement _resolvedPlacement;
+    private OverlayVisualPhase _visualPhase;
+    private IslandMotionPhase _motionBlurPhase;
+    public WindowFixture()
+    {
+        Experience.UpdateMedia(true, true, true, 3000, "probe-track");
+        MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
+    }
+    public void Apply(OverlaySnapshot snapshot)
+    {
+        Applies++;
+        ApplySnapshot(snapshot, true, true, FileDragWakeMode.Disabled, new(OverlayPlacementMode.Automatic, 0, 0));
+    }
+    public void GeometryChanged() => OnMediaGeometryChanged(this, EventArgs.Empty);
+    public bool HasPending => _mediaGeometryRefreshPending;
+    public bool Preparing => _preparingMediaGeometry;
+    public void SetGeometryScope(bool active) => _preparingMediaGeometry = active;
+    public double SelectedWidth => CompactContentRoot.Width;
+    public double SelectedHeight => CompactContentRoot.Height;
+    public void SetPresentation(OverlaySnapshot snapshot) => _presentationSnapshot = snapshot;
+    // The probe returns after the real first-frame geometry reads. All following
+    // window methods below are native/presentation boundaries and remain unrun.
+    private bool IsReducedMotion() => false;
+    private void ApplyPageTransition() { }
+    private void HideImmediately() => Hidden++;
+    private bool PositionFixedHost() => true;
+    private void HideForNativeFailure() { }
+    private OverlayResolvedPlacement ResolvePlacement(FileDragWakeMode wakeMode, OverlayMonitorPlacement placement) => default;
+    private void TraceIslandPresentation(OverlayState state) { }
+    private OverlayMotionValues CreateMotionTarget(OverlayState state, double offset) => OverlayMotionValues.Hidden;
+    private static OverlayMotionValues Create(double w, double h, double t, double r, double c, double d, double e) => new(w, h, t, r, r, 1, c, d, e, 1);
+    private void EnsureVisualHostShown(bool allowActivation) { }
+    private void MaintainFullscreenVisibility() { }
+    private void PrepareContentForTarget(OverlayMotionValues target) { }
+    private void ResetMotionBlur() { }
+    private void StartAnimationFrames(bool preferDisplayCadence) { }
+    private void UpdateGlowTarget() { }
+}
+
+// Event producer fixture, not a text measurement approximation. It emits one
+// externally supplied new size; the real Window ApplySnapshot decides when this
+// invalidation is already consumed and when a follow-up projection is needed.
+class FakeCompact : FakeElement
+{
+    private readonly MediaRenderQueue _queue = new();
+    public double IdealIslandWidth = 280, IdealIslandHeight = 40;
+    public event EventHandler? IdealWidthChanged;
+    public bool ThrowOnRefresh;
+    private double _nextWidth, _nextHeight;
+    public int Preparations;
+    public void ChangeOnPreparation(double width, double height)
+    {
+        _nextWidth = width; _nextHeight = height;
+        _queue.Request(false);
+    }
+    public override void RefreshForPresentation()
+    {
+        _queue.Cancel();
+        if (!_queue.BeginImmediateRender()) return;
+        Preparations++;
+        if (ThrowOnRefresh) throw new InvalidOperationException("fixture event producer");
+        IdealIslandWidth = _nextWidth; IdealIslandHeight = _nextHeight;
+        IdealWidthChanged?.Invoke(this, EventArgs.Empty);
+    }
+    public void SetAvailableWidth(double width) { }
+}
+
+class FakeView
+{
+    public OverlaySnapshot Snapshot = new(OverlayState.Hidden, 0, false, 0);
+    public string? ActiveMonitorId => "primary";
+    public FileDragWakeMode FileDragWakeMode => FileDragWakeMode.Disabled;
+    public OverlayMonitorPreference MonitorPreference => OverlayMonitorPreference.Primary;
+    public OverlayMonitorPlacement GetOverlayPlacement(string id) => new(OverlayPlacementMode.Automatic, 0, 0);
+}
+class FakeMedia
+{
+    public AppSettings Settings { get; } = new();
+    public void SetPresentationVisible(object owner, bool visible) { }
+}
+class Monitor
+{
+    public string Id => "primary";
+    public double Scale => 1;
+    public int EffectiveWorkWidth => 1920;
+    public int EffectiveWorkHeight => 1080;
+}
+class FakeMonitorLayout
+{
+    public ForegroundPresentationSnapshot CaptureForeground(IReadOnlyList<Monitor> monitors) => new(0, 0, 0, "primary", false);
+    public bool IsForegroundFullscreen(Monitor monitor) => false;
+}
+class CountingWindow(string id = "primary")
+{
+    public string MonitorId => id;
+    public int Applies;
+    public OverlaySnapshot? Last;
+    public readonly List<OverlayState> Targets = [];
+    public Action<OverlaySnapshot>? OnApply;
+    public void ApplySnapshot(OverlaySnapshot snapshot, bool active, bool enabled, FileDragWakeMode mode, OverlayMonitorPlacement placement)
+    { Applies++; Last = snapshot; Targets.Add(snapshot.State); OnApply?.Invoke(snapshot); }
+}
+class FakeActivationHost { public string MonitorId => "primary"; public void SetEnabled(bool enabled) { } }
+class FakeTimer { public int Stops, Starts; public TimeSpan Interval { get; set; } public void Stop() => Stops++; public void Start() => Starts++; }
+class FakeMotion
+{
+    public OverlayMotionValues Current => OverlayMotionValues.Hidden;
+    public void SnapTo(OverlayMotionValues values) { }
+    public void PulseDropTarget(double scale) { }
+    public void SetTarget(OverlayMotionValues target, bool reduced) { }
+}
+class FakeMaterial { public void PrepareMotion() { } }
+class FakePlacementEdit { public (double X, double Y) Preview => (0, 0); }
+class FakeElement
+{
+    public Visibility Visibility;
+    public double Width, Height;
+    public Thickness Padding;
+    public HorizontalAlignment HorizontalAlignment;
+    public object? RenderTransform;
+    public virtual void RefreshForPresentation() { }
+    public void SetActive(bool active) { }
+}
+enum Visibility { Visible, Collapsed }
+enum HorizontalAlignment { Center }
+enum IslandMotionPhase { Stable, Opening, Closing }
+readonly record struct Thickness(double Left, double Top, double Right, double Bottom) { public Thickness(double all) : this(all, all, all, all) { } }
+class DispatcherQueue
+{
+    public static readonly DispatcherQueue Shared = new();
+    private readonly Queue<Action> _pending = new();
+    public int Scheduled;
+    public static DispatcherQueue GetForCurrentThread() => Shared;
+    public bool TryEnqueue(Action callback) { Scheduled++; _pending.Enqueue(callback); return true; }
+    public int Pending => _pending.Count;
+    public void Reset() { _pending.Clear(); Scheduled = 0; }
+    public void Drain() { while (_pending.TryDequeue(out var callback)) callback(); }
+}

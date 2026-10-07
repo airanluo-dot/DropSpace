@@ -1,0 +1,17 @@
+Command: ["python", "-m", "unittest", "discover", "-s", "scripts", "-p", "test_cuda_component_delivery.py", "-v"]
+test_app_releases_reuse_exact_component_and_manifest (test_cuda_component_delivery.CudaComponentDeliveryTests.test_app_releases_reuse_exact_component_and_manifest) ... ok
+test_archive_mutation_fails_before_staging (test_cuda_component_delivery.CudaComponentDeliveryTests.test_archive_mutation_fails_before_staging) ... ok
+test_bad_app_tags_fail_closed (test_cuda_component_delivery.CudaComponentDeliveryTests.test_bad_app_tags_fail_closed) ... ok
+test_build_binding_checker_rejects_changed_app_or_component (test_cuda_component_delivery.CudaComponentDeliveryTests.test_build_binding_checker_rejects_changed_app_or_component) ... skipped 'PowerShell is not installed'
+test_exact_app_commit_is_still_required (test_cuda_component_delivery.CudaComponentDeliveryTests.test_exact_app_commit_is_still_required) ... ok
+test_existing_metadata_is_not_overwritten (test_cuda_component_delivery.CudaComponentDeliveryTests.test_existing_metadata_is_not_overwritten) ... ok
+test_independent_descriptor_has_no_app_binding (test_cuda_component_delivery.CudaComponentDeliveryTests.test_independent_descriptor_has_no_app_binding) ... ok
+test_manifest_mutation_fails_before_staging (test_cuda_component_delivery.CudaComponentDeliveryTests.test_manifest_mutation_fails_before_staging) ... ok
+test_packager_cli_is_component_only (test_cuda_component_delivery.CudaComponentDeliveryTests.test_packager_cli_is_component_only) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.635s
+
+OK (skipped=1)
+
+Exit code: 0

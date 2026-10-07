@@ -1,0 +1,21 @@
+Compile-only C# type validation, captured from the completed execution output.
+Command: /tmp/dropspace-dotnet/dotnet build /tmp/dropspace-compact-compile/CompactCompile.csproj --nologo --no-restore --verbosity minimal
+
+  CompactCompile -> /tmp/dropspace-compact-compile/bin/Debug/net10.0-windows10.0.20348.0/CompactCompile.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.42
+
+Production source links: MediaCompactView.xaml.cs, ExpandedIslandMusicView.xaml.cs, MediaRenderQueue.cs, MediaViewModel.cs.
+Unmodified source also linked: MediaExpandedView.xaml.cs (owns shared MediaSeekInteraction).
+References: real Microsoft.WinUI, Microsoft.InteractiveExperiences.Projection, Microsoft.Windows.Foundation.Projection, Windows SDK .NET reference and compiled DropSpace.Core.
+Temporary partial files declare existing XAML named fields and InitializeComponent only. No production csproj or markup was modified.
+Limit: validates C# member/delegate/type compatibility; does not compile XAML, create a Windows host, execute WinUI, or test OverlayWindow integration at runtime.
+
+Seek tests carrier: /tmp/dropspace-seek-checks/SeekChecks.csproj (net10.0, MSTest).
+MediaSeekInteraction extracted verbatim from its declaration through EOF in unmodified production MediaExpandedView.xaml.cs, with the existing namespace prepended. Existing MediaSeekInteractionTests.cs linked directly.
+Command: /tmp/dropspace-dotnet/dotnet test /tmp/dropspace-seek-checks/SeekChecks.csproj --nologo --logger 'trx;LogFileName=seek-checks.trx' --results-directory /tmp/dropspace-seek-checks/TestResults --verbosity minimal
+Result: 6 passed, 0 failed, 0 skipped. This is a pure-class source test, not native App-project execution.

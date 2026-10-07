@@ -1,0 +1,124 @@
+{
+  "phase": "R1-before",
+  "platform": "Unix 6.18.44.0",
+  "runtime": "10.0.12",
+  "fixtureRows": 10000,
+  "fixture": "synthetic file references under /tmp; no actual payload IO",
+  "assemblyHashes": {
+    "DropSpace.Core.dll": "ea939a4eb556105920de87d62009062fd7e57c8dd8422737c64b7be6165d08a5",
+    "DropSpace.Infrastructure.dll": "3580f7ad400a938f4bf32f0090ae3bbdd1b7c90b432544b197ad3a32d1297c7d"
+  },
+  "note": "Baseline actual SQLite repository calls; copied unchanged Release assemblies. Caller occupation covers synchronous call before Task is returned, not Windows UI frames. CPU and allocation are process-wide, with measurement overhead. No claims about cold disk cache or long-running native UI.",
+  "reports": [
+    {
+      "scenario": "initialize-existing-10000-files-fresh-owner",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0.7756,
+      "callerOccupationP95Ms": 1.2866,
+      "totalMedianMs": 0.7765,
+      "totalP95Ms": 1.4847,
+      "cpuMs": 30.558,
+      "allocatedBytes": 3741136
+    },
+    {
+      "scenario": "initialize-already-initialized-owner",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0,
+      "callerOccupationP95Ms": 0.0003,
+      "totalMedianMs": 0.0001,
+      "totalP95Ms": 0.0004,
+      "cpuMs": 0.165,
+      "allocatedBytes": 4640
+    },
+    {
+      "scenario": "count-space-10000-files",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 1.0046,
+      "callerOccupationP95Ms": 2.0901,
+      "totalMedianMs": 1.005,
+      "totalP95Ms": 2.0923,
+      "cpuMs": 35.408,
+      "allocatedBytes": 185600
+    },
+    {
+      "scenario": "pin-single-alternating",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0.1627,
+      "callerOccupationP95Ms": 0.3003,
+      "totalMedianMs": 0.1631,
+      "totalP95Ms": 0.301,
+      "cpuMs": 22.184,
+      "allocatedBytes": 316984
+    },
+    {
+      "scenario": "pin-batch-1000-alternating",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 31.951,
+      "callerOccupationP95Ms": 56.3887,
+      "totalMedianMs": 31.9532,
+      "totalP95Ms": 56.3911,
+      "cpuMs": 834.192,
+      "allocatedBytes": 39332832
+    },
+    {
+      "scenario": "mark-used-single",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0.0218,
+      "callerOccupationP95Ms": 0.0597,
+      "totalMedianMs": 0.0218,
+      "totalP95Ms": 0.0598,
+      "cpuMs": 1.909,
+      "allocatedBytes": 153272
+    },
+    {
+      "scenario": "file-status-single-alternating",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0.0339,
+      "callerOccupationP95Ms": 0.2569,
+      "totalMedianMs": 0.034,
+      "totalP95Ms": 0.2574,
+      "cpuMs": 2.76,
+      "allocatedBytes": 225024
+    },
+    {
+      "scenario": "get-after-write-single",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0.0831,
+      "callerOccupationP95Ms": 4.2441,
+      "totalMedianMs": 0.0834,
+      "totalP95Ms": 4.2455,
+      "cpuMs": 6.589,
+      "allocatedBytes": 275600
+    },
+    {
+      "scenario": "startup-recover-no-pending-removals",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0.0382,
+      "callerOccupationP95Ms": 2.4314,
+      "totalMedianMs": 0.0383,
+      "totalP95Ms": 2.4329,
+      "cpuMs": 3.84,
+      "allocatedBytes": 231736
+    },
+    {
+      "scenario": "initialize-new-empty-root",
+      "iterations": 10,
+      "synchronousCount": 10,
+      "callerOccupationMedianMs": 2.5806,
+      "callerOccupationP95Ms": 23.4657,
+      "totalMedianMs": 2.5813,
+      "totalP95Ms": 23.4683,
+      "cpuMs": 27.583,
+      "allocatedBytes": 1417560
+    }
+  ]
+}

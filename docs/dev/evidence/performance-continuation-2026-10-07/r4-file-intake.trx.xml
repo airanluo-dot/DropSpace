@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="a41a14f8-0424-4f53-bf79-a6eed3a35c63" name="@fc0360741f88 2026-10-07 07:03:46" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T07:03:46.7973598+00:00" queuing="2026-10-07T07:03:46.7973599+00:00" start="2026-10-07T07:03:45.8047251+00:00" finish="2026-10-07T07:03:46.8408771+00:00" />
+  <TestSettings name="default" id="b7f166e9-bf1c-4145-9e04-8add69b0fd9c">
+    <Deployment runDeploymentRoot="_fc0360741f88_2026-10-07_07_03_46" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="3838952d-a3e2-4e06-8226-7db436b524b1" testId="17721373-4ccb-83a2-a775-b5ec17362ebe" testName="Repository_ClipboardFileIsSeparateFromTemporarySpaceAndPreservesDistinctCaptureEvents" computerName="fc0360741f88" duration="00:00:00.0088965" startTime="2026-10-07T07:03:46.7611726+00:00" endTime="2026-10-07T07:03:46.7701536+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3838952d-a3e2-4e06-8226-7db436b524b1" />
+    <UnitTestResult executionId="1e8b851c-8f47-4636-b458-42568f472246" testId="1f483037-9652-8dac-9915-aa6ca6b28370" testName="CancellationAfterAdmissionCleansUnvisitedStagingFiles" computerName="fc0360741f88" duration="00:00:00.0103147" startTime="2026-10-07T07:03:46.7033510+00:00" endTime="2026-10-07T07:03:46.7137284+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1e8b851c-8f47-4636-b458-42568f472246" />
+    <UnitTestResult executionId="7e5d37d3-0a6d-43e3-bd89-8a2e727a2cd7" testId="15a509dc-e37c-8f1d-b1c1-d3b724a85bec" testName="FileIntakeReturnsToCallerWhileInitializedTableIsLocked" computerName="fc0360741f88" duration="00:00:00.2728508" startTime="2026-10-07T07:03:46.3013005+00:00" endTime="2026-10-07T07:03:46.6016952+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7e5d37d3-0a6d-43e3-bd89-8a2e727a2cd7" />
+    <UnitTestResult executionId="d51c702d-65c4-4418-8b92-95af7d8b3cdd" testId="197646de-18cc-8e5a-a9f7-c9c521e25a76" testName="FileAdmissionOrderAndExistingMetadataSurviveQueuedCancellation" computerName="fc0360741f88" duration="00:00:00.0191043" startTime="2026-10-07T07:03:46.6057056+00:00" endTime="2026-10-07T07:03:46.6252522+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d51c702d-65c4-4418-8b92-95af7d8b3cdd" />
+    <UnitTestResult executionId="148931a0-3be7-4025-9c4f-8f937a305d6d" testId="1f269fd6-2166-84f1-bb2e-b04f8ae3f6dd" testName="CancellationAfterFileAdmissionReleasesOwnerAndPreservesExistingReference" computerName="fc0360741f88" duration="00:00:00.0107775" startTime="2026-10-07T07:03:46.6256292+00:00" endTime="2026-10-07T07:03:46.6378317+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="148931a0-3be7-4025-9c4f-8f937a305d6d" />
+    <UnitTestResult executionId="b4fed690-dddf-4410-aaed-34367edd310e" testId="1d0d4a2b-2a3c-8c95-a309-af16486b0a1d" testName="Repository_OwnedFileBatchIsAuthoritativeAndReturnsPayloadForCleanup" computerName="fc0360741f88" duration="00:00:00.0116740" startTime="2026-10-07T07:03:46.7701923+00:00" endTime="2026-10-07T07:03:46.7837612+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b4fed690-dddf-4410-aaed-34367edd310e" />
+    <UnitTestResult executionId="aea214cd-94ee-4411-9ded-b5ed1999b513" testId="128c141d-a0f9-8f05-ab53-1d827953492f" testName="Repository_FileRemovalNeverDeletesSourceFile" computerName="fc0360741f88" duration="00:00:00.0125271" startTime="2026-10-07T07:03:46.7371682+00:00" endTime="2026-10-07T07:03:46.7497562+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aea214cd-94ee-4411-9ded-b5ed1999b513" />
+    <UnitTestResult executionId="1578ba4e-e573-4028-815a-8b71c78dbf3a" testId="1827e3ee-c47c-8cc0-8431-4a8499bf0741" testName="ImportCommitsOwnedPayloadRejectsOversizedAndNeverDeletesExternalSource" computerName="fc0360741f88" duration="00:00:00.0491736" startTime="2026-10-07T07:03:46.6378760+00:00" endTime="2026-10-07T07:03:46.6872473+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1578ba4e-e573-4028-815a-8b71c78dbf3a" />
+    <UnitTestResult executionId="41219614-27a4-49be-80b5-dc7d3836cd27" testId="13246c15-a007-8736-8573-528f54ab6d38" testName="SpaceReferenceDeduplicationUsesUnicodeWindowsPathComparison" computerName="fc0360741f88" duration="00:00:00.0065097" startTime="2026-10-07T07:03:46.7304820+00:00" endTime="2026-10-07T07:03:46.7371303+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="41219614-27a4-49be-80b5-dc7d3836cd27" />
+    <UnitTestResult executionId="18eee1ce-2524-495a-ada5-66aab6a93dd5" testId="1ed2c934-2890-87ac-a059-61bc734254bb" testName="ImportUsesTheExistingVirtualLeaseAndCompletesIt" computerName="fc0360741f88" duration="00:00:00.0166104" startTime="2026-10-07T07:03:46.7137632+00:00" endTime="2026-10-07T07:03:46.7304463+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="18eee1ce-2524-495a-ada5-66aab6a93dd5" />
+    <UnitTestResult executionId="98a4c569-5bbd-46df-bab4-9541cbb093b8" testId="1f08410e-e38f-82fd-b7c8-d5e3bcef03ae" testName="RejectedFirstBatchMemberDoesNotHideTheAcceptedHeader" computerName="fc0360741f88" duration="00:00:00.0159332" startTime="2026-10-07T07:03:46.6872939+00:00" endTime="2026-10-07T07:03:46.7033050+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="98a4c569-5bbd-46df-bab4-9541cbb093b8" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="SpaceReferenceDeduplicationUsesUnicodeWindowsPathComparison" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="13246c15-a007-8736-8573-528f54ab6d38">
+      <Execution id="41219614-27a4-49be-80b5-dc7d3836cd27" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.StorageAndRepositoryTests" name="SpaceReferenceDeduplicationUsesUnicodeWindowsPathComparison" />
+    </UnitTest>
+    <UnitTest name="Repository_OwnedFileBatchIsAuthoritativeAndReturnsPayloadForCleanup" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="1d0d4a2b-2a3c-8c95-a309-af16486b0a1d">
+      <Execution id="b4fed690-dddf-4410-aaed-34367edd310e" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.StorageAndRepositoryTests" name="Repository_OwnedFileBatchIsAuthoritativeAndReturnsPayloadForCleanup" />
+    </UnitTest>
+    <UnitTest name="FileAdmissionOrderAndExistingMetadataSurviveQueuedCancellation" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="197646de-18cc-8e5a-a9f7-c9c521e25a76">
+      <Execution id="d51c702d-65c4-4418-8b92-95af7d8b3cdd" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.SqliteFileIntakeBoundaryTests" name="FileAdmissionOrderAndExistingMetadataSurviveQueuedCancellation" />
+    </UnitTest>
+    <UnitTest name="ImportCommitsOwnedPayloadRejectsOversizedAndNeverDeletesExternalSource" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="1827e3ee-c47c-8cc0-8431-4a8499bf0741">
+      <Execution id="1578ba4e-e573-4028-815a-8b71c78dbf3a" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.StagedFileImportTests" name="ImportCommitsOwnedPayloadRejectsOversizedAndNeverDeletesExternalSource" />
+    </UnitTest>
+    <UnitTest name="Repository_FileRemovalNeverDeletesSourceFile" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="128c141d-a0f9-8f05-ab53-1d827953492f">
+      <Execution id="aea214cd-94ee-4411-9ded-b5ed1999b513" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.StorageAndRepositoryTests" name="Repository_FileRemovalNeverDeletesSourceFile" />
+    </UnitTest>
+    <UnitTest name="CancellationAfterAdmissionCleansUnvisitedStagingFiles" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="1f483037-9652-8dac-9915-aa6ca6b28370">
+      <Execution id="1e8b851c-8f47-4636-b458-42568f472246" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.StagedFileImportTests" name="CancellationAfterAdmissionCleansUnvisitedStagingFiles" />
+    </UnitTest>
+    <UnitTest name="FileIntakeReturnsToCallerWhileInitializedTableIsLocked" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="15a509dc-e37c-8f1d-b1c1-d3b724a85bec">
+      <Execution id="7e5d37d3-0a6d-43e3-bd89-8a2e727a2cd7" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.SqliteFileIntakeBoundaryTests" name="FileIntakeReturnsToCallerWhileInitializedTableIsLocked" />
+    </UnitTest>
+    <UnitTest name="RejectedFirstBatchMemberDoesNotHideTheAcceptedHeader" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="1f08410e-e38f-82fd-b7c8-d5e3bcef03ae">
+      <Execution id="98a4c569-5bbd-46df-bab4-9541cbb093b8" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.StagedFileImportTests" name="RejectedFirstBatchMemberDoesNotHideTheAcceptedHeader" />
+    </UnitTest>
+    <UnitTest name="Repository_ClipboardFileIsSeparateFromTemporarySpaceAndPreservesDistinctCaptureEvents" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="17721373-4ccb-83a2-a775-b5ec17362ebe">
+      <Execution id="3838952d-a3e2-4e06-8226-7db436b524b1" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.StorageAndRepositoryTests" name="Repository_ClipboardFileIsSeparateFromTemporarySpaceAndPreservesDistinctCaptureEvents" />
+    </UnitTest>
+    <UnitTest name="CancellationAfterFileAdmissionReleasesOwnerAndPreservesExistingReference" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="1f269fd6-2166-84f1-bb2e-b04f8ae3f6dd">
+      <Execution id="148931a0-3be7-4025-9c4f-8f937a305d6d" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.SqliteFileIntakeBoundaryTests" name="CancellationAfterFileAdmissionReleasesOwnerAndPreservesExistingReference" />
+    </UnitTest>
+    <UnitTest name="ImportUsesTheExistingVirtualLeaseAndCompletesIt" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="1ed2c934-2890-87ac-a059-61bc734254bb">
+      <Execution id="18eee1ce-2524-495a-ada5-66aab6a93dd5" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.StagedFileImportTests" name="ImportUsesTheExistingVirtualLeaseAndCompletesIt" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="17721373-4ccb-83a2-a775-b5ec17362ebe" executionId="3838952d-a3e2-4e06-8226-7db436b524b1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1f483037-9652-8dac-9915-aa6ca6b28370" executionId="1e8b851c-8f47-4636-b458-42568f472246" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="15a509dc-e37c-8f1d-b1c1-d3b724a85bec" executionId="7e5d37d3-0a6d-43e3-bd89-8a2e727a2cd7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="197646de-18cc-8e5a-a9f7-c9c521e25a76" executionId="d51c702d-65c4-4418-8b92-95af7d8b3cdd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1f269fd6-2166-84f1-bb2e-b04f8ae3f6dd" executionId="148931a0-3be7-4025-9c4f-8f937a305d6d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d0d4a2b-2a3c-8c95-a309-af16486b0a1d" executionId="b4fed690-dddf-4410-aaed-34367edd310e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="128c141d-a0f9-8f05-ab53-1d827953492f" executionId="aea214cd-94ee-4411-9ded-b5ed1999b513" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1827e3ee-c47c-8cc0-8431-4a8499bf0741" executionId="1578ba4e-e573-4028-815a-8b71c78dbf3a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="13246c15-a007-8736-8573-528f54ab6d38" executionId="41219614-27a4-49be-80b5-dc7d3836cd27" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1ed2c934-2890-87ac-a059-61bc734254bb" executionId="18eee1ce-2524-495a-ada5-66aab6a93dd5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1f08410e-e38f-82fd-b7c8-d5e3bcef03ae" executionId="98a4c569-5bbd-46df-bab4-9541cbb093b8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="11" executed="11" passed="11" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

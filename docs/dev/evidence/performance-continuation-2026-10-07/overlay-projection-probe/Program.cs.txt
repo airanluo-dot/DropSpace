@@ -1,0 +1,82 @@
+using DropSpace.Core.Island;
+using DropSpace.Core.Models;
+using DropSpace.Core.Overlay;
+using System.Text.Json;
+using ProjectionProbe;
+
+var baseline = args.Contains("baseline");
+var rejectedService = args.Contains("rejected-service");
+var expectedPreparationQueues = baseline ? 1 : 0;
+var checks = new List<string>();
+void Check(bool result, string name) { if (!result) throw new InvalidOperationException(name); checks.Add(name); }
+
+var dispatcher = DispatcherQueue.Shared;
+dispatcher.Reset();
+var compactSnapshot = new OverlaySnapshot(OverlayState.Compact, 0, false, 1);
+var geometry = new WindowFixture();
+geometry.MusicCompact.ChangeOnPreparation(420, 76);
+geometry.Apply(compactSnapshot);
+Check(geometry.SelectedWidth == 420 && geometry.SelectedHeight == 76 && geometry.MusicCompact.Preparations == 1,
+    "First projection consumes the supplied latest compact dimensions synchronously");
+Check(dispatcher.Scheduled == expectedPreparationQueues,
+    "Synchronous geometry preparation avoids an already consumed queued projection");
+var firstFrameQueues = dispatcher.Scheduled;
+dispatcher.Drain();
+var firstFrameProjections = geometry.Hidden;
+Check(!geometry.HasPending && !geometry.Preparing, "First-frame geometry scope and callbacks retire");
+
+dispatcher.Reset();
+var pending = new WindowFixture();
+pending.SetPresentation(compactSnapshot);
+pending.GeometryChanged();
+Check(pending.HasPending && dispatcher.Pending == 1, "Ordinary geometry invalidation owns its queued callback");
+pending.MusicCompact.ChangeOnPreparation(390, 72);
+pending.Apply(compactSnapshot);
+Check(pending.HasPending && dispatcher.Pending == 1 && dispatcher.Scheduled == 1,
+    "Existing pending geometry work survives synchronous preparation");
+var preexistingQueues = dispatcher.Scheduled;
+dispatcher.Drain();
+Check(!pending.HasPending && pending.SelectedWidth == 390 && pending.SelectedHeight == 72,
+    "Existing callback observes the latest dimensions after preparation");
+
+dispatcher.Reset();
+var ordinary = new WindowFixture();
+ordinary.SetPresentation(compactSnapshot);
+ordinary.GeometryChanged(); ordinary.GeometryChanged(); ordinary.GeometryChanged();
+Check(dispatcher.Scheduled == 1 && dispatcher.Pending == 1,
+    "Ordinary geometry changes preserve existing coalescing");
+dispatcher.Drain();
+Check(!ordinary.HasPending, "Ordinary geometry callback clears the original pending flag");
+
+dispatcher.Reset();
+var geometryFailure = new WindowFixture();
+geometryFailure.MusicCompact.ChangeOnPreparation(400, 70);
+geometryFailure.MusicCompact.ThrowOnRefresh = true;
+try { geometryFailure.Apply(compactSnapshot); throw new Exception("No producer failure"); }
+catch (InvalidOperationException) { }
+Check(!geometryFailure.Preparing, "Media preparation scope restores after producer failure");
+geometryFailure.GeometryChanged();
+Check(dispatcher.Pending == 1, "Later ordinary geometry event remains observable after failure");
+dispatcher.Reset();
+var outerGeometryScope = new WindowFixture();
+outerGeometryScope.SetGeometryScope(true);
+outerGeometryScope.MusicCompact.ChangeOnPreparation(440, 80);
+outerGeometryScope.Apply(compactSnapshot);
+Check(outerGeometryScope.Preparing, "Nested geometry preparation restores the prior outer scope");
+var nested = new ServiceFixture().NestedWindowRetirement();
+Check(nested.Authority == OverlayState.Hidden, "Real nested dismissal retires the experience authority");
+Check(nested.Active == (rejectedService ? OverlayState.Dismissing : OverlayState.Hidden) &&
+    nested.Inactive == (rejectedService ? OverlayState.Dismissing : OverlayState.Hidden),
+    "Nested window targets preserve the final existing authority");
+
+Console.WriteLine(JsonSerializer.Serialize(new
+{
+    mode = baseline ? "baseline-before-r3" : rejectedService ? "rejected-service-deduplication" : "current-geometry-only",
+    source = "Complete OnSnapshotChanged, OnExperienceChanged, service ApplySnapshot, window ApplySnapshot and OnMediaGeometryChanged extracted verbatim; real Core coordinator/policies; native and UI dependencies use managed fixtures.",
+    synchronousGeometry = new { width = geometry.SelectedWidth, height = geometry.SelectedHeight, refreshes = geometry.MusicCompact.Preparations, queuedProjections = firstFrameQueues, projectionCalls = firstFrameProjections },
+    preexistingGeometry = new { queuedProjections = preexistingQueues, width = pending.SelectedWidth, height = pending.SelectedHeight },
+    nestedWindowRetirement = new { authority = nested.Authority.ToString(), activeTarget = nested.Active.ToString(), inactiveTarget = nested.Inactive.ToString(), activeTargetSequence = nested.ActiveSequence.Select(state => state.ToString()).ToArray() },
+    passedAssertions = checks.Count,
+    checks,
+    limitations = new[] { "Platform fixtures do not execute HWND, WinUI text measurement, layout or animation.", "Counts are managed projection boundaries, not UI latency, CPU or memory measurements." },
+}, new JsonSerializerOptions { WriteIndented = true }));

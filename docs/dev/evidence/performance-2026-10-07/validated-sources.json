@@ -1,0 +1,48 @@
+{
+  "initialMeasurementBase": "3192f14876f6c8351c21f79096969eb44974df0f",
+  "deliveryBase": "6a1586a01e769c8b71492bcb18fb970047753434",
+  "scope": "Three optimization groups; no version change or publication",
+  "sourceHashConvention": "SHA-256 of UTF-8 source with LF line endings; working files use repository-required CRLF. Line-ending normalization is not a semantic code change.",
+  "sources": [
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "sha256Utf8Lf": "57fdc335627c4d329f954a544d66e1e339c2880d43b92d19176226cf5bc8b2c2"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+      "sha256Utf8Lf": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ItemProjectionService.cs",
+      "sha256Utf8Lf": "3c06a8e427f7a3181c7b201688f242ead10359cffe1798d1f8b762c86401a68a"
+    },
+    {
+      "path": "src/DropSpace.App/Services/SystemVisualPreferenceService.cs",
+      "sha256Utf8Lf": "c333faa265ae7efb2a2be6c79af280a1721a9320024fff8e13e8048415d6beb3"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+      "sha256Utf8Lf": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+      "sha256Utf8Lf": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+      "sha256Utf8Lf": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/MusicUiPressureTests.cs",
+      "sha256Utf8Lf": "2e9226f6a49a3cd31cf6bce4374cdb2107a9f1b7525b5b5388c72841945529e5"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/ItemProjectionServiceTests.cs",
+      "sha256Utf8Lf": "f812100451849e3f1260dfa970281b06d95dbc9e8b96cc8076d079727add831f"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/SystemVisualPreferenceTests.cs",
+      "sha256Utf8Lf": "fd8e409484ed3fe50ff63d136a6610f7387db918243c0098bcf8f874a878c4f5"
+    }
+  ]
+}

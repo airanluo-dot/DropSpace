@@ -1,0 +1,72 @@
+{
+  "platform": "Unix 6.18.44.0",
+  "runtime": "10.0.12",
+  "fixture": "Isolated initialized SQLite database. Candidates and metadata prepared before timing; references are synthetic, payload rows are 1-byte metadata records only. No source file inspection, payload copy or UI rendering measured.",
+  "assemblyHashes": {
+    "DropSpace.Core.dll": "50b44c91b6b4b4024c984f449219d254f468919c14de064a680033c2666be274",
+    "DropSpace.Infrastructure.dll": "1fa502ad52faba7005f314899eed902bd9bc057ebb520b3fabbfc039693fd0e1"
+  },
+  "note": "Actual sequential repository calls on one caller surrogate. uninterruptedCallerOccupationMs is sum of call durations; IsCompleted plus unchanged continuation thread evidence establishes synchronous loop for these samples. CPU/allocation are process-wide and include measurement overhead. Production owned import already runs in Task.Run; production clipboard uses AddClipboardFilesAsync on its worker, so their single-API figures are compatibility evidence, not UI hot-path claims.",
+  "duplicateIdentityPreserved": true,
+  "duplicateMetadataPreserved": true,
+  "ownedPayloadIdentityPreserved": true,
+  "rowCountVerified": true,
+  "reports": [
+    {
+      "scenario": "space-new-100-prepared-references",
+      "count": 100,
+      "synchronousCount": 0,
+      "continuationOnInitialCallerThreadCount": 6,
+      "uninterruptedCallerOccupationMs": 1.8132,
+      "batchTotalMs": 45.5765,
+      "callerMedianMs": 0.0212,
+      "callerP95Ms": 0.0267,
+      "operationTotalMedianMs": 0.4159,
+      "operationTotalP95Ms": 0.6546,
+      "cpuMs": 54.369,
+      "allocatedBytes": 5078640
+    },
+    {
+      "scenario": "space-duplicate-existing-100",
+      "count": 100,
+      "synchronousCount": 0,
+      "continuationOnInitialCallerThreadCount": 0,
+      "uninterruptedCallerOccupationMs": 0.9613000000000006,
+      "batchTotalMs": 23.5423,
+      "callerMedianMs": 0.0026,
+      "callerP95Ms": 0.0215,
+      "operationTotalMedianMs": 0.1914,
+      "operationTotalP95Ms": 0.3642,
+      "cpuMs": 25.712,
+      "allocatedBytes": 3841008
+    },
+    {
+      "scenario": "owned-space-10-database-records-only",
+      "count": 10,
+      "synchronousCount": 0,
+      "continuationOnInitialCallerThreadCount": 10,
+      "uninterruptedCallerOccupationMs": 0.38449999999999995,
+      "batchTotalMs": 9.2672,
+      "callerMedianMs": 0.0219,
+      "callerP95Ms": 0.1195,
+      "operationTotalMedianMs": 0.619,
+      "operationTotalP95Ms": 3.5473,
+      "cpuMs": 9.809,
+      "allocatedBytes": 819416
+    },
+    {
+      "scenario": "single-clipboard-api-10-prepared-references",
+      "count": 10,
+      "synchronousCount": 0,
+      "continuationOnInitialCallerThreadCount": 10,
+      "uninterruptedCallerOccupationMs": 0.3824,
+      "batchTotalMs": 3.5664,
+      "callerMedianMs": 0.0219,
+      "callerP95Ms": 0.1853,
+      "operationTotalMedianMs": 0.3206,
+      "operationTotalP95Ms": 0.5385,
+      "cpuMs": 4.083,
+      "allocatedBytes": 227808
+    }
+  ]
+}

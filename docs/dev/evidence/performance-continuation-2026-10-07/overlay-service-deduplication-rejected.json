@@ -1,0 +1,30 @@
+{
+  "purpose": "Compatibility evidence: the existing second Apply repairs nested authority changes; the proposed service deduplication was rejected and restored byte for byte.",
+  "before": {
+    "authority": "Hidden",
+    "activeTarget": "Hidden",
+    "inactiveTarget": "Hidden",
+    "activeTargetSequence": [
+      "Dismissing",
+      "Hidden"
+    ]
+  },
+  "rejectedCandidate": {
+    "authority": "Hidden",
+    "activeTarget": "Dismissing",
+    "inactiveTarget": "Dismissing",
+    "activeTargetSequence": [
+      "Dismissing"
+    ]
+  },
+  "final": {
+    "authority": "Hidden",
+    "activeTarget": "Hidden",
+    "inactiveTarget": "Hidden",
+    "activeTargetSequence": [
+      "Dismissing",
+      "Hidden"
+    ]
+  },
+  "basis": "Complete original Service.ApplySnapshot and event methods, real Core coordinator, scripted inactive-window callback invoking CompleteDismissal and CanCompleteFileDismissal plus nested file publication; inactive monitor before active monitor. No native Window execution."
+}

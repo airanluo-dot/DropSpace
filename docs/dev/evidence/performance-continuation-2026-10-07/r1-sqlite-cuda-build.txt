@@ -1,0 +1,9 @@
+  DropSpace.Core -> /workspace/DropSpace/src/DropSpace.Core/bin/Release/net10.0/DropSpace.Core.dll
+  DropSpace.Infrastructure -> /workspace/DropSpace/src/DropSpace.Infrastructure/bin/Release/net10.0/DropSpace.Infrastructure.dll
+  DropSpace.ResidentWorkerFixture -> /workspace/DropSpace/tests/DropSpace.ResidentWorkerFixture/bin/Release/net10.0/DropSpace.ResidentWorkerFixture.dll
+  DropSpace.Infrastructure.Tests -> /workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll
+Test run for /workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/DropSpace/docs/dev/evidence/performance-continuation-2026-10-07/r1-sqlite-cuda.trx.xml
+
+Passed!  - Failed:     0, Passed:    42, Skipped:     0, Total:    42, Duration: 1 s - DropSpace.Infrastructure.Tests.dll (net10.0)

@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="8d19084f-a3c6-4a70-aa9c-fac6eef4c7ec" name="@fc0360741f88 2026-10-07 06:21:04" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T06:21:04.5794396+00:00" queuing="2026-10-07T06:21:04.5794397+00:00" start="2026-10-07T06:21:04.0940288+00:00" finish="2026-10-07T06:21:04.5862803+00:00" />
+  <TestSettings name="default" id="10325b4f-7ccd-4a81-9828-d9bada582704">
+    <Deployment runDeploymentRoot="_fc0360741f88_2026-10-07_06_21_04" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="020467e7-6b81-434f-ab8f-a66e8be946c9" testId="1535ef3b-9574-89e3-a82e-71be93a09a48" testName="TrackChangeResetImmediatelyRestoresPlaybackOwnership" computerName="fc0360741f88" duration="00:00:00.0001814" startTime="2026-10-07T06:21:04.4888141+00:00" endTime="2026-10-07T06:21:04.4890128+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="020467e7-6b81-434f-ab8f-a66e8be946c9" />
+    <UnitTestResult executionId="08497a0d-f79b-4022-b194-de38ba82f4ba" testId="12403bd2-dfad-8ad6-80e2-1fb0b4b57faa" testName="ReleasedTargetDoesNotSnapBackBeforePlayerAcknowledgesSeek" computerName="fc0360741f88" duration="00:00:00.0006179" startTime="2026-10-07T06:21:04.4872694+00:00" endTime="2026-10-07T06:21:04.4883884+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="08497a0d-f79b-4022-b194-de38ba82f4ba" />
+    <UnitTestResult executionId="98865a5a-8c7c-4bec-9fac-53108ed01012" testId="10bba7ab-0171-87af-93f7-b0a7dffd8087" testName="TransientCapabilityLossDoesNotRestoreStalePosition" computerName="fc0360741f88" duration="00:00:00.0001488" startTime="2026-10-07T06:21:04.4893314+00:00" endTime="2026-10-07T06:21:04.4920328+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="98865a5a-8c7c-4bec-9fac-53108ed01012" />
+    <UnitTestResult executionId="e4be2c08-d22a-4f66-b426-a454abf32c10" testId="1611e9c0-665b-88d1-b1be-2d08d1596af4" testName="PendingTargetExpiresAndCanceledDragNeverCommits" computerName="fc0360741f88" duration="00:00:00.0001587" startTime="2026-10-07T06:21:04.4886079+00:00" endTime="2026-10-07T06:21:04.4887954+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e4be2c08-d22a-4f66-b426-a454abf32c10" />
+    <UnitTestResult executionId="343a161a-5090-4778-9ef3-a320fbbdb6ff" testId="18f7f871-2dcd-86b2-b9fd-8a5dde7a166f" testName="TrackClickPreviewSuppressesPlaybackBeforeCommitTimer" computerName="fc0360741f88" duration="00:00:00.0002646" startTime="2026-10-07T06:21:04.4890247+00:00" endTime="2026-10-07T06:21:04.4893068+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="343a161a-5090-4778-9ef3-a320fbbdb6ff" />
+    <UnitTestResult executionId="6f5334be-b9d1-4cce-b0b9-3d272db6cf0f" testId="11ef2c11-bd67-8eab-9f9b-e96e1aa54e1f" testName="SlowDragSuppressesEveryPlaybackFrameAndCommitsOnlyOnRelease" computerName="fc0360741f88" duration="00:00:00.0083591" startTime="2026-10-07T06:21:04.4606902+00:00" endTime="2026-10-07T06:21:04.4835097+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6f5334be-b9d1-4cce-b0b9-3d272db6cf0f" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="TransientCapabilityLossDoesNotRestoreStalePosition" storage="/tmp/dropspace-seek-checks/bin/debug/net10.0/seekchecks.dll" id="10bba7ab-0171-87af-93f7-b0a7dffd8087">
+      <Execution id="98865a5a-8c7c-4bec-9fac-53108ed01012" />
+      <TestMethod codeBase="/tmp/dropspace-seek-checks/bin/Debug/net10.0/SeekChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MediaSeekInteractionTests" name="TransientCapabilityLossDoesNotRestoreStalePosition" />
+    </UnitTest>
+    <UnitTest name="ReleasedTargetDoesNotSnapBackBeforePlayerAcknowledgesSeek" storage="/tmp/dropspace-seek-checks/bin/debug/net10.0/seekchecks.dll" id="12403bd2-dfad-8ad6-80e2-1fb0b4b57faa">
+      <Execution id="08497a0d-f79b-4022-b194-de38ba82f4ba" />
+      <TestMethod codeBase="/tmp/dropspace-seek-checks/bin/Debug/net10.0/SeekChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MediaSeekInteractionTests" name="ReleasedTargetDoesNotSnapBackBeforePlayerAcknowledgesSeek" />
+    </UnitTest>
+    <UnitTest name="TrackClickPreviewSuppressesPlaybackBeforeCommitTimer" storage="/tmp/dropspace-seek-checks/bin/debug/net10.0/seekchecks.dll" id="18f7f871-2dcd-86b2-b9fd-8a5dde7a166f">
+      <Execution id="343a161a-5090-4778-9ef3-a320fbbdb6ff" />
+      <TestMethod codeBase="/tmp/dropspace-seek-checks/bin/Debug/net10.0/SeekChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MediaSeekInteractionTests" name="TrackClickPreviewSuppressesPlaybackBeforeCommitTimer" />
+    </UnitTest>
+    <UnitTest name="PendingTargetExpiresAndCanceledDragNeverCommits" storage="/tmp/dropspace-seek-checks/bin/debug/net10.0/seekchecks.dll" id="1611e9c0-665b-88d1-b1be-2d08d1596af4">
+      <Execution id="e4be2c08-d22a-4f66-b426-a454abf32c10" />
+      <TestMethod codeBase="/tmp/dropspace-seek-checks/bin/Debug/net10.0/SeekChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MediaSeekInteractionTests" name="PendingTargetExpiresAndCanceledDragNeverCommits" />
+    </UnitTest>
+    <UnitTest name="TrackChangeResetImmediatelyRestoresPlaybackOwnership" storage="/tmp/dropspace-seek-checks/bin/debug/net10.0/seekchecks.dll" id="1535ef3b-9574-89e3-a82e-71be93a09a48">
+      <Execution id="020467e7-6b81-434f-ab8f-a66e8be946c9" />
+      <TestMethod codeBase="/tmp/dropspace-seek-checks/bin/Debug/net10.0/SeekChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MediaSeekInteractionTests" name="TrackChangeResetImmediatelyRestoresPlaybackOwnership" />
+    </UnitTest>
+    <UnitTest name="SlowDragSuppressesEveryPlaybackFrameAndCommitsOnlyOnRelease" storage="/tmp/dropspace-seek-checks/bin/debug/net10.0/seekchecks.dll" id="11ef2c11-bd67-8eab-9f9b-e96e1aa54e1f">
+      <Execution id="6f5334be-b9d1-4cce-b0b9-3d272db6cf0f" />
+      <TestMethod codeBase="/tmp/dropspace-seek-checks/bin/Debug/net10.0/SeekChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MediaSeekInteractionTests" name="SlowDragSuppressesEveryPlaybackFrameAndCommitsOnlyOnRelease" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="1535ef3b-9574-89e3-a82e-71be93a09a48" executionId="020467e7-6b81-434f-ab8f-a66e8be946c9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="12403bd2-dfad-8ad6-80e2-1fb0b4b57faa" executionId="08497a0d-f79b-4022-b194-de38ba82f4ba" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="10bba7ab-0171-87af-93f7-b0a7dffd8087" executionId="98865a5a-8c7c-4bec-9fac-53108ed01012" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1611e9c0-665b-88d1-b1be-2d08d1596af4" executionId="e4be2c08-d22a-4f66-b426-a454abf32c10" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="18f7f871-2dcd-86b2-b9fd-8a5dde7a166f" executionId="343a161a-5090-4778-9ef3-a320fbbdb6ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="11ef2c11-bd67-8eab-9f9b-e96e1aa54e1f" executionId="6f5334be-b9d1-4cce-b0b9-3d272db6cf0f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="6" executed="6" passed="6" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

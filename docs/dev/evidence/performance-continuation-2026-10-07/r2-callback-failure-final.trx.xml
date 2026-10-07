@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="9eef46f3-e9fb-466b-922b-a681e67ce41d" name="@fc0360741f88 2026-10-07 06:52:06" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T06:52:06.5079362+00:00" queuing="2026-10-07T06:52:06.5079362+00:00" start="2026-10-07T06:52:05.7982214+00:00" finish="2026-10-07T06:52:06.5123801+00:00" />
+  <TestSettings name="default" id="af40151a-ff4d-4f79-aa38-c0f6fcb058bb">
+    <Deployment runDeploymentRoot="_fc0360741f88_2026-10-07_06_52_06" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="fc986621-5d63-4ae0-b3d8-a0f388c5cf46" testId="16caf247-d5f4-8aca-b703-a0af88b3f2e7" testName="CancellationCallbackFailuresReachCallersAndStillAllowRetirementAndCleanup" computerName="fc0360741f88" duration="00:00:00.1838525" startTime="2026-10-07T06:52:06.1996591+00:00" endTime="2026-10-07T06:52:06.4077474+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fc986621-5d63-4ae0-b3d8-a0f388c5cf46" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="CancellationCallbackFailuresReachCallersAndStillAllowRetirementAndCleanup" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/release/net10.0/dropspace.infrastructure.tests.dll" id="16caf247-d5f4-8aca-b703-a0af88b3f2e7">
+      <Execution id="fc986621-5d63-4ae0-b3d8-a0f388c5cf46" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Release/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.DownloadManagerLifetimeTests" name="CancellationCallbackFailuresReachCallersAndStillAllowRetirementAndCleanup" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="16caf247-d5f4-8aca-b703-a0af88b3f2e7" executionId="fc986621-5d63-4ae0-b3d8-a0f388c5cf46" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

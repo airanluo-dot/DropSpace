@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="7c8566c5-a9a1-4c83-8dcd-cf2b4802675f" name="@fc0360741f88 2026-10-07 06:11:28" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T06:11:28.3208928+00:00" queuing="2026-10-07T06:11:28.3208929+00:00" start="2026-10-07T06:11:27.8985314+00:00" finish="2026-10-07T06:11:28.3636133+00:00" />
+  <TestSettings name="default" id="2e8c09b7-8279-4cd4-a6c2-de6e13c98a69">
+    <Deployment runDeploymentRoot="_fc0360741f88_2026-10-07_06_11_28" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="ef295bcf-a631-4346-9164-318a62fb5f32" testId="12ed012a-5608-8c46-a40d-f74598e6aac5" testName="NotificationBurstSchedulesOneRenderAndHiddenOrUnloadedViewsScheduleNone" computerName="fc0360741f88" duration="00:00:00.0007536" startTime="2026-10-07T06:11:28.2656865+00:00" endTime="2026-10-07T06:11:28.2674550+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ef295bcf-a631-4346-9164-318a62fb5f32" />
+    <UnitTestResult executionId="1664ff08-cfdc-4d31-8761-d68a60e08fb0" testId="1c36ad66-22e0-856e-b3db-53c2ee2b1d29" testName="OffThreadEventsCapturePreferencesOnlyWhenTheDispatcherRuns" computerName="fc0360741f88" duration="00:00:00.0003114" startTime="2026-10-07T06:11:28.2898046+00:00" endTime="2026-10-07T06:11:28.2901351+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1664ff08-cfdc-4d31-8761-d68a60e08fb0" />
+    <UnitTestResult executionId="14486301-53e8-4d61-a1b9-5384a1ffabe7" testId="13e42a1b-551d-8fd3-94dc-0a0a0ea4e687" testName="PollCapturesSystemChangesAndSuppressesOnlyUnchangedPollNotifications" computerName="fc0360741f88" duration="00:00:00.0017472" startTime="2026-10-07T06:11:28.2869319+00:00" endTime="2026-10-07T06:11:28.2887652+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="14486301-53e8-4d61-a1b9-5384a1ffabe7" />
+    <UnitTestResult executionId="5d42a612-808a-4877-9769-150cb6e13506" testId="191afc51-0d00-80dd-a0e0-e2579eea836e" testName="ReducedMotionUsesTheCapturedSystemPreferenceAndExplicitOverride" computerName="fc0360741f88" duration="00:00:00.0003613" startTime="2026-10-07T06:11:28.2708196+00:00" endTime="2026-10-07T06:11:28.2712053+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5d42a612-808a-4877-9769-150cb6e13506" />
+    <UnitTestResult executionId="af5fc36f-4def-4d76-be04-5d818d604a7f" testId="10d477b6-dcc3-8c3b-a631-696d42d51469" testName="MotionOverridesPreserveEveryCapturedMaterialPreference" computerName="fc0360741f88" duration="00:00:00.0011175" startTime="2026-10-07T06:11:28.2696711+00:00" endTime="2026-10-07T06:11:28.2708073+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="af5fc36f-4def-4d76-be04-5d818d604a7f" />
+    <UnitTestResult executionId="417d64fc-b0e0-4a07-9042-8811fa6d5791" testId="17aba05e-251b-8b85-8673-3a4c5a1c7583" testName="SettingsRestyleExistingRowsAndTrackChangesReplaceThem" computerName="fc0360741f88" duration="00:00:00.0005041" startTime="2026-10-07T06:11:28.2645715+00:00" endTime="2026-10-07T06:11:28.2651061+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="417d64fc-b0e0-4a07-9042-8811fa6d5791" />
+    <UnitTestResult executionId="baeaf757-09d9-4a79-b5c0-3f6255a7c125" testId="105a40ff-6668-8bd3-ae8b-94902857e664" testName="ProgressiveTranslationsReuseTwoThousandOriginalRows" computerName="fc0360741f88" duration="00:00:00.0407492" startTime="2026-10-07T06:11:28.2019232+00:00" endTime="2026-10-07T06:11:28.2587735+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="baeaf757-09d9-4a79-b5c0-3f6255a7c125" />
+    <UnitTestResult executionId="a90bf2d9-8640-44c5-a7f5-1adab0199e33" testId="115c4583-dd5f-838b-8bac-edd8194225a6" testName="ColorEventsStillBroadcastWhenThePreferenceSnapshotIsUnchanged" computerName="fc0360741f88" duration="00:00:00.0005211" startTime="2026-10-07T06:11:28.2888009+00:00" endTime="2026-10-07T06:11:28.2893497+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a90bf2d9-8640-44c5-a7f5-1adab0199e33" />
+    <UnitTestResult executionId="afefbd04-4fce-41fd-abc4-c1c74b0338a9" testId="18fa2a8b-d066-855e-9b2b-eb15c3b50793" testName="ChangedOriginalReplacesOnlyThatRowAndDuplicateIndicesRemainDistinct" computerName="fc0360741f88" duration="00:00:00.0005357" startTime="2026-10-07T06:11:28.2651196+00:00" endTime="2026-10-07T06:11:28.2656743+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="afefbd04-4fce-41fd-abc4-c1c74b0338a9" />
+    <UnitTestResult executionId="0c92725c-72b3-40f9-8037-0d9e56fc662c" testId="1b2a113e-fc67-8762-a558-14c9dcb805c4" testName="HeadAndWorkingSourceCallCountsForThirtyThousandResolutions" computerName="fc0360741f88" duration="00:00:00.0076749" startTime="2026-10-07T06:11:28.2901470+00:00" endTime="2026-10-07T06:11:28.2995655+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0c92725c-72b3-40f9-8037-0d9e56fc662c">
+      <Output>
+        <StdOut>{
+  "before": {
+    "resolveCalls": 30000,
+    "AnimationsReads": 30000,
+    "AdvancedEffectsReads": 30000,
+    "HighContrastReads": 30000,
+    "capabilityReads": 60000,
+    "snapshotReads": 30000
+  },
+  "after": {
+    "resolveCalls": 30000,
+    "AnimationsReads": 0,
+    "AdvancedEffectsReads": 0,
+    "HighContrastReads": 0,
+    "capabilityReads": 0,
+    "snapshotReads": 0
+  },
+  "evidence": "Real HEAD/current service source with counting platform shims; managed call counts only."
+}</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="9bc48852-5948-460a-9ae7-dcb98d8ba730" testId="18d397b2-0833-8942-810c-27db9485c296" testName="ResolveMapsTheCurrentSnapshotWithoutReadingNativePreferenceValues" computerName="fc0360741f88" duration="00:00:00.0034922" startTime="2026-10-07T06:11:28.2712171+00:00" endTime="2026-10-07T06:11:28.2747608+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9bc48852-5948-460a-9ae7-dcb98d8ba730" />
+    <UnitTestResult executionId="486722ac-ff67-4f7b-939d-d6b08ab3ce77" testId="16b4d805-7e15-8a3d-8563-49e6bfc3c8d7" testName="RepeatedMotionResolutionDoesNotReprobeWindowsCapabilities" computerName="fc0360741f88" duration="00:00:00.0021141" startTime="2026-10-07T06:11:28.2674709+00:00" endTime="2026-10-07T06:11:28.2696569+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="486722ac-ff67-4f7b-939d-d6b08ab3ce77" />
+    <UnitTestResult executionId="2c044c74-32f4-40a0-929a-d0ad81ee9ce7" testId="1d511403-6e43-8af0-9fc0-439ae2eaf379" testName="QueuedPreferenceEventCannotReadOrPublishAfterDisposal" computerName="fc0360741f88" duration="00:00:00.0004095" startTime="2026-10-07T06:11:28.2893635+00:00" endTime="2026-10-07T06:11:28.2897924+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2c044c74-32f4-40a0-929a-d0ad81ee9ce7" />
+    <UnitTestResult executionId="2ca034b1-b81d-4f6d-a9e9-d033f189b435" testId="1e95951a-b2af-8f8f-8d7b-77a244e919b1" testName="OriginLanguageAndOptionsStillUpdateReusedRows" computerName="fc0360741f88" duration="00:00:00.0012710" startTime="2026-10-07T06:11:28.2624956+00:00" endTime="2026-10-07T06:11:28.2643407+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2ca034b1-b81d-4f6d-a9e9-d033f189b435" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="OriginLanguageAndOptionsStillUpdateReusedRows" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="1e95951a-b2af-8f8f-8d7b-77a244e919b1">
+      <Execution id="2ca034b1-b81d-4f6d-a9e9-d033f189b435" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MusicUiPressureTests" name="OriginLanguageAndOptionsStillUpdateReusedRows" />
+    </UnitTest>
+    <UnitTest name="MotionOverridesPreserveEveryCapturedMaterialPreference" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="10d477b6-dcc3-8c3b-a631-696d42d51469">
+      <Execution id="af5fc36f-4def-4d76-be04-5d818d604a7f" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.SystemVisualPreferenceTests" name="MotionOverridesPreserveEveryCapturedMaterialPreference" />
+    </UnitTest>
+    <UnitTest name="SettingsRestyleExistingRowsAndTrackChangesReplaceThem" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="17aba05e-251b-8b85-8673-3a4c5a1c7583">
+      <Execution id="417d64fc-b0e0-4a07-9042-8811fa6d5791" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MusicUiPressureTests" name="SettingsRestyleExistingRowsAndTrackChangesReplaceThem" />
+    </UnitTest>
+    <UnitTest name="ProgressiveTranslationsReuseTwoThousandOriginalRows" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="105a40ff-6668-8bd3-ae8b-94902857e664">
+      <Execution id="baeaf757-09d9-4a79-b5c0-3f6255a7c125" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MusicUiPressureTests" name="ProgressiveTranslationsReuseTwoThousandOriginalRows" />
+    </UnitTest>
+    <UnitTest name="ReducedMotionUsesTheCapturedSystemPreferenceAndExplicitOverride" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="191afc51-0d00-80dd-a0e0-e2579eea836e">
+      <Execution id="5d42a612-808a-4877-9769-150cb6e13506" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.SystemVisualPreferenceTests" name="ReducedMotionUsesTheCapturedSystemPreferenceAndExplicitOverride" />
+    </UnitTest>
+    <UnitTest name="RepeatedMotionResolutionDoesNotReprobeWindowsCapabilities" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="16b4d805-7e15-8a3d-8563-49e6bfc3c8d7">
+      <Execution id="486722ac-ff67-4f7b-939d-d6b08ab3ce77" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.SystemVisualPreferenceTests" name="RepeatedMotionResolutionDoesNotReprobeWindowsCapabilities" />
+    </UnitTest>
+    <UnitTest name="PollCapturesSystemChangesAndSuppressesOnlyUnchangedPollNotifications" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="13e42a1b-551d-8fd3-94dc-0a0a0ea4e687">
+      <Execution id="14486301-53e8-4d61-a1b9-5384a1ffabe7" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Performance.PreferenceProjectionTests" name="PollCapturesSystemChangesAndSuppressesOnlyUnchangedPollNotifications" />
+    </UnitTest>
+    <UnitTest name="NotificationBurstSchedulesOneRenderAndHiddenOrUnloadedViewsScheduleNone" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="12ed012a-5608-8c46-a40d-f74598e6aac5">
+      <Execution id="ef295bcf-a631-4346-9164-318a62fb5f32" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MusicUiPressureTests" name="NotificationBurstSchedulesOneRenderAndHiddenOrUnloadedViewsScheduleNone" />
+    </UnitTest>
+    <UnitTest name="ChangedOriginalReplacesOnlyThatRowAndDuplicateIndicesRemainDistinct" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="18fa2a8b-d066-855e-9b2b-eb15c3b50793">
+      <Execution id="afefbd04-4fce-41fd-abc4-c1c74b0338a9" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.App.Tests.MusicUiPressureTests" name="ChangedOriginalReplacesOnlyThatRowAndDuplicateIndicesRemainDistinct" />
+    </UnitTest>
+    <UnitTest name="HeadAndWorkingSourceCallCountsForThirtyThousandResolutions" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="1b2a113e-fc67-8762-a558-14c9dcb805c4">
+      <Execution id="0c92725c-72b3-40f9-8037-0d9e56fc662c" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Performance.PreferenceProjectionTests" name="HeadAndWorkingSourceCallCountsForThirtyThousandResolutions" />
+    </UnitTest>
+    <UnitTest name="QueuedPreferenceEventCannotReadOrPublishAfterDisposal" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="1d511403-6e43-8af0-9fc0-439ae2eaf379">
+      <Execution id="2c044c74-32f4-40a0-929a-d0ad81ee9ce7" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Performance.PreferenceProjectionTests" name="QueuedPreferenceEventCannotReadOrPublishAfterDisposal" />
+    </UnitTest>
+    <UnitTest name="OffThreadEventsCapturePreferencesOnlyWhenTheDispatcherRuns" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="1c36ad66-22e0-856e-b3db-53c2ee2b1d29">
+      <Execution id="1664ff08-cfdc-4d31-8761-d68a60e08fb0" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Performance.PreferenceProjectionTests" name="OffThreadEventsCapturePreferencesOnlyWhenTheDispatcherRuns" />
+    </UnitTest>
+    <UnitTest name="ColorEventsStillBroadcastWhenThePreferenceSnapshotIsUnchanged" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="115c4583-dd5f-838b-8bac-edd8194225a6">
+      <Execution id="a90bf2d9-8640-44c5-a7f5-1adab0199e33" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Performance.PreferenceProjectionTests" name="ColorEventsStillBroadcastWhenThePreferenceSnapshotIsUnchanged" />
+    </UnitTest>
+    <UnitTest name="ResolveMapsTheCurrentSnapshotWithoutReadingNativePreferenceValues" storage="/tmp/dropspace-performance-checks/bin/debug/net10.0/performancechecks.dll" id="18d397b2-0833-8942-810c-27db9485c296">
+      <Execution id="9bc48852-5948-460a-9ae7-dcb98d8ba730" />
+      <TestMethod codeBase="/tmp/dropspace-performance-checks/bin/Debug/net10.0/PerformanceChecks.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Performance.PreferenceProjectionTests" name="ResolveMapsTheCurrentSnapshotWithoutReadingNativePreferenceValues" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="12ed012a-5608-8c46-a40d-f74598e6aac5" executionId="ef295bcf-a631-4346-9164-318a62fb5f32" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1c36ad66-22e0-856e-b3db-53c2ee2b1d29" executionId="1664ff08-cfdc-4d31-8761-d68a60e08fb0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="13e42a1b-551d-8fd3-94dc-0a0a0ea4e687" executionId="14486301-53e8-4d61-a1b9-5384a1ffabe7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="191afc51-0d00-80dd-a0e0-e2579eea836e" executionId="5d42a612-808a-4877-9769-150cb6e13506" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="10d477b6-dcc3-8c3b-a631-696d42d51469" executionId="af5fc36f-4def-4d76-be04-5d818d604a7f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="17aba05e-251b-8b85-8673-3a4c5a1c7583" executionId="417d64fc-b0e0-4a07-9042-8811fa6d5791" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="105a40ff-6668-8bd3-ae8b-94902857e664" executionId="baeaf757-09d9-4a79-b5c0-3f6255a7c125" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="115c4583-dd5f-838b-8bac-edd8194225a6" executionId="a90bf2d9-8640-44c5-a7f5-1adab0199e33" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="18fa2a8b-d066-855e-9b2b-eb15c3b50793" executionId="afefbd04-4fce-41fd-abc4-c1c74b0338a9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1b2a113e-fc67-8762-a558-14c9dcb805c4" executionId="0c92725c-72b3-40f9-8037-0d9e56fc662c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="18d397b2-0833-8942-810c-27db9485c296" executionId="9bc48852-5948-460a-9ae7-dcb98d8ba730" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="16b4d805-7e15-8a3d-8563-49e6bfc3c8d7" executionId="486722ac-ff67-4f7b-939d-d6b08ab3ce77" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d511403-6e43-8af0-9fc0-439ae2eaf379" executionId="2c044c74-32f4-40a0-929a-d0ad81ee9ce7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1e95951a-b2af-8f8f-8d7b-77a244e919b1" executionId="2ca034b1-b81d-4f6d-a9e9-d033f189b435" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="14" executed="14" passed="14" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

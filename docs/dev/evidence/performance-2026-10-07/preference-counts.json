@@ -1,0 +1,19 @@
+{
+  "before": {
+    "resolveCalls": 30000,
+    "AnimationsReads": 30000,
+    "AdvancedEffectsReads": 30000,
+    "HighContrastReads": 30000,
+    "capabilityReads": 60000,
+    "snapshotReads": 30000
+  },
+  "after": {
+    "resolveCalls": 30000,
+    "AnimationsReads": 0,
+    "AdvancedEffectsReads": 0,
+    "HighContrastReads": 0,
+    "capabilityReads": 0,
+    "snapshotReads": 0
+  },
+  "evidence": "Real HEAD/current service source with counting platform shims; managed call counts only."
+}

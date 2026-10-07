@@ -1,0 +1,124 @@
+{
+  "phase": "R1-after",
+  "platform": "Unix 6.18.44.0",
+  "runtime": "10.0.12",
+  "fixtureRows": 10000,
+  "fixture": "synthetic file references under /tmp; no actual payload IO",
+  "assemblyHashes": {
+    "DropSpace.Core.dll": "50b44c91b6b4b4024c984f449219d254f468919c14de064a680033c2666be274",
+    "DropSpace.Infrastructure.dll": "6ae3371b2587c48264100408e01d8b606dac7a353366d004d2d5924e90920d30"
+  },
+  "note": "Actual SQLite repository calls; variant selected using copied Release assemblies; before/after are separate, non-interleaved runs on the same 10000-reference fixture and sample counts. OS cache and scheduling variance are not controlled; this is caller-blocking evidence, not SQL-throughput improvement. Caller occupation covers synchronous call before Task is returned, not Windows UI frames. CPU and allocation are process-wide, with measurement overhead. No claims about cold disk cache or long-running native UI.",
+  "reports": [
+    {
+      "scenario": "initialize-existing-10000-files-fresh-owner",
+      "iterations": 30,
+      "synchronousCount": 0,
+      "callerOccupationMedianMs": 0.0178,
+      "callerOccupationP95Ms": 0.0618,
+      "totalMedianMs": 0.741,
+      "totalP95Ms": 1.2681,
+      "cpuMs": 29.3,
+      "allocatedBytes": 3752176
+    },
+    {
+      "scenario": "initialize-already-initialized-owner",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0,
+      "callerOccupationP95Ms": 0.0002,
+      "totalMedianMs": 0.0001,
+      "totalP95Ms": 0.0003,
+      "cpuMs": 0.066,
+      "allocatedBytes": 5600
+    },
+    {
+      "scenario": "count-space-10000-files",
+      "iterations": 30,
+      "synchronousCount": 0,
+      "callerOccupationMedianMs": 0.0141,
+      "callerOccupationP95Ms": 0.0631,
+      "totalMedianMs": 1.029,
+      "totalP95Ms": 1.3495,
+      "cpuMs": 33.582,
+      "allocatedBytes": 198256
+    },
+    {
+      "scenario": "pin-single-alternating",
+      "iterations": 30,
+      "synchronousCount": 0,
+      "callerOccupationMedianMs": 0.0164,
+      "callerOccupationP95Ms": 0.0557,
+      "totalMedianMs": 0.1292,
+      "totalP95Ms": 0.3219,
+      "cpuMs": 21.105,
+      "allocatedBytes": 330944
+    },
+    {
+      "scenario": "pin-batch-1000-alternating",
+      "iterations": 30,
+      "synchronousCount": 0,
+      "callerOccupationMedianMs": 0.1585,
+      "callerOccupationP95Ms": 0.2927,
+      "totalMedianMs": 16.5171,
+      "totalP95Ms": 19.7285,
+      "cpuMs": 576.668,
+      "allocatedBytes": 39383704
+    },
+    {
+      "scenario": "mark-used-single",
+      "iterations": 30,
+      "synchronousCount": 0,
+      "callerOccupationMedianMs": 0.0117,
+      "callerOccupationP95Ms": 0.0261,
+      "totalMedianMs": 0.0785,
+      "totalP95Ms": 0.2223,
+      "cpuMs": 7.724,
+      "allocatedBytes": 173232
+    },
+    {
+      "scenario": "file-status-single-alternating",
+      "iterations": 30,
+      "synchronousCount": 0,
+      "callerOccupationMedianMs": 0.0135,
+      "callerOccupationP95Ms": 0.0278,
+      "totalMedianMs": 0.1105,
+      "totalP95Ms": 0.4713,
+      "cpuMs": 8.223,
+      "allocatedBytes": 253824
+    },
+    {
+      "scenario": "get-after-write-single",
+      "iterations": 30,
+      "synchronousCount": 0,
+      "callerOccupationMedianMs": 0.0124,
+      "callerOccupationP95Ms": 0.0285,
+      "totalMedianMs": 0.1287,
+      "totalP95Ms": 0.4583,
+      "cpuMs": 9.029,
+      "allocatedBytes": 295632
+    },
+    {
+      "scenario": "startup-recover-no-pending-removals",
+      "iterations": 30,
+      "synchronousCount": 30,
+      "callerOccupationMedianMs": 0.054,
+      "callerOccupationP95Ms": 0.1579,
+      "totalMedianMs": 0.0542,
+      "totalP95Ms": 0.1582,
+      "cpuMs": 3.859,
+      "allocatedBytes": 247576
+    },
+    {
+      "scenario": "initialize-new-empty-root",
+      "iterations": 10,
+      "synchronousCount": 0,
+      "callerOccupationMedianMs": 0.0279,
+      "callerOccupationP95Ms": 0.6487,
+      "totalMedianMs": 2.4807,
+      "totalP95Ms": 8.1646,
+      "cpuMs": 31.309,
+      "allocatedBytes": 1468112
+    }
+  ]
+}
