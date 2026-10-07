@@ -93,14 +93,20 @@ test("Stable requirements and downloads match the same Release in both locales",
   }
 });
 
-test("system requirements and FAQ distinguish the current Beta baseline from Stable", () => {
-  for (const [html, summary, beta] of [[en, "What are the minimum system requirements?", /Beta\.25\+/], [zh, "最低系统要求是什么？", /Beta\.25 起/]]) {
+test("current Beta requirements stay version-neutral beside the metadata-driven latest release", () => {
+  for (const [html, summary, expected] of [
+    [en, "What are the minimum system requirements?", "Current Beta: 64-bit Windows build 20348 or later"],
+    [zh, "最低系统要求是什么？", "当前 Beta：需要 64 位 Windows Build 20348 或更高版本"]
+  ]) {
     const document = new JSDOM(html).window.document;
     const faq = document.querySelector(".faq-list [data-stable-requirements]")?.closest("details");
     assert.equal(faq?.querySelector("summary")?.textContent, summary);
+    assert.equal(document.querySelector("[data-latest-change-tag]")?.textContent, latestChangeApi.release.tagName);
     for (const section of [document.querySelector(".release-readiness article:first-child"), faq]) {
-      assert.match(section?.textContent, beta);
-      assert.match(section?.textContent, /64(?:-bit| 位) Windows build 20348/i);
+      assert.ok(section);
+      assert.equal(section.querySelector("[data-stable-requirements] + p")?.textContent, expected);
+      // A new release may reset its Beta sequence; never pin these labels to a Beta number.
+      assert.doesNotMatch(section.textContent, /\bBeta[\s.]*\d/i);
     }
   }
 });

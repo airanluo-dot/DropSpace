@@ -137,7 +137,7 @@ export const zh = {
   "Run without installing": "无需安装即可运行",
   "MSIX": "MSIX",
   "SYSTEM REQUIREMENTS": "系统要求",
-  "Current Beta (Beta.25+): 64-bit Windows build 20348 or later": "当前 Beta（Beta.25 起）：需要 64 位 Windows Build 20348 或更高版本",
+  "Current Beta: 64-bit Windows build 20348 or later": "当前 Beta：需要 64 位 Windows Build 20348 或更高版本",
   "Checking this device…": "正在检测此设备……",
   "KNOWN LIMITATIONS": "已知限制",
   "Know before you install.": "安装前需要了解。",
