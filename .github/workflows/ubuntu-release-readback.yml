@@ -1,0 +1,94 @@
+name: Ubuntu exact release-input readback (nonpublishing)
+on:
+  push:
+    branches: [validation/ubuntu-2604-20261007]
+    paths: [.github/workflows/ubuntu-release-readback.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  readback:
+    name: Immutable Beta17 input readback (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 00d07b3773dc614587b75fbcf1affd45a136535b
+          persist-credentials: false
+      - name: Verify immutable input artifact identity before download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p readback-evidence
+          node --version
+          gh api repos/airanluo-dot/DropSpace/actions/artifacts/11471108536 > readback-evidence/input-artifact.json
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const a=JSON.parse(fs.readFileSync('readback-evidence/input-artifact.json','utf8'));
+          assert.equal(a.id,11471108536);
+          assert.equal(a.name,'DropSpace-release-unsigned-v0.3.1-beta.17');
+          assert.equal(a.size_in_bytes,650741031);
+          assert.equal(a.digest,'sha256:77503b842370c94100836dc2c81d4f2359d1aa9e9ee71e14eae1e9d9e9fd0933');
+          assert.equal(a.expired,false);
+          assert.equal(a.workflow_run.id,37598378040);
+          assert.equal(a.workflow_run.head_sha,'00d07b3773dc614587b75fbcf1affd45a136535b');
+          JS
+      - name: Download exact original Beta17 bundle without any producer
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          artifact-ids: '11471108536'
+          run-id: 37598378040
+          github-token: ${{ github.token }}
+          path: artifacts/release
+      - name: Re-run unchanged publication binding against original source context
+        run: |
+          GITHUB_SHA=00d07b3773dc614587b75fbcf1affd45a136535b node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release 2>&1 | tee readback-evidence/publication-binding.log
+          (cd artifacts/release && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum) > readback-evidence/bundle.sha256
+      - name: Exercise unchanged bash immutability guard (expected rejection and absent tag)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {spawnSync} from 'node:child_process';
+          const source=fs.readFileSync('.github/workflows/release.yml','utf8');
+          const block=source.split('      - name: Reject an existing tag or release')[1].split('      # Recheck')[0];
+          const script=block.split('        run: |\n')[1].replace(/^ {10}/gm,'');
+          const results=[];
+          for(const [tag,code] of [['v0.3.1-beta.17',1],['runner-compat-absent-'+process.env.GITHUB_RUN_ID,0]]) {
+            const actual=script.replace(/\$\{\{ needs\.validate-release\.outputs\.tag \}\}/g,tag);
+            const result=spawnSync('bash',['--noprofile','--norc','-eo','pipefail','-c',actual],{encoding:'utf8',env:process.env});
+            results.push({tag,status:result.status,stderr:result.stderr});
+            assert.equal(result.status,code,result.stderr);
+            if(code===1)assert.match(result.stderr,/publication is immutable and cannot replace it/);
+          }
+          fs.writeFileSync('readback-evidence/guard.json',JSON.stringify(results,null,2));
+          console.log(results);
+          JS
+      - name: Retain read-only compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: release-readback-${{ matrix.os }}
+          path: readback-evidence/
+          retention-days: 7
+          if-no-files-found: error
+  compare:
+    runs-on: ubuntu-24.04
+    needs: readback
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          pattern: release-readback-*
+          path: comparison
+      - name: Compare the same original bytes and binding decisions
+        run: |
+          diff -u comparison/release-readback-ubuntu-24.04/bundle.sha256 comparison/release-readback-ubuntu-26.04/bundle.sha256
+          diff -u comparison/release-readback-ubuntu-24.04/publication-binding.log comparison/release-readback-ubuntu-26.04/publication-binding.log
