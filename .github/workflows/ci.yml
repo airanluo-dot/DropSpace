@@ -940,17 +940,38 @@ jobs:
         if: github.event_name == 'pull_request'
         run: node --test scripts/test-beta17-release-route.test.mjs scripts/ci-release-promotion.test.mjs
       - name: Restore locked dependency graph
-        run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_EVENT_NAME -ceq 'pull_request') {
+            dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
+          } else {
+            # The final portable publish is self-contained and uses --no-restore.
+            # App.csproj owns win-x64; a global -r would invalidate the RID-free
+            # Core/Infrastructure locks. Restore the portable runtime packs here.
+            dotnet restore src/DropSpace.App/DropSpace.App.csproj -p:Configuration=Release -p:RestoreLockedMode=true -p:Platform=x64 -p:SelfContained=true -p:WindowsAppSDKSelfContained=true
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Locked candidate dependency restore failed.' }
       - name: Retrieve exact already-reviewed CPU runtime bytes
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-ReviewedAiRuntime.ps1
       - name: Restore the exact previously bundled language model cache
+        id: language-cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: artifacts/lyrics-language/lid.176.bin
           key: dropspace-bundled-language-7e69ec5451bc261cc7844e49e4792a85d7f09c06789ec800fc4a44aec362764e
+      - name: Reuse existing Beta17 language bytes for the packaging correction
+        if: github.event_name == 'pull_request' && steps.language-cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          # Immutable successful PR #103 artifact; only the fixed-hash language
+          # asset is reused. This PR still performs its own build and tests.
+          artifact-ids: 11468175429
+          run-id: 37588748222
+          github-token: ${{ github.token }}
+          path: artifacts/beta17-pr-validation
       - name: Reuse verified language bytes from cache or existing Beta16 App
         shell: pwsh
         run: ./scripts/Reuse-BundledLyricsLanguageModel.ps1
