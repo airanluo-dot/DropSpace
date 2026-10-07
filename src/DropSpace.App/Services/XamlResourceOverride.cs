@@ -19,6 +19,7 @@ public sealed class XamlResourceOverride : DependencyObject
     private static readonly string[] LocalizedPropertyNames =
     [
         "Content",
+        "Header",
         "Message",
         "PlaceholderText",
         "Subtitle",
