@@ -1,9 +1,9 @@
 {
-  "syncedAt": "2026-08-12T10:56:04.290Z",
+  "syncedAt": "2026-10-07T05:41:52.574Z",
   "source": "github",
   "api": {
     "schemaVersion": 1,
-    "generatedAt": "2026-08-12T10:56:04.283Z",
+    "generatedAt": "2026-10-07T05:41:52.574Z",
     "source": "github-releases",
     "releases": [
       {
@@ -84,47 +84,6 @@
             "name": "update-manifest.json",
             "size": 705,
             "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/update-manifest.json",
-            "kind": "manifest"
-          }
-        ]
-      },
-      {
-        "tagName": "v0.1.0",
-        "name": "DropSpace v0.1.0",
-        "body": "# DropSpace v0.1.0 — First Stable Release\r\n\r\nDropSpace v0.1.0 is the first Stable release of the native Windows 11 temporary content workspace.\r\n\r\n## Highlights\r\n\r\n- Final new DropSpace branding: the black-background Logo is the primary official presentation across the EXE, taskbar, tray, shortcuts, installer, uninstaller, MSIX, Share identity, and documentation. The supplied white-background version is retained as a fallback source and is not enabled by default.\r\n- Temporary Space with the top-center Dynamic Island or Notch, Compact/Expanded direct file drops, Explorer/Desktop drag and drop, pinning, external drag-out, and safe reference-only removal.\r\n- Clipboard History for text, URLs, images, files, and folders, with pause, retention, configurable capture limits, and local SQLite persistence. Consecutive copies of identical content now create one history entry; after different content is copied, the original content is stored normally again.\r\n- Windows 11 Drop Tray compatibility guidance. Windows may own the same top-edge gesture; Settings links to the official Multitasking page, while signed deployments can expose DropSpace through the standard Windows Share contract.\r\n- A standard per-user Inno Setup installer, custom install path, graceful in-place upgrades, independent uninstall, preserve-data uninstall, and explicit complete uninstall.\r\n\r\n## In-app updates\r\n\r\nv0.1.0 introduces DropSpace's in-app update system:\r\n\r\n- One non-blocking automatic check per application process start, plus repeatable manual checks.\r\n- Stable channel: Stable releases only.\r\n- Preview channel: all Stable and Preview releases, selecting the highest eligible SemVer without downgrades or channel preference.\r\n- Streaming download to `%LOCALAPPDATA%\\DropSpace\\Updates`, exact size verification, SHA-256 verification, and atomic promotion.\r\n- Installer deployments use the existing graceful maintenance shutdown and Inno `/UPDATE` mode. Portable builds only download/verify; MSIX/package deployments remain Windows-managed.\r\n\r\nThe public v0.1.0 build is currently unsigned. Integrity-verified updates can be installed only after an explicit user action; unattended automatic installation remains disabled until a trusted Authenticode publisher policy is available. SmartScreen may show an unknown-app prompt—download DropSpace only from this official GitHub Release.\r\n\r\nExisting `v0.1.0-preview.5` installations do not contain the updater and must install v0.1.0 manually once. Releases after v0.1.0 can be discovered from within DropSpace.\r\n\r\n## Downloads\r\n\r\n- **Recommended:** `DropSpaceSetup.exe` — normal per-user Windows installation and future in-place updates.\r\n- **Portable:** `DropSpace.exe` — self-contained, no installation; updater is notify/download-only.\r\n- **Alternative:** `DropSpace-x64.msix` — unsigned package for managed/test environments with an appropriate trust policy.\r\n- `SHA256SUMS.txt` and `update-manifest.json` provide machine-readable integrity metadata.\r\n\r\nRequires Windows 11 build 26100 or later. No separate .NET runtime or Windows App SDK runtime is required.\r\n\r\n\r\n## Official website\r\n\r\nhttps://airanluo-dot.github.io/DropSpace/",
-        "isDraft": false,
-        "isPrerelease": false,
-        "publishedAt": "2026-08-11T07:05:27Z",
-        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0",
-        "assets": [
-          {
-            "name": "DropSpace-x64.msix",
-            "size": 32192923,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace-x64.msix",
-            "kind": "msix"
-          },
-          {
-            "name": "DropSpace.exe",
-            "size": 231106375,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace.exe",
-            "kind": "portable"
-          },
-          {
-            "name": "DropSpaceSetup.exe",
-            "size": 63283603,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe",
-            "kind": "installer"
-          },
-          {
-            "name": "SHA256SUMS.txt",
-            "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/SHA256SUMS.txt",
-            "kind": "checksums"
-          },
-          {
-            "name": "update-manifest.json",
-            "size": 642,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/update-manifest.json",
             "kind": "manifest"
           }
         ]
@@ -291,27 +250,68 @@
             "kind": "checksums"
           }
         ]
+      },
+      {
+        "tagName": "v0.2.1",
+        "name": "DropSpace v0.2.1",
+        "body": "# DropSpace v0.2.1 — Localization and zero-flicker startup\n\n<!-- update-summary: DropSpace v0.2.1 adds complete English and Simplified Chinese UI resources, a release-driven latest-changes website, and silent Windows sign-in startup without changing the proven Smart drag architecture. -->\n\nDropSpace v0.2.1 promotes the complete v0.2.1 Preview sequence to Stable. It keeps the proven Smart drag and single Dynamic Island behavior from v0.2.0 while improving language coverage, release communication, and Windows startup lifecycle reliability.\n\nOfficial website: https://airanluo-dot.github.io/DropSpace/\n\n## English and Simplified Chinese\n\n- Ships a complete `en-US` base resource set and an exactly synchronized `zh-CN` resource set across the main window, Dynamic Island, native tray, update feedback, errors, and accessibility names.\n- Adds System default, English, and Simplified Chinese display-language choices. System follows Chinese Windows display languages and otherwise uses the English base; a changed language applies after restart.\n- Keeps the portable single-file resource index isolated from WinUI framework resources and validates both resource contexts in Windows CI.\n\n## Zero-flicker Windows startup\n\n- Creates the main-window HWND required by background services during `--startup` without showing or activating it.\n- Keeps tray, clipboard monitoring, Dynamic Island, update checks, and single-instance redirection ready in the background.\n- Preserves normal visible launch, tray Open, redirected activation, and Share Target behavior.\n- Adds a Win32 visibility regression gate to the English and Simplified Chinese portable smoke tests.\n\n## Release-driven website\n\n- Publishes the latest-change headline, release date, official link, and bilingual highlights from validated GitHub Release metadata.\n- Preserves the last validated built presentation if a browser runtime refresh fails.\n- Keeps the App update API schema and GitHub Releases fallback unchanged.\n\n## Downloads and compatibility\n\n- **Recommended:** `DropSpaceSetup.exe` — per-user installation and in-place updates.\n- **Portable:** `DropSpace.exe` — self-contained x64 executable.\n- **Alternative:** `DropSpace-x64.msix` — unsigned package for suitable test or managed environments.\n- `SHA256SUMS.txt` and `update-manifest.json` provide release integrity metadata.\n\nRequires Windows 11 build 26100 or later. Public artifacts are not commercially code-signed unless the release workflow's signing credentials are configured, so SmartScreen may show an unknown-app prompt for unsigned files. Download only from this official GitHub Release and verify the published SHA-256 values.\n\n## 中文说明\n\n- v0.2.1 将完整英文与简体中文界面资源、跟随 GitHub Release 的官网“最新变化”展示，以及零闪烁开机自启动正式发布到 Stable。\n- `--startup` 会在后台创建服务所需的主窗口 HWND，但从初始化到就绪都不会显示或激活主窗口；托盘、剪贴板监听、灵动岛、更新检查与单实例重定向保持正常。\n- Smart 拖拽、单一灵动岛、本地优先数据边界以及安装器、便携版和 MSIX 发布路径均保持不变。\n- Stable 资产由 v0.2.1 源码重新构建，不会改名或复用 Preview 二进制。\n",
+        "isDraft": false,
+        "isPrerelease": false,
+        "publishedAt": "2026-08-23T13:54:04Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 31221487,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 230264984,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 62402909,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/DropSpaceSetup.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 768,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/update-manifest.json"
+          }
+        ]
       }
     ]
   },
   "stable": {
-    "tag": "v0.1.0",
-    "name": "DropSpace v0.1.0",
-    "title": "First Stable Release",
-    "publishedAt": "2026-08-11T07:05:27Z",
-    "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0",
+    "tag": "v0.2.1",
+    "name": "DropSpace v0.2.1",
+    "title": "Localization and zero-flicker startup",
+    "publishedAt": "2026-08-23T13:54:04Z",
+    "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1",
     "summary": [
-      "Final new DropSpace branding: the black-background Logo is the primary official presentation across the EXE, taskbar, tray, shortcuts, installer, uninstaller, MSIX, Share identity, and documentation. The supplied white-background version is retained as a fallback source and is not enabled by default.",
-      "Temporary Space with the top-center Dynamic Island or Notch, Compact/Expanded direct file drops, Explorer/Desktop drag and drop, pinning, external drag-out, and safe reference-only removal.",
-      "Clipboard History for text, URLs, images, files, and folders, with pause, retention, configurable capture limits, and local SQLite persistence. Consecutive copies of identical content now create one history entry; after different content is copied, the original content is stored normally again.",
-      "Windows 11 Drop Tray compatibility guidance. Windows may own the same top-edge gesture; Settings links to the official Multitasking page, while signed deployments can expose DropSpace through the standard Windows Share contract.",
-      "A standard per-user Inno Setup installer, custom install path, graceful in-place upgrades, independent uninstall, preserve-data uninstall, and explicit complete uninstall."
+      "Ships a complete en-US base resource set and an exactly synchronized zh-CN resource set across the main window, Dynamic Island, native tray, update feedback, errors, and accessibility names.",
+      "Adds System default, English, and Simplified Chinese display-language choices. System follows Chinese Windows display languages and otherwise uses the English base; a changed language applies after restart.",
+      "Keeps the portable single-file resource index isolated from WinUI framework resources and validates both resource contexts in Windows CI.",
+      "Creates the main-window HWND required by background services during --startup without showing or activating it.",
+      "Keeps tray, clipboard monitoring, Dynamic Island, update checks, and single-instance redirection ready in the background."
     ],
     "assets": {
-      "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe",
-      "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace.exe",
-      "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace-x64.msix",
-      "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/SHA256SUMS.txt"
+      "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/DropSpaceSetup.exe",
+      "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/DropSpace.exe",
+      "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/DropSpace-x64.msix",
+      "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1/SHA256SUMS.txt"
     }
   },
   "prereleases": [
