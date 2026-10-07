@@ -82,6 +82,7 @@ export const sourcePaths = Object.freeze([
   'tools/cuda-lyrics-helper/adapt_worker.py',
   'tools/cuda-lyrics-helper/cuda-device.h',
   'scripts/Build-CudaLyricsExperiment.ps1',
+  'scripts/cuda_runtime_contract.py',
   'scripts/package-cuda-runtime.py',
   'scripts/stage-reviewed-cuda-metadata.py',
   'docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json',

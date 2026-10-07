@@ -943,3 +943,13 @@ test('CI tests every PR while Release gates explicit publication with a second p
   assert.match(sign, /Inspect-AiRuntimePayload.ps1 -MsixPath artifacts\/release\/DropSpace-x64.msix/);
   assert.equal((workflow.match(/artifacts\/release\/runtime-publication.json\n          if-no-files-found/g) ?? []).length, 2);
 });
+
+test('independent CUDA delivery contract is fingerprinted and invalidates prior approvals', t => {
+  const x = example(t);
+  const name = 'scripts/cuda_runtime_contract.py';
+  assert.ok(sourcePaths.includes(name), 'Component identity must participate in source approval');
+  const before = readSourceFingerprint(x.root).sha256;
+  fs.appendFileSync(path.join(x.root, name), '\n# changed component identity\n');
+  assert.notEqual(readSourceFingerprint(x.root).sha256, before);
+  assert.throws(() => validateApproval(x.root, { now }), /stale/);
+});
