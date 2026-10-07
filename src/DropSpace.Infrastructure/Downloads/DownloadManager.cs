@@ -23,6 +23,7 @@ public sealed class DownloadManager : IAsyncDisposable
     private readonly object _sync = new();
     private readonly SemaphoreSlim _actions = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
+    private Task? _lifetimeCallbacks;
     private readonly ILogger<DownloadManager>? _logger;
     private bool _stopping;
     private bool _restored;
@@ -248,7 +249,6 @@ public sealed class DownloadManager : IAsyncDisposable
         try { await _persistence.DeleteAsync(item.Snapshot.Id).ConfigureAwait(false); }
         catch { ScheduleCleanupRetry(); throw; }
         lock (_sync) { _work.Remove(item.Snapshot.Id); _order.Remove(item.Snapshot.Id); _dirtyProgress.Remove(item.Snapshot.Id); }
-        item.Stop?.Dispose(); item.Stop = null;
     }
     private void ScheduleCleanupRetry()
     {
@@ -309,7 +309,7 @@ public sealed class DownloadManager : IAsyncDisposable
             }
             else
             {
-                if (item.Stop is not null) await item.Stop.CancelAsync().ConfigureAwait(false);
+                await RequestStopAsync(item).ConfigureAwait(false);
                 await ObserveRunAsync(item.Run).ConfigureAwait(false);
                 if (item.Snapshot.State == DownloadTaskState.Completed) return;
                 await SetAsync(item, cancel ? DownloadTaskState.Cancelled : DownloadTaskState.Paused).ConfigureAwait(false);
@@ -320,13 +320,27 @@ public sealed class DownloadManager : IAsyncDisposable
         }
         finally { _actions.Release(); }
     }
+    private Task RequestStopAsync(Work item)
+    {
+        lock (_sync)
+        {
+            if (item.Stop is not { } stop) return Task.CompletedTask;
+            // A second CancelAsync call can return before the first call's callbacks settle.
+            return item.StopCallbacks ??= stop.CancelAsync();
+        }
+    }
     private void Start(Work item)
     {
-        item.Stop?.Dispose(); item.Stop = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
-        lock (_sync) item.Snapshot = item.Snapshot with { RunId = item.Snapshot.RunId + 1, ErrorCode = null };
-        item.Run = Task.Run(() => RunAsync(item, item.Stop.Token));
+        var stop = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        var token = stop.Token;
+        lock (_sync)
+        {
+            item.Stop = stop; item.StopCallbacks = null;
+            item.Snapshot = item.Snapshot with { RunId = item.Snapshot.RunId + 1, ErrorCode = null };
+        }
+        item.Run = Task.Run(() => RunAsync(item, stop, token));
     }
-    private async Task RunAsync(Work item, CancellationToken token)
+    private async Task RunAsync(Work item, CancellationTokenSource stop, CancellationToken token)
     {
         try
         {
@@ -396,6 +410,31 @@ public sealed class DownloadManager : IAsyncDisposable
                 Changed?.Invoke(this, EventArgs.Empty);
             }
         }
+        finally
+        {
+            Task callbacks, parentCallbacks;
+            lock (_sync)
+            {
+                // History owns snapshots; only this run owns its cancellation source.
+                item.Stop = null;
+                callbacks = item.StopCallbacks ?? Task.CompletedTask;
+                item.StopCallbacks = null;
+                parentCallbacks = _lifetimeCallbacks ?? Task.CompletedTask;
+            }
+            try
+            {
+                // ControlAsync and ShutdownAsync own and surface cancellation errors.
+                // Retirement waits for the same callbacks without poisoning a later Retry.
+                await callbacks.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                await parentCallbacks.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            }
+            finally
+            {
+                // If parent cancellation began after the snapshot, linked disposal
+                // waits for its registration. Never do this under the progress lock.
+                stop.Dispose();
+            }
+        }
     }
     private async Task SetAsync(Work item, DownloadTaskState state)
     {
@@ -414,49 +453,65 @@ public sealed class DownloadManager : IAsyncDisposable
     }
     public async Task ShutdownAsync()
     {
-        await _lifetime.CancelAsync().ConfigureAwait(false);
+        Task callbacks;
+        // Publish the first cancellation task before any callback can retire a run.
+        lock (_sync) callbacks = _lifetimeCallbacks ??= _lifetime.CancelAsync();
+        try { await callbacks.ConfigureAwait(false); }
+        finally { await ShutdownCoreAsync().ConfigureAwait(false); }
+    }
+    private async Task ShutdownCoreAsync()
+    {
         await _actions.WaitAsync().ConfigureAwait(false);
         try
         {
             if (_stopping) return;
             _stopping = true;
             _cleanupRetry.Change(Timeout.Infinite, Timeout.Infinite);
-            foreach (var item in _work.Values) if (item.Stop is not null) await item.Stop.CancelAsync().ConfigureAwait(false);
-            await Task.WhenAll(_work.Values.Select(w => ObserveRunAsync(w.Run))).ConfigureAwait(false);
-            foreach (var item in _work.Values.ToArray())
+            try
             {
-                try
-                {
-                    if (item.Snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled)
-                    {
-                        if (await TryCleanupAsync(item).ConfigureAwait(false) && item.Snapshot.HistoryRemovalPending)
-                            await DeleteHistoryRecordAsync(item).ConfigureAwait(false);
-                    }
-                    else if (item.Reservation is { } reservation)
-                    {
-                        // Unfinished transfers keep their parts; only release their marker.
-                        await _reservations.ReleaseAsync(reservation).ConfigureAwait(false);
-                        item.Reservation = null;
-                    }
-                }
-                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
-                { _logger?.LogWarning("Download {TaskId} shutdown cleanup deferred: {Reason}", item.Snapshot.Id, error.GetType().Name); }
-                item.Stop?.Dispose(); item.Stop = null;
+                foreach (var item in _work.Values) await RequestStopAsync(item).ConfigureAwait(false);
             }
-            // Cleanup checkpoints and hidden removal records must settle before closing
-            // the journal writer. Marker failures must not prevent network shutdown.
-            await _persistence.DrainAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+            finally
+            {
+                await Task.WhenAll(_work.Values.Select(w => ObserveRunAsync(w.Run))).ConfigureAwait(false);
+                foreach (var item in _work.Values.ToArray())
+                {
+                    try
+                    {
+                        if (item.Snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled)
+                        {
+                            if (await TryCleanupAsync(item).ConfigureAwait(false) && item.Snapshot.HistoryRemovalPending)
+                                await DeleteHistoryRecordAsync(item).ConfigureAwait(false);
+                        }
+                        else if (item.Reservation is { } reservation)
+                        {
+                            // Unfinished transfers keep their parts; only release their marker.
+                            await _reservations.ReleaseAsync(reservation).ConfigureAwait(false);
+                            item.Reservation = null;
+                        }
+                    }
+                    catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+                    { _logger?.LogWarning("Download {TaskId} shutdown cleanup deferred: {Reason}", item.Snapshot.Id, error.GetType().Name); }
+                }
+                // Cleanup checkpoints and hidden removal records must settle before closing
+                // the journal writer. Marker failures must not prevent network shutdown.
+                await _persistence.DrainAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+            }
         }
         finally { _actions.Release(); }
     }
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
-        await ShutdownAsync().ConfigureAwait(false); _disposed = true;
-        await _cleanupRetry.DisposeAsync().ConfigureAwait(false);
-        await _cleanupRun.ConfigureAwait(false);
-        await _progressNotification.DisposeAsync().ConfigureAwait(false);
-        await _persistence.DisposeAsync().ConfigureAwait(false); _reservations.Dispose(); _lifetime.Dispose();
+        try { await ShutdownAsync().ConfigureAwait(false); }
+        finally
+        {
+            _disposed = true;
+            await _cleanupRetry.DisposeAsync().ConfigureAwait(false);
+            await _cleanupRun.ConfigureAwait(false);
+            await _progressNotification.DisposeAsync().ConfigureAwait(false);
+            await _persistence.DisposeAsync().ConfigureAwait(false); _reservations.Dispose(); _lifetime.Dispose();
+        }
     }
     private sealed class TaskView(DownloadManager owner) : IReadOnlyList<DownloadTaskSnapshot>
     {
@@ -479,6 +534,7 @@ public sealed class DownloadManager : IAsyncDisposable
         public DownloadTaskSnapshot Snapshot = snapshot;
         public OutputReservation? Reservation;
         public CancellationTokenSource? Stop;
+        public Task? StopCallbacks;
         public Task Run = Task.CompletedTask;
     }
     internal sealed class InlineProgress(Action<TrackProgress> report) : IProgress<TrackProgress>
