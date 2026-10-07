@@ -17,7 +17,7 @@ concurrency:
 jobs:
   change-scope:
     name: Determine application build scope
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       maintenance_only: ${{ steps.scope.outputs.maintenance_only }}
       release_version: ${{ steps.scope.outputs.release_version }}
