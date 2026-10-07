@@ -158,8 +158,9 @@ test("explicit fixture mode is local-only and production rejects it", async () =
 test("production workflow cannot bypass authoritative sync failures", async () => {
   const workflow = await readFile(new URL("../../../.github/workflows/deploy-website.yml", import.meta.url), "utf8");
   const syncStep = workflow.indexOf("npm run sync-releases");
-  const buildStep = workflow.indexOf("npm test");
-  assert.ok(syncStep >= 0 && buildStep > syncStep);
+  const buildStep = workflow.indexOf("npm run build");
+  const testStep = workflow.indexOf("node --test scripts/*.test.mjs");
+  assert.ok(syncStep >= 0 && buildStep > syncStep && testStep > buildStep);
   assert.match(workflow, /NODE_ENV: production/);
   assert.doesNotMatch(workflow, /continue-on-error\s*:\s*true|npm run sync-releases\s*\|\|\s*true|--fixture/);
 });
