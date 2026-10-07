@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "v0.3.1-beta.17",
+  "recordedAt": "2026-10-07T08:24:43Z",
+  "timestampMeaning": "Supplementary source-review record under the existing explicit Beta17 publication authorization; not a new user message or a claim that the failed producer passed.",
+  "ownerRequest": "请停止扩大本轮优化范围，将当前已经完成的全部有效优化和已整合的 CUDA #102 修改，收敛并发布为 DropSpace 的下一个 Beta。先核对最新公开版本；如果仍是 Beta16，则发布 Beta17，否则按实际版本递增。保留已有修改，检查 #102 是否已完整包含，避免重复应用。发布前完成当前候选代码的 Windows 完整 App／XAML 构建，以及受本轮修改影响的最小关键验证。复用现有结果，不重跑无关全量测试，不重新下载或上传相同 CUDA 包，不重复做 GPU 推理测试。若有实际构建失败或关键回归，先修复；缺少验证条件时明确报告，不冒称通过。按实际源码完成必要发布审批，再提交、合并并发布新的 Beta 安装包、校验值和更新信息。保留旧版资产。发布后核验下载及更新入口，并确认线上产物对应最终提交。完成后把发布页和下载地址发给我。本次只发布这轮优化，不同时开发 DLC 框架或 B站功能，下一步另行开始。",
+  "authorizationBasis": "The repository owner's explicit publication request in the current conversation. The public App baseline was checked as v0.3.1-beta.16, so the requested next Beta is v0.3.1-beta.17. Authorization covers the preserved optimization candidate, already integrated CUDA PR #102 and necessary release preparation, commit, merge and publication after the stated prerequisites pass.",
+  "permissions": {
+    "preserveCompletedOptimizations": true,
+    "includeVerifiedCudaPr102": true,
+    "necessaryWindowsAppAndXamlBuild": true,
+    "minimumAffectedPathValidation": true,
+    "prepareExactSourceApproval": true,
+    "commitMergeAndBeta17PublicationAfterAcceptance": true,
+    "verifyPublicDownloadsUpdatesAndFinalCommit": true,
+    "repeatUnrelatedBroadSuites": false,
+    "downloadOrRepublishUnchangedCudaArchive": false,
+    "repeatUnchangedGpuInferenceOrModelQualityTests": false,
+    "modifyPublishedReleaseAssets": false,
+    "expandOptimizationOrDevelopDlcOrBilibili": false
+  },
+  "modelQualification": {
+    "existingHyMt2ModelsAndNativeBytesReused": true,
+    "promptSamplerProtocolAndInferenceBehaviorUnchanged": true,
+    "fullHyMt2SemanticApproval": false,
+    "historicalCaptures": "Keep the original model/runtime/source/budget identities and outcomes. Prior incomplete or timed-out observations are limitations, not Beta17 validation.",
+    "unchangedCudaComponent": "Reuse cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1 with its fixed trusted URL, 540873572-byte archive, SHA256 79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b, original manifest/protocol/profile and installed-cache identity. This release authorization does not claim new GPU hardware or model qualification.",
+    "retainedLimitations": "The owner explicitly requests reuse of existing results without repeating unchanged model/GPU tests. Existing optional-model quality, latency and hardware limitations remain disclosed and unverified; AI translation remains opt-in and off by default."
+  },
+  "sourceReview": {
+    "basis": "Exact release-collection correction after actual Windows producer 37592403853. The validated current DropSpace MSIX existed; recursive collection counted SDK dependency packages as App candidates. Derive PackageVersion from the existing release contract, match the current DropSpace.App identity prefix, retain the existing MSIX/AppX compatibility and require exactly one main package. No App, model, CUDA or inference behavior changes.",
+    "cudaPr": "PR #102 latest verified head b9bfde8f9d2473b16aa155266af64de3ea4198b6; its complete 13-file diff is locally included. The separate draft PR has not been merged as a separate publication action.",
+    "reviewedPaths": [
+      "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+      "scripts/cuda_runtime_contract.py",
+      "scripts/package-cuda-runtime.py",
+      "scripts/stage-reviewed-cuda-metadata.py",
+      "scripts/test-ai-release-approval.mjs",
+      "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+      "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+      "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+      "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+      "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+      "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+      "scripts/Test-CudaBuildBinding.ps1",
+      "scripts/Build-Beta17Candidate.ps1",
+      "scripts/Reuse-BundledLyricsLanguageModel.ps1",
+      "scripts/beta17-release-validation.mjs",
+      "scripts/ci-release-promotion.mjs"
+    ],
+    "evidence": [
+      "docs/dev/performance-optimization-2026-10-07.md",
+      "docs/dev/performance-continuation-2026-10-07.md",
+      "docs/dev/evidence/performance-continuation-2026-10-07/validated-sources-final.json",
+      "docs/dev/evidence/performance-continuation-2026-10-07/cuda-compatibility.json",
+      "docs/dev/evidence/beta17-release/pipeline-contracts.txt",
+      "docs/dev/evidence/beta17-release/package-collection-correction.json"
+    ],
+    "currentRebindPaths": [
+      "scripts/Build-Beta17Candidate.ps1"
+    ],
+    "reviewedInputs": [
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+        "sha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d"
+      },
+      {
+        "path": "scripts/cuda_runtime_contract.py",
+        "sha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962"
+      },
+      {
+        "path": "scripts/package-cuda-runtime.py",
+        "sha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e"
+      },
+      {
+        "path": "scripts/stage-reviewed-cuda-metadata.py",
+        "sha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d"
+      },
+      {
+        "path": "scripts/test-ai-release-approval.mjs",
+        "sha256": "b9dd0c56a4f9b470be32732dbbfdafd924aa7245b54330478f80f1e25b569b91"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+        "sha256": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+        "sha256": "0e880ffe7cb00023534d7ed34caa87b9108fe9fff28f78bdc2f3b58e9698170f"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+        "sha256": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+        "sha256": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
+      },
+      {
+        "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+        "sha256": "6291c42f59519a5bb138f5202d2b3d11d7a9eb394b598a11625c86b74994d234"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+        "sha256": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
+      },
+      {
+        "path": "scripts/Build-Beta17Candidate.ps1",
+        "sha256": "6ce1c5e9bb172936db44425b9c9cb28623a4eeb243a8aacef981a11523f51344"
+      },
+      {
+        "path": "scripts/Reuse-BundledLyricsLanguageModel.ps1",
+        "sha256": "2d1ced492c9f235280dc7225e1158010fadc7312e39a11309bd4688fc311c184"
+      },
+      {
+        "path": "scripts/beta17-release-validation.mjs",
+        "sha256": "505c092ef16d510228fd5dbf675e4986cf7d5349eeaa3cb4247de4d1a0199ed1"
+      },
+      {
+        "path": "scripts/ci-release-promotion.mjs",
+        "sha256": "2a1dbbe072107e8e89a40ea8b7122b2c291dc2925f356ba5b4b56c297e72d15b"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+        "sha256": "d7312200a6ca79aced25f4d2e9e811657956c1e674aa7e44f96a203a3eeab49c"
+      },
+      {
+        "path": "scripts/Test-CudaBuildBinding.ps1",
+        "sha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5"
+      }
+    ],
+    "validationMeaning": "The pipeline agent executed four focused PowerShell collector fixtures and a syntax parse; results were read and the final source difference reviewed. These managed fixtures are not a Windows package producer rerun. Actual corrected package collection, native controls and final package/update/commit bindings still must pass."
+  },
+  "releasePrerequisite": "The actual candidate must pass a full Windows App/XAML build, minimum key checks for changed paths and final package/commit/size/hash/update bindings before publication. Fix real build failures or key regressions. Record unavailable native/manual checks honestly; source inspection, Linux shims and previous-release observations cannot establish current Windows UI acceptance. Preserve actor, source-fingerprint and exact-publication-commit protections.",
+  "reviewOnly": "This file records human authorization and source-review scope. It is not a successful Windows build, a test result, a model semantic verdict, a completed release or proof of artifact identity.",
+  "preparationRecord": {
+    "ownerDecision": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-decision.json",
+    "review": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-accepted-review.json",
+    "evidence": "docs/dev/evidence/beta17-release-preparation/approval-preparation.json",
+    "retainedByteForByte": true,
+    "byteIdentities": {
+      "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-decision.json": "e1fe28c3ed6e5ca0ce5b351e9b0b8651890c71852c4a1a6d7254f0e560f0c1da",
+      "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-accepted-review.json": "a114aa063b4b8fbd044628447879c6d88df3705ab57ab4ef5637534afc51a3cf",
+      "docs/dev/evidence/beta17-release-preparation/approval-preparation.json": "b2e3a6abe26d3db5d340ce47dc3731745755122eb74e9c5f8b9e1c113b3347fb"
+    }
+  },
+  "releaseProductionBoundary": {
+    "windowsValidation": "Full actual Windows App/XAML build and affected-path TRX on the exact PR checkout, with authenticated successful run metadata and identical tested/final-main source tree required.",
+    "packaging": "Build packages from the final main commit once after reusing the successful same-tree PR validation; keep the exact embedded CUDA App binding and immutable published bytes. Match only the current DropSpace.App PackageVersion identity when collecting the already-built main MSIX/AppX, excluding SDK dependencies and stale versions; zero or multiple matches fail closed.",
+    "languageAssetReuse": "Reuse verified already-bundled lid.176.bin bytes from cache/PR evidence or static extraction of the size/hash-pinned public Beta16 App; never execute the old App or fetch new model bytes. Final main with neither verified cached bytes nor the PR-retained asset fails closed before old-App network fallback.",
+    "publication": "Preserve actor, exact final-main commit, source fingerprint, artifact provenance, checksum and runtime binding protections. Changed or absent evidence must fail closed; no fallback to broad retests, CUDA upload or new inference."
+  },
+  "priorSourceReviewRecords": {
+    "byteIdentities": {
+      "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-decision.json": "e1fe28c3ed6e5ca0ce5b351e9b0b8651890c71852c4a1a6d7254f0e560f0c1da",
+      "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-accepted-review.json": "a114aa063b4b8fbd044628447879c6d88df3705ab57ab4ef5637534afc51a3cf",
+      "docs/dev/evidence/beta17-release-preparation/approval-preparation.json": "b2e3a6abe26d3db5d340ce47dc3731745755122eb74e9c5f8b9e1c113b3347fb",
+      "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-owner-decision.json": "9c8243765c183f5b6230cdb2e26002135365c7bac861343109e2e36294d82dcd",
+      "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-source-review.json": "54a954511674b62d2a342bba643f90d59302ac9d983e168d71cdfe1eb7fd6572",
+      "docs/dev/evidence/beta17-release-preparation/final-source-review.json": "9914c5407aa8d5cfd26aefa635d2b3885eb4821a71369ab9a12d5bdafdad8f23",
+      "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-owner-supplement.json": "7d2ab86b0b026ad8950cbdcebbabd2c6320c68ddd4247e4a0570536a0d3d682f",
+      "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-source-review.json": "09dc7d7e16cf6155ea4a5521be68e06fe0572b8adf3d6ec01ad9d4324d6d6f6d",
+      "docs/dev/evidence/beta17-release-preparation/asset-reuse-source-review.json": "303913d337689911c1b7aaaaedbe262eb0dae4337438251c5d8f103ab04ff311"
+    },
+    "retainedByteForByte": true
+  },
+  "actualFailure": {
+    "runId": 37592403853,
+    "sourceCommit": "ee8ab8f47a26829ccd836dd23f8161bb2789b946",
+    "actualMainPackage": "artifacts/msix/DropSpace.App_0.3.1.17_x64_Test/DropSpace.App_0.3.1.17_x64.msix",
+    "rootCause": "Candidate collected every recursive .msix instead of the current DropSpace App identity. SDK dependency packages must be excluded; the validated main package existed. AppX output was not observed in this run.",
+    "runOutcome": "failed during candidate package collection; not a successful overall producer",
+    "appxObserved": false
+  }
+}
