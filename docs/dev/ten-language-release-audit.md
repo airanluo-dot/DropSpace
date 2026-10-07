@@ -29,17 +29,32 @@ The entire task has a maximum of 20 executed functional cases/scenarios, includi
 | 15 | Without JavaScript the unified page exposes English body, navigation and working download URLs | passed |
 | 16 | Changing one English source leaves translations pending and blocks the gate | passed |
 | 17 | One damaged Japanese format placeholder blocks the gate with locale/key/file | passed |
+| 18 | Final-main installer payload installation/uninstallation; installed App bytes equal the portable artifact | passed |
 
-Actual functional executions so far: **17**, all passed. The only planned remainder is the existing final-main producer's one isolated installer payload extraction scenario (18 total before any recovery), leaving two executions for a necessary recovery. No repeats of the successful App or website cases were run.
+Final actual functional executions: **18**, all passed. The successful final-main producer performed the existing isolated installer payload scenario exactly once. Two executions remained unused. The earlier producer was cancelled during dependency preparation, before package production or installation, so it added zero scenarios. No repeats of the successful App or website cases were run. No broad diagnostics were enabled on any dispatch.
 
 The App/settings probe compiles the real Core project and links the actual JsonSettingsService, SettingsIoPolicy and AppStoragePaths; it exercises disposable settings files and runs no lyric/AI inference. The separate Merge probe compiles and invokes the actual SettingsChangePolicy. Native Windows UI and install/upgrade lifecycle are outside these local probes.
 
 ## Lyric and AI boundary review
 
-Review against the intake main is required before merge. The only allowed behavioral binding changes are reading/storing the independent two-value target, passing its existing en/zh representation, and replacing the existing reload comparison. Display and settings labels can localize. Models, prompt/protocol, provider/matching/admission/cache/inference and acceleration/component payloads must remain identical. Release-source approval records bind the new settings/UI/package inputs without relabeling historical model evidence as new validation.
+Review against the intake main passed before merge and publication. The only behavioral binding changes are reading/storing the independent two-value target, passing its existing en/zh representation, and replacing the existing reload comparison. Display and settings labels localize. Infrastructure/Lyrics and native worker/model code have no diff: models, prompt/protocol, provider/matching/admission/cache/inference, scheduling/cancellation and acceleration/component payloads remain identical. MainPage retirement affects only page rendering and seek UI timers; MainWindow retains its visibility owner, so UI language changes do not cancel or restart lyric translation. Release-source approval records bind the reviewed settings/UI/package inputs without relabeling historical model evidence as new validation.
 
 ## Publication
 
-Pending actual PR compilation, final-main package production, release publication and website deployment. Workflow dispatch or a commit is not publication evidence. Known verification limits and actual links/identities will be added only from completed producer and public readback results.
+Published successfully on 2026-10-07:
+
+- [Release v0.3.1-beta.19](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.19), prerelease=true, draft=false.
+- [Installer](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpaceSetup.exe), [portable](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpace.exe), [MSIX](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpace-x64.msix).
+- [Unified homepage](https://airanluo-dot.github.io/DropSpace/) and [changelog](https://airanluo-dot.github.io/DropSpace/changelog/).
+- App source/tag commit: `20a1dded565d39003795204009f591e79b2e04e4`. PRs [#114](https://github.com/airanluo-dot/DropSpace/pull/114) and [#115](https://github.com/airanluo-dot/DropSpace/pull/115) merged after required Windows compilation. The second fixes a publication-check interpolation and adds early helper syntax parsing; it changes no App/lyric behavior.
+- [Final-main producer](https://github.com/airanluo-dot/DropSpace/actions/runs/37693827453), [Release publication](https://github.com/airanluo-dot/DropSpace/actions/runs/37695046038), and [post-publication Pages deployment](https://github.com/airanluo-dot/DropSpace/actions/runs/37695310761) all completed successfully.
+
+The real portable/MSIX PRI candidates passed the ten-language source-value check; the installer binds ten compiled wizard language inputs and contains the identical portable payload. Publication reused that exact final-main bundle and its hash-bound language receipt. The independent CUDA component retained its existing archive/manifest identities and was not rebuilt. Existing Beta signing/distribution and updater contracts were retained.
+
+All eight public assets were anonymously read successfully, including full downloads of the three binaries and four metadata files. Their seven SHA-256 values match SHA256SUMS; the checksum list itself was also downloaded. The published updater manifest is Beta `0.3.1-beta.19`, versionCode `3010019`, with correct installer/portable sizes and hashes. Runtime publication identifies the exact source commit. The live latest-change API identifies Beta19 with identical English highlights in the retained compatibility fields. Homepage/changelog publish static English language markers and their respective unified canonicals; sitemap contains exactly those two URLs. Detailed readback is in [public-download-verification.json](evidence/ten-language/public-download-verification.json) and [publication.json](evidence/ten-language/publication.json).
 
 Production integrity checks passed for all ten language resources and both official/static-showcase build modes. The website cases use one desktop and one mobile representative layout, old-link/storage behavior and no-script English; no page/language matrix or repeated screenshots. Two copied-tree negative cases changed one original and one Japanese placeholder; the gate correctly blocked each without altering the repository.
+
+## Verification limits
+
+No complete regression suite, lyric/model inference or evaluation, native Windows all-language/DPI layout matrix, or install-upgrade lifecycle was executed. The installer scenario validates extraction/bytes and uninstall in a disposable runner, not an actual user upgrade. App lower-frequency translations did not receive exhaustive native-speaker review. The automated gate establishes structure and completeness, not every sentence's semantic quality. No publication blocker remains. Documentation evidence is committed after publication without changing the released App inputs or its immutable tag.
