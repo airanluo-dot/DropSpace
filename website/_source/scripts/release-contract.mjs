@@ -30,9 +30,10 @@ export function compareReleaseTags(left, right) {
   return a[3] > b[3] ? 1 : -1;
 }
 
-// Dedicated model mirrors are resources, never App release/update entries.
-function isModelResourceRelease(release) {
-  return /^models-hy-mt2-q8-v\d+$/.test(String(release.tag_name ?? ""));
+// Dedicated model mirrors and the pinned CUDA package are never App release/update entries.
+function isResourceRelease(release) {
+  const tag = String(release.tag_name ?? "");
+  return /^models-hy-mt2-q8-v\d+$/.test(tag) || tag === "cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1";
 }
 
 function releaseArtifactKind(name) {
@@ -42,7 +43,7 @@ function releaseArtifactKind(name) {
 export function normalizeGitHubReleases(releases, generatedAt = new Date().toISOString()) {
   if (!Array.isArray(releases)) throw new TypeError("GitHub release payload must be an array.");
   const normalized = releases
-    .filter((release) => !release.draft && !isModelResourceRelease(release))
+    .filter((release) => !release.draft && !isResourceRelease(release))
     .slice(0, RELEASE_API_MAX_ITEMS)
     .map((release) => normalizeRelease(release));
   return {
@@ -151,7 +152,7 @@ export function validateLatestChangeApi(payload) {
 
 export function createWebsiteReleaseData(githubPayload, generatedAt = new Date().toISOString()) {
   if (!Array.isArray(githubPayload)) throw new TypeError("GitHub release payload must be an array.");
-  const published = githubPayload.filter((release) => !release.draft && !isModelResourceRelease(release))
+  const published = githubPayload.filter((release) => !release.draft && !isResourceRelease(release))
     .sort((a, b) => compareReleaseTags(b.tag_name, a.tag_name));
   const stable = published.find((release) => !release.prerelease);
   if (!stable) throw new TypeError("GitHub Releases did not contain a Stable release in the fetched release window.");

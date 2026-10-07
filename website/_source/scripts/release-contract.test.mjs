@@ -25,6 +25,50 @@ test("normalizes the public GitHub contract without arbitrary URLs", () => {
   assert.equal(validateReleaseApi(api), api);
 });
 
+test("model and pinned CUDA resources never enter App feeds or release selection", () => {
+  const stable = {
+    ...valid,
+    tag_name: "v0.1.0",
+    prerelease: false,
+    html_url: "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0",
+    assets: ["DropSpaceSetup.exe", "DropSpace.exe", "DropSpace-x64.msix", "SHA256SUMS.txt", "update-manifest.json"].map((name) => ({
+      name,
+      size: 42,
+      browser_download_url: `https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/${name}`
+    }))
+  };
+  const resources = ["models-hy-mt2-q8-v1", "cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1"].map((tag_name) => ({
+    tag_name,
+    draft: false,
+    prerelease: false,
+    published_at: "2026-10-07T00:00:00Z",
+    assets: []
+  }));
+  const generatedAt = "2026-10-07T01:00:00Z";
+  const payload = [...Array(21).fill(resources[1]), resources[0], stable];
+  const api = normalizeGitHubReleases(payload, generatedAt);
+  assert.deepEqual(api.releases.map((release) => release.tagName), [stable.tag_name]);
+  assert.equal(createLatestChangeApi(api).release.tagName, stable.tag_name);
+  assert.deepEqual(createWebsiteReleaseData(payload, generatedAt), createWebsiteReleaseData([stable], generatedAt));
+  assert.throws(() => createWebsiteReleaseData(resources, generatedAt), /did not contain a Stable release/);
+});
+
+test("resource filtering still rejects unrecognized or malformed release tags", () => {
+  for (const tag_name of [
+    "not-a-release",
+    "v0.3.1-beta.invalid",
+    "models-hy-mt2-q8-v1-extra",
+    "cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1-extra",
+    "prefix-cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1",
+    "cuda-llama-cpp-v0.5.0-cuda13-win-arm64-v1",
+    "cuda-llama-cpp-v0.5.0-cuda13-win-x64-v2"
+  ]) {
+    const release = { ...valid, tag_name };
+    assert.throws(() => normalizeGitHubReleases([release]), /Invalid release tag/, tag_name);
+    assert.throws(() => createWebsiteReleaseData([release, valid]), /Invalid release tag/, tag_name);
+  }
+});
+
 test("rejects mismatched release, asset and schema identities", () => {
   assert.throws(() => normalizeGitHubReleases([{ ...valid, html_url: "https://attacker.invalid/release" }]));
   assert.throws(() => normalizeGitHubReleases([{ ...valid, assets: [{ ...valid.assets[0], browser_download_url: "https://attacker.invalid/update.exe" }] }]));
