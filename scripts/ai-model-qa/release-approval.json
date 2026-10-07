@@ -813,7 +813,7 @@
         },
         {
           "path": "scripts/Build-NextBetaCandidate.ps1",
-          "sha256": "697210396e45ba723c8418aec851c8718cbdc8436ae182a99244cf9c600ed45d"
+          "sha256": "33d5509f7271c9674a6c684795bbae128644df25b570ce4ad8620c43d40c246d"
         },
         {
           "path": "scripts/next-beta-release-validation.mjs",
@@ -821,7 +821,7 @@
         },
         {
           "path": "scripts/Test-PackagedLocalization.ps1",
-          "sha256": "561370feab5e72508062c988a7859079236adc4ac52e516e26d127a1cf721419"
+          "sha256": "6037f32457ed175c4cb28797167eeb1468e6cae5eb77e0580546e04c284e0321"
         },
         {
           "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
@@ -1216,7 +1216,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "d1862186c59763e22d25ac329084e4d8699e504d3a79c38178776f8ff76c395a"
+      "sha256": "296f8a48aa1ad1e055b5de42f450fb5ff1205d965a818a7b452a6b3308f04bcd"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2660,6 +2660,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.19-interface-only-reviewed.json",
-    "sha256": "82ba159c28e03f1b45d6a296a678998dfff765393ce0ccda5cfedca5d6a7a2a2"
+    "sha256": "d22626d6e18ad8963f469e057cdce474fa96011dd3e68ac2e775127f68b4f98e"
   }
 }

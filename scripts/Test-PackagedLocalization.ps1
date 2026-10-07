@@ -120,7 +120,7 @@ try {
     $installerText = Get-Content -LiteralPath $installerScript -Raw -Encoding UTF8
     foreach ($language in $languages) {
         if ($installerText -notmatch ('(?m)^Name: .*MessagesFile: .*localization\\' + [regex]::Escape($language) + '\.isl')) {
-            throw "installer $language: compiled wizard declaration missing"
+            throw "installer ${language}: compiled wizard declaration missing"
         }
     }
     $receipt = [ordered]@{
