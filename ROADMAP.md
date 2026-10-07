@@ -1,8 +1,8 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.17
+## Release target: v0.3.1-beta.18
 
-The current Beta target is `v0.3.1-beta.17` (Beta 17).
+The current Beta target is `v0.3.1-beta.18` (Beta 18).
 v0.3.1-beta.16 is the immediate upgrade baseline for this release.
 
 Stop expanding the optimization scope and deliver all completed effective work:
@@ -19,7 +19,7 @@ after a complete Windows App/XAML build, minimum affected-path checks and exact
 final artifact/update/source bindings. Reuse existing focused evidence honestly;
 calling-thread occupation does not equal total query speed or native frame rate.
 The [Beta17 release audit](docs/dev/beta17-release-audit.md) and
-[release notes](.github/release-notes/v0.3.1-beta.17.md) record preparation and limitations;
+[release notes](.github/release-notes/v0.3.1-beta.18.md) record preparation and limitations;
 actual results belong to the same-source-tree producer's immutable Actions receipt
 and final release attachments, with no post-producer source edit required.
 
@@ -170,7 +170,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.17
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.18
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
