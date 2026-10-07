@@ -17,14 +17,19 @@ public sealed class AppLanguageService
 
     public string EffectiveLanguageTag { get; private set; } = EnglishLanguageTag;
 
+    public event EventHandler? Changed;
+
     public void Apply(AppLanguagePreference preference)
     {
+        var previousLanguageTag = EffectiveLanguageTag;
         Preference = Enum.IsDefined(preference) ? preference : AppLanguagePreference.System;
         // Explicit resource contexts also work for the portable, unpackaged app.
         IReadOnlyList<string> languages;
         try { languages = Windows.System.UserProfile.GlobalizationPreferences.Languages; }
         catch (Exception) { languages = [CultureInfo.CurrentUICulture.Name]; }
         EffectiveLanguageTag = AppLanguagePolicy.ResolveEffectiveLanguageTag(Preference, languages);
+        if (!string.Equals(previousLanguageTag, EffectiveLanguageTag, StringComparison.Ordinal))
+            Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public static bool TryParseSupportedLanguage(string? value, out AppLanguagePreference preference)

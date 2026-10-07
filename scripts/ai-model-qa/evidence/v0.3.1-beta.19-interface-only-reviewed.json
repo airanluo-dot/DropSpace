@@ -4,8 +4,8 @@
   "verdict": "owner-accepted-experimental-beta",
   "semanticApproved": false,
   "reviewedBy": "Codex interface/settings integration reviewer; existing model acceptance carried forward",
-  "reviewedAt": "2026-10-07T21:43:29Z",
-  "expiresAt": "2026-10-14T21:43:29Z",
+  "reviewedAt": "2026-10-07T21:54:10Z",
+  "expiresAt": "2026-10-14T21:54:10Z",
   "summary": "Owner-authorized interface-only Beta; existing models, prompts, protocols, inference/admission/cache and component bytes retained. No new semantic model approval or model execution.",
   "scope": {
     "releaseVersion": "v0.3.1-beta.19",
@@ -618,7 +618,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/AppLanguageService.cs",
-          "sha256": "0a67288799f860478a5e0a50820e0bc9c11956503d7512657abbb9898f9bdecb"
+          "sha256": "1037c5a15963e090ee1d805ae42a42dc39a58e2fc0844c888bd903260407d3d5"
         },
         {
           "path": "src/DropSpace.App/Services/ResourceStringLocalizer.cs",
@@ -630,7 +630,7 @@
         },
         {
           "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
-          "sha256": "0f64b0f69410922c60db3f976a11c26f03a736c928570bd6fbd132b0a90bab9d"
+          "sha256": "e4611af9151bf9339404b66f3f9b2f2bb642c3cf603bb1f0cbe35c30b8d083a3"
         },
         {
           "path": "src/DropSpace.App/ViewModels/OverlayViewModel.cs",
@@ -1074,7 +1074,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/QqMusicLoginService.cs",
-          "sha256": "1b45637ab7566d7137b6e465c4ff9ce4dd5756340f6b06d675b7bd58e6b09f2e"
+          "sha256": "894434eb54f93a24a89eb789358377b6d39bea2643e026024f311611b2a35c30"
         },
         {
           "path": "src/DropSpace.App/Services/NativeFolderPickerService.cs",
@@ -1221,7 +1221,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "a7d5fbbba20890f7e2ca58173af49fa23d7853d71a00aa7d6a7d1a3c1317b091"
+      "sha256": "d1862186c59763e22d25ac329084e4d8699e504d3a79c38178776f8ff76c395a"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",

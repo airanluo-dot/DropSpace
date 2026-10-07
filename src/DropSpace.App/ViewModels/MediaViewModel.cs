@@ -70,7 +70,7 @@ public sealed class MediaViewModel : ObservableObject
             }
         }
     }
-    public string ControlError { get => _controlError; private set => SetProperty(ref _controlError, value); }
+    public string ControlError { get => _strings.Relocalize(_controlError); private set => SetProperty(ref _controlError, value); }
     public bool IsReducedMotion { get => _isReducedMotion; internal set => SetProperty(ref _isReducedMotion, value); }
     public bool PositionEstimated { get => _positionEstimated; internal set { if (SetProperty(ref _positionEstimated, value)) { OnPropertyChanged(nameof(TimelineStatus)); SeekCommand.NotifyCanExecuteChanged(); } } }
     public MediaSessionSnapshot Session
