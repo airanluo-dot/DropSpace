@@ -1,38 +1,27 @@
 """Package actual CUDA producer files without loading a worker or model.
 
 No tests, inference, network requests, publication, or source/version edits occur here.
-The small download descriptor must be pinned in the matching App build; the ZIP is
-a separate asset of that exact release. This tool does not authenticate a reviewer.
+The ZIP and component descriptor belong to an immutable component release. App
+build metadata is bound separately by stage-reviewed-cuda-metadata.py. This tool
+does not authenticate a reviewer.
 """
 import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import shutil
 import stat
 import tempfile
 import zipfile
 
 
-REPOSITORY = "airanluo-dot/DropSpace"
-RUNTIME_ID = "llama-cpp-v0.5.0-cuda13-win-x64-v1"
-ENGINE_COMMIT = "7fe450e19305b828c199d602c23a8337aaa1f03b"
-PROFILE = "hy-q8-plain-resident-v1"
-MANIFEST = "cuda-runtime-manifest.json"
-DESCRIPTOR = "cuda-runtime-download.json"
-COMPONENTS = ("plain-lyrics-worker-cuda.exe", "cublas64_13.dll", "cublasLt64_13.dll")
-NOTICES = ("LICENSE-llama.cpp", "LICENSE-CUDA.txt")
-HASH = re.compile(r"[a-f0-9]{64}\Z")
-COMMIT = re.compile(r"[a-f0-9]{40}\Z")
-TAG = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-beta\.([1-9][0-9]*))?\Z")
+from cuda_runtime_contract import (
+    ARCHIVE_NAME, COMPONENT_DESCRIPTOR, COMPONENTS, ENGINE_COMMIT, HASH, MANIFEST,
+    NOTICES, PROFILE, RUNTIME_ID, component_descriptor, require,
+)
+
 CHUNK = 1024 * 1024
-
-
-def require(condition, message):
-    if not condition:
-        raise ValueError(message)
 
 
 def ordinary_path(path, directory=False):
@@ -116,13 +105,6 @@ def write_member(archive, path, expected):
 
 
 def package(args):
-    match = TAG.fullmatch(args.app_tag)
-    require(match is not None, "Expected an exact stable/Beta App release tag")
-    major, minor, patch = (int(match[n]) for n in (1, 2, 3))
-    require(major <= 20 and minor <= 99 and patch <= 99 and
-            (match[4] is None or int(match[4]) <= 9998), "App tag exceeds the release version range")
-    require(COMMIT.fullmatch(args.app_commit) and COMMIT.fullmatch(args.component_commit),
-            "Exact App/component source commits are required")
     payload = ordinary_path(args.payload, directory=True)
     notices = ordinary_path(args.license_directory, directory=True)
     require({p.name for p in payload.iterdir()} == {*COMPONENTS, MANIFEST},
@@ -132,7 +114,7 @@ def package(args):
     output = Path(os.path.abspath(args.output))
     ordinary_path(output.parent, directory=True)
     require(not os.path.lexists(output), "Output must be fresh; existing artifacts are preserved")
-    archive_name = "DropSpace-CUDA-win-x64-" + args.app_tag + ".zip"
+    archive_name = ARCHIVE_NAME
     staging = Path(tempfile.mkdtemp(prefix=".dropspace-cuda-package-", dir=output.parent))
     try:
         archive_path = staging / archive_name
@@ -144,22 +126,12 @@ def package(args):
             for entry in notice_identities:
                 write_member(archive, notices / entry["name"], entry)
         archive_identity = identity(archive_path, 1_073_741_824)
-        download = dict(archive_identity, url="https://github.com/" + REPOSITORY +
-                        "/releases/download/" + args.app_tag + "/" + archive_name)
-        descriptor = {
-            "schemaVersion": 1, "repository": REPOSITORY,
-            "appRelease": {"tag": args.app_tag, "sourceCommit": args.app_commit},
-            "componentSourceCommit": args.component_commit,
-            "runtimeId": RUNTIME_ID, "backend": "cuda", "platform": "win-x64",
-            "protocol": 1, "profile": PROFILE,
-            "engineSourceCommit": ENGINE_COMMIT,
-            "workerSourceSha256": manifest["workerSourceSha256"],
-            "download": download, "manifest": manifest_identity,
-            "files": manifest["files"], "notices": notice_identities,
-        }
+        descriptor = component_descriptor(manifest, manifest_identity, archive_identity,
+                                          notice_identities, args.component_commit)
+        download = descriptor["download"]
         descriptor_bytes = (json.dumps(descriptor, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
         require(len(descriptor_bytes) <= 16_384, "Download descriptor exceeds its App resource bound")
-        (staging / DESCRIPTOR).write_bytes(descriptor_bytes)
+        (staging / COMPONENT_DESCRIPTOR).write_bytes(descriptor_bytes)
         # Only tiny metadata is copied for the App build. CUDA binary files stay in the ZIP.
         (staging / MANIFEST).write_bytes(manifest_bytes)
         # mkdir fails atomically if another process created the target; never replace
@@ -171,15 +143,13 @@ def package(args):
         if staging.exists():
             shutil.rmtree(staging)
     print(json.dumps({"output": str(output), "archive": download,
-                      "descriptor": DESCRIPTOR, "appRelease": descriptor["appRelease"]}, indent=2))
+                      "descriptor": COMPONENT_DESCRIPTOR, "componentRelease": descriptor["componentRelease"]}, indent=2))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--payload", type=Path, required=True)
     parser.add_argument("--license-directory", type=Path, required=True)
-    parser.add_argument("--app-tag", required=True)
-    parser.add_argument("--app-commit", required=True)
     parser.add_argument("--component-commit", required=True)
     parser.add_argument("--output", type=Path, required=True)
     package(parser.parse_args())

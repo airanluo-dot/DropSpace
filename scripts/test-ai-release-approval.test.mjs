@@ -943,3 +943,27 @@ test('CI tests every PR while Release gates explicit publication with a second p
   assert.match(sign, /Inspect-AiRuntimePayload.ps1 -MsixPath artifacts\/release\/DropSpace-x64.msix/);
   assert.equal((workflow.match(/artifacts\/release\/runtime-publication.json\n          if-no-files-found/g) ?? []).length, 2);
 });
+
+test('independent CUDA delivery contract is fingerprinted and invalidates prior approvals', t => {
+  const x = example(t);
+  const name = 'scripts/cuda_runtime_contract.py';
+  assert.ok(sourcePaths.includes(name), 'Component identity must participate in source approval');
+  const before = readSourceFingerprint(x.root).sha256;
+  fs.appendFileSync(path.join(x.root, name), '\n# changed component identity\n');
+  assert.notEqual(readSourceFingerprint(x.root).sha256, before);
+  assert.throws(() => validateApproval(x.root, { now }), /stale/);
+});
+
+for (const name of [
+  'scripts/Build-Beta17Candidate.ps1',
+  'scripts/Reuse-BundledLyricsLanguageModel.ps1',
+  'scripts/beta17-release-validation.mjs',
+  'scripts/ci-release-promotion.mjs',
+]) test(`Beta17 publisher input remains source-bound: ${name}`, t => {
+  const x = example(t);
+  assert.ok(sourcePaths.includes(name), 'Publication code must participate in source approval');
+  const before = readSourceFingerprint(x.root).sha256;
+  fs.appendFileSync(path.join(x.root, name), '\n// changed publication input\n');
+  assert.notEqual(readSourceFingerprint(x.root).sha256, before);
+  assert.throws(() => validateApproval(x.root, { now }), /stale/);
+});

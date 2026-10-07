@@ -11,26 +11,21 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the Stable baseline and the current published Beta is v0.3.1-beta.15**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the Stable baseline**. The latest public App release verified during Beta17 preparation was **v0.3.1-beta.16**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, Windows release automation, and the product/engineering specifications that define its safety boundaries.
 
-Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.15](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.15); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+The current Beta target is `v0.3.1-beta.17` (Beta 17).
 
-The **v0.3.1 Beta 16** target replaces per-line lyric admission with one offline
-whole-track fastText prediction. Originals already in the app language skip AI.
-Any valid target-language provider translation disables AI for the entire track,
-including gaps. Only an Unknown original without a valid target translation may
-enter the existing optional Hy-MT2 progressive translation flow. The model is
-bundled in installer, portable and MSIX delivery; recognition has no first-use download.
-Downloads remain on their own Settings page; DLC manages installed components.
-Optional AI translation remains off by default. Validation is limited to focused
-checks and necessary release compilation; broad model/hardware qualification
-is not claimed.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Verified public upgrade baseline: [v0.3.1-beta.16](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.16); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
-Beta16 preparation and actual verification records are in the
-[Beta16 audit](docs/dev/beta16-lyrics-audit.md). Beta15 playback and package evidence
-remains attached to its own source stage; it does not validate Beta16.
+Beta17 collects the completed response, media presentation, database intake and download-lifetime optimizations, plus the independently versioned CUDA component delivery. It preserves existing product behavior, the whole-track native-translation protection introduced in Beta16 and optional AI translation off by default. No new DLC framework or Bilibili feature is included.
 
-v0.3.1-beta.15 is the immediate upgrade baseline for this release.
+The [optimization reports](docs/dev/performance-continuation-2026-10-07.md) distinguish calling-thread occupation, total task duration and native Windows experience. The [Beta17 release audit](docs/dev/beta17-release-audit.md) and [release notes](.github/release-notes/v0.3.1-beta.17.md) explain the preparation and remaining limitations. Actual release results come from the same-source-tree Windows producer's immutable Actions receipt and final release attachments. Preparation is not a successful build or publication; the exact Windows candidate and final package/update bindings must pass before release.
+
+The unchanged optional CUDA archive is reused from its [independent component release](https://github.com/airanluo-dot/DropSpace/releases/tag/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1). Trust, hashes, interface compatibility, App-source metadata and installed-component reuse remain enforced. Prior App release assets and download addresses remain available.
+
+Beta16 bundled fastText `lid.176.bin` for one offline whole-track prediction. Originals already in the app language skip AI; any valid target-language provider translation disables AI for the entire track, including gaps. Only Unknown originals without valid target translations enter the existing optional Hy-MT2 progressive flow. Its historical validation remains in the [Beta16 audit](docs/dev/beta16-lyrics-audit.md); it does not establish Beta17 Windows acceptance.
+
+v0.3.1-beta.16 is the immediate upgrade baseline for this release.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables
@@ -241,9 +236,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.16` (Beta 16). All new prereleases use
+All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Upgrading from v0.3.1-beta.15 preserves data/settings.
+releases remain immutable. Upgrading from v0.3.1-beta.16 preserves data/settings.
 Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

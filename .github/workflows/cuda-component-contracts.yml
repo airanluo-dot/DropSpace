@@ -1,0 +1,44 @@
+name: CUDA component contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/cuda-component-contracts.yml'
+      - 'scripts/cuda_runtime_contract.py'
+      - 'scripts/package-cuda-runtime.py'
+      - 'scripts/stage-reviewed-cuda-metadata.py'
+      - 'scripts/Test-CudaBuildBinding.ps1'
+      - 'scripts/test_cuda_component_delivery.py'
+      - 'scripts/test-ai-release-approval*.mjs'
+      - 'src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs'
+      - 'tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs'
+      - 'website/_source/scripts/verify-published-release*.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  component-contracts:
+    name: Metadata, binding, and cache contracts only
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Test Python metadata and PowerShell build binding
+        run: python -m unittest discover -s scripts -p test_cuda_component_delivery.py -v
+      - name: Verify changed component inputs invalidate old approval
+        run: node --test --test-name-pattern="independent CUDA" scripts/test-ai-release-approval.test.mjs
+      - name: Test historical and independent CUDA publication metadata
+        run: node --test website/_source/scripts/verify-published-release.test.mjs
+      - name: Restore locked Infrastructure test dependencies
+        run: dotnet restore tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -p:RestoreLockedMode=true
+      - name: Test CUDA descriptor and installed-cache reuse without native inference
+        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --filter FullyQualifiedName~CudaLyricsRuntimePackageTests

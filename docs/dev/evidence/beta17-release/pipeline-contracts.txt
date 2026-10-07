@@ -1,0 +1,29 @@
+✔ only completed successful Windows CI is a promotion producer (6.190547ms)
+✔ identical-tree packages retain their verified byte identities (4.551938ms)
+✔ reject changed repository (1.08855ms)
+✔ reject changed runId (1.102461ms)
+✔ reject changed runAttempt (1.890729ms)
+✔ reject changed sourceTree (2.545916ms)
+✔ reject changed releaseVersion (6.218109ms)
+✔ changed installer bytes cannot be promoted (2.596623ms)
+✔ missing or added receipt payloads fail closed (2.195728ms)
+✔ only executed, entirely passing focused TRX results qualify reuse (4.569144ms)
+✔ exact PR validation receipt preserves evidence and actual filter identities (2.80764ms)
+✔ validation rejects changed sourceTree (1.137444ms)
+✔ validation rejects changed releaseVersion (2.321428ms)
+✔ validation rejects changed runId (0.652723ms)
+✔ validation rejects changed runAttempt (1.215141ms)
+✔ reused validation cannot omit the complete App build or replace test bytes (1.778951ms)
+✔ Beta17 promotion carries all eight public App assets without CUDA archive bytes (1.962166ms)
+✔ embedded App source binding cannot be retargeted to a new merge commit (1.382894ms)
+✔ final publication rejects changed descriptor and public checksum bytes (1.430045ms)
+✔ final publication rejects incomplete checksums (0.971914ms)
+✔ Beta17 route packages only final main, preserves required PR check, and has no broad fallback (0.879635ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 111.764595

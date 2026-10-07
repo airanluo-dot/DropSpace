@@ -10,6 +10,10 @@ namespace DropSpace.Infrastructure.Lyrics;
 public sealed class CudaLyricsRuntimePackage
 {
     public const string RuntimeId = "llama-cpp-v0.5.0-cuda13-win-x64-v1";
+    public const string ComponentReleaseTag = "cuda-" + RuntimeId;
+    public const string ArchiveName = "DropSpace-CUDA-" + RuntimeId + ".zip";
+    private const string ComponentSourceCommit = "806f3e3e40c11a6e7d3d50648a9de8708b16b4ac";
+    private const string ArchiveUrl = "https://github.com/airanluo-dot/DropSpace/releases/download/" + ComponentReleaseTag + "/" + ArchiveName;
     public const string ResourcePrefix = "DropSpace.CudaLyricsRuntime.";
     public const string ManifestResourceName = ResourcePrefix + "cuda-runtime-manifest.json";
     public const string DownloadResourceName = ResourcePrefix + "cuda-runtime-download.json";
@@ -30,10 +34,13 @@ public sealed class CudaLyricsRuntimePackage
         _appCommit = version is { Length: 2 } ? version[1] : null;
     }
 
-    internal CudaLyricsRuntimePackage(Func<string, Stream?> openResource, string cacheRoot, HttpRangeDownloader? downloads = null)
+    internal CudaLyricsRuntimePackage(Func<string, Stream?> openResource, string cacheRoot, HttpRangeDownloader? downloads = null,
+        string? appTag = null, string? appCommit = null)
     {
         ArgumentNullException.ThrowIfNull(openResource);
         ArgumentException.ThrowIfNullOrWhiteSpace(cacheRoot);
+        _appTag = appTag;
+        _appCommit = appCommit;
         _openResource = openResource;
         _root = Path.GetFullPath(cacheRoot);
         _downloads = downloads ?? new();
@@ -70,8 +77,10 @@ public sealed class CudaLyricsRuntimePackage
             var hash = Convert.ToHexStringLower(SHA256.HashData(stream)); stream.Position = 0;
             using var manifest = JsonDocument.Parse(stream);
             var component = manifest.RootElement;
-            if (root.GetProperty("schemaVersion").GetInt32() != 1 || root.GetProperty("repository").GetString() != "airanluo-dot/DropSpace" ||
+            if (root.GetProperty("schemaVersion").GetInt32() != 2 || root.GetProperty("repository").GetString() != "airanluo-dot/DropSpace" ||
                 root.GetProperty("runtimeId").GetString() != RuntimeId || root.GetProperty("backend").GetString() != "cuda" ||
+                root.GetProperty("componentRelease").GetProperty("tag").GetString() != ComponentReleaseTag ||
+                root.GetProperty("componentSourceCommit").GetString() != ComponentSourceCommit ||
                 root.GetProperty("platform").GetString() != "win-x64" || root.GetProperty("protocol").GetInt32() != 1 ||
                 root.GetProperty("profile").GetString() != PersistentPlainLyricsRunner.ResidentProfileId ||
                 root.GetProperty("engineSourceCommit").GetString() != AiLyricsRuntimePackage.SourceCommit ||
@@ -82,6 +91,15 @@ public sealed class CudaLyricsRuntimePackage
                 root.GetProperty("appRelease").GetProperty("tag").GetString() != _appTag ||
                 _appCommit is not { Length: 40 } || root.GetProperty("appRelease").GetProperty("sourceCommit").GetString() != _appCommit)
                 throw new InvalidDataException("CUDA descriptor is not bound to this App and engine.");
+            // The source-owned component identity is independent of the App release.
+            // Exact URI comparison rejects other repositories/hosts, query/fragment/port
+            // additions and legacy per-App assets before any network request.
+            var download = root.GetProperty("download");
+            if (download.GetProperty("name").GetString() != ArchiveName ||
+                download.GetProperty("url").GetString() != ArchiveUrl ||
+                download.GetProperty("bytes").GetInt64() is <= 0 or > 1_073_741_824 ||
+                !IsHash(download.GetProperty("sha256").GetString()))
+                throw new InvalidDataException("Invalid independent CUDA archive identity.");
             var outer = root.GetProperty("files").EnumerateArray().ToArray();
             var inner = component.GetProperty("files").EnumerateArray().ToArray();
             if (outer.Length != Names.Length || inner.Length != Names.Length) throw new InvalidDataException("CUDA descriptor component count changed.");
@@ -288,13 +306,6 @@ public sealed class CudaLyricsRuntimePackage
             using var descriptor = ReadDownloadDescriptor();
             var download = descriptor.RootElement.GetProperty("download");
             var uri = new Uri(download.GetProperty("url").GetString()!);
-            if (uri.Scheme != Uri.UriSchemeHttps || uri.Host != "github.com" ||
-                !uri.AbsolutePath.StartsWith("/airanluo-dot/DropSpace/releases/download/", StringComparison.Ordinal))
-                throw new InvalidDataException("Unrecognized CUDA component release source.");
-            var assetName = "DropSpace-CUDA-win-x64-" + _appTag + ".zip";
-            if (download.GetProperty("name").GetString() != assetName || uri.AbsoluteUri !=
-                "https://github.com/airanluo-dot/DropSpace/releases/download/" + _appTag + "/" + assetName)
-                throw new InvalidDataException("CUDA asset does not belong to this exact release.");
             var archiveBytes = download.GetProperty("bytes").GetInt64();
             var archiveHash = download.GetProperty("sha256").GetString();
             if (archiveBytes is <= 0 or > 1_073_741_824 || !IsHash(archiveHash))

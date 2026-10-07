@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-07T07:38:02.061Z",
+  "releaseVersion": "v0.3.1-beta.17",
+  "scope": "One-file final-main asset reuse correction source review; this is not Windows execution or final binary approval.",
+  "sourceFingerprint": "c41231e4e865b0c64800932e2148ea43e62d9b328af82e5748c487373e25cdcc",
+  "sourceInputCount": 253,
+  "approvalStatus": "owner-accepted-experimental-beta",
+  "semanticApproved": false,
+  "modelVerdicts": [
+    {
+      "id": "hy-mt2-18-q8-plain-beta",
+      "verdict": "unverified"
+    },
+    {
+      "id": "hy-mt2-7b-q8-plain-beta",
+      "verdict": "unverified"
+    }
+  ],
+  "review": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-source-review.json",
+    "sha256": "09dc7d7e16cf6155ea4a5521be68e06fe0572b8adf3d6ec01ad9d4324d6d6f6d"
+  },
+  "ownerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.17-asset-reuse-owner-supplement.json",
+    "sha256": "7d2ab86b0b026ad8950cbdcebbabd2c6320c68ddd4247e4a0570536a0d3d682f"
+  },
+  "exactReviewedSource": {
+    "path": "scripts/Reuse-BundledLyricsLanguageModel.ps1",
+    "sha256": "2d1ced492c9f235280dc7225e1158010fadc7312e39a11309bd4688fc311c184"
+  },
+  "earlierEvidenceByteIdentities": {
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-decision.json": "e1fe28c3ed6e5ca0ce5b351e9b0b8651890c71852c4a1a6d7254f0e560f0c1da",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-owner-accepted-review.json": "a114aa063b4b8fbd044628447879c6d88df3705ab57ab4ef5637534afc51a3cf",
+    "docs/dev/evidence/beta17-release-preparation/approval-preparation.json": "b2e3a6abe26d3db5d340ce47dc3731745755122eb74e9c5f8b9e1c113b3347fb",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-owner-decision.json": "9c8243765c183f5b6230cdb2e26002135365c7bac861343109e2e36294d82dcd",
+    "scripts/ai-model-qa/evidence/v0.3.1-beta.17-final-source-review.json": "54a954511674b62d2a342bba643f90d59302ac9d983e168d71cdfe1eb7fd6572",
+    "docs/dev/evidence/beta17-release-preparation/final-source-review.json": "9914c5407aa8d5cfd26aefa635d2b3885eb4821a71369ab9a12d5bdafdad8f23"
+  },
+  "earlierEvidencePreserved": true,
+  "actualApprovalCheck": "passed",
+  "diffCheck": "passed",
+  "windowsExecutionClaimed": false
+}

@@ -311,6 +311,13 @@ jobs:
             throw 'Beta16 uses its owner-authorized local focused-validation producer and exact nine-asset publication. This legacy workflow would repeat broad suites and emit an incomplete CUDA asset set; it is disabled for this exact release. Use the documented Beta16 delivery record and immutable asset-verification CI route.'
           }
 
+      - name: Require final-main Beta17 producer without broad-test fallback
+        shell: pwsh
+        run: |
+          if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.17' -and '${{ steps.ci-promotion.outputs.reuse }}' -cne 'true') {
+            throw 'Beta17 requires its successful exact-main focused producer. Dispatch ci.yml on final main first; this legacy path must not repeat tests, packages or model downloads.'
+          }
+
       - name: Test AI semantic release gate regressions
         if: steps.ci-promotion.outputs.reuse != 'true'
         run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
@@ -624,6 +631,7 @@ jobs:
 
 
       - name: Freeze unsigned bytes and generate release metadata
+        if: steps.version.outputs.tag != 'v0.3.1-beta.17'
         shell: pwsh
         run: |
           $files = @(
@@ -685,6 +693,8 @@ jobs:
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
             artifacts/release/runtime-publication.json
+            ${{ steps.version.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-download.json' || '' }}
+            ${{ steps.version.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
           if-no-files-found: error
           retention-days: 2
 
@@ -970,6 +980,9 @@ jobs:
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
+            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/runtime-publication.json' || '' }}
+            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-download.json' || '' }}
+            ${{ needs.validate-release.outputs.tag == 'v0.3.1-beta.17' && 'artifacts/release/cuda-runtime-manifest.json' || '' }}
 
       - name: Refresh official website release metadata
         shell: bash

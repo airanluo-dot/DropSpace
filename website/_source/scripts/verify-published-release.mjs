@@ -14,6 +14,18 @@ if (!["release", "live"].includes(verificationMode)) throw new Error("Verificati
 
 const repository = "airanluo-dot/DropSpace";
 const siteOrigin = "https://airanluo-dot.github.io/DropSpace";
+// Reviewed immutable identity from scripts/cuda_runtime_contract.py. A matching
+// source fingerprint is not permission to replace this component's published bytes.
+const cudaComponent = {
+  runtimeId: "llama-cpp-v0.5.0-cuda13-win-x64-v1",
+  sourceCommit: "806f3e3e40c11a6e7d3d50648a9de8708b16b4ac",
+  engineSourceCommit: "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  profile: "hy-q8-plain-resident-v1",
+  archiveBytes: 540873572,
+  archiveSha256: "79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b",
+  manifestBytes: 1815,
+  manifestSha256: "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a",
+};
 const expectedAssets = ["DropSpace-x64.msix", "DropSpace.exe", "DropSpaceSetup.exe", "SHA256SUMS.txt", "update-manifest.json"];
 const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
 const headers = { Accept: "application/vnd.github+json", "User-Agent": "DropSpace-release-verifier" };
@@ -50,7 +62,7 @@ if (assets.size !== release.assets.length || expectedAssets.some((name) => !asse
     [...assets.keys()].some(name => !expectedAssets.includes(name) && !optionalAssets.has(name)) ||
     (assets.has(cudaAsset) && !assets.has("runtime-publication.json")) ||
     (cudaMetadata.some(name => assets.has(name)) &&
-      (!assets.has(cudaAsset) || cudaMetadata.some(name => !assets.has(name))))) {
+      (!assets.has("runtime-publication.json") || cudaMetadata.some(name => !assets.has(name))))) {
   throw new Error(`${tag} does not expose the exact public asset contract.`);
 }
 for (const [name, asset] of assets) {
@@ -104,6 +116,10 @@ if (checksumMap.has("update-manifest.json") &&
 if (assets.has(cudaMetadata[0])) {
   const metadata = new Map();
   for (const name of cudaMetadata) {
+    if (assets.get(name).size > 16_384 ||
+        assets.get(name).browser_download_url !== `https://github.com/${repository}/releases/download/${tag}/${name}`) {
+      throw new Error(`Invalid published CUDA metadata asset: ${name}.`);
+    }
     const bytes = Buffer.from(await (await fetchOk(assets.get(name).browser_download_url)).arrayBuffer());
     if (bytes.length !== assets.get(name).size ||
         createHash("sha256").update(bytes).digest("hex") !== checksumMap.get(name)) {
@@ -112,14 +128,57 @@ if (assets.has(cudaMetadata[0])) {
     metadata.set(name, bytes);
   }
   const descriptor = JSON.parse(metadata.get(cudaMetadata[0]).toString("utf8"));
-  if (descriptor.appRelease?.tag !== tag || descriptor.appRelease?.sourceCommit !== release.target_commitish ||
-      descriptor.download?.name !== cudaAsset || descriptor.download?.bytes !== assets.get(cudaAsset).size ||
-      descriptor.download?.url !== assets.get(cudaAsset).browser_download_url ||
-      descriptor.download?.sha256 !== checksumMap.get(cudaAsset) ||
+  if (![1, 2].includes(descriptor.schemaVersion) ||
+      descriptor.appRelease?.tag !== tag || !/^[0-9a-f]{40}$/.test(descriptor.appRelease?.sourceCommit ?? "") ||
+      descriptor.appRelease.sourceCommit !== release.target_commitish ||
       descriptor.manifest?.name !== cudaMetadata[1] ||
       descriptor.manifest?.bytes !== metadata.get(cudaMetadata[1]).length ||
       descriptor.manifest?.sha256 !== checksumMap.get(cudaMetadata[1])) {
     throw new Error("Published CUDA metadata does not bind the release and runtime assets.");
+  }
+  if (descriptor.schemaVersion === 1) {
+    if (!assets.has(cudaAsset) || descriptor.download?.name !== cudaAsset ||
+        descriptor.download?.bytes !== assets.get(cudaAsset).size ||
+        descriptor.download?.url !== assets.get(cudaAsset).browser_download_url ||
+        descriptor.download?.sha256 !== checksumMap.get(cudaAsset)) {
+      throw new Error("Published CUDA metadata does not bind the release and runtime assets.");
+    }
+  } else {
+    const componentTag = `cuda-${cudaComponent.runtimeId}`;
+    const archiveName = `DropSpace-CUDA-${cudaComponent.runtimeId}.zip`;
+    const componentUrl = `https://github.com/${repository}/releases/download/${componentTag}/`;
+    const inner = JSON.parse(metadata.get(cudaMetadata[1]).toString("utf8"));
+    if (assets.has(cudaAsset) || descriptor.repository !== repository ||
+        descriptor.componentRelease?.tag !== componentTag || descriptor.runtimeId !== cudaComponent.runtimeId ||
+        descriptor.componentSourceCommit !== cudaComponent.sourceCommit || descriptor.backend !== "cuda" ||
+        descriptor.platform !== "win-x64" || descriptor.protocol !== 1 || descriptor.profile !== cudaComponent.profile ||
+        descriptor.engineSourceCommit !== cudaComponent.engineSourceCommit ||
+        descriptor.workerSourceSha256 !== inner.workerSourceSha256 ||
+        inner.schemaVersion !== 1 || inner.runtimeId !== cudaComponent.runtimeId || inner.backend !== "cuda" ||
+        inner.protocol !== 1 || inner.profile !== cudaComponent.profile ||
+        inner.sourceRepository !== "https://github.com/ggml-org/llama.cpp" || inner.sourceCommit !== cudaComponent.engineSourceCommit ||
+        !Array.isArray(descriptor.files) || descriptor.files.length !== inner.files.length ||
+        descriptor.files.some((file, index) => ["name", "bytes", "sha256"].some(key => file?.[key] !== inner.files[index][key])) ||
+        descriptor.download?.name !== archiveName || descriptor.download?.url !== `${componentUrl}${archiveName}` ||
+        descriptor.download?.bytes !== cudaComponent.archiveBytes || descriptor.download?.sha256 !== cudaComponent.archiveSha256 ||
+        descriptor.manifest.bytes !== cudaComponent.manifestBytes || descriptor.manifest.sha256 !== cudaComponent.manifestSha256) {
+      throw new Error("Published CUDA metadata does not bind the reviewed independent component.");
+    }
+    // Inspect GitHub's uploaded asset identities; never fetch the large ZIP.
+    const component = await (await fetchOk(`https://api.github.com/repos/${repository}/releases/tags/${componentTag}`, { headers })).json();
+    // Resource releases are prereleases so they never replace the latest App.
+    if (component.draft !== false || component.prerelease !== true || component.tag_name !== componentTag ||
+        component.html_url !== `https://github.com/${repository}/releases/tag/${componentTag}` ||
+        !Array.isArray(component.assets) || new Set(component.assets.map(asset => asset.name)).size !== component.assets.length) {
+      throw new Error("Independent CUDA component release identity disagrees with the reviewed component.");
+    }
+    for (const identity of [descriptor.download, descriptor.manifest]) {
+      const asset = component.assets.find(candidate => candidate.name === identity.name);
+      if (asset?.browser_download_url !== `${componentUrl}${identity.name}` ||
+          asset?.size !== identity.bytes || asset?.digest !== `sha256:${identity.sha256}`) {
+        throw new Error(`Published independent CUDA asset identity disagrees: ${identity.name}.`);
+      }
+    }
   }
 }
 

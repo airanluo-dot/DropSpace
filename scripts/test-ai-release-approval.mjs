@@ -82,6 +82,7 @@ export const sourcePaths = Object.freeze([
   'tools/cuda-lyrics-helper/adapt_worker.py',
   'tools/cuda-lyrics-helper/cuda-device.h',
   'scripts/Build-CudaLyricsExperiment.ps1',
+  'scripts/cuda_runtime_contract.py',
   'scripts/package-cuda-runtime.py',
   'scripts/stage-reviewed-cuda-metadata.py',
   'docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json',
@@ -233,6 +234,11 @@ export const sourcePaths = Object.freeze([
   'scripts/Build-PortableExe.ps1',
   'scripts/Build-UnsignedPackage.ps1',
   'scripts/Build-Installer.ps1',
+  // Exact Beta17 producer, asset reuse and validation/promotion are shipping inputs.
+  'scripts/Build-Beta17Candidate.ps1',
+  'scripts/Reuse-BundledLyricsLanguageModel.ps1',
+  'scripts/beta17-release-validation.mjs',
+  'scripts/ci-release-promotion.mjs',
   'scripts/Inspect-OwnerWaivedPackages.ps1',
   'scripts/Collect-AiRuntimeNotices.ps1',
   'tools/ct2-helper/helper.py',
@@ -283,7 +289,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.16';
+export const experimentalBetaVersion = 'v0.3.1-beta.17';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
