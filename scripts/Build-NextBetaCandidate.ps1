@@ -2,6 +2,14 @@
 param([switch]$ValidateOnly)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+# Parse the publication helpers during PR qualification, before any installer
+# scenario can consume the shared functional execution budget.
+foreach ($helper in @('Build-NextBetaCandidate.ps1','Test-PackagedLocalization.ps1','Extract-StaticBundleAssembly.ps1',
+    'Build-PortableExe.ps1','Build-UnsignedPackage.ps1','Build-IdentityPackage.ps1','Build-Installer.ps1','Reuse-BundledLyricsLanguageModel.ps1')) {
+    $tokens = $null; $parseErrors = $null
+    [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $helper), [ref]$tokens, [ref]$parseErrors) | Out-Null
+    if ($parseErrors.Count) { throw ($parseErrors | ForEach-Object { "${helper}: $($_.Message)" } | Out-String) }
+}
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_REPOSITORY -cne 'airanluo-dot/DropSpace' -or
     (& git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Exact isolated new-Beta checkout is required.' }
 & node --input-type=module -e "import fs from 'node:fs'; import {isNextBetaRelease} from './scripts/next-beta-release-validation.mjs'; if (!isNextBetaRelease(fs.readFileSync('RELEASE_VERSION','utf8').trim())) process.exit(1);"
