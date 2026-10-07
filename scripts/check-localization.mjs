@@ -68,7 +68,7 @@ function resw(file, JSDOM) {
 function placeholders(value) {
   const escaped = value.replaceAll('{{', '').replaceAll('}}', '');
   // C# composite formats and JS named interpolation must preserve identifiers/format specifiers.
-  return sorted([...escaped.matchAll(/\{(?:\d+(?:,-?\d+)?(?::[^{}]+)?|[A-Za-z_][\w.-]*)\}|\$\{[^{}]+\}|%(?:\d+\$)?[sdif]|%\d+|<\/?(?:strong|em|b|i|code|br|a)\b[^>]*>/g)].map(item => item[0]));
+  return sorted([...escaped.matchAll(/\{(?:\d+(?:,-?\d+)?(?::[^{}]+)?|[A-Za-z_][\w.-]*)\}|\$\{[^{}]+\}|%(?:\d+\$)?[sdifn]|%\d+|<\/?(?:strong|em|b|i|code|br|a)\b[^>]*>/g)].map(item => item[0]));
 }
 function allowEqual(policy, scope, id, value, locale) {
   const exceptions = policy.equalText?.[scope] ?? {};
@@ -86,7 +86,7 @@ function sourceResources(root, scope, locale, JSDOM) {
       const heading = line.match(/^\[([^\]]+)\]$/);
       if (heading) { section = heading[1]; continue; }
       const item = line.match(/^([^;=][^=]*)=(.*)$/);
-      if (item && ['LangOptions','CustomMessages'].includes(section)) {
+      if (item && ['LangOptions','CustomMessages','Messages'].includes(section)) {
         const id = `Installer.${section}.${item[1].trim()}`;
         if (Object.hasOwn(values,id)) throw Error(`${installer}: duplicate '${id}'`);
         values[id] = item[2];

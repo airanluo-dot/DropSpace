@@ -2,13 +2,13 @@
   "release": "v0.3.1-beta.19",
   "sourceCommit": "20a1dded565d39003795204009f591e79b2e04e4",
   "originalMain": "f2588100162176ad6740b9550bfc4058a9893b5c",
-  "functionalScenarios": 18,
+  "functionalScenarios": 19,
   "functionalFailures": 0,
   "functionalRetries": 0,
   "executionBreakdown": {
     "settingsMatchingAndBinding": 11,
     "representativeWebsite": 4,
-    "completenessNegativeCases": 2,
+    "completenessNegativeCases": 3,
     "installerPayload": 1
   },
   "producer": {

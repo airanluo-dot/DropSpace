@@ -30,8 +30,9 @@ The entire task has a maximum of 20 executed functional cases/scenarios, includi
 | 16 | Changing one English source leaves translations pending and blocks the gate | passed |
 | 17 | One damaged Japanese format placeholder blocks the gate with locale/key/file | passed |
 | 18 | Final-main installer payload installation/uninstallation; installed App bytes equal the portable artifact | passed |
+| 19 | A newly added owned English installer Messages override blocks publication until its translations are supplied/reviewed | passed |
 
-Final actual functional executions: **18**, all passed. The successful final-main producer performed the existing isolated installer payload scenario exactly once. Two executions remained unused. The earlier producer was cancelled during dependency preparation, before package production or installation, so it added zero scenarios. No repeats of the successful App or website cases were run. No broad diagnostics were enabled on any dispatch.
+Final actual functional executions: **19**, all passed. The successful final-main producer performed the existing isolated installer payload scenario exactly once. The post-publication maintenance review added one copied-tree negative scenario for future installer overrides; one execution remained unused. The earlier producer was cancelled during dependency preparation, before package production or installation, so it added zero scenarios. No repeats of the successful App or website cases were run. No broad diagnostics were enabled on any dispatch.
 
 The App/settings probe compiles the real Core project and links the actual JsonSettingsService, SettingsIoPolicy and AppStoragePaths; it exercises disposable settings files and runs no lyric/AI inference. The separate Merge probe compiles and invokes the actual SettingsChangePolicy. Native Windows UI and install/upgrade lifecycle are outside these local probes.
 
@@ -54,6 +55,8 @@ The real portable/MSIX PRI candidates passed the ten-language source-value check
 All eight public assets were anonymously read successfully, including full downloads of the three binaries and four metadata files. Their seven SHA-256 values match SHA256SUMS; the checksum list itself was also downloaded. The published updater manifest is Beta `0.3.1-beta.19`, versionCode `3010019`, with correct installer/portable sizes and hashes. Runtime publication identifies the exact source commit. The live latest-change API identifies Beta19 with identical English highlights in the retained compatibility fields. Homepage/changelog publish static English language markers and their respective unified canonicals; sitemap contains exactly those two URLs. Detailed readback is in [public-download-verification.json](evidence/ten-language/public-download-verification.json) and [publication.json](evidence/ten-language/publication.json).
 
 Production integrity checks passed for all ten language resources and both official/static-showcase build modes. The website cases use one desktop and one mobile representative layout, old-link/storage behavior and no-script English; no page/language matrix or repeated screenshots. Two copied-tree negative cases changed one original and one Japanese placeholder; the gate correctly blocked each without altering the repository.
+
+Standard installer wizard text uses the existing fixed Inno Setup 7.0.2 framework translations. The 12 repository-owned language-name/CustomMessage entries per language are covered by the App gate's fingerprints. Post-publication maintenance also makes future repository-owned Messages overrides inherit the same mandatory/stale review rules, including Inno `%n` markers; it changes no released resource or App binary. The third negative scenario confirms that a new English wizard override reports the missing target language, ID and ISL file and blocks publication. No official framework resources were copied or rewritten.
 
 ## Verification limits
 

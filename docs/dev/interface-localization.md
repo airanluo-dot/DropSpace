@@ -81,6 +81,11 @@ with reasons, not broad product-file exemptions. English release bodies and lyri
 are separate domains. Failure identifies locale, ID, file and problem. A pass establishes
 structure/completeness, **not automatic semantic correctness**.
 
+The installer framework's standard wizard translations come from the existing SHA-256/signature-
+pinned Inno Setup 7.0.2 package. Repository-owned ISL language names, CustomMessages and any
+future Messages overrides belong to the App resource gate and reviewed fingerprints; an override
+cannot silently fall back to English. Preserve Inno `%1`/`%2` variables and `%n` newline markers.
+
 ## Focused verification and publication
 
 Keep one project-wide passive ledger: at most 20 actual functional cases/scenarios including

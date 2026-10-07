@@ -1,0 +1,8 @@
+{
+  "scenario": 19,
+  "name": "A new repository-owned English installer Messages override requires translations and reviewed fingerprints",
+  "result": "passed",
+  "gateExitCode": 1,
+  "scope": "One isolated copied-tree negative functional scenario; no repository resource or review record changed.",
+  "reportedIssue": "ja-JP Installer.Messages.WelcomeLabel1 installer/localization/ja-JP.isl: missing/empty translation"
+}
