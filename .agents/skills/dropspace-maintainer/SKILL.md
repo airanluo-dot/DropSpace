@@ -45,6 +45,10 @@ Ordinary product work does not require updating this skill. Update it only when 
 or when its long-lived project navigation, design language, or interface map is no longer accurate.
 There is no personal counterpart and no synchronization gate.
 
+## Passive test execution limit
+
+- For any passively triggered automation, the total number of executed test cases or scenarios across all workflows, including repeated runs and retries, must not exceed 20; tests explicitly requested by the user are exempt.
+
 ## Completion report
 
 Lead with the result. Then briefly name the important files or surfaces changed, the checks that
