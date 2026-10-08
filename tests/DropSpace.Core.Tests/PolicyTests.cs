@@ -145,8 +145,14 @@ public sealed class PolicyTests
         Assert.AreEqual(
             AppLanguagePolicy.SimplifiedChineseLanguageTag,
             AppLanguagePolicy.ResolveEffectiveLanguageTag(AppLanguagePreference.SimplifiedChinese, ["en-US"]));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+        // Policy resolves a corrupted/unknown preference through the system-language path.
+        // Settings validation still rejects invalid enum values on input.
+        Assert.AreEqual(
+            AppLanguagePolicy.EnglishLanguageTag,
             AppLanguagePolicy.ResolveEffectiveLanguageTag((AppLanguagePreference)99, ["en-US"]));
+        Assert.AreEqual(
+            AppLanguagePolicy.SimplifiedChineseLanguageTag,
+            AppLanguagePolicy.ResolveEffectiveLanguageTag((AppLanguagePreference)99, ["zh-CN", "en-US"]));
     }
 
     [TestMethod]

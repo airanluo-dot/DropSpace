@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Policies;
@@ -17,9 +18,9 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
     private readonly IReadOnlyDictionary<string, ResourceContext> _resourceContexts;
     private readonly ResourceMap _resourceMap;
     private sealed record RenderedUiString(string Key, object?[] Arguments);
-    private readonly object _renderedGate = new();
-    private readonly Dictionary<string, RenderedUiString> _rendered = [];
-    private readonly Queue<string> _renderedOrder = new();
+    // Track the source resource identity for as long as a rendered string is still retained
+    // by a status owner. Entries disappear with their string keys; no FIFO can evict live UI.
+    private readonly ConditionalWeakTable<string, RenderedUiString> _rendered = new();
 
     public ResourceStringLocalizer(AppLanguageService language)
     {
@@ -49,8 +50,7 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
             throw new InvalidOperationException($"Missing DropSpace localized resource '{key}'.");
         }
 
-        Remember(value, key, []);
-        return value;
+        return Remember(value, key, []);
     }
 
     public bool TryGet(string key, out string value)
@@ -81,26 +81,25 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
     public string Format(string key, params object?[] arguments)
     {
         var value = string.Format(Culture, Get(key), arguments);
-        Remember(value, key, arguments);
-        return value;
+        return Remember(value, key, arguments);
     }
 
     public string Relocalize(string text)
     {
-        RenderedUiString? rendered;
-        lock (_renderedGate) _rendered.TryGetValue(text, out rendered);
-        return rendered is null ? text : rendered.Arguments.Length == 0
+        if (string.IsNullOrEmpty(text) || !_rendered.TryGetValue(text, out var rendered))
+            return text;
+        return rendered.Arguments.Length == 0
             ? Get(rendered.Key) : Format(rendered.Key, rendered.Arguments);
     }
 
-    private void Remember(string value, string key, object?[] arguments)
+    private string Remember(string value, string key, object?[] arguments)
     {
-        lock (_renderedGate)
-        {
-            if (!_rendered.ContainsKey(value)) _renderedOrder.Enqueue(value);
-            _rendered[value] = new(key, arguments.ToArray());
-            while (_rendered.Count > 2048 && _renderedOrder.TryDequeue(out var oldest)) _rendered.Remove(oldest);
-        }
+        if (value.Length == 0) return value;
+        // ResourceMap and formatting may reuse string instances. An owned instance gives
+        // every rendering an unambiguous key/argument identity, even for equal text.
+        var owned = new string(value.AsSpan());
+        _rendered.Add(owned, new RenderedUiString(key, arguments.ToArray()));
+        return owned;
     }
 
     private static string ToResourceMapPath(string key)
