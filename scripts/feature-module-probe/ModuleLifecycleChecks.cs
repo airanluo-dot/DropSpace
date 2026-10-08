@@ -9,18 +9,28 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 internal static class ModuleLifecycleChecks
 {
+#if !MODULE_PROBE_FIXTURE_CATALOG
+    public static Task<int> RunAsync(string[] args) =>
+        Task.FromException<int>(new InvalidOperationException("Lifecycle checks require the isolated fixture catalog."));
+#else
     public static async Task<int> RunAsync(string[] args)
     {
-#if !MODULE_PROBE_FIXTURE_CATALOG
-        throw new InvalidOperationException("Lifecycle checks require the isolated fixture catalog.");
-#else
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         string Option(string key) => args[Array.IndexOf(args, key) + 1];
         var scenario = Option("--lifecycle-check");
         var fixtures = Path.GetFullPath(Option("--fixtures"));
         var artifacts = Path.GetFullPath(Path.Combine(fixtures, ".."));
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "RELEASE_VERSION"))) repository = repository.Parent;
+        var allowed = Path.GetFullPath(Path.Combine(repository?.FullName ?? throw new InvalidOperationException("Repository checkout required."),
+            "scripts", "feature-module-probe", "artifacts")) + Path.DirectorySeparatorChar;
+        if (!fixtures.StartsWith(allowed, StringComparison.OrdinalIgnoreCase) || !Directory.Exists(fixtures))
+            throw new InvalidOperationException("Fixtures must stay inside the probe artifacts directory.");
+        var known = new[] { "uninstall-crash", "cleanup-retry", "update-cleanup", "capabilities", "dependency-order",
+            "dependency-corrupt", "dependency-cycle", "dependency-race", "job-stop", "job-parent-crash" };
+        if (!known.Contains(scenario, StringComparer.Ordinal)) throw new ArgumentException("Unknown focused lifecycle scenario");
         var root = Path.Combine(artifacts, "lifecycle-" + scenario);
-        if (Directory.Exists(root)) throw new InvalidOperationException("Fresh scenario root required.");
+        if (Directory.Exists(root) || File.Exists(root + ".json")) throw new InvalidOperationException("Fresh scenario root and receipt required.");
         using var downloads = new HttpRangeDownloader();
         using var store = new ModulePackageStore(root, downloads);
         await using var catalog = new OfficialModuleCatalog();
@@ -232,6 +242,6 @@ internal static class ModuleLifecycleChecks
         await File.WriteAllTextAsync(Path.Combine(artifacts, "lifecycle-" + scenario + ".json"),
             JsonSerializer.Serialize(receipt, new JsonSerializerOptions { WriteIndented = true }));
         return passed ? 0 : 1;
-#endif
     }
+#endif
 }
