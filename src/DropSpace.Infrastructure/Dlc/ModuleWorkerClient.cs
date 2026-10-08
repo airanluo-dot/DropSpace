@@ -122,7 +122,12 @@ public sealed class ModuleWorkerClient : IAsyncDisposable
         }
         catch (Exception error) when (error is IOException or ObjectDisposedException or OperationCanceledException) { }
     }
-    private void OnExited(object? sender, EventArgs args) => Exited?.Invoke(this, EventArgs.Empty);
+    private void OnExited(object? sender, EventArgs args)
+    {
+        // A crashed root must not leave descendants holding its IPC pipes or package/data locks.
+        TryKill();
+        Exited?.Invoke(this, EventArgs.Empty);
+    }
     private void TryKill()
     {
         try { _job.Terminate(); }
