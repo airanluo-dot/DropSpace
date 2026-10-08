@@ -10,11 +10,13 @@
     <ProbeCatalogFile Condition="'$(ProbeCatalogFile)' == ''">../../src/DropSpace.Infrastructure/Dlc/official-modules.json</ProbeCatalogFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="fixture-worker/**/*.cs" />
     <ProjectReference Include="../../src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj" />
     <Compile Include="../../src/DropSpace.App/Services/Dlc/FeatureModuleRuntime.cs" Link="Production/FeatureModuleRuntime.cs" />
     <Compile Include="../../src/DropSpace.Infrastructure/Dlc/ModulePackageStore.cs" Link="Production/ModulePackageStore.cs" />
     <Compile Include="../../src/DropSpace.Infrastructure/Dlc/OfficialModuleCatalog.cs" Link="Production/OfficialModuleCatalog.cs" />
     <Compile Include="../../src/DropSpace.Infrastructure/Dlc/ModuleWorkerClient.cs" Link="Production/ModuleWorkerClient.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Dlc/ModuleWorkerProcess.cs" Link="Production/ModuleWorkerProcess.cs" />
     <Compile Include="../../src/DropSpace.Infrastructure/Dlc/ModuleProcessJob.cs" Link="Production/ModuleProcessJob.cs" />
     <Compile Include="../../src/DropSpace.Infrastructure/Downloads/DownloadStorage.cs" Link="Production/DownloadStorage.cs" />
     <EmbeddedResource Include="$(ProbeCatalogFile)" LogicalName="DropSpace.Infrastructure.Dlc.official-modules.json" />

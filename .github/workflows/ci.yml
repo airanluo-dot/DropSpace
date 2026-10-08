@@ -28,6 +28,7 @@ jobs:
       maintenance_only: ${{ steps.scope.outputs.maintenance_only }}
       release_version: ${{ steps.scope.outputs.release_version }}
       isolated_beta: ${{ steps.scope.outputs.isolated_beta }}
+      module_maintenance: ${{ steps.scope.outputs.module_maintenance }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Classify complete maintenance diff
@@ -41,20 +42,24 @@ jobs:
           import {isNextBetaRelease} from './scripts/next-beta-release-validation.mjs';
           const tag=fs.readFileSync('RELEASE_VERSION','utf8').trim();
           const isolatedBeta=['v0.3.1-beta.17','v0.3.1-beta.18'].includes(tag)||isNextBetaRelease(tag);
-          let maintenance=false, websiteOnly=false;
+          let maintenance=false, websiteOnly=false, moduleMaintenance=false;
           try {
             const base=process.env.BASE_SHA;
             if(process.env.GITHUB_EVENT_NAME!=='pull_request'||!/^[a-f0-9]{40}$/.test(base??''))throw new Error('Full application build required');
             execFileSync('git',['fetch','--no-tags','--depth=1','origin',base]);
             const names=execFileSync('git',['diff','--name-only','-z',base,'HEAD'],{encoding:'utf8'}).split('\0').filter(Boolean);
             const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md','.github/release-notes/v0.3.1-beta.14.md','.github/release-notes/v0.3.1-beta.15.md','docs/dev/beta15-fix-audit.md']);
+            moduleMaintenance=names.some(n=>/^src\/DropSpace\.(App\/Services|Core|Infrastructure)\/Dlc\//.test(n))&&names.every(n=>
+              n==='src/DropSpace.App/Services/Dlc/FeatureModuleRuntime.cs'||
+              /^src\/DropSpace\.(Core|Infrastructure)\/Dlc\/[^/]+\.cs$/.test(n)||
+              n.startsWith('scripts/feature-module-probe/')||n==='docs/dev/official-module-lifecycle-maintenance.md'||n==='.github/workflows/ci.yml');
             websiteOnly=names.length>0&&names.some(n=>n.startsWith('website/'))&&names.every(n=>n.startsWith('website/')||n==='.github/workflows/ci.yml');
             maintenance=websiteOnly||(names.length>0&&names.every(n=>allowed.has(n)));
             // Exact corrective Betas require complete App-input comparison and immutable asset binding.
             if(!websiteOnly&&(isolatedBeta||['v0.3.1-beta.15','v0.3.1-beta.16'].includes(tag)))maintenance=false;
-          } catch(e) { maintenance=false; websiteOnly=false; console.log(e.message); }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\nrelease_version=${tag}\nisolated_beta=${isolatedBeta}\n`);
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,websiteOnly?'Website-only changes: no application binaries built, no application test pass claimed.\n':maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
+          } catch(e) { maintenance=false; websiteOnly=false; moduleMaintenance=false; console.log(e.message); }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\nrelease_version=${tag}\nisolated_beta=${isolatedBeta}\nmodule_maintenance=${moduleMaintenance}\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,moduleMaintenance?'Module-only maintenance: production Core/Infrastructure plus linked App runtime compilation and focused Windows lifecycle probes; no publication or full App/XAML claim.\n':websiteOnly?'Website-only changes: no application binaries built, no application test pass claimed.\n':maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
           JS
       - name: Audit focused test selection and workflow triggers
         if: github.event_name == 'pull_request'
@@ -68,7 +73,7 @@ jobs:
       contents: write
       actions: read
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta != 'true'
+    if: needs.change-scope.outputs.module_maintenance != 'true' && needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta != 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     outputs:
@@ -933,7 +938,7 @@ jobs:
     # final main packages without unit/model suites; one installer payload scenario remains.
     name: Isolated Windows producer
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta == 'true'
+    if: needs.change-scope.outputs.module_maintenance != 'true' && needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta == 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
@@ -1090,9 +1095,38 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  module-maintenance:
+    name: Focused official module maintenance
+    needs: change-scope
+    if: needs.change-scope.outputs.module_maintenance == 'true'
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+          cache: true
+          cache-dependency-path: Directory.Packages.props
+      - name: Compile production layers and run only focused lifecycle probes
+        shell: pwsh
+        env:
+          UNINSTALL_CONCURRENCY_ONLY: ${{ github.event.pull_request.number == 123 }}
+        run: ./scripts/feature-module-probe/Run-LifecycleChecks.ps1 -UninstallConcurrencyOnly:($env:UNINSTALL_CONCURRENCY_ONLY -eq 'true')
+      - name: Retain focused module lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: module-lifecycle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: scripts/feature-module-probe/artifacts/lifecycle-*.json
+          if-no-files-found: ignore
+          retention-days: 14
+
   required-validation:
     name: Build and test (x64)
-    needs: [change-scope, produce-windows, focused-windows]
+    needs: [change-scope, produce-windows, focused-windows, module-maintenance]
     if: ${{ always() }}
     runs-on: ubuntu-26.04
     steps:
@@ -1100,6 +1134,8 @@ jobs:
         shell: bash
         env:
           SCOPE_RESULT: ${{ needs.change-scope.result }}
+          MODULE_MAINTENANCE: ${{ needs.change-scope.outputs.module_maintenance }}
+          MODULE_RESULT: ${{ needs.module-maintenance.result }}
           MAINTENANCE_ONLY: ${{ needs.change-scope.outputs.maintenance_only }}
           RELEASE_VERSION: ${{ needs.change-scope.outputs.release_version }}
           ISOLATED_BETA: ${{ needs.change-scope.outputs.isolated_beta }}
@@ -1108,7 +1144,10 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SCOPE_RESULT" == success ]]
-          if [[ "$MAINTENANCE_ONLY" == true ]]; then
+          if [[ "$MODULE_MAINTENANCE" == true ]]; then
+            [[ "$MODULE_RESULT" == success && "$FOCUSED_RESULT" == skipped && "$LEGACY_RESULT" == skipped ]]
+            echo 'Module-only maintenance compiled Core/Infrastructure and linked App runtime, then ran focused Windows probes. Full App/XAML, publication and installer validation are not claimed.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$MAINTENANCE_ONLY" == true ]]; then
             [[ "$FOCUSED_RESULT" == skipped && "$LEGACY_RESULT" == skipped ]]
             echo 'Maintenance-only source scope: no App build or functional test pass is claimed.' >> "$GITHUB_STEP_SUMMARY"
           elif [[ "$ISOLATED_BETA" == true ]]; then

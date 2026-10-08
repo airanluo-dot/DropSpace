@@ -9,6 +9,7 @@ using DropSpace.Infrastructure.Dlc;
 using DropSpace.Infrastructure.Downloads;
 using Microsoft.Extensions.Logging.Abstractions;
 
+if (args.Contains("--lifecycle-check", StringComparer.Ordinal)) return await ModuleLifecycleChecks.RunAsync(args);
 if (args.Contains("--module-session", StringComparer.Ordinal)) return await PathologicalWorkerAsync(args);
 if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("The worker lifecycle probe requires Windows.");
 string? Option(string name)
