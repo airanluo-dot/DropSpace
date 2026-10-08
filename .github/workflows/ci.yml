@@ -937,7 +937,7 @@ jobs:
     # final main packages without unit/model suites; one installer payload scenario remains.
     name: Isolated Windows producer
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta == 'true'
+    if: needs.change-scope.outputs.module_maintenance != 'true' && needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta == 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
