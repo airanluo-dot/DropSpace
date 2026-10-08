@@ -102,7 +102,7 @@ text are explicit literals. Never restore rendered-string reverse lookup, a glob
 registry or an unbounded cache. Installer main `[Messages]`/`[CustomMessages]` overrides are forbidden;
 owned locale ISL resources and pinned section-aware Inno checks remain the single review path.
 
-## Regression, budget and release
+## Regression, focused testing and release
 
 Establish the actual baseline: feature entry points/defaults, settings/DB schemas, startup/shutdown,
 background/native owners, resource release and package/upgrade contracts. Review each affected
@@ -110,10 +110,10 @@ invariant against the final combined diff. Never mask regression by deleting/clo
 changing defaults, clearing data or requiring reconfiguration. Preserve lyric/providers/models/
 prompts/admission/cache/acceleration unless explicitly authorized.
 
-Use the single [passive budget](../../../docs/dev/passive-test-budget.md): at most **20 actual
-functional cases/scenarios for the whole project task**, including agents, local/Actions execution,
-failures and retries. Never reset per module/PR/workflow/trigger. Freeze past release ledgers; reserve
-each current scenario before running. A development/release or ordinary manual dispatch is not
+Use the single [focused testing policy](../../../docs/dev/passive-test-budget.md): there is no fixed
+case ceiling for current or future tasks. Select checks for concrete risks, minimize unnecessary
+testing and do not repeat unchanged passing checks. Keep one truthful project record including
+agents, local/Actions execution, failures and retries; preserve historical release ledgers. A development/release or ordinary manual dispatch is not
 permission for full suites. Source/resource/contract checks, builds, hashes and real public readback
 are production integrity checks, not functional passes. Spend scenarios on high-risk lifecycle,
 recovery, UI retirement, upgrade and no-module regression; document actual coverage boundaries.

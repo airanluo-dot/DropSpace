@@ -1,11 +1,12 @@
 # 0.3.2 Beta1 project execution ledger
 
-One shared maximum of 20 actual functional case/scenario executions across local runs,
-agents, Actions, failures and retries. Beta19's sealed 20/20 record is not reused as new
-execution. Build, source/resource integrity, package/hash checks and real public metadata/
+The owner removed the fixed ceiling for this and future tasks on 2026-10-08. Select necessary
+functional checks and keep one truthful record across local runs, agents, Actions, failures
+and retries. Beta19's sealed 20/20 record is not reused as new execution.
+Build, source/resource integrity, package/hash checks and real public metadata/
 asset readback follow the existing non-functional production-check classification.
 
-Executed: **15/20**. Failures: **5**. Retries: **5**.
+Executed before final-main Actions: **16**. Failures: **5**. Retries: **5**.
 
 Reserved before execution:
 
@@ -18,11 +19,12 @@ Reserved before execution:
 | 08 | Interrupted journal recovery and locked-file cleanup in isolated module storage | 1 | Failed 2026-10-08 before scenario assertions: official catalog field casing mismatch |
 | 09 | Owned worker request cancellation and retired results | 1 | Failed 2026-10-08 before scenario assertions: same catalog field casing mismatch |
 | 10 | Owned worker timeout and bounded stop | 1 | Failed 2026-10-08 before scenario assertions: same catalog field casing mismatch |
-| 11 | Official public sample installation through the shared downloader | 1 | Pending |
+| 11 | Official public sample installation through the shared downloader | 1 | Passed 2026-10-08T06:19:17Z–06:19:36Z; actual anonymous download of committed-source release ZIP, `docs/dev/evidence/beta32/public-module-lifecycle.json` |
 | 12 | Existing final-main installer payload extraction/uninstall producer scenario | 1 | Reserved for Actions |
 
-This narrowed plan reserves 12 executions and leaves 8 for actual failures/retries or a
-necessary concrete issue. Unselected probe modes and broad suites are not authorized.
+This narrowed plan selected 12 executions before the owner removed the fixed ceiling.
+Keep the focused selection; add a check only when it resolves a concrete risk. Do not rerun
+unchanged passing checks or automatically enable unselected probe modes and broad suites.
 
 Reserve three retries (13–15) of 08–10 only after fixing the concrete catalog writer/parser
 mismatch. The failed attempts began executable scenarios and count despite no assertion receipt.

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       full_tests:
-        description: Explicit manual opt-in for unrestricted tests; PRs stay within passive budget
+        description: Explicit manual opt-in for unrestricted tests; PRs use focused selection
         required: false
         default: false
         type: boolean
@@ -56,7 +56,7 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\nrelease_version=${tag}\nisolated_beta=${isolatedBeta}\n`);
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,websiteOnly?'Website-only changes: no application binaries built, no application test pass claimed.\n':maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
           JS
-      - name: Audit permanent passive test budget and workflow triggers
+      - name: Audit focused test selection and workflow triggers
         if: github.event_name == 'pull_request'
         run: node scripts/passive-test-budget.mjs audit
 
@@ -660,7 +660,7 @@ jobs:
         if: ${{ steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && steps.reviewed-beta16.outputs.reuse != 'true' }}
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
-      - name: Preflight frozen passive cases against 20-test ceiling
+      - name: Preflight frozen focused PR case selection
         id: passive-budget
         if: ${{ github.event_name == 'pull_request' && env.OWNER_SKIP_TESTS == 'true' && steps.prior-checks.outputs.reuse != 'true' && steps.reviewed-beta11.outputs.reuse != 'true' && steps.reviewed-beta12.outputs.reuse != 'true' && steps.reviewed-beta13.outputs.reuse != 'true' && steps.reviewed-beta14.outputs.reuse != 'true' && steps.reviewed-beta15.outputs.reuse != 'true' && steps.reviewed-beta16.outputs.reuse != 'true' }}
         run: node scripts/passive-test-budget.mjs preflight
@@ -1047,7 +1047,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Produce final-commit packages with only budgeted validation
+      - name: Produce final-commit packages with only necessary validation
         if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         env:

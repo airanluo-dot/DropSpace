@@ -95,8 +95,9 @@ and confirmation, including `%1` versus `%%1` and `%n` versus `%%n`.
 
 ## Focused verification and publication
 
-Keep one project-wide passive ledger: at most 20 actual functional cases/scenarios including
-failures, retries, languages and workflows. A development/release request or manual release
+Keep one truthful project-wide execution ledger including failures, retries, languages and
+workflows, without a fixed ceiling. Select necessary checks and avoid unchanged reruns.
+A development/release request or manual release
 refresh does not authorize broad diagnostics. Do not resume full suites, ten-language browser
 matrices, repeated screenshot sweeps or model tests. Resource entry counts are separate:
 compilation, source/resource integrity, static package inspection, hashes and publication/API

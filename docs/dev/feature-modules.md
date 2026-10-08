@@ -99,7 +99,8 @@ summaries, notes and highlights are English. Follow the single interface-localiz
 independent executable. It acknowledges a boolean setting and returns localized expiring content,
 does not touch existing features/user data, is never installed by default, and adds no built-in debug
 panel. Review the final combined tree against the actual baseline and test high-risk boundaries.
-Maintain one task ledger, at most 20 executed scenarios including agents, Actions, failures/retries.
+Maintain one truthful task ledger including agents, Actions, failures/retries. There is no fixed
+ceiling; select checks for concrete risks and minimize unnecessary execution.
 Compilation/static checks do not prove lifecycle, UI, upgrade or no-module behavior. Use focused
 checks; a known regression or compatibility failure blocks publication. Record actual limitations
 without expanding into a full matrix or claiming zero bugs.

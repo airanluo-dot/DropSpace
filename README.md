@@ -128,7 +128,7 @@ The implemented vertical slice includes:
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
 - Process-lifetime in-app update checks, repeatable manual checks, Stable/Beta channels, resilient official website/GitHub metadata sources, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
 
-Current Beta validation uses the existing isolated candidate route: focused source/resource checks, full App/XAML compilation, and packaging from the exact integrated main tree. The project-wide limit is 20 actual functional scenarios including failures, retries and Actions. See `docs/dev/beta32-test-ledger.md` for this release's executions and boundaries; historical broad smoke coverage does not establish a new pass. Production installer, portable, updater and independent component contracts remain unchanged.
+Current Beta validation uses the existing isolated candidate route: focused source/resource checks, full App/XAML compilation, and packaging from the exact integrated main tree. There is no fixed test ceiling; choose necessary checks and record actual executions, failures, retries and Actions. See `docs/dev/beta32-test-ledger.md` for this release's executions and boundaries; historical broad smoke coverage does not establish a new pass. Production installer, portable, updater and independent component contracts remain unchanged.
 
 ## Download and run
 

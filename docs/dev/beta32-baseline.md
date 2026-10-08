@@ -51,7 +51,7 @@ the validated final-tree package set and verify actual public assets/API/Pages r
 ## Review and functional evidence boundary
 
 Before publication compare each row above against the final diff. Compilation and structural
-checks do not establish runtime behavior. Concentrate the single 20-case task ledger on process
+checks do not establish runtime behavior. Concentrate necessary recorded checks on process
 lifecycle/recovery, trusted package admission, UI retirement, no-module startup, long-lived
 message language identity, website recovery and installed payload preservation. A known unresolved
 regression or incompatible integrated source blocks publication. Record coverage limitations without

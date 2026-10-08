@@ -7,8 +7,9 @@ production files. It references the actual Core/Infrastructure downloader and pa
 their referenced-assembly counterparts. No App project, production allowlist or UI is injected
 or changed. Build alone is a non-functional production/source compilation check.
 
-There are no default functional runs. The release owner must reserve each actual invocation in
-the one project-wide 20-scenario ledger **before** launching the executable. Failures and
+There are no default functional runs. Select each necessary invocation and record it in
+the one project-wide execution ledger **before** launching the executable. No fixed ceiling
+applies; avoid unnecessary runs and do not repeat unchanged passing checks. Failures and
 retries count. Run via the built apphost (`bin/Release/net10.0/DropSpace.FeatureModuleProbe.exe`),
 not `dotnet run`, because the pathological fixture must restart this apphost as a child process.
 Use a fresh `--root` and `--evidence` below `scripts/feature-module-probe/artifacts`; evidence is
@@ -36,7 +37,7 @@ Each invocation requires `--case` plus the fresh root/evidence arguments:
    injection exists.
 
 Cases 1/2/3 plus every mode of 4/5 total **10 actual scenario invocations**, not five. Execute
-only the release owner's chosen subset; this README does not authorize spending that budget.
+only the necessary chosen subset; this README does not enable a broad suite automatically.
 Native WinUI layout/navigation/island priority, actual installer upgrades, existing lyrics/model
 behavior and public-release publication remain separate verification boundaries.
 

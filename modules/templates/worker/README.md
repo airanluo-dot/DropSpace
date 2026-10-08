@@ -96,8 +96,9 @@ and implemented fallback (`omit` in this example).
 ## Verification boundary
 
 Packaging success establishes source compilation and hashes, not a real installation or
-successful functionality. The release owner records one shared project-wide passive ledger,
-maximum 20 actual functional scenarios including failures/retries/Actions. The example's real
+successful functionality. The release owner records one shared project-wide execution ledger,
+including failures/retries/Actions, without a fixed ceiling. Select necessary checks and avoid
+rerunning unchanged passing checks. The example's real
 install/hello/page/action/settings/disable/reenable/uninstall cycle belongs in that ledger;
-do not start a separate module budget or broad matrix. Source/static/resource checks and
+do not automatically start a broad matrix. Source/static/resource checks and
 production builds do not replace host compatibility and regression evidence.

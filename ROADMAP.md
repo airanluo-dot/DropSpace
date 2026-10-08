@@ -5,9 +5,9 @@
 The current Beta target is `v0.3.2-beta.1` (Beta 1).
 v0.3.1-beta.19 is the immediate upgrade baseline for this release.
 
-Deliver the official optional feature-module v1 contract incrementally around the existing host: signed packages/catalog, compatible worker IPC, recoverable install/activation/disable/uninstall, host-rendered pages/settings and constrained expiring Island content. Keep built-in features, default settings, existing data and independent component bytes. Include the six focused language/installer/evidence corrections and rewrite the canonical skill as the implemented development standard.
+Deliver the official optional feature-module v1 contract incrementally around the existing host: official-source packages/catalog with integrity checks, compatible worker IPC, recoverable install/activation/disable/uninstall, host-rendered pages/settings and constrained expiring Island content. Keep built-in features, default settings, existing data and independent component bytes. Include the six focused language/installer/evidence corrections and rewrite the canonical skill as the implemented development standard.
 
-Preserve lyric/AI business behavior and the ten-language/unified-URL interface contract. Keep every actual execution, failure and retry within the single project 20-scenario budget; compilation is not runtime acceptance. Publication remains gated by the [release notes](.github/release-notes/v0.3.2-beta.1.md), [actual baseline](docs/dev/beta32-baseline.md) and [execution ledger](docs/dev/beta32-test-ledger.md).
+Preserve lyric/AI business behavior and the ten-language/unified-URL interface contract. Select necessary checks without a fixed ceiling and record every actual execution, failure and retry; compilation is not runtime acceptance. Publication remains gated by the [release notes](.github/release-notes/v0.3.2-beta.1.md), [actual baseline](docs/dev/beta32-baseline.md) and [execution ledger](docs/dev/beta32-test-ledger.md).
 
 ## Published release: v0.3.1-beta.18
 
