@@ -7,7 +7,7 @@ v0.3.1-beta.18 is the immediate upgrade baseline for this release.
 
 Deliver ten offline App and website interface languages, independently persisted Simplified Chinese / English lyric translation targets, one official URL per website content page, and fail-closed translation completeness checks. Reuse existing templates, .resw resources, updater schemas and independent component bytes. New release summaries, notes and version highlights are English only.
 
-Preserve lyric and AI business behavior; only the settings and display/target bindings necessary for interface isolation change. Keep all project scenario executions, including failures and retries, within the shared 20-scenario budget. The [release notes](.github/release-notes/v0.3.1-beta.19.md) and [development audit](docs/dev/ten-language-release-audit.md) record actual scope, validation and publication evidence.
+Preserve lyric and AI business behavior; only the settings and display/target bindings necessary for interface isolation change. This release used the then-current shared 20-scenario budget, including failures and retries; current work follows the [focused testing policy](docs/dev/passive-test-budget.md). The [release notes](.github/release-notes/v0.3.1-beta.19.md) and [development audit](docs/dev/ten-language-release-audit.md) record actual scope, validation and publication evidence.
 
 ## Published release: v0.3.1-beta.18
 

@@ -83,8 +83,10 @@ real Windows environment.
 Under the current Beta publication policy in [TEST_PLAN.md](TEST_PLAN.md), missing
 physical/manual matrix evidence is recommended follow-up rather than a Beta
 publication blocker. Unexecuted rows remain unverified. Exact-candidate Windows
-automated build, tests including actual DPAPI, native smoke, packaging/lifecycle,
-security and final artifact checks remain required; Stable criteria are unchanged.
+build, packaging, security and final artifact checks remain required. Select necessary
+functional validation, including DPAPI, native smoke and lifecycle, for the actual change
+and concrete risks under the [focused testing policy](docs/dev/passive-test-budget.md);
+Stable criteria are unchanged.
 
 | OS baseline | Build | Required focus |
 | --- | ---: | --- |

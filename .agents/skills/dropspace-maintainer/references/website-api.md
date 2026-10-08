@@ -28,7 +28,8 @@ Edit `website/_source`; generated deployment output is produced by the build scr
 The shared catalog is `localization/languages.json`; resource IDs and reviewed source fingerprints
 are checked by `scripts/check-localization.mjs` before website builds and artifact publication.
 See `website/_source/README.md` for language matching, storage fallback, redirects, fixed/sample
-exceptions and the focused verification workflow. Keep the global passive test budget intact.
+exceptions and the focused verification workflow. Follow the
+[focused testing policy](../../../../docs/dev/passive-test-budget.md).
 
 Common local commands are:
 

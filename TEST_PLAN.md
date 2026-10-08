@@ -2,7 +2,11 @@
 
 ## Test strategy
 
-Test pure policies heavily, OS adapters with integration harnesses, and a small number of critical end-to-end flows. Manual compatibility testing remains necessary for cross-process drag, tray, display/DPI, and clipboard behavior.
+Minimize testing, keeping necessary verification for the actual change and concrete risks under
+the [focused testing policy](docs/dev/passive-test-budget.md). The coverage lists and harness
+descriptions below are references for relevant validation, not a requirement to run every suite,
+matrix or fixed cycle count for each task. Manual compatibility evidence remains necessary to
+establish cross-process drag, tray, display/DPI, and clipboard behavior.
 
 The historical release-specific P0 recovery matrix for `v0.3.0-preview.10` is in the
 [Preview.10 recovery test plan](docs/test-plan/v0.3.0-preview.10.md).
@@ -21,8 +25,8 @@ matrix row remains conditional until recorded on the target machine.
 ## Quality gates
 
 - Build succeeds; every warning is reviewed, fixed, or documented.
-- Unit and integration suites pass.
-- Schema migration fixtures pass from every supported prior version.
+- Relevant unit and integration checks pass.
+- For schema migration changes, fixtures cover the affected supported prior versions.
 - No high-severity privacy/security finding remains unexplained.
 - Stable release candidates retain the critical manual evidence requirement; Beta manual acceptance follows the policy below.
 - `en-US` and `zh-CN` `.resw` key sets are identical; every XAML resource identifier uses the app-owned override or an explicit `Window` application path, every imperative localizer key and package-manifest string resolves in the English base resource file, and source `.cs` and `.xaml` files contain no CJK hardcoded UI text. Portable publishing regenerates and explicitly bundles its packaging-free `DropSpace.resources.pri` before the runtime smoke without replacing WinUI's default resource index.
@@ -34,11 +38,11 @@ covers missing evidence only; actual test failures or demonstrated unresolved
 regressions remain publication blockers. Record unavailable,
 failed, skipped, and unexecuted checks honestly; this exception does not mark them
 passed or establish physical/provider/deployed-service behavior. The exact candidate
-must still pass both language Windows CI jobs, complete Core/Infrastructure/App tests
-including actual DPAPI, WinUI Release, Portable EXE, Inno installer/lifecycle,
+must still pass the required Windows CI jobs, WinUI Release, Portable EXE, Inno installer,
 MSIX/identity packaging, security checks, and final version/SHA-256/update-manifest
-validation. Stable signing and release criteria are unchanged. No automated test or
-safety check is removed or made optional by this Beta policy.
+validation. Functional validation, including DPAPI, native smoke and installer lifecycle,
+follows the change and risk scope above. Stable signing and release criteria are unchanged.
+Required production integrity checks and actual failure blockers remain in force.
 
 ## Unit tests
 
@@ -149,7 +153,7 @@ the rows remain unverified until executed and recorded.
 - In each installation, choose **System default**, allow dispatcher refresh, and verify the main window, Dynamic Island, tray tooltip/menu, newly generated states/dialogs/errors, and accessibility names use the expected resource set. Restart and verify that the saved preference is retained.
 - In each installation, explicitly choose **English** and then **Simplified Chinese** without restarting and verify the same refreshed surfaces. Generate fresh status/error text; record existing transient messages that retain their previous language until replaced. Restart and verify persistence. This verifies the app-owned XAML override as well as imperative and native surfaces.
 - Use Narrator/UI Automation on the display-language selector, navigation, item actions, and Dynamic Island controls; verify refreshed control names and newly generated messages use the selected language and do not announce raw exception text.
-- CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; real supported Windows installations remain recommended Beta follow-up for that behavior, without marking absent evidence passed.
+- CI uses `en-US` and `zh-CN` resource contexts; relevant runtime validation checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; real supported Windows installations remain recommended Beta follow-up for that behavior, without marking absent evidence passed.
 
 ### Windows compatibility baseline (Beta.25)
 
@@ -284,6 +288,6 @@ Automation does not claim visual quality or real Explorer/UIA/third-party provid
 
 Manual Windows 11 gates remain real Explorer/Desktop pointer delivery, Drop Tray on/off Shell ownership and direct suggestion ranking, Share UI activation with a trusted signed identity, visible Compact/Expanded feedback, last-item dismissal, mixed-DPI/multi-monitor input, animation feel and zero-pixel Hidden appearance.
 
-The v0.3.0-preview.7 network/preview matrix is maintained in [docs/test-plan/v0.3.0-preview.7.md](docs/test-plan/v0.3.0-preview.7.md); historical Preview plans retain their recorded scope and results. Automated policy, protocol, crypto, Worker and browser checks remain required. For current Beta publication, two real Windows devices plus an operator-deployed Worker are recommended follow-up for pairing, firewall, reconnect/resume, clipboard modes, browser decryption, and Internet Share acceptance. Missing live evidence alone does not block Beta publication; those behaviors remain unverified and an unconfigured backend remains unavailable.
+The v0.3.0-preview.7 network/preview matrix is maintained in [docs/test-plan/v0.3.0-preview.7.md](docs/test-plan/v0.3.0-preview.7.md); historical Preview plans retain their recorded scope and results. Select necessary policy, protocol, crypto, Worker and browser checks for related changes and concrete risks. For current Beta publication, two real Windows devices plus an operator-deployed Worker are recommended follow-up for pairing, firewall, reconnect/resume, clipboard modes, browser decryption, and Internet Share acceptance. Missing live evidence alone does not block Beta publication; those behaviors remain unverified and an unconfigured backend remains unavailable.
 
 Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

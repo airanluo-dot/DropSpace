@@ -1,8 +1,20 @@
-# Permanent passive CI test ceiling
+# Focused testing
 
-Automatically triggered DropSpace workflows execute at most **20 functional test cases or scenarios per passive trigger**, across eligible workflows. The frozen PR selection is **10 cases**, not a target to fill the budget. Explicit operator `workflow_dispatch` diagnostics are exempt. Keep this rule independent of App release version numbers.
+Minimize testing, keeping only the verification needed for the actual change and concrete risks.
+Avoid rerunning checks that already passed while the relevant code and inputs are unchanged,
+unrelated full suites, broad matrices, unrelated model or performance evaluations, repeated
+security audits, and layers of formal evidence that add no useful confidence.
 
-- Automatic PR: skip broad Core/Infrastructure/App regression suites, stress/native smoke, installer lifecycle and model inference. The next-Beta route compiles App/XAML and runs zero functional cases. Legacy routes may run the frozen 8 approved Core policy cases plus 2 approved Infrastructure lyric outcome cases, at most once. Source definitions have pinned Git blob identities, so new DataRows trigger fail-closed zero cases until reviewed.
+Use judgment rather than fixed test counts or rounds, and do not maintain a test-budget ledger.
+Run tests explicitly requested by the user as requested. Report real failures honestly; never
+fabricate passes or mark skipped, unavailable, or unexecuted checks as passed.
+
+## Existing workflow boundaries
+
+A development/release request or ordinary manual release refresh does not opt into broad diagnostics.
+Keep this rule independent of App release version numbers.
+
+- Automatic PR: skip broad Core/Infrastructure/App regression suites, stress/native smoke, installer lifecycle and model inference. The next-Beta route compiles App/XAML without functional suites. Legacy routes use the approved Core policy and Infrastructure lyric outcome selection. Source definitions have pinned Git blob identities, so changed definitions fail closed until reviewed.
 - Automatic website events and ordinary manual release refresh: Node/Playwright suites are skipped. Static site build, localization integrity, deployment and public metadata verification continue. Diagnostics require explicit `full_tests=true` opt-in.
 - Automatic CUDA contract PRs: skip Python/Node/MSTest fixture suites, but keep trusted component metadata/hash/source identity checks.
 - Heavy AI/model/native music visual QA workflows: only explicit manual dispatch can start them; QA-branch pushes do not run them.
@@ -12,12 +24,14 @@ Automatically triggered DropSpace workflows execute at most **20 functional test
 ### Manual opt-in
 
 Resource entries are not functional test cases. Localization source/translation checks and
-actual static PRI inspection are production integrity checks, scoped once per resource set;
-reuse the hash-bound package receipt. Keep one 20-case project-wide ledger across languages,
-workflows, failures and retries. A release request is not broad diagnostic opt-in.
+actual static PRI inspection are production integrity checks; reuse valid results and the
+hash-bound package receipt when relevant inputs are unchanged. A release request is not broad
+diagnostic opt-in.
 
 To run unrestricted CI tests, use `ci.yml` with `full_tests=true` on `workflow_dispatch`. Manual `release.yml`, website, CUDA, AI model and visual diagnostic workflows continue to support the deliberately requested validation suites.
 
-### Enforcement
+### Existing automation
 
-`scripts/passive-test-budget.mjs audit` classifies the 12 existing workflows on every PR; unknown future workflows or accidental diagnostic auto triggers fail the audit. `preflight` checks frozen test source identities, and `verify` reads actual TRX case counts, rejects repeats/failures or any unapproved case expansion. This permanent policy changes no App source, `RELEASE_VERSION`, existing tags or published assets.
+This documentation update leaves workflow entry points, CI guard scripts and production integrity
+checks unchanged. Their implementation-specific test selections do not define a project-wide task
+budget. Historical release evidence and test totals retain their original scope and results.

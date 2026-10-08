@@ -91,15 +91,16 @@ cannot silently fall back to English. Preserve Inno `%1`/`%2` variables and `%n`
 
 ## Focused verification and publication
 
-Keep one project-wide passive ledger: at most 20 actual functional cases/scenarios including
-failures, retries, languages and workflows. A development/release request or manual release
-refresh does not authorize broad diagnostics. Do not resume full suites, ten-language browser
+Minimize testing, retaining necessary verification for the actual change and concrete risks under
+the [focused testing policy](passive-test-budget.md). A development/release request or manual
+release refresh does not authorize broad diagnostics. Avoid unrelated full suites, broad browser
 matrices, repeated screenshot sweeps or model tests. Resource entry counts are separate:
 compilation, source/resource integrity, static package inspection, hashes and publication/API
 readback are non-functional production checks under the existing policy. Verify focused
 compatibility/matching, representative layouts/old links, English release exceptions and package
-inclusion. Review the lyric-boundary diff without full lyric/model suites. Report blockers if
-crossing that boundary or exceeding the budget would be necessary.
+inclusion as relevant to the change. Reuse passed checks when their relevant inputs are unchanged.
+Review the lyric-boundary diff without unrelated lyric/model suites. Report blockers if crossing
+that boundary would be necessary.
 
 Read latest main, PRs, tags and actual release state before work and before choosing the next Beta.
 Reuse completed work/exact-source bundles; preserve unrelated tasks/tags; increment the actual

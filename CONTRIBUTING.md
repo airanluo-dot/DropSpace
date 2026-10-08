@@ -25,8 +25,9 @@ App, installer and website UI changes follow the single
 [interface localization contract](docs/dev/interface-localization.md): shared ten-language
 definitions, incremental source/translation review records and publication gate. Lyric targets
 remain independently saved and permanently Chinese/English; preserve lyric business behavior.
-New release summaries, changelog bodies and highlights use English only. Keep one passive test
-count within 20 including repeats; a release request does not authorize full suites.
+New release summaries, changelog bodies and highlights use English only. Minimize testing,
+keeping necessary verification for the actual change and concrete risks under the
+[focused testing policy](docs/dev/passive-test-budget.md); a release request does not authorize full suites.
 
 For Beta 26, keep real provider responses and native execution evidence distinct
 from deterministic fixtures. On clean runners, run
