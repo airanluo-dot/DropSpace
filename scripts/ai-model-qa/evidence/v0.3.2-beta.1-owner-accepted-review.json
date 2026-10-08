@@ -574,7 +574,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Dlc/official-modules.json",
-          "sha256": "5edb48373de28e7228a12ebc5e361ac9495b6e8ae26aac9f7e381065aa4e7821"
+          "sha256": "2a8fc541c1c676af1b8e33476195a8172f79730372fd0d0b786eae162291b839"
         },
         {
           "path": "src/DropSpace.Infrastructure/Dlc/OfficialModuleCatalog.cs",
@@ -1273,7 +1273,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "d7ba46507c0a4bc3a6031eb5c85cefb397464d45b50a05807eeb0883d4c9cc44"
+      "sha256": "cf80908da96e63286ff6d44f98d9d37420027524a460aeffd83b1dcff87e7b1b"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2944,7 +2944,7 @@
     "sha256": "cee4dd82f69a9157fe504b5092b9c8a06d18197a20a8674ac00216f7eca2c680"
   },
   "candidateValidation": {
-    "recordedAt": "2026-10-08T06:13:14Z",
+    "recordedAt": "2026-10-08T06:16:59Z",
     "summary": "Fifteen local functional executions: ten passed, five failed, five retries included. Native no-DLC/install/navigation/action/Island/disable/re-enable/uninstall/data-retention/normal-shutdown lifecycle passed. Optional pixel readbacks did not pass content validation and remain explicit warnings. Final-main payload scenario, public module install and release readback are pending. No model inference or semantic qualification ran.",
     "completedFunctionalExecutions": 15,
     "passed": 10,

@@ -569,7 +569,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Dlc/official-modules.json",
-          "sha256": "5edb48373de28e7228a12ebc5e361ac9495b6e8ae26aac9f7e381065aa4e7821"
+          "sha256": "2a8fc541c1c676af1b8e33476195a8172f79730372fd0d0b786eae162291b839"
         },
         {
           "path": "src/DropSpace.Infrastructure/Dlc/OfficialModuleCatalog.cs",
@@ -1268,7 +1268,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "d7ba46507c0a4bc3a6031eb5c85cefb397464d45b50a05807eeb0883d4c9cc44"
+      "sha256": "cf80908da96e63286ff6d44f98d9d37420027524a460aeffd83b1dcff87e7b1b"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2712,6 +2712,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.1-owner-accepted-review.json",
-    "sha256": "e4d0e86016671ef787dc9f90b8ef523cc598f3d3a450752de0a0209ead3243f5"
+    "sha256": "49416b59cb69c3cc9599ab2d03bdea4ab5ab207713269fb559216863e42aa972"
   }
 }

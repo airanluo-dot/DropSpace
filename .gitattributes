@@ -31,7 +31,7 @@ branding/master/*.txt -text
 scripts/ai-model-qa/evidence/** -text
 
 # Original downloaded checksum evidence retains the public asset's exact bytes.
-docs/dev/evidence/ten-language/beta19-SHA256SUMS.txt -text
+docs/dev/evidence/ten-language/beta19-SHA256SUMS.txt -text whitespace=cr-at-eol
 
 # Pinned third-party orthography data/license retain upstream bytes.
 src/DropSpace.Core/Lyrics/Data/*.txt -text
