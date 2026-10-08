@@ -49,11 +49,11 @@ Ordinary product work does not require updating this skill. Update it only when 
 or when its long-lived project navigation, design language, or interface map is no longer accurate.
 There is no personal counterpart and no synchronization gate.
 
-## Passive test execution limit
+## Focused testing
 
-- Across languages/workflows, total passive functional cases/scenarios including repeats/failures
-  must not exceed 20. Development/release requests or ordinary manual release refresh do not
-  opt into diagnostic suites. Use the canonical [budget policy](../../../docs/dev/passive-test-budget.md).
+Minimize testing; keep the verification needed for the actual change and concrete risks.
+Follow the [focused testing policy](../../../docs/dev/passive-test-budget.md) for avoiding
+unnecessary repeats and broad diagnostics, honoring user-requested tests, and reporting failures.
 
 ## Completion report
 
