@@ -34,6 +34,23 @@ export const languageIdentificationSourcePaths = Object.freeze([
   'docs/licenses/fasttext-panlingo-MIT.txt',
   'docs/licenses/fasttext-lid176-CC-BY-SA-3.0.txt',
 ]);
+// Optional host integration changes can affect shared startup/UI/download owners.
+// Bind its actual inputs without treating module execution as model qualification.
+export const moduleIntegrationSourcePaths = Object.freeze([
+  'src/DropSpace.Core/Models/AppUiMessage.cs',
+  'src/DropSpace.Core/Dlc/ModuleContracts.cs',
+  'src/DropSpace.Infrastructure/Dlc/official-modules.json',
+  'src/DropSpace.Infrastructure/Dlc/OfficialModuleCatalog.cs',
+  'src/DropSpace.Infrastructure/Dlc/ModulePackageStore.cs',
+  'src/DropSpace.Infrastructure/Dlc/ModuleWorkerClient.cs',
+  'src/DropSpace.Infrastructure/Dlc/ModuleProcessJob.cs',
+  'src/DropSpace.App/Services/Dlc/FeatureModuleRuntime.cs',
+  'src/DropSpace.App/Views/MainPage.Modules.cs',
+  'src/DropSpace.App/Views/Settings/FeatureModuleInventoryView.cs',
+  'src/DropSpace.App/Views/Settings/FeatureModulePage.cs',
+  'src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml',
+  'src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs',
+]);
 // This list is code-owned, never selected by the approval record. Removing a
 // prompt/parser/inference input from a manifest cannot weaken its binding.
 export const sourcePaths = Object.freeze([
@@ -131,6 +148,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs',
   ...modelDeliverySourcePaths,
   ...languageIdentificationSourcePaths,
+  ...moduleIntegrationSourcePaths,
   'src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs',
   'src/DropSpace.Infrastructure/Settings/SettingsIoPolicy.cs',
   'src/DropSpace.App/Services/Media/MediaExperienceService.cs',
@@ -306,7 +324,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.19';
+export const experimentalBetaVersion = 'v0.3.2-beta.1';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -342,14 +360,15 @@ export function readSourceFingerprint(root) {
     const relative = include.replaceAll('\\', '/');
     assert.ok(!path.posix.isAbsolute(relative) && !relative.split('/').includes('..'), 'Embedded resource path must stay within Infrastructure');
     const name = path.posix.join(path.posix.dirname(projectPath), relative);
-    assert.ok([...modelDeliverySourcePaths, ...languageIdentificationSourcePaths].includes(name), `Embedded JSON needs code-owned fingerprint coverage: ${name}`);
+    assert.ok([...modelDeliverySourcePaths, ...languageIdentificationSourcePaths, ...moduleIntegrationSourcePaths].includes(name), `Embedded JSON needs code-owned fingerprint coverage: ${name}`);
     const logicalName = /\bLogicalName\s*=\s*["']([^"']+)["']/.exec(attributes)?.[1]
       ?? /<LogicalName>([^<]+)<\/LogicalName>/.exec(body)?.[1]
       ?? `${namespace}.${relative.replaceAll('/', '.')}`;
     return [{ path: name, logicalName }];
   });
   const manifests = [...modelDeliverySourcePaths, ...languageIdentificationSourcePaths].filter(name => name.includes('/Manifests/') && name.endsWith('.json'));
-  assert.deepEqual(embeddedJson.map(resource => resource.path).sort(), [...manifests].sort(), 'Reviewed model delivery JSON must actually be embedded exactly once');
+  const embeddedPaths = [...manifests, ...moduleIntegrationSourcePaths.filter(name => name.endsWith('.json'))];
+  assert.deepEqual(embeddedJson.map(resource => resource.path).sort(), [...embeddedPaths].sort(), 'Reviewed delivery/catalog JSON must actually be embedded exactly once');
   const delivery = readText(root, 'src/DropSpace.Infrastructure/Lyrics/AiModelDeliveryManifest.cs');
   const resourceNames = [...delivery.matchAll(/GetManifestResourceStream\(\s*"([^"]+)"\)/g)].map(match => match[1]);
   assert.deepEqual(resourceNames.sort(), embeddedJson.filter(resource => modelDeliverySourcePaths.includes(resource.path)).map(resource => resource.logicalName).sort(), 'Model delivery resource binding does not match the production reader');
@@ -374,7 +393,7 @@ export function readSourceFingerprint(root) {
   assert.equal(singleMatch(packages, /<PackageVersion\b(?=[^>]*\bInclude="Panlingo\.LanguageIdentification\.FastText\.Native")(?=[^>]*\bVersion="([^"]+)")[^>]*\/>/g, 'Native language package version'), languageManifest.nativePackageVersion, 'Language native version differs from the manifest');
   // A BOM or CRLF changes the checked embedded resource identity. Normalize
   // source text only; hash manifest resources exactly as they are packaged.
-  const files = sourcePaths.map(name => ({ path: name, sha256: sha256(manifests.includes(name)
+  const files = sourcePaths.map(name => ({ path: name, sha256: sha256(embeddedPaths.includes(name)
     ? fs.readFileSync(path.join(root, name)) : readText(root, name)) }));
   return { algorithm: 'sha256-source-lf-embedded-bytes-v2', files, sha256: sha256(JSON.stringify(files)) };
 }

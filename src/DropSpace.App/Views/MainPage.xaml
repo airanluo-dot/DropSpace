@@ -37,6 +37,7 @@
     </NavigationView.FooterMenuItems>
 
     <Grid>
+    <Grid x:Name="BuiltInSurfaces">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
@@ -815,6 +816,8 @@
         </StackPanel>
       </ScrollViewer>
       <ContentControl x:Name="SettingsPages" Grid.Row="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+    </Grid>
+    <ContentControl x:Name="ModuleContent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Visibility="Collapsed"/>
     </Grid>
   </NavigationView>
 </Page>

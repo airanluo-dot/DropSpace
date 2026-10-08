@@ -875,4 +875,18 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (desativado)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Idioma da tradução de letras</value></data>
   <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Escolha chinês simplificado ou inglês para as letras, independentemente do idioma da interface.</value></data>
+  <data name="ModuleEnabled" xml:space="preserve"><value>Ativado</value></data>
+  <data name="ModuleDisabled" xml:space="preserve"><value>Desativado</value></data>
+  <data name="ModuleEnable" xml:space="preserve"><value>Ativar</value></data>
+  <data name="ModuleDisable" xml:space="preserve"><value>Desativar</value></data>
+  <data name="ModuleRunning" xml:space="preserve"><value>Em execução</value></data>
+  <data name="ModuleStopped" xml:space="preserve"><value>Parado</value></data>
+  <data name="ModuleStarting" xml:space="preserve"><value>Iniciando…</value></data>
+  <data name="ModuleStopping" xml:space="preserve"><value>Parando…</value></data>
+  <data name="ModulePendingCleanup" xml:space="preserve"><value>Limpeza pendente</value></data>
+  <data name="ModuleSave" xml:space="preserve"><value>Salvar</value></data>
+  <data name="ModuleClearData" xml:space="preserve"><value>Apagar dados do módulo</value></data>
+  <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Excluir os dados e as configurações salvos deste módulo?</value></data>
+  <data name="ModuleRetryCleanup" xml:space="preserve"><value>Tentar limpeza novamente</value></data>
+  <data name="ModuleHostRequired" xml:space="preserve"><value>Este módulo requer a interface do host {0} e os recursos declarados. Atualize o DropSpace para uma versão compatível.</value></data>
 </root>

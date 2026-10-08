@@ -1,5 +1,9 @@
 using System.ComponentModel;
 using DropSpace.App.Services;
+using DropSpace.App.Services.Dlc;
+using DropSpace.Core.Abstractions;
+using DropSpace.Core.Dlc;
+using System.Text.Json;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Widgets;
 using Microsoft.UI.Xaml;
@@ -19,6 +23,13 @@ public sealed partial class WidgetsExpandedView : UserControl
     private bool _subscribed;
     private bool _structureDirty = true;
     private bool _dataDirty = true;
+    private FeatureModuleRuntime? _modules;
+    private IAppStringLocalizer? _moduleStrings;
+    private CancellationTokenSource? _moduleRequests;
+    private readonly List<Flyout> _moduleFlyouts = [];
+    private IReadOnlyList<(string Id, ModuleManifest Manifest, ModuleIslandContent Content)> _renderedModules = [];
+    private string? _moduleLanguage;
+    private bool _modulesDirty = true;
     public event EventHandler? SettingsRequested;
     public event EventHandler? PinnedRequested;
     public WidgetsExpandedView()
@@ -47,11 +58,13 @@ public sealed partial class WidgetsExpandedView : UserControl
     {
         _structureDirty = true;
         _dataDirty = true;
+        _modulesDirty = true;
         RenderPending();
     }
     public void SetActive(bool active)
     {
         _active = active;
+        if (!active) RetireModuleContent();
         _view?.SetVisible(this, active && IsLoaded);
         RenderPending();
     }
@@ -69,6 +82,7 @@ public sealed partial class WidgetsExpandedView : UserControl
         _view?.SetVisible(this, false);
         _structureDirty = true;
         _dataDirty = true;
+        RetireModuleContent();
     }
     private void Subscribe()
     {
@@ -105,6 +119,75 @@ public sealed partial class WidgetsExpandedView : UserControl
             RenderData();
             _dataDirty = false;
         }
+        if (_modulesDirty) RenderModules();
+    }
+
+    public void SetModuleRuntime(FeatureModuleRuntime? modules, IAppStringLocalizer strings)
+    {
+        RetireModuleContent(); _modules = modules; _moduleStrings = strings; _modulesDirty = true;
+        RenderPending();
+    }
+    public void RefreshModules()
+    {
+        var contents = _modules?.IslandContents ?? [];
+        if (_moduleLanguage == _moduleStrings?.Culture.Name && contents.Count == _renderedModules.Count &&
+            contents.Zip(_renderedModules).All(pair => pair.First.Id == pair.Second.Id && ReferenceEquals(pair.First.Content, pair.Second.Content))) return;
+        _modulesDirty = true; RenderPending();
+    }
+    private void RetireModuleContent()
+    {
+        foreach (var flyout in _moduleFlyouts) flyout.Hide();
+        _moduleFlyouts.Clear();
+        _renderedModules = [];
+        _moduleRequests?.Cancel(); _moduleRequests?.Dispose(); _moduleRequests = null;
+        ModuleCards.Children.Clear(); ModuleStrip.Visibility = Visibility.Collapsed; _modulesDirty = true;
+    }
+    private void RenderModules()
+    {
+        RetireModuleContent(); _modulesDirty = false;
+        if (_modules is null || _moduleStrings is null) return;
+        var contents = _modules.IslandContents;
+        _renderedModules = contents; _moduleLanguage = _moduleStrings.Culture.Name;
+        if (contents.Count == 0) return;
+        _moduleRequests = new();
+        var owner = _moduleRequests; var token = owner.Token;
+        foreach (var (id, manifest, content) in contents)
+        {
+            string Text(ModuleText text) => ModuleContract.Text(manifest, text, _moduleStrings.Culture.Name);
+            var expanded = new StackPanel { Spacing = 10, MaxWidth = 360 };
+            expanded.Children.Add(new TextBlock { Text = Text(manifest.Name), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            expanded.Children.Add(new TextBlock { Text = Text(content.Expanded), TextWrapping = TextWrapping.Wrap });
+            var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed }; expanded.Children.Add(error);
+            var flyout = new Flyout { Content = expanded }; _moduleFlyouts.Add(flyout);
+            foreach (var action in content.Actions)
+            {
+                var button = new Button { Content = new TextBlock { Text = Text(action.Label), TextWrapping = TextWrapping.Wrap }, HorizontalAlignment = HorizontalAlignment.Left };
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, Text(action.Label));
+                button.Click += async (_, _) =>
+                {
+                    if (token.IsCancellationRequested || _modules is null || content.ExpiresAt <= DateTimeOffset.UtcNow ||
+                        !_modules.IslandContents.Any(item => item.Id == id && ReferenceEquals(item.Content, content))) return;
+                    button.IsEnabled = false;
+                    try { await _modules.InvokeAsync(id, action.Id, JsonSerializer.SerializeToElement(new { }), token); }
+                    catch (OperationCanceledException) { }
+                    catch (Exception exception) when (exception is not OutOfMemoryException)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Module Island action failed: " + exception.GetType().Name);
+                        if (!token.IsCancellationRequested) { error.Text = _moduleStrings.Get("DlcOperationFailed"); error.Visibility = Visibility.Visible; }
+                    }
+                    finally { if (!token.IsCancellationRequested) button.IsEnabled = true; }
+                };
+                expanded.Children.Add(button);
+            }
+            var chip = new Button
+            {
+                Content = new TextBlock { Text = Text(content.Expanded), TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1 },
+                Flyout = flyout, MaxWidth = 300, MinHeight = 0, Padding = new(6, 1, 6, 1), FontSize = 11,
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(chip, Text(manifest.Name) + ": " + Text(content.Expanded));
+            ModuleCards.Children.Add(chip);
+        }
+        ModuleStrip.Visibility = Visibility.Visible;
     }
     private void Rebuild()
     {

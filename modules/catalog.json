@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "id": "dropspace.sample",
+      "version": "1.0.0",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/dlc-dropspace.sample-1.0.0/dropspace.sample-1.0.0-win-x64.zip",
+      "bytes": 33034143,
+      "sha256": "8f51853aac8fa8e84edd05f87e316fa55ea25a9671cfba16275e6511cb6e5747"
+    }
+  ]
+}

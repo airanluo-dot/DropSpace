@@ -91,6 +91,7 @@
           </Grid>
           <Image x:Name="EmptyWakeLogo"
               Width="24" Height="24" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+          <TextBlock x:Name="ModuleCompactText" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" TextTrimming="CharacterEllipsis" MaxLines="1" Visibility="Collapsed"/>
           </Grid>
           </Viewbox>
         </Button>

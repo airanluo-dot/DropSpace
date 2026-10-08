@@ -117,6 +117,7 @@ public sealed partial class OverlayWindow : Window
     private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
     private readonly MediaViewModel _mediaViewModel;
     private readonly WidgetViewModel _widgetViewModel;
+    private readonly Services.Dlc.FeatureModuleRuntime? _modules;
     private OverlaySnapshot? _presentationSnapshot;
     private bool _mediaGeometryRefreshPending;
     private bool _preparingMediaGeometry;
@@ -158,7 +159,8 @@ public sealed partial class OverlayWindow : Window
         MediaViewModel mediaViewModel,
         WidgetViewModel widgetViewModel,
         ClipboardIslandViewModel clipboardViewModel,
-        SystemActivityViewModel systemActivityViewModel)
+        SystemActivityViewModel systemActivityViewModel,
+        Services.Dlc.FeatureModuleRuntime? modules = null)
     {
         _logger = logger;
         try
@@ -168,6 +170,7 @@ public sealed partial class OverlayWindow : Window
             Closed += OnTransparentHostClosed;
             _viewModel = viewModel;
             _widgetViewModel = widgetViewModel;
+            _modules = modules;
             _strings = strings;
             _monitor = monitor;
             _monitorLayout = monitorLayout;
@@ -220,6 +223,7 @@ public sealed partial class OverlayWindow : Window
                 UIElement.VisibilityProperty, OnExpandedPanelVisibilityChanged);
             MusicExpanded.ViewModel = mediaViewModel;
             WidgetsExpanded.ViewModel = widgetViewModel;
+            WidgetsExpanded.SetModuleRuntime(modules, strings);
             WidgetsExpanded.PinnedRequested += (_, _) => { _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
             ClipboardExpanded.ViewModel = clipboardViewModel;
             ActivityCompact.DataContext = systemActivityViewModel;
@@ -581,10 +585,23 @@ public sealed partial class OverlayWindow : Window
         ActivityCompact.Visibility = activityCompact ? Visibility.Visible : Visibility.Collapsed;
         MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
         var variant = _experience.Current.Variant;
+        // Module text fills only an already-visible idle resident surface. Host content wins.
+        (string Id, DropSpace.Core.Dlc.ModuleManifest Manifest, DropSpace.Core.Dlc.ModuleIslandContent Content)? moduleIdle =
+            variant == IslandPresentationVariant.Idle && !mediaCompact && !activityCompact &&
+            _mediaViewModel.Settings.IslandAppearance.Resident ? _modules?.IslandContents.FirstOrDefault() : null;
+        ModuleCompactText.Visibility = moduleIdle is { Manifest: not null } ? Visibility.Visible : Visibility.Collapsed;
+        if (moduleIdle is { Manifest: not null } module)
+        {
+            ModuleCompactText.Text = DropSpace.Core.Dlc.ModuleContract.Text(module.Manifest, module.Content.Compact, _strings.Culture.Name);
+            AutomationProperties.SetName(ModuleCompactText, ModuleCompactText.Text);
+        }
+        else ModuleCompactText.Text = string.Empty;
         FileCompactContent.Visibility = variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? Visibility.Visible : Visibility.Collapsed;
         EmptyWakeLogo.Visibility = (variant is IslandPresentationVariant.EmptyWake or IslandPresentationVariant.Idle) &&
             _mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle
             ? Visibility.Visible : Visibility.Collapsed;
+        EmptyWakeLogo.HorizontalAlignment = moduleIdle is { Manifest: not null } ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        ModuleCompactText.Margin = new Thickness(EmptyWakeLogo.Visibility == Visibility.Visible ? 32 : 0, 0, 0, 0);
         MusicCompact.SetAvailableWidth(_monitor.EffectiveWorkWidth / _monitor.Scale /
             _mediaViewModel.Settings.IslandAppearance.CompactScale - 36);
         // Hidden islands retain dirty media state without doing presentation work.
@@ -2057,6 +2074,7 @@ public sealed partial class OverlayWindow : Window
         WidgetsExpanded.RefreshLanguage();
         CancelPlacementButton.Content = _strings.Get("CommonCancel");
     }
+    public void RefreshModules() => WidgetsExpanded.RefreshModules();
     private void OnNextPageClicked(object sender, RoutedEventArgs args)
     {
         if (_experience.Current.Page < DropSpace.Core.Island.IslandPage.Clipboard)

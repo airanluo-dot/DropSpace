@@ -2,8 +2,13 @@
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:services="using:DropSpace.App.Services">
+ <Grid>
  <Grid Padding="22,28">
   <Grid x:Name="Tiles" ColumnSpacing="8" RowSpacing="8"/>
   <TextBlock x:Name="EmptyText" services:XamlResourceOverride.Uid="WidgetsEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"/>
+ </Grid>
+ <ScrollViewer x:Name="ModuleStrip" Margin="22,0,22,2" MaxHeight="24" VerticalAlignment="Bottom" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" Visibility="Collapsed">
+  <StackPanel x:Name="ModuleCards" Orientation="Horizontal" Spacing="8"/>
+ </ScrollViewer>
  </Grid>
 </UserControl>

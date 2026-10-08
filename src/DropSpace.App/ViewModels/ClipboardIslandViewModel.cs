@@ -22,7 +22,7 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
     private readonly CancellationTokenSource _stop = new();
     private readonly Task _worker;
     private bool _visible, _disposed;
-    private string _error = string.Empty;
+    private AppUiMessage _error = AppUiMessage.Empty;
     public ClipboardIslandViewModel(MainViewModel main, ClipboardCaptureService capture, IAppStringLocalizer strings, ILogger<ClipboardIslandViewModel> logger, DispatcherQueue dispatcher)
     {
         _main = main; _capture = capture; _strings = strings; _logger = logger; _dispatcher = dispatcher;
@@ -32,7 +32,8 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
         _worker = RunAsync();
     }
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
-    public string Error { get => _strings.Relocalize(_error); private set => SetProperty(ref _error, value); }
+    public string Error => _error.Render(_strings);
+    private AppUiMessage ErrorMessage { set => SetProperty(ref _error, value, nameof(Error)); }
     public bool Empty => Items.Count == 0;
     public string PauseLabel => _strings.Get(_main.IsClipboardPaused ? "ClipboardIslandResume" : "ClipboardIslandPause");
     public void SetVisible(object owner, bool visible)
@@ -48,8 +49,8 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
     public Task OpenMainAsync() => _main.NavigateAsync("Clipboard");
     private async Task ExecuteAsync(Func<Task> action)
     {
-        try { Error = string.Empty; await action(); _refresh.Writer.TryWrite(true); }
-        catch (Exception exception) { _logger.LogWarning("Clipboard island action failed ({Category}).", exception.GetType().Name); Error = _strings.Get("ClipboardIslandActionFailed"); }
+        try { ErrorMessage = AppUiMessage.Empty; await action(); _refresh.Writer.TryWrite(true); }
+        catch (Exception exception) { _logger.LogWarning("Clipboard island action failed ({Category}).", exception.GetType().Name); ErrorMessage = AppUiMessage.Resource("ClipboardIslandActionFailed"); }
     }
     private void OnCaptured(object? sender, DropItem item) { if (Volatile.Read(ref _visible)) _refresh.Writer.TryWrite(true); }
     private void OnMainChanged(object? sender, PropertyChangedEventArgs args)
@@ -81,7 +82,7 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
                 catch (Exception exception) when (exception is not OperationCanceledException)
                 {
                     _logger.LogWarning("Clipboard island refresh failed ({Category}).", exception.GetType().Name);
-                    await _dispatcher.EnqueueAsync(() => { if (!_disposed && _visible) Error = _strings.Get("ClipboardIslandActionFailed"); return Task.CompletedTask; });
+                    await _dispatcher.EnqueueAsync(() => { if (!_disposed && _visible) ErrorMessage = AppUiMessage.Resource("ClipboardIslandActionFailed"); return Task.CompletedTask; });
                 }
             }
         }

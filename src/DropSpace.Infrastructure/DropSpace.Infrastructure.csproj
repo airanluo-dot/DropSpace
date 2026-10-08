@@ -7,6 +7,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <EmbeddedResource Include="Lyrics/Manifests/models-hy-mt2-q8-v1.json" />
     <EmbeddedResource Include="Lyrics/Manifests/fasttext-lid176-bin-v1.json" />
+    <EmbeddedResource Include="Dlc/official-modules.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DropSpace.Core\DropSpace.Core.csproj" />

@@ -17,7 +17,7 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     private readonly Services.Notifications.WindowsNotificationActivityService _notifications;
     private readonly SemaphoreSlim _save = new(1, 1);
     private readonly CancellationTokenSource _stop = new();
-    private string _error = string.Empty;
+    private AppUiMessage _error = AppUiMessage.Empty;
     private CancellationTokenSource? _downloadDelay;
     private Task _downloadSave = Task.CompletedTask;
     private (int? Connections, long? Rate, int? ConcurrentDownloads)? _pendingLimits;
@@ -99,7 +99,8 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
         }
     }
     public AppSettings Settings => _main.Settings;
-    public string Error { get => _strings.Relocalize(_error); private set => SetProperty(ref _error, value); }
+    public string Error => _error.Render(_strings);
+    private AppUiMessage ErrorMessage { set => SetProperty(ref _error, value, nameof(Error)); }
     public async Task<bool> CheckNotificationAccessAsync(bool enabled)
     {
         if (!enabled) return true;
@@ -110,7 +111,7 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
         }
         catch (OperationCanceledException) when (_stop.IsCancellationRequested) { return false; }
         catch (Exception exception) { _logger.LogWarning("Notification permission failed ({Category}).", exception.GetType().Name); }
-        Error = _strings.Get("NotificationAccessUnavailable");
+        ErrorMessage = AppUiMessage.Resource("NotificationAccessUnavailable");
         return false;
     }
     public async Task<bool> UpdateAsync(Func<AppSettings, AppSettings> change)
@@ -119,7 +120,7 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
         try
         {
             await _save.WaitAsync(_stop.Token); entered = true;
-            Error = string.Empty;
+            ErrorMessage = AppUiMessage.Empty;
             await _main.UpdateSettingsAsync(change(Settings), _stop.Token);
             return true;
         }
@@ -127,7 +128,7 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
         catch (Exception exception)
         {
             _logger.LogWarning("Settings edit failed ({Category}).", exception.GetType().Name);
-            Error = _strings.Get("NativeSettingsSaveFailed");
+            ErrorMessage = AppUiMessage.Resource("NativeSettingsSaveFailed");
             OnPropertyChanged(nameof(Settings)); return false;
         }
         finally { if (entered) _save.Release(); }
@@ -140,7 +141,7 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
                 await UpdateAsync(settings => settings with { Lyrics = settings.Lyrics with { LocalLrcDirectory = path } });
         }
         catch (Exception exception)
-        { _logger.LogWarning("Lyrics folder picker failed ({Category}).", exception.GetType().Name); Error = _strings.Get("NativeSettingsSaveFailed"); }
+        { _logger.LogWarning("Lyrics folder picker failed ({Category}).", exception.GetType().Name); ErrorMessage = AppUiMessage.Resource("NativeSettingsSaveFailed"); }
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
     {

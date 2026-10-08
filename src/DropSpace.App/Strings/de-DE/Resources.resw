@@ -875,4 +875,18 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (deaktiviert)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Liedtext-Übersetzungsziel</value></data>
   <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Wählen Sie unabhängig von der Sprache der Benutzeroberfläche vereinfachtes Chinesisch oder Englisch.</value></data>
+  <data name="ModuleEnabled" xml:space="preserve"><value>Aktiviert</value></data>
+  <data name="ModuleDisabled" xml:space="preserve"><value>Deaktiviert</value></data>
+  <data name="ModuleEnable" xml:space="preserve"><value>Aktivieren</value></data>
+  <data name="ModuleDisable" xml:space="preserve"><value>Deaktivieren</value></data>
+  <data name="ModuleRunning" xml:space="preserve"><value>Wird ausgeführt</value></data>
+  <data name="ModuleStopped" xml:space="preserve"><value>Beendet</value></data>
+  <data name="ModuleStarting" xml:space="preserve"><value>Wird gestartet…</value></data>
+  <data name="ModuleStopping" xml:space="preserve"><value>Wird beendet…</value></data>
+  <data name="ModulePendingCleanup" xml:space="preserve"><value>Bereinigung ausstehend</value></data>
+  <data name="ModuleSave" xml:space="preserve"><value>Speichern</value></data>
+  <data name="ModuleClearData" xml:space="preserve"><value>Moduldaten löschen</value></data>
+  <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Die gespeicherten Daten und Einstellungen dieses Moduls löschen?</value></data>
+  <data name="ModuleRetryCleanup" xml:space="preserve"><value>Bereinigung wiederholen</value></data>
+  <data name="ModuleHostRequired" xml:space="preserve"><value>Dieses Modul benötigt die Host-Schnittstelle {0} und die angegebenen Funktionen. Aktualisieren Sie DropSpace auf eine kompatible Version.</value></data>
 </root>

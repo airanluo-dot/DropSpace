@@ -30,5 +30,8 @@ branding/master/*.txt -text
 # Reviewed native evidence is hashed byte-for-byte, including Windows line endings.
 scripts/ai-model-qa/evidence/** -text
 
+# Original downloaded checksum evidence retains the public asset's exact bytes.
+docs/dev/evidence/ten-language/beta19-SHA256SUMS.txt -text
+
 # Pinned third-party orthography data/license retain upstream bytes.
 src/DropSpace.Core/Lyrics/Data/*.txt -text

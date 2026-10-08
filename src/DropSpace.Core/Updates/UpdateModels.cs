@@ -1,3 +1,5 @@
+using DropSpace.Core.Models;
+
 namespace DropSpace.Core.Updates;
 
 [System.Text.Json.Serialization.JsonConverter(typeof(UpdateChannelJsonConverter))]
@@ -80,7 +82,8 @@ public sealed record UpdateStatusSnapshot(
     DownloadedUpdate? Download = null,
     UpdateDownloadProgress? Progress = null,
     bool TrustedAutoInstallAvailable = false,
-    bool PreviousInstallIncomplete = false)
+    bool PreviousInstallIncomplete = false,
+    AppUiMessage? MessageIdentity = null)
 {
     public static UpdateStatusSnapshot Initial(DeploymentMode mode) =>
         new(UpdateState.Idle, string.Empty, mode);

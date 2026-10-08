@@ -875,4 +875,18 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 Go (désactivé)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Cible de traduction des paroles</value></data>
   <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Choisissez le chinois simplifié ou l'anglais indépendamment de la langue de l'interface.</value></data>
+  <data name="ModuleEnabled" xml:space="preserve"><value>Activé</value></data>
+  <data name="ModuleDisabled" xml:space="preserve"><value>Désactivé</value></data>
+  <data name="ModuleEnable" xml:space="preserve"><value>Activer</value></data>
+  <data name="ModuleDisable" xml:space="preserve"><value>Désactiver</value></data>
+  <data name="ModuleRunning" xml:space="preserve"><value>En cours d’exécution</value></data>
+  <data name="ModuleStopped" xml:space="preserve"><value>Arrêté</value></data>
+  <data name="ModuleStarting" xml:space="preserve"><value>Démarrage…</value></data>
+  <data name="ModuleStopping" xml:space="preserve"><value>Arrêt…</value></data>
+  <data name="ModulePendingCleanup" xml:space="preserve"><value>Nettoyage en attente</value></data>
+  <data name="ModuleSave" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="ModuleClearData" xml:space="preserve"><value>Effacer les données du module</value></data>
+  <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Supprimer les données et les paramètres enregistrés pour ce module ?</value></data>
+  <data name="ModuleRetryCleanup" xml:space="preserve"><value>Réessayer le nettoyage</value></data>
+  <data name="ModuleHostRequired" xml:space="preserve"><value>Ce module nécessite l’interface hôte {0} et les fonctionnalités déclarées. Mettez DropSpace à jour vers une version compatible.</value></data>
 </root>

@@ -1,0 +1,17 @@
+{
+  "scenario": "4",
+  "failureMode": "cancel",
+  "rejectionMode": null,
+  "startedAtUtc": "2026-10-08T05:58:33.470136+00:00",
+  "finishedAtUtc": "2026-10-08T05:58:33.8399142+00:00",
+  "passed": true,
+  "errorCategory": null,
+  "actualFunctionalScenarios": 1,
+  "provenance": "production embedded official catalog",
+  "packageSource": "anonymous official downloader",
+  "assertions": [
+    "Actual pathological process failure rejects the request",
+    "Owned pathological process exits within bounded stop policy",
+    "Retired session cannot deliver a late result into a live worker"
+  ]
+}

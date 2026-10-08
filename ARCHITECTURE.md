@@ -339,13 +339,13 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 
 ### Localization
 
-- `AppSettings` schema 14 persists language plus Quick Panel, exclusion, and per-monitor placement preferences; legacy settings migrate with safe defaults and best-effort active-monitor mapping.
-- `AppLanguageService` applies the preference before the main window, Dynamic Island, tray, and services are created. System reads the Windows display-language preference, selects `zh-CN` for `zh-*`, and uses the shipped `en-US` base resource set for every other language.
-- `Strings/en-US/Resources.resw` is the complete base resource set; `Strings/zh-CN/Resources.resw` has an exact matching key set. Dependency-object XAML uses `XamlResourceOverride.Uid`, which reapplies every supported property and automation name from the same explicit localizer context instead of WinUI's implicit `x:Uid` lookup; `Window` roots use the same override directly after XAML initialization, while the `TitleBar` waits for `Loaded` because it needs a `XamlRoot`. Imperative UI, service status, error prompts, and update feedback use the narrow Core `IAppStringLocalizer` contract.
+- `AppSettings` schema 15 independently persists the ten-language UI preference and permanent Simplified Chinese/English lyric target, alongside existing Quick Panel/exclusion/monitor preferences. Strict `Validate` is separate from language-policy fallback.
+- `AppLanguageService` applies the preference before windows/services. Ordered Windows preferences use the shared `localization/languages.json`, exact/script/region matching and final English fallback; all ten locale resource sets ship offline.
+- `Strings/en-US/Resources.resw` is the complete base; all nine translations match required keys. XAML uses `XamlResourceOverride.Uid` from the explicit context; imperative UI uses `IAppStringLocalizer`. Long-lived owners store `AppUiMessage` keys/copied raw arguments, nested messages, explicit literals or raw bytes; display renders in the current context without reverse-string identity lookup.
 - `App` registers the custom XAML attached property in its constructor before any page is parsed, as required by WinUI; its provider is a `DependencyObject` service type with static attached-property accessors, and the app then initializes the resource-backed localizer before creating the first window.
 - Portable/unpackaged publishing stages `Strings`, XAML, and assets while excluding the MSIX manifest (so it keeps the unpackaged `Application` root), regenerates a single packaging-free `DropSpace.resources.pri` with MakePri, bundles it into the self-extracting EXE, and opens it only through an explicit `ResourceManager` context. The non-default filename avoids replacing WinUI's framework resource index while preserving the single-EXE distribution contract.
 - The portable app does not call `ApplicationLanguages.PrimaryLanguageOverride`: that Windows App SDK API is unsupported for unpackaged processes. The app-owned resource context therefore supplies both the selected XAML surface and imperative text after startup, while native tray and service strings use the same localizer.
-- Settings persists a language change and updates the shared localizer in the running process. The main window recreates its page and title-bar resources; the Dynamic Island refreshes its resource tree and widgets on the dispatcher. Native menus and newly generated labels use the selected context. Existing transient status/error messages and in-flight operation text can retain the previous language until replaced; this is not an atomic whole-process translation.
+- Settings persists language and updates the localizer. Main/Island/tray resources refresh through existing ownership; retained messages rerender while literal file names, external errors and lyric text remain unchanged. Display refresh never restarts lyric/model work.
 
 ### Installation and maintenance
 
@@ -539,7 +539,7 @@ a private HttpClient copy loop or independent connection/bandwidth/transfer budg
 Small API responses (release metadata, lyrics) and authenticated device/share protocols
 are separate from artifact transfers. Unknown-size packages must supply an upper bound.
 
-Every downloadable feature/dependency must register an `IDlcPackageProvider` so it
+Existing downloadable model/runtime/dependency assets register an `IDlcPackageProvider` so they
 appears in Settings → DLC, including NetEase enhancement and Visual C++ prerequisite.
 App-version update payloads are the exception: they remain in Settings → Updates.
 NetEase actions retain restart consent, deployment receipts, rollback and verification.
@@ -549,3 +549,16 @@ and DropSpace does not offer its removal or count it as exclusively owned storag
 CUDA build metadata must match AssemblyInformationalVersion's release and exact source
 commit. `Test-CudaBuildBinding.ps1` fails the build on stale descriptors before compilation;
 restaging metadata preserves the unchanged component manifest/cache identity and installed bytes.
+
+## Official optional feature modules
+
+Independent optional code follows [feature-modules.md](docs/dev/feature-modules.md), the single
+implemented v1 standard mapped in the canonical repository skill. Core owns declaration/compatibility;
+Infrastructure owns the official source/hash catalog, confined immutable packages, process/IPC; App's
+`FeatureModuleRuntime` owns installed/enabled/running/transaction state and generation retirement.
+Host controls render dynamic page/settings/actions, with immediate safe withdrawal. Bounded
+expiring Island content stays below built-in priorities and never owns windows or state machines.
+The separate `modules/templates/worker` and `modules/sample` show real delivery/lifecycle contracts.
+Future official versions work on compatible old hosts and retain offline package records. v1 rejects
+cross-format data migrations; process/job limits are not a permissions sandbox. Existing built-ins
+and providers continue unchanged; a no-module App starts no optional worker or idle polling loop.

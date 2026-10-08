@@ -877,4 +877,18 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (disabled)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Lyrics translation target</value></data>
   <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Choose Simplified Chinese or English independently of the interface language.</value></data>
+  <data name="ModuleEnabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="ModuleDisabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="ModuleEnable" xml:space="preserve"><value>Enable</value></data>
+  <data name="ModuleDisable" xml:space="preserve"><value>Disable</value></data>
+  <data name="ModuleRunning" xml:space="preserve"><value>Running</value></data>
+  <data name="ModuleStopped" xml:space="preserve"><value>Stopped</value></data>
+  <data name="ModuleStarting" xml:space="preserve"><value>Starting…</value></data>
+  <data name="ModuleStopping" xml:space="preserve"><value>Stopping…</value></data>
+  <data name="ModulePendingCleanup" xml:space="preserve"><value>Cleanup pending</value></data>
+  <data name="ModuleSave" xml:space="preserve"><value>Save</value></data>
+  <data name="ModuleClearData" xml:space="preserve"><value>Clear module data</value></data>
+  <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Delete the saved data and settings for this module?</value></data>
+  <data name="ModuleRetryCleanup" xml:space="preserve"><value>Retry cleanup</value></data>
+  <data name="ModuleHostRequired" xml:space="preserve"><value>This module requires host interface {0} and its declared capabilities. Update DropSpace to a compatible version.</value></data>
 </root>

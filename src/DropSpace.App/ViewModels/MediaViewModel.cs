@@ -23,7 +23,7 @@ public sealed class MediaViewModel : ObservableObject
     private ImageSource? _artwork;
     private TimeSpan _position;
     private AppSettings _settings = new();
-    private string _controlError = string.Empty;
+    private AppUiMessage _controlError = AppUiMessage.Empty;
     private bool _isReducedMotion;
     private bool _positionEstimated = true;
     private string _notifiedCurrentLyricText = string.Empty;
@@ -61,16 +61,17 @@ public sealed class MediaViewModel : ObservableObject
         SeekCommand = new AsyncRelayCommand<double?>(value => Execute(async () => { if (value is { } seconds && double.IsFinite(seconds)) await media.SeekAsync(Session.Timeline.Start + TimeSpan.FromSeconds(seconds)); }), _ => Session.CanSeek && !PositionEstimated);
         async Task Execute(Func<Task> action)
         {
-            try { ControlError = string.Empty; await action(); }
+            try { ControlErrorMessage = AppUiMessage.Empty; await action(); }
             catch (OperationCanceledException) { }
             catch (Exception exception)
             {
                 logger.LogDebug("Media control failed ({Category}).", exception.GetType().Name);
-                ControlError = strings.Get("MediaControlFailed");
+                ControlErrorMessage = AppUiMessage.Resource("MediaControlFailed");
             }
         }
     }
-    public string ControlError { get => _strings.Relocalize(_controlError); private set => SetProperty(ref _controlError, value); }
+    public string ControlError => _controlError.Render(_strings);
+    private AppUiMessage ControlErrorMessage { set => SetProperty(ref _controlError, value, nameof(ControlError)); }
     public bool IsReducedMotion { get => _isReducedMotion; internal set => SetProperty(ref _isReducedMotion, value); }
     public bool PositionEstimated { get => _positionEstimated; internal set { if (SetProperty(ref _positionEstimated, value)) { OnPropertyChanged(nameof(TimelineStatus)); SeekCommand.NotifyCanExecuteChanged(); } } }
     public MediaSessionSnapshot Session

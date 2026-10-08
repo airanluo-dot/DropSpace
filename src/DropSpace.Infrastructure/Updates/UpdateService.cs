@@ -95,7 +95,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             return Publish(Status with
             {
                 State = UpdateState.Failed,
-                Message = _strings.Get("UpdateRecoveryFailed"),
+                MessageIdentity = AppUiMessage.Resource("UpdateRecoveryFailed"),
                 PreviousInstallIncomplete = true,
             });
         }
@@ -113,7 +113,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
                 return Publish(Status with
                 {
                     State = UpdateState.Failed,
-                    Message = _strings.Get("UpdateLastDownloadIncomplete"),
+                    MessageIdentity = AppUiMessage.Resource("UpdateLastDownloadIncomplete"),
                     PreviousInstallIncomplete = true,
                 });
             }
@@ -128,7 +128,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             return Publish(Status with
             {
                 State = UpdateState.Failed,
-                Message = _strings.Get("UpdateLastDownloadIncomplete"),
+                MessageIdentity = AppUiMessage.Resource("UpdateLastDownloadIncomplete"),
                 PreviousInstallIncomplete = true,
             });
         }
@@ -136,11 +136,12 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         var incomplete = string.Equals(state, "Installing", StringComparison.OrdinalIgnoreCase);
         return Publish(new UpdateStatusSnapshot(
             UpdateState.ReadyToInstall,
-            incomplete ? _strings.Get("UpdateLastInstallIncomplete") : _strings.Get("UpdateDownloadedReadyToInstall"),
+            string.Empty,
             _deploymentMode.Current,
             Candidate: download.Candidate,
             Download: download,
-            PreviousInstallIncomplete: incomplete));
+            PreviousInstallIncomplete: incomplete,
+            MessageIdentity: AppUiMessage.Resource(incomplete ? "UpdateLastInstallIncomplete" : "UpdateDownloadedReadyToInstall")));
     }
 
 
@@ -190,13 +191,13 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             var candidate = Status.Candidate ?? throw new InvalidOperationException("No validated update is available.");
             if (_deploymentMode.Current == DeploymentMode.Packaged)
             {
-                return Publish(Status with { Message = _strings.Get("UpdateManagedByWindows") });
+                return Publish(Status with { MessageIdentity = AppUiMessage.Resource("UpdateManagedByWindows") });
             }
 
-            Publish(Status with { State = UpdateState.Downloading, Message = _strings.Get("UpdateDownloading"), Progress = null });
+            Publish(Status with { State = UpdateState.Downloading, MessageIdentity = AppUiMessage.Resource("UpdateDownloading"), Progress = null });
             var progress = new InlineProgress<UpdateDownloadProgress>(value =>
                 Publish(Status with { State = UpdateState.Downloading,
-                    Message = _strings.Get(value.Stage == DropSpace.Core.Downloads.DownloadStage.Queued ? "DownloadStageQueued" : "UpdateDownloading"), Progress = value }));
+                    MessageIdentity = AppUiMessage.Resource(value.Stage == DropSpace.Core.Downloads.DownloadStage.Queued ? "DownloadStageQueued" : "UpdateDownloading"), Progress = value }));
             download = await _downloader.DownloadAsync(candidate, progress, cancellationToken).ConfigureAwait(false);
             if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
             {
@@ -225,9 +226,9 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             return Publish(Status with
             {
                 State = UpdateState.ReadyToInstall,
-                Message = _deploymentMode.Current == DeploymentMode.Portable
-                    ? _strings.Get("UpdatePortableVerified")
-                    : _strings.Get("UpdateDownloadedVerified"),
+                MessageIdentity = _deploymentMode.Current == DeploymentMode.Portable
+                    ? AppUiMessage.Resource("UpdatePortableVerified")
+                    : AppUiMessage.Resource("UpdateDownloadedVerified"),
                 Download = download,
                 Progress = new UpdateDownloadProgress(download.Size, download.Size),
                 TrustedAutoInstallAvailable = trust.IsTrusted,
@@ -236,7 +237,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             if (download is not null) TryDelete(download.FilePath);
-            return Publish(Status with { State = UpdateState.UpdateAvailable, Message = _strings.Get("UpdateDownloadCancelled"), Download = null, Progress = null });
+            return Publish(Status with { State = UpdateState.UpdateAvailable, MessageIdentity = AppUiMessage.Resource("UpdateDownloadCancelled"), Download = null, Progress = null });
         }
         catch (Exception exception) when (IsHandledUpdateException(exception))
         {
@@ -245,11 +246,11 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             return Publish(Status with
             {
                 State = UpdateState.Failed,
-                Message = exception is DropSpace.Infrastructure.Downloads.DownloadQueueTimeoutException ? _strings.Get("DownloadQueueTimedOut")
-                    : exception is DropSpace.Infrastructure.Downloads.DownloadTransferTimeoutException ? _strings.Get("DownloadTransferTimedOut")
+                MessageIdentity = exception is DropSpace.Infrastructure.Downloads.DownloadQueueTimeoutException ? AppUiMessage.Resource("DownloadQueueTimedOut")
+                    : exception is DropSpace.Infrastructure.Downloads.DownloadTransferTimeoutException ? AppUiMessage.Resource("DownloadTransferTimedOut")
                     : exception is InvalidDataException
-                    ? _strings.Get("UpdateDownloadIntegrityFailed")
-                    : _strings.Get("UpdateDownloadFailed"),
+                    ? AppUiMessage.Resource("UpdateDownloadIntegrityFailed")
+                    : AppUiMessage.Resource("UpdateDownloadFailed"),
                 Download = null,
                 Progress = null,
             });
@@ -288,16 +289,16 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             {
                 return Publish(Status with
                 {
-                    Message = _deploymentMode.Current == DeploymentMode.Packaged
-                        ? _strings.Get("UpdateManagedByWindows")
-                        : _strings.Get("UpdatePortableManualReplacement"),
+                    MessageIdentity = _deploymentMode.Current == DeploymentMode.Packaged
+                        ? AppUiMessage.Resource("UpdateManagedByWindows")
+                        : AppUiMessage.Resource("UpdatePortableManualReplacement"),
                 });
             }
 
             if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
             {
                 TryDelete(download.FilePath);
-                return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallIntegrityFailed"), Download = null });
+                return Publish(Status with { State = UpdateState.Failed, MessageIdentity = AppUiMessage.Resource("UpdateInstallIntegrityFailed"), Download = null });
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -311,7 +312,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             {
                 TryDelete(download.FilePath);
             }
-            return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallIntegrityFailed"), Download = null });
+            return Publish(Status with { State = UpdateState.Failed, MessageIdentity = AppUiMessage.Resource("UpdateInstallIntegrityFailed"), Download = null });
         }
 
         TrustedUpdateVerification trust;
@@ -335,12 +336,12 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         {
             return Publish(Status with
             {
-                Message = _strings.Get("UpdateUntrustedAutoInstall"),
+                MessageIdentity = AppUiMessage.Resource("UpdateUntrustedAutoInstall"),
                 TrustedAutoInstallAvailable = false,
             });
         }
 
-        Publish(Status with { State = UpdateState.Installing, Message = _strings.Get("UpdateInstalling") });
+        Publish(Status with { State = UpdateState.Installing, MessageIdentity = AppUiMessage.Resource("UpdateInstalling") });
         try
         {
             await _stateStore.SaveAsync(download, "Installing", cancellationToken).ConfigureAwait(false);
@@ -353,7 +354,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         catch (Exception exception) when (IsHandledUpdateException(exception))
         {
             _logger.LogError(exception, "Update operation {OperationId} could not persist the installing state.", operationId);
-            return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallStateFailed") });
+            return Publish(Status with { State = UpdateState.Failed, MessageIdentity = AppUiMessage.Resource("UpdateInstallStateFailed") });
         }
         try
         {
@@ -387,9 +388,9 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         catch (Exception exception) when (IsHandledUpdateException(exception))
         {
             _logger.LogError(exception, "Could not restore the ready state before installer launch.");
-            return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallStateFailed") });
+            return Publish(Status with { State = UpdateState.Failed, MessageIdentity = AppUiMessage.Resource("UpdateInstallStateFailed") });
         }
-        return Publish(Status with { State = UpdateState.ReadyToInstall, Message = _strings.Get("UpdateInstallerLaunchFailed") });
+        return Publish(Status with { State = UpdateState.ReadyToInstall, MessageIdentity = AppUiMessage.Resource("UpdateInstallerLaunchFailed") });
     }
 
 
@@ -436,7 +437,8 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         CancellationToken cancellationToken)
     {
         var operationId = OperationCorrelation.New();
-        Publish(new UpdateStatusSnapshot(UpdateState.Checking, _strings.Get("UpdateChecking"), _deploymentMode.Current));
+        Publish(new UpdateStatusSnapshot(UpdateState.Checking, string.Empty, _deploymentMode.Current,
+            MessageIdentity: AppUiMessage.Resource("UpdateChecking")));
         try
         {
             var releases = await _source.GetReleasesAsync(cancellationToken).ConfigureAwait(false);
@@ -445,10 +447,9 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             if (release is null)
             {
                 var stable = UpdateReleaseSelector.HighestStable(releases);
-                var message = settings.UpdateChannel == UpdateChannel.Stable && stable is { } highest && highest < CurrentVersion
-                    ? _strings.Get("UpdateNoDowngrade")
-                    : _strings.Get("UpdateUpToDate");
-                return Publish(new UpdateStatusSnapshot(UpdateState.UpToDate, message, _deploymentMode.Current, checkedAt));
+                return Publish(new UpdateStatusSnapshot(UpdateState.UpToDate, string.Empty, _deploymentMode.Current, checkedAt,
+                    MessageIdentity: AppUiMessage.Resource(settings.UpdateChannel == UpdateChannel.Stable && stable is { } highest && highest < CurrentVersion
+                        ? "UpdateNoDowngrade" : "UpdateUpToDate")));
             }
 
             var bytes = await _source.GetManifestAsync(release, cancellationToken).ConfigureAwait(false);
@@ -458,12 +459,12 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             var candidate = new UpdateCandidate(release, manifest, asset, _deploymentMode.Current);
             var available = Publish(new UpdateStatusSnapshot(
                 UpdateState.UpdateAvailable,
-                _deploymentMode.Current == DeploymentMode.Packaged
-                    ? _strings.Format("UpdateFoundManaged", manifest.Version)
-                    : _strings.Format("UpdateFound", manifest.Version),
+                string.Empty,
                 _deploymentMode.Current,
                 checkedAt,
-                candidate));
+                candidate,
+                MessageIdentity: AppUiMessage.Resource(_deploymentMode.Current == DeploymentMode.Packaged
+                    ? "UpdateFoundManaged" : "UpdateFound", manifest.Version)));
 
             if (_deploymentMode.Current != DeploymentMode.Packaged && settings.AutoDownloadUpdates)
             {
@@ -480,22 +481,23 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return Publish(Status with { State = UpdateState.Idle, Message = _strings.Get("UpdateCheckCancelled") });
+            return Publish(Status with { State = UpdateState.Idle, MessageIdentity = AppUiMessage.Resource("UpdateCheckCancelled") });
         }
         catch (Exception exception) when (IsHandledUpdateException(exception))
         {
             _logger.LogWarning(exception, "Update operation {OperationId} {UpdateCheckKind} check failed.", operationId, automatic ? "Automatic" : "Manual");
-            var message = exception switch
+            var reason = AppUiMessage.Resource(exception switch
             {
-                InvalidDataException or JsonException or InvalidOperationException or ArgumentException => _strings.Get("UpdateServiceValidationFailed"),
-                TaskCanceledException => _strings.Get("UpdateServiceTimedOut"),
-                _ => _strings.Get("UpdateServiceUnavailable"),
-            };
+                InvalidDataException or JsonException or InvalidOperationException or ArgumentException => "UpdateServiceValidationFailed",
+                TaskCanceledException => "UpdateServiceTimedOut",
+                _ => "UpdateServiceUnavailable",
+            });
             return Publish(new UpdateStatusSnapshot(
                 UpdateState.Failed,
-                automatic ? _strings.Format("UpdateAutomaticCheckFailed", message) : message,
+                string.Empty,
                 _deploymentMode.Current,
-                DateTimeOffset.UtcNow));
+                DateTimeOffset.UtcNow,
+                MessageIdentity: automatic ? AppUiMessage.Resource("UpdateAutomaticCheckFailed", reason) : reason));
         }
     }
 
@@ -621,6 +623,9 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
 
     private UpdateStatusSnapshot Publish(UpdateStatusSnapshot snapshot)
     {
+        // Keep the legacy snapshot text for existing consumers; the owner retains the
+        // stable descriptor and UI renders it with the current language.
+        if (snapshot.MessageIdentity is { } message) snapshot = snapshot with { Message = message.Render(_strings) };
         Volatile.Write(ref _status, snapshot);
         if (StatusChanged is { } handlers)
         {

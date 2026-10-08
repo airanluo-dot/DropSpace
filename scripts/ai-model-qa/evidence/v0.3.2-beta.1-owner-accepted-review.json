@@ -1,0 +1,2959 @@
+{
+  "schemaVersion": 1,
+  "kind": "owner-accepted-experimental-beta",
+  "verdict": "owner-accepted-experimental-beta",
+  "semanticApproved": false,
+  "reviewedBy": "Codex source/integration reviewer; existing experimental model acceptance carried forward without new semantic approval",
+  "reviewedAt": "2026-10-08T06:03:44Z",
+  "expiresAt": "2026-10-15T06:03:44Z",
+  "summary": "Owner-authorized 0.3.2 Beta1 optional module and maintenance integration; existing model/runtime/prompt/admission/cache and component identities retained. Prior experimental acceptance and unverified historical observations carried forward; no new semantic model approval or inference execution.",
+  "scope": {
+    "releaseVersion": "v0.3.2-beta.1",
+    "shippingModels": [
+      {
+        "id": "hy-mt2-18-q8-plain-beta",
+        "sha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+        "bytes": 1908528192
+      },
+      {
+        "id": "hy-mt2-7b-q8-plain-beta",
+        "sha256": "58b3ad55dd6f6fa08c695cddc34fb5f8f708a844f78ae10508071914b0ed67c0",
+        "bytes": 7981928896
+      }
+    ],
+    "runtime": {
+      "id": "llama-cpp-v0.5.0-cpu-win-x64",
+      "sourceCommit": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+      "resident": {
+        "protocol": 1,
+        "profile": "hy-q8-plain-resident-v1",
+        "sourceSha256": "9b6ddee0fb3238bf3341755a2f71ee76ccd82290118146a2a6328ce7e06276a2"
+      }
+    },
+    "currentNativeWorkerSourceSha256": "a1d6cbaae29bd8eaf51c332e429e2b815ae4c85c6c7a3e8b44c5611048b3176a",
+    "promptProfile": "production-plain-hy",
+    "outputSchema": "host-mapped-id-text-v1",
+    "promptVersion": "official-plain-per-line-v1",
+    "backendId": "hy-q8-plain-beta-v1",
+    "acceptanceVersion": "unknown-copy-neutral-complete-song-v1",
+    "samplerIdentity": "seed42-temp0.1-topk20-topp0.8-minp0.05-repeat1-frequency0-presence0-t4-tb4-c4096-n2048",
+    "captureMethod": "PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync",
+    "nativeArguments": [
+      "--model",
+      "$MODEL",
+      "--mode",
+      "cpu"
+    ],
+    "samplerArguments": [
+      "plain-lyrics-worker",
+      "-m",
+      "$MODEL",
+      "--offline",
+      "--perf",
+      "--no-escape",
+      "--jinja",
+      "--single-turn",
+      "--load-mode",
+      "none",
+      "--no-display-prompt",
+      "--simple-io",
+      "--no-context-shift",
+      "--reasoning",
+      "off",
+      "-t",
+      "4",
+      "-tb",
+      "4",
+      "-ngl",
+      "0",
+      "-c",
+      "4096",
+      "-n",
+      "2048",
+      "--seed",
+      "42",
+      "--temp",
+      "0.1",
+      "--top-k",
+      "20",
+      "--top-p",
+      "0.8",
+      "--min-p",
+      "0.05",
+      "--repeat-penalty",
+      "1.0",
+      "--frequency-penalty",
+      "0",
+      "--presence-penalty",
+      "0"
+    ],
+    "promptTemplate": "将以下文本翻译为{0}，注意只需要输出翻译后的结果，不要额外解释：\n{1}",
+    "targetNames": {
+      "en": "英语",
+      "zh-Hans": "简体中文"
+    },
+    "executionLimits": {
+      "wholeSongSeconds": 600,
+      "perLineSeconds": 60,
+      "memoryMiB": 3072,
+      "maximumPromptBytes": 1800,
+      "maximumOutputBytes": 16384
+    },
+    "modelProfiles": {
+      "hy-mt2-18-q8-plain-beta": {
+        "nativeArguments": [
+          "--model",
+          "$MODEL",
+          "--mode",
+          "cpu"
+        ],
+        "cpuMemoryAdmission": {
+          "minimumAvailableBytes": 4294967296,
+          "policy": "process-cap-plus-1GiB-reserve"
+        },
+        "executionLimits": {
+          "wholeSongSeconds": 600,
+          "perLineSeconds": 60,
+          "memoryMiB": 3072,
+          "maximumPromptBytes": 1800,
+          "maximumOutputBytes": 16384
+        }
+      },
+      "hy-mt2-7b-q8-plain-beta": {
+        "nativeArguments": [
+          "--model",
+          "$MODEL",
+          "--mode",
+          "cpu",
+          "--model-profile",
+          "hy-mt2-7b-q8"
+        ],
+        "cpuMemoryAdmission": {
+          "minimumAvailableBytes": 13958643712,
+          "policy": "process-cap-plus-1GiB-reserve"
+        },
+        "executionLimits": {
+          "wholeSongSeconds": 600,
+          "perLineSeconds": 60,
+          "memoryMiB": 12288,
+          "maximumPromptBytes": 1800,
+          "maximumOutputBytes": 16384
+        }
+      }
+    },
+    "sources": {
+      "algorithm": "sha256-source-lf-embedded-bytes-v2",
+      "files": [
+        {
+          "path": "src/DropSpace.Core/Lyrics/AiLyricsModelCatalog.cs",
+          "sha256": "a99ef8da7562142a2fa60a3092f2b63426a3a1f6968fb715bfda5ddb1f9cb956"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/AiLyricsSelectionModelCatalog.cs",
+          "sha256": "74d863e65d2621dc6effaeac446287c14e5c86686461b21dcee1758dc0f76daf"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsModels.cs",
+          "sha256": "c52e214590dbd88dca34ccc6095b5cb5ba6898b59267a3cfce3e64361ba5b271"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs",
+          "sha256": "1d24912a036399be0f4ebbab525108323af4458db749f57a5af860fc55f000db"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs",
+          "sha256": "b3a51f5f4a6d4d5e348210fdae738f6ae1716326ffa065586057104d82d0c253"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPolicy.cs",
+          "sha256": "fc1fd8b281f148c298a31a34e4000b82130f737ae2a3991bf173af57c1644d95"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsInferenceCircuit.cs",
+          "sha256": "70f61804bf9411804a694216a45e3baada4a9734014e42a6c65f5e3f0b3d5340"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/PlainHyLyricsProtocol.cs",
+          "sha256": "97c6e7645060a31d778a14ef098167ec1a56ee2df83950740cc6ee2554e2803d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LlamaCompletionRunner.cs",
+          "sha256": "9aaf88d56167f03d133a63274185de80049e78b947e1892c5019baa1c1b2c1ea"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/CpuInferenceMemoryPolicy.cs",
+          "sha256": "7d8289c0d766a03c6a5afedf60699f1850f4c435374617151ffc977046130023"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/InferenceResourcesUnavailableException.cs",
+          "sha256": "2409bfbfdf1e371b1dcf2167c6f96fa18808375ec383b05ee0ccfc440d101ba1"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs",
+          "sha256": "d928079fcd41ff8eaa8cd243d07fe6aa7be8809575796a260546477a98094394"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsWorkLifetime.cs",
+          "sha256": "6ae1e536891528df21c46c0b17276d2c78a269919a6b36799601b9908e5fbf93"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsCache.cs",
+          "sha256": "f5ce794a363a41b5de5b4b4c57c4c6f99a407de85f5678ef36c68127a52d4247"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCache.cs",
+          "sha256": "583b464cffff6aec76efd93d4916cdd249ce32dfbcba600dca80b01f544fc4de"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs",
+          "sha256": "e89dc5270af046a8c5d70c6957ec7a882fc386a0688b0b69b08eb1c19cc282c7"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs",
+          "sha256": "e863496cc3a2f7e53270f1d9923f0bb0b539ede959ca202b419ac10703991e67"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsRuntimePackage.cs",
+          "sha256": "0bf8cdf790a37561eeac508e96ed520d573bdc495d0ba2b07ec6ead490e292d5"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Storage/ReparseSafeFileOpen.cs",
+          "sha256": "e59c08f0fc77bcca386fbe5257bff68be5e9909c40d5e5178f3ccc96d855762b"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/Ct2HelperAdapter.cs",
+          "sha256": "f4fd65e217b42b94deee427e976ad8de49924e64ecae9cef0ed262251bc80bb1"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/Ct2PrivatePackage.cs",
+          "sha256": "0dfc24cb09e7f4aa50203138f20fa13035d46bee78673f4b9c1eb622abd4f68d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsBackend.cs",
+          "sha256": "ec337d32b1a5a027aa3d054b40d898458075fa197ce07005ac1157db41b863eb"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/Ct2LyricsPipeline.cs",
+          "sha256": "d9c8d3300cffc30d1fe432dae9ea087cb3c791252226e66238dcd89b6fc20a4b"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/Ct2PackageInstaller.cs",
+          "sha256": "26f7bc0565d915dc3d18716602cf3ba5b66cd60dab4645583d12e323b04ed481"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs",
+          "sha256": "5c9b7ae261d18c3a3c18b69b289a71e852d3c086a47169a566bcce63c43d3161"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsSegmentMemo.cs",
+          "sha256": "9a5d5bac0c4fd44de75eeef745f772bc47e9edbec122de8ff65bb96c3fa9b25f"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsMetrics.cs",
+          "sha256": "b19ba041dba1f97636ab0c8acbf59197e24dd4bda11a4196cc2093b6d60dc3a6"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationProgress.cs",
+          "sha256": "e8ca386d0414c8239510a37d084bd85a6d648f4e82fd46821fd735ac26ce76be"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/PersistentPlainLyricsRunner.cs",
+          "sha256": "66338b1ff5a34576e369e2f4a3200d654fd25e62219eb66227aadcd6e5d1e188"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
+          "sha256": "d65f91dbf3c41173434f79977040086c93705fddd4213db6db326b26ee8b4f82"
+        },
+        {
+          "path": "src/DropSpace.Core/Abstractions/IDlcPackageProvider.cs",
+          "sha256": "e0892e1035dde47bce5d115054ce1a76bb0433e5596b7b0acd040557732a0014"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/CudaDriverAvailability.cs",
+          "sha256": "2182830054e2ad7507b589643a5e0a84e5104750b02733fe856fad46d64bab87"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+          "sha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/CudaPlainHyLyricsBackend.cs",
+          "sha256": "49ca82b52517b9dff58ad94943cb60ff26c3a7d00402bcb6cf72b2fd8777b822"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Dlc/AiModelDlcProvider.cs",
+          "sha256": "882cb7c11c7cb51b56ae6b214765828d4d4e7ec136b6fbf7ce9362b183ce1701"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Dlc/CudaRuntimeDlcProvider.cs",
+          "sha256": "6c8aa29ee808778f394d931a5cb19d161215128d218f31f053fd167c22af7793"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Dlc/DlcManagerService.cs",
+          "sha256": "7a383904c83961eb85c82916ffb616fbe1fa7e4ae929b91b40b691c7ba756cf9"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Settings/DlcPage.cs",
+          "sha256": "a54d6b1bd4064e13760642a3b3d2703111dcd23ae73e092970d4b4f9665bf1e7"
+        },
+        {
+          "path": "src/DropSpace.App/Views/MainPage.Settings.cs",
+          "sha256": "a5548efa93f260cdb2c0cebecec08a0e6f11311723976cdc206802cc2cef13a0"
+        },
+        {
+          "path": "src/DropSpace.App/MainWindow.xaml.cs",
+          "sha256": "b9786fac5a9f3137bb9fc121949e619cf539018f8379dd2667b3fbe3ae02fe0f"
+        },
+        {
+          "path": "tools/cuda-lyrics-helper/CMakeLists.txt",
+          "sha256": "cf5ed074d797997b083ca26b3c658717d0264c5931acfb0372ffc97a9eeb9e63"
+        },
+        {
+          "path": "tools/cuda-lyrics-helper/adapt_worker.py",
+          "sha256": "dbdf8350791dbd67ad44e90678078bd2146a874acd82b61bed8f2ad4d7446393"
+        },
+        {
+          "path": "tools/cuda-lyrics-helper/cuda-device.h",
+          "sha256": "ad871f2848ba0730427f563b83079c837caa9e830045996f739498a3b8f8b782"
+        },
+        {
+          "path": "scripts/Build-CudaLyricsExperiment.ps1",
+          "sha256": "39f16651805ba1814f30c8b15aea018d82c425c152516581e3446a941b3a7a9f"
+        },
+        {
+          "path": "scripts/cuda_runtime_contract.py",
+          "sha256": "74d9f316e804ca3699a40e691ffd391b207b932021e27600d28316fc71590962"
+        },
+        {
+          "path": "scripts/package-cuda-runtime.py",
+          "sha256": "f57712e20f3644b6a1995c793bfa58c4752d4d45d84a20b96b7b9f3f61b1dd8e"
+        },
+        {
+          "path": "scripts/stage-reviewed-cuda-metadata.py",
+          "sha256": "103b2ebbf41e06e21502da7facdc8fcc6a74f14f9847c13a47f669692552675d"
+        },
+        {
+          "path": "docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json",
+          "sha256": "4140c4de4c0fc2a783ad270bd87b0ef2e370f2252dcef250e8ee943aab46ee61"
+        },
+        {
+          "path": "docs/dev/evidence/beta11-local-cuda/cuda13-runtime-manifest.json",
+          "sha256": "004b92db9cbab1ab5e442c8bbe79fdd5bc44b085167a5841a3a42dbb2c428188"
+        },
+        {
+          "path": "scripts/test-ai-release-approval.mjs",
+          "sha256": "edacb922a6de82d7f6a98ffb6a825601ae7aa0dbda2eec5c6f4edf15ef7f5757"
+        },
+        {
+          "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
+          "sha256": "b492e2f0413449d69e0e37536b941e9e30c2b31c692732a5385ae8c9c6f9deab"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsParser.cs",
+          "sha256": "7ad37ee05747f77e319401f88161432d862737423b6abb583361d58cfed9a2fe"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsMatcher.cs",
+          "sha256": "6cd8fc197f9a9168b129d64b11c11bf9e888406eb9f1af0cd4dad4e14d86dd8c"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsCandidateSelection.cs",
+          "sha256": "2e34887d24e1d0da71c431db617a151268ce80c3f0091234d3fbfb2add854d64"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/ArtistCreditOrthography.cs",
+          "sha256": "05f45431c87f7a2b54649d9a1889a905efbe27071650b5205815ede125e8fd8b"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/Data/TSCharacters.txt",
+          "sha256": "9ff46a7d30e5765375eb13d33f2b03a34d298913caf2b120380679f33ae1642d"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/Data/OpenCC-LICENSE.txt",
+          "sha256": "b534e465949558eec2597b04f5092b5e161236a68dfbfd04d547592ac3964308"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsDisplayPolicy.cs",
+          "sha256": "cd06ac6bcbed3e2d43e9422bc9b7c9ef9441c6c32e0467dda9a0aa151b706e15"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsReloadPolicy.cs",
+          "sha256": "72a461d7c06cb62a3bfd379fa60291342b806b9ae9b474afa9a1e8d9850bb70d"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs",
+          "sha256": "802ff6c072323845c4c039dfb07dff7845eae7ca76333f320d3480bbde337be7"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsBodyQualityPolicy.cs",
+          "sha256": "053ff016394ed63f9c7caeb74ca0aa442e79174798b74166c1c68403bc798a05"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsMarqueePolicy.cs",
+          "sha256": "bd5294ac4cb5240c95b447526db2581394b2830d926a63e093b19797d9518796"
+        },
+        {
+          "path": "src/DropSpace.Core/Media/MediaModels.cs",
+          "sha256": "4ae8432a783801e97e3c1ef44feaa9a588ee33c88fd405964fdfc465299b80b0"
+        },
+        {
+          "path": "src/DropSpace.Core/Media/MediaPlaybackClock.cs",
+          "sha256": "9aba066552d82505ed4e23a102c85fa5c85db12968861f660cd78ef1311e03be"
+        },
+        {
+          "path": "src/DropSpace.Core/Media/SpectrumFreshnessPolicy.cs",
+          "sha256": "8468d993a2a64da98d4ef3757d5ea058e04f42893d5d6f307a87e3e23fd3b569"
+        },
+        {
+          "path": "src/DropSpace.Core/Media/MediaProcessIdentityPolicy.cs",
+          "sha256": "2b1683c3949a389e6d8dcfbf754e064db5c527a44094cdfe277c1c0a21ce700c"
+        },
+        {
+          "path": "src/DropSpace.Core/Models/AppSettings.cs",
+          "sha256": "6deb6a283b7c6b1d885b779b17bd522c9d203a4d632a70b57b2d912345fd4cc8"
+        },
+        {
+          "path": "src/DropSpace.Core/Models/NativeIslandSettings.cs",
+          "sha256": "e156195f519e436ab4f108bce2fc9a9ac3442fa91f5cf5acfae01768bcb694ff"
+        },
+        {
+          "path": "src/DropSpace.Core/Models/NativeIslandSettingsPolicy.cs",
+          "sha256": "216bc5c8cfbf1cf859d261d31e4dfb0e804285628ebd0a75dd055846b5abd236"
+        },
+        {
+          "path": "src/DropSpace.Core/Models/SettingsChangePolicy.cs",
+          "sha256": "aed8b0603ae2634eb50d51ec496e57a38856814a6e5223aefcc93c438596bf04"
+        },
+        {
+          "path": "src/DropSpace.Core/Models/SettingsValidationPolicy.cs",
+          "sha256": "53d50193811ac2bb61079e2ded5054b74c7203167c91101aa90f5932826882ff"
+        },
+        {
+          "path": "src/DropSpace.Core/Models/SettingsMigration14.cs",
+          "sha256": "16435df396281e1037b111d1c756c1638cc91640fd5e09a067d3bb83fb57fab5"
+        },
+        {
+          "path": "src/DropSpace.Core/Policies/AppLanguagePolicy.cs",
+          "sha256": "723f23303621d07504796c1ce0475123928801bd91c7aab39dd6030d1ced6a47"
+        },
+        {
+          "path": "src/DropSpace.Core/Abstractions/IAppStringLocalizer.cs",
+          "sha256": "e6a7e9e1e4c462c06c3456b03fa73e52552c6ba23b2ba016b954e4ef9fee5f20"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs",
+          "sha256": "cc5a81069c3b625fbbbc580c48d1945bad1482d5d1ce24170c30011884f31464"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs",
+          "sha256": "21e9796f3e8dc8ef511de3b2522a69e951055e90cd99054d711a58ec75460c7d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LocalLrcLyricsProvider.cs",
+          "sha256": "b862e5c91bca348bb467231589dbbbd26a253abf70a79be056d480f8dda81b26"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs",
+          "sha256": "cf8576165d1565c0f2b1c14aab7aa20c19d586f3a8667beeaef4ebae034fffe4"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs",
+          "sha256": "b8bd91a84a08a453c2b2aed938d2a5ca25538cc2167d0aae4dd7baa1090329ce"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseResponseCache.cs",
+          "sha256": "d98643823ca2cf8e80fe62c3d16dd07ff04b0db6a36333ff4dbe986ad2183dec"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsDiagnostic.cs",
+          "sha256": "8d42fc2accf236af213e15971440d1f5dfd9019f6fde5252da9bcdb625258f4c"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs",
+          "sha256": "33dbce0d383507a3be82452406f82fb87efcb03655ea0c641704882003738aa0"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
+          "sha256": "d739176570a748f1cccec24a28db369d7abca1e4f5f8b3780754e698585e2c00"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateRequests.cs",
+          "sha256": "87f6700da5b62f847da4b4b4d39a7c1d37a7049948ccffe86f7ce570f1bba178"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/ILyricsSelectionRuntime.cs",
+          "sha256": "d5654152147d1591edcfa39983afb8df93db380233ac600ee8fdd9c8f379e7b2"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateSelector.cs",
+          "sha256": "732663e515e405836d59159f05d63252681596dc2ae2f39c5dcb7a48e816b222"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/KugouKrcParser.cs",
+          "sha256": "39729cc90ad5470fb3d6da4db4a5e188c992b814778bea71bf98a0c417bc9963"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs",
+          "sha256": "bbf31eb2f31aa28d7a50162f322c1a27477a03c5a8b40bdf3866d778588834c5"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs",
+          "sha256": "4030c6d5d76f17294eff5b03af76ab79d1e6f145cde16bab6b30de03aff6e055"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs",
+          "sha256": "8b9ccdaa4bf6e1f3b041260365364871c27b729b3b77278cf1d08febb8e2b7a1"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiModelDeliveryManifest.cs",
+          "sha256": "0128867a4671e61fb1b1650cec667046176b665c87fedbe9ca5cf05afbb58003"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj",
+          "sha256": "4e4ff65594ee26d572af334ed11ea258eef762ac55ce89f325cad15d05b994df"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/Manifests/models-hy-mt2-q8-v1.json",
+          "sha256": "2da82e004022c52dc4315b8f6414273d13802c6c5202668e5be26a08ba6c0ef9"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsWholeTrackAdmission.cs",
+          "sha256": "7fef2f74394c39081892e2da6568fdf62e36b24293eae1ec4d9fe6274ef96631"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/FastTextLanguageIdentifier.cs",
+          "sha256": "54259347ccd94d44ec97105be4e6b5a91d292e0f81a3e4945fb80e8450f4d53d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/Manifests/fasttext-lid176-bin-v1.json",
+          "sha256": "920dc52e6fcbad9754628f4bb889f59479777c502c1eed5f0ac21513e13bc75f"
+        },
+        {
+          "path": "Directory.Packages.props",
+          "sha256": "d89e234abb1a79f5282b4d0f31031ca99d6e889504d7baa12162dbb0d0e332c8"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/packages.lock.json",
+          "sha256": "8f761b37e85feefe097241a8dfe04b91a1d27ff1a218d1d0db613d757513a75c"
+        },
+        {
+          "path": "src/DropSpace.App/packages.lock.json",
+          "sha256": "02c409bbbee46ff3de9011917c3ce861460f3c7d56ff288204317e0046ce3542"
+        },
+        {
+          "path": "scripts/Stage-LyricsLanguageModel.ps1",
+          "sha256": "0d287c5096b8259733ea0d9c0cba4ebbdc192489cc23c1057cbd34a4d4c7e199"
+        },
+        {
+          "path": "scripts/Inspect-LyricsLanguagePayload.ps1",
+          "sha256": "19f6a0299a76fb1339fb0614c30cbc89e1cfe913a6292867e442605012f6bd89"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Diagnostics/LyricsLanguageSmoke.cs",
+          "sha256": "51caac16618b9d3fd4f17998ae80d73a192b1e9ce0485d87ddaeb2a5c0ef1818"
+        },
+        {
+          "path": "docs/licenses/fasttext-engine-MIT.txt",
+          "sha256": "d9cfdfdf548c48712f05c67eb76c79e7c9f45cba78db50794b780e3564b85ef7"
+        },
+        {
+          "path": "docs/licenses/fasttext-panlingo-MIT.txt",
+          "sha256": "74c4975e1d3b48f8b54ded136301a5d2c2884f85f4002204351c979c6068499b"
+        },
+        {
+          "path": "docs/licenses/fasttext-lid176-CC-BY-SA-3.0.txt",
+          "sha256": "eba548d5739c293e00d7d090fd07b37628b8bba327bb25f8b83121a67beef650"
+        },
+        {
+          "path": "src/DropSpace.Core/Models/AppUiMessage.cs",
+          "sha256": "baf8c3d616cc8c46e53b94af5f0481021f6407180de4c40a703892da64c46b14"
+        },
+        {
+          "path": "src/DropSpace.Core/Dlc/ModuleContracts.cs",
+          "sha256": "d46b0af97cf95a82dba333b90ce8e1179575f1d63bfe5bca510e0d75010a5105"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Dlc/official-modules.json",
+          "sha256": "5edb48373de28e7228a12ebc5e361ac9495b6e8ae26aac9f7e381065aa4e7821"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Dlc/OfficialModuleCatalog.cs",
+          "sha256": "914ecb9d9fd27b1863e05bdc3879364effaa44714972a017a232666977d124e1"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Dlc/ModulePackageStore.cs",
+          "sha256": "b885733755f92adbe3c14d0d76bb9abce7e6ac03e27aa83daa77c9435353f2d8"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Dlc/ModuleWorkerClient.cs",
+          "sha256": "9f5b21daf448239def7f7e2b0195b6be8b402974f8563eb8d151399abbb0b0da"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Dlc/ModuleProcessJob.cs",
+          "sha256": "330898f49601495e41b866136aae7fb871d4de17b0425349b59d647aa25ba7a7"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Dlc/FeatureModuleRuntime.cs",
+          "sha256": "98af7de711774d2e0f329d6eecb7435006740f5b1c60399f6796386c4c83a1f1"
+        },
+        {
+          "path": "src/DropSpace.App/Views/MainPage.Modules.cs",
+          "sha256": "e0cae144e8d7604b7da8cbeb3c083a516f25886c1ac66834d0205630688782e3"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Settings/FeatureModuleInventoryView.cs",
+          "sha256": "1423352e5c2abd4c2e0c0f5acee7b039eb5c16fe6403120a602fd920c20cfa46"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Settings/FeatureModulePage.cs",
+          "sha256": "1065297a4fe32b9e8c21ae0fdc6783e55aeb813fcb869bca0b09a6a103d3826b"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml",
+          "sha256": "6c07edc8c818310bbacbd0075fc02cd56a561d9a9b46c72f613fac977f75e5f9"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+          "sha256": "29fd5490306c518bf90e9217c2745dd81d4ff5413c5bee9f5ceea26ac1b5e1eb"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs",
+          "sha256": "50b20ff48879a13a80f0c02d38c0de256e44c120353bab8477865c77e788b842"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Settings/SettingsIoPolicy.cs",
+          "sha256": "f20395394d5cd27f6a74b976a81a6578f05148f60d17b49fa29692661523b869"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
+          "sha256": "d21b8a0228e08e5097c3df38f31c289ea180d84c1592e9c0fb86fdbed158fa0e"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
+          "sha256": "2599fe2a8da548787ef7cd2d3c5d333953056faa81316ca0580175db3705a71f"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/BoundedMediaOperation.cs",
+          "sha256": "fc33719ca2138b9e5a5e2d2e8641eedf5ca72e11d6dccefaca003b9c4db3c48d"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+          "sha256": "e80fb2ce7c7cd9555fb0e2ec867e7e70cb364dfc6d1167d3d608162c60dff6ec"
+        },
+        {
+          "path": "src/DropSpace.App/Services/ImageDecoderPreflight.cs",
+          "sha256": "66c0d2141fc4862cb3fc8707ca4bd703461bb0540c730205716a9f95874c7f24"
+        },
+        {
+          "path": "src/DropSpace.App/Services/ThumbnailService.cs",
+          "sha256": "a4ed5a66b5ea3efda5475e0b4d50d6f3d133adbbae401da2829b5ab02320ab4b"
+        },
+        {
+          "path": "src/DropSpace.App/App.xaml.cs",
+          "sha256": "473392f47b125a11a634a69f162132e6d8bdc457660334d47b8f757b071fc26d"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+          "sha256": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs",
+          "sha256": "e45c11ec1c0e3b952cbb038c55bdfa96b87e3a812e437e5154aa52469eb51cb4"
+        },
+        {
+          "path": "src/DropSpace.App/Views/MainPage.xaml",
+          "sha256": "c0b015c836e5aa24a1b81350988d47f9bc62e864f3d28820ac6fec48e40f3061"
+        },
+        {
+          "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+          "sha256": "7aa0ae98aac5d306502713b3bd38dea656aa4a8222dc2e35bca67a0691db32e0"
+        },
+        {
+          "path": "src/DropSpace.App/Services/AppLanguageService.cs",
+          "sha256": "1037c5a15963e090ee1d805ae42a42dc39a58e2fc0844c888bd903260407d3d5"
+        },
+        {
+          "path": "src/DropSpace.App/Services/ResourceStringLocalizer.cs",
+          "sha256": "d2fd4d5b18254f5b662cc4ffdb7ce4101b46dac7923437ea6882a0b46bbc1762"
+        },
+        {
+          "path": "src/DropSpace.App/Services/SettingsApplicationCoordinator.cs",
+          "sha256": "3bb77468e289966a1913e05195a39cdeb0317e1ad75f1d812f84e345f5b3de14"
+        },
+        {
+          "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+          "sha256": "63254870ef2001a8c1088136e1b43af5003f056fecc4afb5d6a4b9a82aefc959"
+        },
+        {
+          "path": "src/DropSpace.App/ViewModels/OverlayViewModel.cs",
+          "sha256": "7f1f69a41d8537f4f59914b8a3e4f3a1ea9a33532992ec60cf29be87fbf160b7"
+        },
+        {
+          "path": "src/DropSpace.Core/Island/IslandExperienceCoordinator.cs",
+          "sha256": "a0e323ba1d9496ae1ff34c16efde047ed6518426e781ab084b2d0afa40de8ab0"
+        },
+        {
+          "path": "src/DropSpace.Core/Island/IslandPresencePolicy.cs",
+          "sha256": "2ca4e1524c4c4682d29b5ac84333f942a1191843e868d09554eb42a7ecec1206"
+        },
+        {
+          "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+          "sha256": "1ad95126b3a5bffbb63a8f7faa989906196867aaa9705d68c862c2270a98f6c8"
+        },
+        {
+          "path": "src/DropSpace.App/ViewModels/NativeSettingsEditor.cs",
+          "sha256": "5b2c0de7b872648d46662b4d952a2bb6715a07c7ce8540cbdbb52da032162382"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
+          "sha256": "185a8d3129df79d2a9272f822d3f43eb96285074362c5d4445fd2beb579d297d"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Settings/SettingsEditBehavior.cs",
+          "sha256": "07c4d42fbcf1a1c0911cb89d778d82cf1a30f2e031f07e9a0877f32e8e83977a"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Settings/SettingsValueSlider.cs",
+          "sha256": "54810aa20b7cf58419c4561d0f0010eb86a6d95c477de662684ea4243f89179e"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Settings/SettingsForm.cs",
+          "sha256": "ead2ad44703eb9eea53b65c48a68b6ac1f283fb07f899bc478c000b9336853e5"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Music/LyricsRowCollection.cs",
+          "sha256": "7ad337a9a62a955bbecf5e9211fcb090fa6c7b33180535054a302a0161debfc8"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs",
+          "sha256": "11b641b36baec649871b4c948c8ed8d4a4c6e52ae841533981ec0a8a1ef4ae7e"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+          "sha256": "408341cd28a22469c084b6f5d906917cc9c0e0a196355157d5506520932790e4"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml",
+          "sha256": "c4f5ff74f2fccae1c9eb6546047f0e8b5e3b87e724dde16f07a142fd1faaade0"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs",
+          "sha256": "2dd8d4790d4ed93bcfa7c791cf8cc964905d9036e2ca9f0d49274a2fb1b6d75c"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+          "sha256": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml",
+          "sha256": "075de51e3758511b2d0c6d836ef42f5195afd328015d63fb9ac8569d9b0f7d9c"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsGlowEnvelope.cs",
+          "sha256": "85a9c97142ca350ba3015d8a6683f89162af66b9f61d5ce42414b9f515df66e5"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsGlowAudioResponse.cs",
+          "sha256": "4947f7b75f2eb5402148c19422c4c610f0ec819d50f512026bf365501ee29f9a"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsGlowHandoff.cs",
+          "sha256": "839bc0d97a849d6e8919bf030246cb168f25cd8fc936c2555ab816c17544ef69"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsGlowPolicy.cs",
+          "sha256": "a3c0c88075c0752ed15f4b56847fbc84e9d024a4988b9231152d533e3b26e960"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandGlowController.cs",
+          "sha256": "b9404ecb5f9a933d12f0748f22d04588ab995f41e4c492500071e0c2a4e0abbf"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandGlowRasterizer.cs",
+          "sha256": "41677f57440f04ddf55b9ddc37f3385acad028ed331e0080137d3ca65d3cb303"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandGlowWindow.cs",
+          "sha256": "f6527c0538021334d35761d0d6068afaebca1b03adaa65486ecf8dc87f219631"
+        },
+        {
+          "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+          "sha256": "b9b57ec1cc98ec140b1cd99fe49b50f4d2081ae16bfa8acd01d0365f54420b2b"
+        },
+        {
+          "path": "src/DropSpace.App/Services/AcrylicCoverageBackdropTarget.cs",
+          "sha256": "e192484a1aa1b9c6f3c3ad7530660b62bd9c5baaafcff356021df2d50baae592"
+        },
+        {
+          "path": "src/DropSpace.App/Services/AcrylicCoverageMask.cs",
+          "sha256": "c83fd49143debc8dccae9a2abf91b61a4e64b7a7fade25860f8c73bdcafdab4f"
+        },
+        {
+          "path": "src/DropSpace.App/Services/AcrylicShutterBlur.cs",
+          "sha256": "263d60c797fa008a911bad61d67b3e1b273ca020c4eaf1c47747f7192830da89"
+        },
+        {
+          "path": "src/DropSpace.App/Services/CompositionEffectDescriptions.cs",
+          "sha256": "3bbed9238739bf4c3246d61c96e1db1c68a3865b5ae5c798b7b519c316842c8c"
+        },
+        {
+          "path": "src/DropSpace.App/Services/DisplayIdentityService.cs",
+          "sha256": "187ed0921f88225db00789783ec34885b9296afed46005c87a88bbc08580d71b"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandAcrylicBackdrop.cs",
+          "sha256": "66e3ca8d86bf6e53c310ce08412c7c797be4132b4aabb5d6b5e035ce83a7288f"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandMotionBlurPolicy.cs",
+          "sha256": "14defadc16bb939ea49a1e6bbfb5e4dc6d88f7429de8b98cc5b4756726a5c789"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandTransparentBackdrop.cs",
+          "sha256": "bc8e35eb4c4325eecb7ef79aeca67af38a4a46f510b305105899030de27c473d"
+        },
+        {
+          "path": "src/DropSpace.App/Services/MonitorLayoutService.cs",
+          "sha256": "df85efc35ad32b1a2a6c474b1be21e0573f1615fc50de90a5c4c7e3e21c5571a"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayMaterialController.cs",
+          "sha256": "6d1b94ee083fc28428140023ad05077c97d04d3560d973842cab15622c6fd16d"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayMotionOrchestrator.cs",
+          "sha256": "4555c2408bb2c222c913b088120d3ea55242e2bceb4cc684d2023a16311b0dd2"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayNativeRegionController.cs",
+          "sha256": "17254d9026b13625345107d48112a97c4b6f7e68a97c5b80131deed44d3d29ba"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayTransparentHostController.cs",
+          "sha256": "cf30451385a332314c82cb79aa6de5c18ebc41d1d08747c082ff6e54330e7a4b"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayWindowInterop.cs",
+          "sha256": "fd7984f6f14173d93f1a29584efe3aee496623009d1777a02ebc82de48435299"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayWindowService.cs",
+          "sha256": "fabf4f1c3af0174eeb1b2a7da15c44b3b301257a3492c9fe107e5c6549623080"
+        },
+        {
+          "path": "src/DropSpace.Core/Overlay/OverlayFrameGeometry.cs",
+          "sha256": "0c55a84dfb3ac767b9a24ab32dbcb5480bfafc1e5567bdea2c611285a50e8e46"
+        },
+        {
+          "path": "src/DropSpace.Core/Overlay/OverlayFramePacer.cs",
+          "sha256": "e83e85ae1817f4db0fce43baea39ba79ba1dff67196ee24a056e229102d2d108"
+        },
+        {
+          "path": "src/DropSpace.Core/Overlay/OverlayMotionController.cs",
+          "sha256": "4d93a6066ec9b8012d9a7fe24fa01ba380d768ca55619b469ffb8aafb7ad3b30"
+        },
+        {
+          "path": "src/DropSpace.Core/Overlay/OverlayRegionSignature.cs",
+          "sha256": "bb47b8ff817b6c7802e5657c6664fc95f6e21f82188bc658c95a8eb8fd26f4cb"
+        },
+        {
+          "path": "localization/languages.json",
+          "sha256": "76d3bbc52831ed249874ccd7a7f43b5102bc376601d8a058a4883916b1eec922"
+        },
+        {
+          "path": "src/DropSpace.Core/Policies/AppLanguageCatalog.cs",
+          "sha256": "7b084d3dca3c9094807f0ba36f4f3c88aa562bc40d9d9a5c731e0b63bac0500b"
+        },
+        {
+          "path": "src/DropSpace.Core/Policies/LyricsTranslationTargetPolicy.cs",
+          "sha256": "4354c46c7762cb58a8b4a520261081f43cc180029cc7b33e17d7d3747fd1779c"
+        },
+        {
+          "path": "scripts/Build-NextBetaCandidate.ps1",
+          "sha256": "33d5509f7271c9674a6c684795bbae128644df25b570ce4ad8620c43d40c246d"
+        },
+        {
+          "path": "scripts/next-beta-release-validation.mjs",
+          "sha256": "da58dc975b62cb008614fb2c8920d893026c8cf42dd53f7929e89495fc9522bb"
+        },
+        {
+          "path": "scripts/Test-PackagedLocalization.ps1",
+          "sha256": "6037f32457ed175c4cb28797167eeb1468e6cae5eb77e0580546e04c284e0321"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
+          "sha256": "e9bd59dddaf588e8f888ff6cab7413354d708057e2e3c6a706a84931946e9484"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
+          "sha256": "f9783d797c0d6a8e58c009a32f3cf31f3d335b84e94c30d7df29e471f5494507"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
+          "sha256": "75f09ab08551b48a085336b15031c68cb24253b988612da5584895387486fa76"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
+          "sha256": "931320375cf3b04539f98dfa62605063aa9a04a1cf9d2fdf741f89c401a88f31"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
+          "sha256": "d6009f26eb1cd7ade301e4aae69039bffcf96f4545e932cff154760c57158da1"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
+          "sha256": "8e3ec9b3e4ed05e08685ccea24a46936a869360bb1c4612fa8551d36854055c9"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
+          "sha256": "6eac3550efe17dc76260943671763511340bf990f64fe730ca528b825c260b7a"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
+          "sha256": "091b001aabbc393b42b96f832835ca3e55d92ea99784b9dab674216080dd2d13"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+          "sha256": "fa8afb98d95f3c664a5edb705e0bb56546b78f6dfddfd635f1ae0b0c36b26067"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+          "sha256": "30c7e3f342c47adb87d3be79f8f0437369c7d4b3b95d110d65fe65601a984650"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs",
+          "sha256": "258977ce2dce7cc02fba23431acde5c6a8e6bb133e361b46b2294b44938ae0a3"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaApplicationIconService.cs",
+          "sha256": "7798b0845782508ad258d82befb65b0d66a5de976c08db356ff7b86f6cf8aee4"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaArtworkService.cs",
+          "sha256": "a9cc757f3ed9f7a9c71edd6f84e7b0a02942923959467ff219c8a99fbb769265"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaEventSubscription.cs",
+          "sha256": "3c4681ab0d5d5ba36a729c2a714d558934e3376a75d8bd6f900df8f1a15c6ab4"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaProcessResolver.cs",
+          "sha256": "0fadb045c28a95ad8d8d7c43bb8a25a953bb5d3a3d3a30e57b1cf3e8eca2c677"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsPreviewPolicy.cs",
+          "sha256": "c9b75a00df9bfde841a4a4bc05a6463bd22b4ff5b58760db879d0d3d7f3374ae"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml",
+          "sha256": "5744ac7b1f26a7774b49d16c942eb6f48b508948285dc12d95ca6b5ca5eea7b9"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+          "sha256": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs",
+          "sha256": "bb330e48706e3554b6890c365e04d55f2e8da3b6f67ff7f221f1c858d6d905be"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaLyricsRefreshRequest.cs",
+          "sha256": "0d6bc2e1359d38f2e7ca430c45f2620927dba33edcd467147fdcede3b9eb524b"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/RetirableMediaWork.cs",
+          "sha256": "11fa91ce1d6aba31bf8e0617fdc42fa8116b9b05887f142374c3885860ac2a36"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaSessionOwner.cs",
+          "sha256": "8dfbb3fdd23900f0466561aa39dccfaab7ddccaf07a924a329ea052d585535d9"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs",
+          "sha256": "24f2084921a7763676ac142a64129b964c23021e77e4dccec839f1effe080ee4"
+        },
+        {
+          "path": "src/DropSpace.App/OverlayWindow.xaml",
+          "sha256": "34f556a2377c8eb3cf9194f29c5e1a4f27790e74298aa8929777093878586beb"
+        },
+        {
+          "path": "scripts/ai-model-qa/profiles/minimal-target-only.json",
+          "sha256": "0cef6d2b208dc327f1e1cddfbf2da745fa28b462a9ba73203d50bd6fcadf91bf"
+        },
+        {
+          "path": "scripts/Build-AiLyricsRuntime.ps1",
+          "sha256": "e6d8d3256b8840a66efcde5d69842ca7e1586ce48dab616284c9e321c4c21d3a"
+        },
+        {
+          "path": "scripts/Prepare-VulkanBuildDependencies.ps1",
+          "sha256": "08fa2f6bfc36f4f8a19e9b98abfcff50b34212bf161811cbd009a304b4445c10"
+        },
+        {
+          "path": "scripts/build-dependencies/vulkan/vcpkg.json",
+          "sha256": "43718fb732f76bb089dc2e270d2619132de835cfe21a1f729d58d2656dded079"
+        },
+        {
+          "path": "scripts/ai-model-qa/Program.cs",
+          "sha256": "481ec8d956c00d99c3a37ec59c624f4127ecfd7321712a7a19912ae63d265871"
+        },
+        {
+          "path": "scripts/ai-model-qa/Run-WindowsModelQa.ps1",
+          "sha256": "c5cd9021be5e10cf6d284ced5d5b159f01414085cd254c4360c938de308cd1e7"
+        },
+        {
+          "path": "scripts/ai-model-qa/WindowsModelQa.csproj",
+          "sha256": "edc9d2b6e4d3a4dc3930a620588cb8eb976251a86c82c4fd16d2568b0aa65bfb"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj",
+          "sha256": "c109fdf412969d70e434659e6e0c6a2b31c34f0e3ac15ceba4014a0493f3b832"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/packages.lock.json",
+          "sha256": "dbba51527fd104cca9a373cb1527ab92b807f56be6cc95d6ec22533a6de23ad4"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/Program.cs",
+          "sha256": "1503d1efe3357845fe2542aa3ffe0e9f240ffad8c261d9f999ab650f15a99715"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/source48-admission-v10.json",
+          "sha256": "b8b707ccb9cd1a14d01fdb0a9c3145f01bf3c7f7a5314c878344a567f7349394"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/source48-admission-v11.json",
+          "sha256": "9db8c3de79bc82023f0889e5b36cd1bb9ce8339796ccd6f87016b51eb0f9564f"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
+          "sha256": "6eadbd608b3b53d9d22bf56d1b67cd3c3b142383c0096d5f061f8bbde55c21ab"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/ContractTests.cs",
+          "sha256": "6da085dd00c6f7ab6f2d95745c19ee1ad2af0ed9d63b4e083852a89f0c31fb39"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1",
+          "sha256": "bacffa1480b707ce5a4409b2ce3d9c25580abbe491a6436692e2f7e949a36297"
+        },
+        {
+          "path": "scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1",
+          "sha256": "4902075e025e47a1638517a95f367a453d173f29e6e9e05b728a5301ba308df1"
+        },
+        {
+          "path": "scripts/Get-AiLyricsSmokeModel.ps1",
+          "sha256": "4f8887685f9f934e5606a3b98cc276fefa74317234311f2c3130d755d0574dd9"
+        },
+        {
+          "path": "scripts/Test-AiLyricsRuntime.ps1",
+          "sha256": "991cc5eab4f576aabc4ec9a4b1aa515e70cc20c663f2e2ec69594b00c77de352"
+        },
+        {
+          "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+          "sha256": "3bfd5315e0ea3ede9cf5ef8c30c0878addea31f714a00310cce0a66fc78344fb"
+        },
+        {
+          "path": "src/DropSpace.App/DropSpace.App.csproj",
+          "sha256": "392f25df8bbc95e7cce12aeb30a3a829e742385a75a6aca190d875cfb425d17d"
+        },
+        {
+          "path": "scripts/Build-PortableExe.ps1",
+          "sha256": "88747b49277478c2daa47c9078da644a23801b86d856873a115979ea648547b7"
+        },
+        {
+          "path": "scripts/Build-UnsignedPackage.ps1",
+          "sha256": "86675b8a793fc30d94a4e2a10f1a610dc51bab0705118938a3b877fb13afae47"
+        },
+        {
+          "path": "scripts/Build-Installer.ps1",
+          "sha256": "6fcc0737185cbc9b8d604b5c8cc25feb98767572a2f824e81fae97e5dbc87800"
+        },
+        {
+          "path": "scripts/Build-Beta17Candidate.ps1",
+          "sha256": "32fca42823c1054fe0f67e2aa08fa28ebb4ffe6bd9bb59a9614f6b667c878ee2"
+        },
+        {
+          "path": "scripts/Build-Beta18Candidate.ps1",
+          "sha256": "4a4aef4943e02cafa500e2a47ad84767bf4bab84a37d8acaae2f7594d96c9240"
+        },
+        {
+          "path": "scripts/Reuse-BundledLyricsLanguageModel.ps1",
+          "sha256": "77bec850790409565d57615b0f54de1bdbafbbac43979099bb33c55ae2357569"
+        },
+        {
+          "path": "scripts/beta17-release-validation.mjs",
+          "sha256": "8586bd802f88edac739cb1ff5ed2645f015c8d882f1fc6d2cc20f5535393e5d0"
+        },
+        {
+          "path": "scripts/beta18-release-validation.mjs",
+          "sha256": "d06f164c881234c7953a756a5df15b17e11842b780d9966370c1d8a51b8f7711"
+        },
+        {
+          "path": "scripts/ci-release-promotion.mjs",
+          "sha256": "d1f319808265b6a5e80f6b06e2ba0bb36d04fe893ec787229c322e1ffe343caa"
+        },
+        {
+          "path": "scripts/Inspect-OwnerWaivedPackages.ps1",
+          "sha256": "04c356f3db53d467f1dd0a1d9f52a3d6e9d3f59da0599cf29e191b4660df53a5"
+        },
+        {
+          "path": "scripts/Collect-AiRuntimeNotices.ps1",
+          "sha256": "ccbe0b2d1cc47f901e603c5cebc0c602a4d12d84b8ac2f6edc2075150f13d264"
+        },
+        {
+          "path": "tools/ct2-helper/helper.py",
+          "sha256": "c8060dc31515f9b192dda42152f4247c880bb5aba5f28437b2e7a2f5dfc70aed"
+        },
+        {
+          "path": "tools/ct2-helper/build.ps1",
+          "sha256": "89c3c5434bb2215fd9c164113e1ac324f4a793ef318c4aa7176d9c61af32cc19"
+        },
+        {
+          "path": "tools/ct2-helper/dependencies.schema.json",
+          "sha256": "7c153c53f177a91184ab35993151e9bc80377e412c312398d94bf28f31c60141"
+        },
+        {
+          "path": "tools/ct2-helper/private-package-manifest.schema.json",
+          "sha256": "2c8a8e7677c96eecfb0cdf387793f02769b93914a8c49853c5ef4d3d93dc071d"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Dlc/NeteaseComponentsDlcProvider.cs",
+          "sha256": "8e95b5c58ce7887f0024c69612e993d06a3beab91b0179d85dc50e1d3d98b81f"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/LyricsRapidSkipDiagnostic.cs",
+          "sha256": "7f81dcca008945017a48291cd262c301982d10ebe314c78a0773e40e529cf282"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/QqMusicLoginService.cs",
+          "sha256": "b6b13edf42ee0492cb916820009aa319eb173f8feaab703b5f17e1d1d178c2f5"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NativeFolderPickerService.cs",
+          "sha256": "c419495da0d6660cfff7899b71bb502db218fcc2196828f34dc79ad4e0d19134"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.IO.cs",
+          "sha256": "b76278ba80dd888b750e73bdb17952c6c19387e0f33d0f44a4cf94d7a28c9f26"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.Packages.cs",
+          "sha256": "42b7bcbc01b604111ec2eae5c5c6ae45999813404b525dd65e17c87591e516d5"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.cs",
+          "sha256": "7c311e6fe9b56548c63a0daf221f5c0757fd14038996adf5f23b54fce826b375"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NeteaseEnhancement/NeteaseRuntimeInstaller.cs",
+          "sha256": "1efb17453192714a35bf56c3b659adf1a3cc532ffd64c9f0003b6b5b01db0067"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Music/QqMusicLoginCard.cs",
+          "sha256": "45e67132641eb3d916edcc92f3d8838dc6eaada39f7afca5474e3a35da8b529d"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Settings/DownloadPanel.cs",
+          "sha256": "ab0ede6c11b03c1239bdf15df7ff4bb27aac07f315d986c416052c2bc603dd06"
+        },
+        {
+          "path": "src/DropSpace.Core/Downloads/DownloadModels.cs",
+          "sha256": "466ea3a43894813bbd93a065434350d85bc7ec6732b732a3796f26beccad7242"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/AdaptiveDownloadScheduler.cs",
+          "sha256": "065793d1d24c50c60cbef22bec655243a49898eb0072c1d0dc25786c8fddfd20"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DirectFileRequestFactory.cs",
+          "sha256": "6f596823e4e85e3945dbe70b6905198474e55aa7ceb77d54b7c889fc293d7d7f"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadBandwidthLimiter.cs",
+          "sha256": "2fa0264697d9deac17a3d8f8de8d56d79c83d9ddef9eac6fc785b944a8e57be1"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadConnectionBudget.cs",
+          "sha256": "b2f4a046ff956ad636793c807c9d4133f69b2c0ca3a49e9e7524c4aa08930937"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+          "sha256": "d7312200a6ca79aced25f4d2e9e811657956c1e674aa7e44f96a203a3eeab49c"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadPersistenceQueue.cs",
+          "sha256": "a9988e20f0c51f452a6e6c97472ad981b063d15aecfc058a10f1c6e8cbb88dfe"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadRequestPolicy.cs",
+          "sha256": "3889471e0963c1f590733b8d0902934493aaadd1ca634d6b4beff78eb5952b01"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadStorage.cs",
+          "sha256": "2061a73e32439b5b9c7e368d1cf6f555835c3d8c10eb92c2f6b10c379cd1f7e1"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadTaskRepository.cs",
+          "sha256": "60a9d69897461b10825092654f5a7e801e22ba1179bffb0c03af973b877d67d4"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadTransferBudget.cs",
+          "sha256": "69b81c09a2770bcec178e35ee65b624e2f22d5d13a6502daf1fe968a83e898f7"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/FileNameSanitizer.cs",
+          "sha256": "5dbf84d617e890a541640c3e4cb387a11513a5b406a26af3610f9e3589c88626"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/HttpByteRangePlanner.cs",
+          "sha256": "10e24a3cc6e2f68c7e292efe32b936d182796b3c64984159dc5b59ed780d4b17"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/HttpRangeDownloader.cs",
+          "sha256": "f1523226b6800f1de20bf4bbab3b1b4297fbc62b27165ebe90caaedc577c7ede"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/HttpTransferDeadline.cs",
+          "sha256": "cfd357850e2588a0989e9ed35eaf90db837860bed7df74f279b27da718269410"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/OutputReservationService.cs",
+          "sha256": "63e3ee1f73ae700cbeb50d17589a269063bd0df9a961d44342ad065ae52cd493"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/ParallelHttpFileDownloader.cs",
+          "sha256": "f4d2182808addb07d51f085352ab5710397a4ca899f15c50f9647c5af29c017f"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/RetryExecutor.cs",
+          "sha256": "db190701a25846dd648c776aad3bd68a568c313e841ec80b9dfa77e96449183c"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/KugouResponseStatus.cs",
+          "sha256": "91045e8a36dd5045f10405d9404fdadf267e59ad5a2e3df56f2529ce4ee2a221"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsRequestTrace.cs",
+          "sha256": "40ac494c2ba6fcf2a427d5723c72ab1c8e88af06d488f0055ba8e56ed1f43509"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsExecutionStatus.cs",
+          "sha256": "9247a9e7b9e2d5c98576db7e8ea78f3d4ca3596f1b27e2611a77e07b9c9ecb13"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicSession.cs",
+          "sha256": "421cf5e52ef709528b0e22c84048c650c3a51d62c310a7c27d462423a6dfbdcb"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/ResidentInferenceMemoryPolicy.cs",
+          "sha256": "d1624f5ccc972ea7aa02882c9930b17af6da357fd8cf9243bc5da50dee740041"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Updates/HttpUpdateDownloader.cs",
+          "sha256": "9bd993f58ded814067044af3f94c281db04e7a83dd02632e82c145f2b2f2ecf9"
+        },
+        {
+          "path": "scripts/Test-CudaBuildBinding.ps1",
+          "sha256": "4d9510526ec621a1bf46fbbca25abef4c9e004d19342dffc841fc894c91992c5"
+        },
+        {
+          "path": "scripts/ai-runtime-publication.mjs",
+          "sha256": "e7f118da87248db63eaea86931ba76b85c66831076a84e13d2fcce2b7e16bbb5"
+        },
+        {
+          "path": "tools/plain-lyrics-helper/CMakeLists.txt",
+          "sha256": "b4abd81cfb2fe6504c74a3ed8eb3adc91e688e2911bf8d44ef461d860dbbccbe"
+        },
+        {
+          "path": "tools/plain-lyrics-helper/gpu-policy.h",
+          "sha256": "c7a2259aae2e623e268d44167862797d3e3f726b3ee3abcb43cccb02aa586130"
+        },
+        {
+          "path": "tools/plain-lyrics-helper/main.cpp",
+          "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
+        }
+      ],
+      "sha256": "d7ba46507c0a4bc3a6031eb5c85cefb397464d45b50a05807eeb0883d4c9cc44"
+    },
+    "fixtureAdmission": {
+      "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
+      "sha256": "6eadbd608b3b53d9d22bf56d1b67cd3c3b142383c0096d5f061f8bbde55c21ab",
+      "scopeBoundary": "historical-v12-host-computation-only; not Beta16 policy or language-model qualification",
+      "schemaVersion": 1,
+      "recordKind": "host-fixture-admission-v12",
+      "fixtureSha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
+      "policyVersion": "contextual-line-admission-v12",
+      "policySourceSha256": "d0537cdf00831d18eac2fb86352443ad4e069802a91180ef7135c7d3ba6ad2df",
+      "policySourceHashNormalization": "UTF-8 with CRLF normalized to LF",
+      "modelInferenceExecuted": false,
+      "semanticApproved": false,
+      "computedWith": "Beta15TranslationProtectionTests.FrozenAdmissionSnapshotBindsCurrentHostPolicyWithoutInference",
+      "reviewNotes": "Current host computation only; unchanged independent fixture language annotations retained. No model execution or semantic approval.",
+      "semanticLanguages": [
+        {
+          "firstLineId": 0,
+          "lastLineId": 11,
+          "language": "en"
+        },
+        {
+          "firstLineId": 12,
+          "lastLineId": 23,
+          "language": "ja"
+        },
+        {
+          "firstLineId": 24,
+          "lastLineId": 35,
+          "language": "ko"
+        },
+        {
+          "firstLineId": 36,
+          "lastLineId": 47,
+          "language": "zh-Hans"
+        }
+      ],
+      "targets": {
+        "en": [
+          {
+            "lineId": 0,
+            "sourceText": "I fold the morning into a paper boat.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 1,
+            "sourceText": "Your blue cup waits beside the window.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 2,
+            "sourceText": "I did not promise to forget your name.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 3,
+            "sourceText": "You said the northern road was closed.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 4,
+            "sourceText": "We carry seven seeds across the bridge.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 5,
+            "sourceText": "No lantern can replace the summer sun.",
+            "detectedLanguage": "en",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 6,
+            "sourceText": "If you return, knock softly twice.",
+            "detectedLanguage": "en",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 7,
+            "sourceText": "I hear the train but cannot see its lights.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 8,
+            "sourceText": "The quiet room belongs to neither of us.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 9,
+            "sourceText": "Keep the red scarf; leave the silver key.",
+            "detectedLanguage": "en",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 10,
+            "sourceText": "Tomorrow I will choose a different path.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 11,
+            "sourceText": "Our little river still remembers rain.",
+            "detectedLanguage": "en",
+            "confidence": 0.92,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 12,
+            "sourceText": "朝の光を紙の舟に折る。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "朝の光を紙の舟に折る。",
+                "sha256": "11a091edc69ece594dde7d64d15ca43698eb7d5fb46db9b106bb83c0e27bac36"
+              }
+            ]
+          },
+          {
+            "lineId": 13,
+            "sourceText": "青いカップが窓辺で君を待つ。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "青いカップが窓辺で君を待つ。",
+                "sha256": "735c3422e7b23ea8054438c9ff46a812caf73fd825ba7147b39dc3ee5cb3ee63"
+              }
+            ]
+          },
+          {
+            "lineId": 14,
+            "sourceText": "君の名前を忘れるとは約束していない。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "君の名前を忘れるとは約束していない。",
+                "sha256": "99c2f8c3ebe339e371fc66782d58d3a032e2dcc6b38c5791d003aadc981b971e"
+              }
+            ]
+          },
+          {
+            "lineId": 15,
+            "sourceText": "北へ続く道は閉じたと君は言った。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "北へ続く道は閉じたと君は言った。",
+                "sha256": "9826dece90d837d229668cc0b1d16d54ed06a1cc84ce8a9448d518d09d58d518"
+              }
+            ]
+          },
+          {
+            "lineId": 16,
+            "sourceText": "七つの種を持って橋を渡る。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "七つの種を持って橋を渡る。",
+                "sha256": "e33c309dde1c4125e0dba560c5a10b6b9c2b71f648c29ed02eb1606849d22cd3"
+              }
+            ]
+          },
+          {
+            "lineId": 17,
+            "sourceText": "灯りは夏の太陽の代わりにはならない。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "灯りは夏の太陽の代わりにはならない。",
+                "sha256": "affdb5924ed05a589ed788a804a3eb78781085474ad6a0b147f3c4f5b935f833"
+              }
+            ]
+          },
+          {
+            "lineId": 18,
+            "sourceText": "戻るなら、そっと二回ノックして。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "戻るなら、そっと二回ノックして。",
+                "sha256": "569aa1fb6879a9e80fcd52acf9bf6923c51673783c4c28a7c7edf6b01dcecd2b"
+              }
+            ]
+          },
+          {
+            "lineId": 19,
+            "sourceText": "列車の音は聞こえるが、光は見えない。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "列車の音は聞こえるが、光は見えない。",
+                "sha256": "dc1f5d0f3ecffeaa7b27ad24fe6395e60177cbbbe709d3dd065c16b0eb9df32b"
+              }
+            ]
+          },
+          {
+            "lineId": 20,
+            "sourceText": "静かな部屋は私たちのどちらのものでもない。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "静かな部屋は私たちのどちらのものでもない。",
+                "sha256": "b68f7b2bc2d9c4743d243bb3e44a793c31637af850f0c3c3de768a4259f7230b"
+              }
+            ]
+          },
+          {
+            "lineId": 21,
+            "sourceText": "赤いスカーフを持って、銀の鍵を置いて。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "赤いスカーフを持って、銀の鍵を置いて。",
+                "sha256": "c99b747ece19bfd0f2b7e6ae2c41419164d66c0dda95d5bef26ea0dc14f38447"
+              }
+            ]
+          },
+          {
+            "lineId": 22,
+            "sourceText": "明日は別の道を選ぶ。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "明日は別の道を選ぶ。",
+                "sha256": "444764e17ae35d068ed198ed8bbcf884e896a6cf4c6e21fef3d0a9c07906cce7"
+              }
+            ]
+          },
+          {
+            "lineId": 23,
+            "sourceText": "小さな川はまだ雨を覚えている。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "小さな川はまだ雨を覚えている。",
+                "sha256": "f053e8104c3075e946afe92c63bd20eb082f85a4fc545d62dc8edd4a08b8caa5"
+              }
+            ]
+          },
+          {
+            "lineId": 24,
+            "sourceText": "아침 햇살을 종이배에 접어 담아.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "아침 햇살을 종이배에 접어 담아.",
+                "sha256": "27cc182d18bfe3740c8abd013d9f03693a7ef0a3867a77e4f8fde3cdb058f9cd"
+              }
+            ]
+          },
+          {
+            "lineId": 25,
+            "sourceText": "파란 컵이 창가에서 너를 기다려.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "파란 컵이 창가에서 너를 기다려.",
+                "sha256": "b6f164bc480cf9933c512dfc14706bc4bb1fbe445e408d62dfc054bf92f60131"
+              }
+            ]
+          },
+          {
+            "lineId": 26,
+            "sourceText": "네 이름을 잊겠다고 약속하지 않았어.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "네 이름을 잊겠다고 약속하지 않았어.",
+                "sha256": "fe88492203d9b80e412d5af6cb8a754bc2ad35ecdb7cdc60a813dde95431a7c4"
+              }
+            ]
+          },
+          {
+            "lineId": 27,
+            "sourceText": "북쪽 길이 닫혔다고 네가 말했어.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "북쪽 길이 닫혔다고 네가 말했어.",
+                "sha256": "056b2d8c31816bed06c1d089f71b06a4fab2720280123ce23600f386ae84914b"
+              }
+            ]
+          },
+          {
+            "lineId": 28,
+            "sourceText": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+                "sha256": "4975a77f77f7aa4597a2ab720b97a8d1bd1bc70864c51fe75a955bac63f633af"
+              }
+            ]
+          },
+          {
+            "lineId": 29,
+            "sourceText": "등불은 여름 태양을 대신할 수 없어.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "등불은 여름 태양을 대신할 수 없어.",
+                "sha256": "777fe0301ff5b9e696c66cce4b624d5700cc49388991c8e5a6574078bd5536eb"
+              }
+            ]
+          },
+          {
+            "lineId": 30,
+            "sourceText": "돌아오면 조용히 두 번 두드려.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "돌아오면 조용히 두 번 두드려.",
+                "sha256": "f145e6fc2b43cb2e4f851fd71a91862ff5b4ba5f06e38299b77077c47af2ac20"
+              }
+            ]
+          },
+          {
+            "lineId": 31,
+            "sourceText": "기차 소리는 들리지만 불빛은 보이지 않아.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "기차 소리는 들리지만 불빛은 보이지 않아.",
+                "sha256": "ad00403f29203295e0181944d7e5368994fcd18426686403f62f9aabecc82641"
+              }
+            ]
+          },
+          {
+            "lineId": 32,
+            "sourceText": "고요한 방은 우리 누구의 것도 아니야.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "고요한 방은 우리 누구의 것도 아니야.",
+                "sha256": "6afc68e873c2566c88f9f2739a6b1a5bf5ddaf3e153cd8745bdf2aa4ad3dbbee"
+              }
+            ]
+          },
+          {
+            "lineId": 33,
+            "sourceText": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+                "sha256": "8e53fed0827d24451585390ff37d0fd6445d4f26ff6b91fc2a444807c553b0f6"
+              }
+            ]
+          },
+          {
+            "lineId": 34,
+            "sourceText": "내일 나는 다른 길을 고를 거야.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "내일 나는 다른 길을 고를 거야.",
+                "sha256": "b1aebb00b8b6b898746262d77b006dbe040aa4476a090b336b1bba7cac0d092c"
+              }
+            ]
+          },
+          {
+            "lineId": 35,
+            "sourceText": "작은 강은 아직 비를 기억해.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "작은 강은 아직 비를 기억해.",
+                "sha256": "a185919156106bbd0e1be0a41c415994fecc01971a4f7689ab724ac844521c93"
+              }
+            ]
+          },
+          {
+            "lineId": 36,
+            "sourceText": "我把晨光折进一只纸船。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "我把晨光折进一只纸船。",
+                "sha256": "dc476b5ab588e500a27abe83c59b1c29a6114c9981724d1297676b3de5e83a3e"
+              }
+            ]
+          },
+          {
+            "lineId": 37,
+            "sourceText": "你的蓝杯子仍在窗边等候。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "你的蓝杯子仍在窗边等候。",
+                "sha256": "ec79763bbb2dd94fc565c7ea17a8beb40ab839e0db5da03dfab1c29778c852e3"
+              }
+            ]
+          },
+          {
+            "lineId": 38,
+            "sourceText": "我并没有答应忘记你的名字。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "我并没有答应忘记你的名字。",
+                "sha256": "519f9da3221ded7e27146ad4091a238c9b2f22016fd7df1657f841f8c9c11fbd"
+              }
+            ]
+          },
+          {
+            "lineId": 39,
+            "sourceText": "你说向北的路已经关闭。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.92,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "你说向北的路已经关闭。",
+                "sha256": "a7676822074c4a63e2b8c4e935f4e23e9dc90e501122cbdd573fab26df59abf6"
+              }
+            ]
+          },
+          {
+            "lineId": 40,
+            "sourceText": "我们带着七粒种子走过桥。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "我们带着七粒种子走过桥。",
+                "sha256": "d722d94e826f84ebb805062f9812065f30e4769585bf49adbe88538436a2162f"
+              }
+            ]
+          },
+          {
+            "lineId": 41,
+            "sourceText": "没有灯笼能代替夏天的太阳。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "没有灯笼能代替夏天的太阳。",
+                "sha256": "c0f87ca9c315b2d30023dba448b01fa7e9381ee50ef9e655a83d28c84bb7aff7"
+              }
+            ]
+          },
+          {
+            "lineId": 42,
+            "sourceText": "如果你回来，请轻轻敲两下门。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "如果你回来，请轻轻敲两下门。",
+                "sha256": "c2b2d8289f6f76fd5f2a1965afdb128804a1f156d307ad98cd1852ad1584cce7"
+              }
+            ]
+          },
+          {
+            "lineId": 43,
+            "sourceText": "我听见火车，却看不见灯光。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "我听见火车，却看不见灯光。",
+                "sha256": "08cdaf367745edff8b31b5762784fbb5e1224a1d5ff5ca01efa3e35e3ba3b3cc"
+              }
+            ]
+          },
+          {
+            "lineId": 44,
+            "sourceText": "安静的房间不属于我们任何一个人。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "安静的房间不属于我们任何一个人。",
+                "sha256": "b95d84b380739d10ab5ea4c3acb0c86f6493f80ba89336e5f5744d9d4b15d867"
+              }
+            ]
+          },
+          {
+            "lineId": 45,
+            "sourceText": "带走红围巾，留下银钥匙。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "带走红围巾，留下银钥匙。",
+                "sha256": "08a13110ea58313e8fc4d25075da4c8cccbccdae5b4e400dbefbf7d7e26c6fe3"
+              }
+            ]
+          },
+          {
+            "lineId": 46,
+            "sourceText": "明天我会选择另一条路。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "明天我会选择另一条路。",
+                "sha256": "11297bf6324d6ed250f39add634f1e10b0a1e0bfb6fb33c7c58b9edea19d88a2"
+              }
+            ]
+          },
+          {
+            "lineId": 47,
+            "sourceText": "我们的小河仍然记得雨。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "我们的小河仍然记得雨。",
+                "sha256": "7c5dca97fee5841308f69e93f031a75a3d96357158dfd437542c6c06740606aa"
+              }
+            ]
+          }
+        ],
+        "zh-Hans": [
+          {
+            "lineId": 0,
+            "sourceText": "I fold the morning into a paper boat.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "I fold the morning into a paper boat.",
+                "sha256": "03e9e32a4d6a67edd57578dbf793a536afe88b874c11f793957247e25062958f"
+              }
+            ]
+          },
+          {
+            "lineId": 1,
+            "sourceText": "Your blue cup waits beside the window.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "Your blue cup waits beside the window.",
+                "sha256": "81d9f463643bed1b5748993fb149c9233f436fe111c0f6d516217365bbd70e74"
+              }
+            ]
+          },
+          {
+            "lineId": 2,
+            "sourceText": "I did not promise to forget your name.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "I did not promise to forget your name.",
+                "sha256": "a07960ebaa5f26be6722a8588ee5072f4021c5b2061c622e21aab520d63eb8e6"
+              }
+            ]
+          },
+          {
+            "lineId": 3,
+            "sourceText": "You said the northern road was closed.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "You said the northern road was closed.",
+                "sha256": "b2183e8a6bc2a5a816e7b30cac53618abb6bb86494a099ab0d8b1f4e16a5ca86"
+              }
+            ]
+          },
+          {
+            "lineId": 4,
+            "sourceText": "We carry seven seeds across the bridge.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "We carry seven seeds across the bridge.",
+                "sha256": "ea0b12b7b81ff92951d4bb670bebd42d2dcf5501cb971c0b17a2eb404a829cb2"
+              }
+            ]
+          },
+          {
+            "lineId": 5,
+            "sourceText": "No lantern can replace the summer sun.",
+            "detectedLanguage": "en",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "No lantern can replace the summer sun.",
+                "sha256": "e051f541b14956ff095166d9fd56b07fdb345780eaca93eefb72cfd9de14543c"
+              }
+            ]
+          },
+          {
+            "lineId": 6,
+            "sourceText": "If you return, knock softly twice.",
+            "detectedLanguage": "en",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "If you return, knock softly twice.",
+                "sha256": "8f5e4861a7454d840efec782042d13e7aaab92f1b6bbc4a0de68343e9043641f"
+              }
+            ]
+          },
+          {
+            "lineId": 7,
+            "sourceText": "I hear the train but cannot see its lights.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "I hear the train but cannot see its lights.",
+                "sha256": "09eb03687fe22f1e83fdee0df1b1dc6dcabfac404fac54656e08dce338268ec0"
+              }
+            ]
+          },
+          {
+            "lineId": 8,
+            "sourceText": "The quiet room belongs to neither of us.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "The quiet room belongs to neither of us.",
+                "sha256": "4ed3db6804c4fd6a0b2161bc44b741d86a3e8abd146f6855c5257a3e42b753b1"
+              }
+            ]
+          },
+          {
+            "lineId": 9,
+            "sourceText": "Keep the red scarf; leave the silver key.",
+            "detectedLanguage": "en",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "Keep the red scarf; leave the silver key.",
+                "sha256": "0f463e6a028751fbe6b3ea8da2ed6c1b90b1660f02b4e706d8f68b709b108a92"
+              }
+            ]
+          },
+          {
+            "lineId": 10,
+            "sourceText": "Tomorrow I will choose a different path.",
+            "detectedLanguage": "en",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "Tomorrow I will choose a different path.",
+                "sha256": "6063cd441638da140fe359d9262d44d241772471ba3bffddedde713991ce59ab"
+              }
+            ]
+          },
+          {
+            "lineId": 11,
+            "sourceText": "Our little river still remembers rain.",
+            "detectedLanguage": "en",
+            "confidence": 0.92,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "Our little river still remembers rain.",
+                "sha256": "b79d75149d375841182c24d9afd02f19783d8f3596f622c556f60bfbef2e1910"
+              }
+            ]
+          },
+          {
+            "lineId": 12,
+            "sourceText": "朝の光を紙の舟に折る。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "朝の光を紙の舟に折る。",
+                "sha256": "11a091edc69ece594dde7d64d15ca43698eb7d5fb46db9b106bb83c0e27bac36"
+              }
+            ]
+          },
+          {
+            "lineId": 13,
+            "sourceText": "青いカップが窓辺で君を待つ。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "青いカップが窓辺で君を待つ。",
+                "sha256": "735c3422e7b23ea8054438c9ff46a812caf73fd825ba7147b39dc3ee5cb3ee63"
+              }
+            ]
+          },
+          {
+            "lineId": 14,
+            "sourceText": "君の名前を忘れるとは約束していない。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "君の名前を忘れるとは約束していない。",
+                "sha256": "99c2f8c3ebe339e371fc66782d58d3a032e2dcc6b38c5791d003aadc981b971e"
+              }
+            ]
+          },
+          {
+            "lineId": 15,
+            "sourceText": "北へ続く道は閉じたと君は言った。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "北へ続く道は閉じたと君は言った。",
+                "sha256": "9826dece90d837d229668cc0b1d16d54ed06a1cc84ce8a9448d518d09d58d518"
+              }
+            ]
+          },
+          {
+            "lineId": 16,
+            "sourceText": "七つの種を持って橋を渡る。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "七つの種を持って橋を渡る。",
+                "sha256": "e33c309dde1c4125e0dba560c5a10b6b9c2b71f648c29ed02eb1606849d22cd3"
+              }
+            ]
+          },
+          {
+            "lineId": 17,
+            "sourceText": "灯りは夏の太陽の代わりにはならない。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "灯りは夏の太陽の代わりにはならない。",
+                "sha256": "affdb5924ed05a589ed788a804a3eb78781085474ad6a0b147f3c4f5b935f833"
+              }
+            ]
+          },
+          {
+            "lineId": 18,
+            "sourceText": "戻るなら、そっと二回ノックして。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "戻るなら、そっと二回ノックして。",
+                "sha256": "569aa1fb6879a9e80fcd52acf9bf6923c51673783c4c28a7c7edf6b01dcecd2b"
+              }
+            ]
+          },
+          {
+            "lineId": 19,
+            "sourceText": "列車の音は聞こえるが、光は見えない。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "列車の音は聞こえるが、光は見えない。",
+                "sha256": "dc1f5d0f3ecffeaa7b27ad24fe6395e60177cbbbe709d3dd065c16b0eb9df32b"
+              }
+            ]
+          },
+          {
+            "lineId": 20,
+            "sourceText": "静かな部屋は私たちのどちらのものでもない。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "静かな部屋は私たちのどちらのものでもない。",
+                "sha256": "b68f7b2bc2d9c4743d243bb3e44a793c31637af850f0c3c3de768a4259f7230b"
+              }
+            ]
+          },
+          {
+            "lineId": 21,
+            "sourceText": "赤いスカーフを持って、銀の鍵を置いて。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "赤いスカーフを持って、銀の鍵を置いて。",
+                "sha256": "c99b747ece19bfd0f2b7e6ae2c41419164d66c0dda95d5bef26ea0dc14f38447"
+              }
+            ]
+          },
+          {
+            "lineId": 22,
+            "sourceText": "明日は別の道を選ぶ。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "明日は別の道を選ぶ。",
+                "sha256": "444764e17ae35d068ed198ed8bbcf884e896a6cf4c6e21fef3d0a9c07906cce7"
+              }
+            ]
+          },
+          {
+            "lineId": 23,
+            "sourceText": "小さな川はまだ雨を覚えている。",
+            "detectedLanguage": "ja",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "小さな川はまだ雨を覚えている。",
+                "sha256": "f053e8104c3075e946afe92c63bd20eb082f85a4fc545d62dc8edd4a08b8caa5"
+              }
+            ]
+          },
+          {
+            "lineId": 24,
+            "sourceText": "아침 햇살을 종이배에 접어 담아.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "아침 햇살을 종이배에 접어 담아.",
+                "sha256": "27cc182d18bfe3740c8abd013d9f03693a7ef0a3867a77e4f8fde3cdb058f9cd"
+              }
+            ]
+          },
+          {
+            "lineId": 25,
+            "sourceText": "파란 컵이 창가에서 너를 기다려.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "파란 컵이 창가에서 너를 기다려.",
+                "sha256": "b6f164bc480cf9933c512dfc14706bc4bb1fbe445e408d62dfc054bf92f60131"
+              }
+            ]
+          },
+          {
+            "lineId": 26,
+            "sourceText": "네 이름을 잊겠다고 약속하지 않았어.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "네 이름을 잊겠다고 약속하지 않았어.",
+                "sha256": "fe88492203d9b80e412d5af6cb8a754bc2ad35ecdb7cdc60a813dde95431a7c4"
+              }
+            ]
+          },
+          {
+            "lineId": 27,
+            "sourceText": "북쪽 길이 닫혔다고 네가 말했어.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "북쪽 길이 닫혔다고 네가 말했어.",
+                "sha256": "056b2d8c31816bed06c1d089f71b06a4fab2720280123ce23600f386ae84914b"
+              }
+            ]
+          },
+          {
+            "lineId": 28,
+            "sourceText": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+                "sha256": "4975a77f77f7aa4597a2ab720b97a8d1bd1bc70864c51fe75a955bac63f633af"
+              }
+            ]
+          },
+          {
+            "lineId": 29,
+            "sourceText": "등불은 여름 태양을 대신할 수 없어.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "등불은 여름 태양을 대신할 수 없어.",
+                "sha256": "777fe0301ff5b9e696c66cce4b624d5700cc49388991c8e5a6574078bd5536eb"
+              }
+            ]
+          },
+          {
+            "lineId": 30,
+            "sourceText": "돌아오면 조용히 두 번 두드려.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "돌아오면 조용히 두 번 두드려.",
+                "sha256": "f145e6fc2b43cb2e4f851fd71a91862ff5b4ba5f06e38299b77077c47af2ac20"
+              }
+            ]
+          },
+          {
+            "lineId": 31,
+            "sourceText": "기차 소리는 들리지만 불빛은 보이지 않아.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "기차 소리는 들리지만 불빛은 보이지 않아.",
+                "sha256": "ad00403f29203295e0181944d7e5368994fcd18426686403f62f9aabecc82641"
+              }
+            ]
+          },
+          {
+            "lineId": 32,
+            "sourceText": "고요한 방은 우리 누구의 것도 아니야.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "고요한 방은 우리 누구의 것도 아니야.",
+                "sha256": "6afc68e873c2566c88f9f2739a6b1a5bf5ddaf3e153cd8745bdf2aa4ad3dbbee"
+              }
+            ]
+          },
+          {
+            "lineId": 33,
+            "sourceText": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+                "sha256": "8e53fed0827d24451585390ff37d0fd6445d4f26ff6b91fc2a444807c553b0f6"
+              }
+            ]
+          },
+          {
+            "lineId": 34,
+            "sourceText": "내일 나는 다른 길을 고를 거야.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "내일 나는 다른 길을 고를 거야.",
+                "sha256": "b1aebb00b8b6b898746262d77b006dbe040aa4476a090b336b1bba7cac0d092c"
+              }
+            ]
+          },
+          {
+            "lineId": 35,
+            "sourceText": "작은 강은 아직 비를 기억해.",
+            "detectedLanguage": "ko",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": true,
+            "reason": "identified-foreign-language",
+            "segments": [
+              {
+                "segmentIndex": 0,
+                "text": "작은 강은 아직 비를 기억해.",
+                "sha256": "a185919156106bbd0e1be0a41c415994fecc01971a4f7689ab724ac844521c93"
+              }
+            ]
+          },
+          {
+            "lineId": 36,
+            "sourceText": "我把晨光折进一只纸船。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 37,
+            "sourceText": "你的蓝杯子仍在窗边等候。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 38,
+            "sourceText": "我并没有答应忘记你的名字。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 39,
+            "sourceText": "你说向北的路已经关闭。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.92,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 40,
+            "sourceText": "我们带着七粒种子走过桥。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 41,
+            "sourceText": "没有灯笼能代替夏天的太阳。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 42,
+            "sourceText": "如果你回来，请轻轻敲两下门。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 43,
+            "sourceText": "我听见火车，却看不见灯光。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 44,
+            "sourceText": "安静的房间不属于我们任何一个人。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 45,
+            "sourceText": "带走红围巾，留下银钥匙。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.9,
+            "evidenceKind": "Context",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 46,
+            "sourceText": "明天我会选择另一条路。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          },
+          {
+            "lineId": 47,
+            "sourceText": "我们的小河仍然记得雨。",
+            "detectedLanguage": "zh-Hans",
+            "confidence": 0.95,
+            "evidenceKind": "Lexical",
+            "eligible": false,
+            "reason": "same-target-language",
+            "segments": []
+          }
+        ]
+      }
+    },
+    "fixture": {
+      "path": "scripts/ai-model-qa/inputs/source48.json",
+      "sha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549"
+    }
+  },
+  "openDefects": [],
+  "acceptedLimitations": [
+    {
+      "id": "historical-300s-baseline-timeouts",
+      "kind": "latency",
+      "summary": "The prior 1.8B baseline English/Chinese full-song captures timed out at 300 seconds; complete 600-second cold/cache and AVX2 captures remain unexecuted."
+    },
+    {
+      "id": "unverified-model-semantics",
+      "kind": "quality",
+      "summary": "Neither shipping model has complete approved semantic validation; translation may change meaning, lose nuance or omit details."
+    },
+    {
+      "id": "optional-7b-validation-incomplete",
+      "kind": "latency",
+      "summary": "The optional 7B model has no completed full-song cold/cache or baseline/AVX2 validation; Windows performance and resource qualification remain unverified."
+    },
+    {
+      "id": "optional-cuda-matrix-unverified",
+      "kind": "quality",
+      "summary": "Minimal App-chain 1.8B CUDA Chinese translation succeeded on the development computer. Other GPUs, 7B CUDA, performance and general translation quality remain unverified."
+    }
+  ],
+  "userAcceptance": {
+    "reference": "scripts/ai-model-qa/evidence/v0.3.2-beta.1-owner-decision.md",
+    "acceptedAt": "2026-10-08T06:00:51Z",
+    "releaseVersion": "v0.3.2-beta.1",
+    "acceptsIncompleteModelValidation": true,
+    "timestampMeaning": "Time the current task release authorization was recorded with prior experimental-component acceptance carried forward; not a fresh owner semantic model acceptance."
+  },
+  "runtimeManifest": {
+    "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
+    "sha256": "b492e2f0413449d69e0e37536b941e9e30c2b31c692732a5385ae8c9c6f9deab"
+  },
+  "runtimeArtifact": {
+    "schemaVersion": 1,
+    "repository": "airanluo-dot/DropSpace",
+    "workflowPath": ".github/workflows/release.yml",
+    "runId": 37095011004,
+    "runAttempt": 1,
+    "headCommit": "643186a647fc60871eafb877de6ba7031f7df315",
+    "checkoutCommit": "a23a712a9494cc0ecc6047c96833db67c1e13c3d",
+    "artifactId": 11264582019,
+    "artifactName": "ai-candidate-runtime-37095011004-1",
+    "archiveSha256": "9d2b8086347172d12366c19872f815c00f99cc6a521c62f3d03929e575ebe941",
+    "files": [
+      {
+        "path": "LICENSE-llama.cpp",
+        "sha256": "03c07ba3cbfe0108dcbd5911d6d63f51754514abedb12b128a21a4c8cf316f35",
+        "bytes": 150940
+      },
+      {
+        "path": "llama-completion-avx2.exe",
+        "sha256": "3fc3bd789f4d5a48eea3674182bbb9908eb7f44ca264f8bbf11c4bab526b9783",
+        "bytes": 6858752
+      },
+      {
+        "path": "llama-completion.exe",
+        "sha256": "905b11566413d8892868e600374a6df807c5299c09deb137c6092a6dab761e4e",
+        "bytes": 6727680
+      },
+      {
+        "path": "llama-tokenize.exe",
+        "sha256": "e0e09ca62bc1c430abf81c5dc85cb226757018c3ab0406403dde9476080f4bc8",
+        "bytes": 6511104
+      },
+      {
+        "path": "plain-lyrics-worker-avx2.exe",
+        "sha256": "8de38b9286a5118b2559876f08f3fc000930df3c8c66b21b5de53fd82bee7851",
+        "bytes": 6797312
+      },
+      {
+        "path": "plain-lyrics-worker-vulkan.exe",
+        "sha256": "8c2d09ff61e1908fbc06896159520c75b84f8a0d9ec5b8b8a2d9428648cb68c2",
+        "bytes": 50860032
+      },
+      {
+        "path": "plain-lyrics-worker.exe",
+        "sha256": "872a4d0f4a37dc3a72bc0c095b5607c2b47182f3dcba0c57ba5fc98ff8e6e2ae",
+        "bytes": 6665728
+      },
+      {
+        "path": "runtime-manifest.json",
+        "sha256": "b492e2f0413449d69e0e37536b941e9e30c2b31c692732a5385ae8c9c6f9deab",
+        "bytes": 1930
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "hy-mt2-18-q8-plain-beta",
+      "sha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "bytes": 1908528192,
+      "verdict": "unverified",
+      "summary": "The historical Windows baseline full-song captures timed out after 32/43 English and 33/40 Chinese eligible segments at 300 seconds. No complete 600-second cold/cache or AVX2 semantic capture is available.",
+      "validation": [
+        {
+          "variant": "baseline",
+          "targetLanguage": "en",
+          "status": "timed-out",
+          "configuration": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/configuration.json",
+            "sha256": "7b59f4259fda442050b9e0f9ea3812512bdb5a646fddcb16cad0f8b3630194ea"
+          },
+          "runnerOutput": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/en.runner-output.json",
+            "sha256": "f55efdacaf52959249aa3433ca7c649659813b3e9f3c75ea5fcfe4d8355687b0"
+          },
+          "technicalResults": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/technical-results.json",
+            "sha256": "ff6307e9a0d0f3b950d6267b56bc2679d06950e236a6e4a5abe2d5f47a98901c"
+          },
+          "capturedWholeSongSeconds": 300,
+          "historicalRunId": 37091472691,
+          "current600SecondValidation": "not-run"
+        },
+        {
+          "variant": "baseline",
+          "targetLanguage": "zh-Hans",
+          "status": "timed-out",
+          "configuration": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/configuration.json",
+            "sha256": "7b59f4259fda442050b9e0f9ea3812512bdb5a646fddcb16cad0f8b3630194ea"
+          },
+          "runnerOutput": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/zh-Hans.runner-output.json",
+            "sha256": "836d9c833f0b286c3b3bd2bf54486fe38f63f610a452c61b570be53cb1a21703"
+          },
+          "technicalResults": {
+            "path": "scripts/ai-model-qa/evidence/production-plain-hy-37091472691-1-baseline/technical-results.json",
+            "sha256": "ff6307e9a0d0f3b950d6267b56bc2679d06950e236a6e4a5abe2d5f47a98901c"
+          },
+          "capturedWholeSongSeconds": 300,
+          "historicalRunId": 37091472691,
+          "current600SecondValidation": "not-run"
+        },
+        {
+          "variant": "avx2",
+          "targetLanguage": "en",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        },
+        {
+          "variant": "avx2",
+          "targetLanguage": "zh-Hans",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        }
+      ],
+      "currentCeilingValidation": {
+        "wholeSongSeconds": 600,
+        "coldTargets": [],
+        "cacheTargets": [],
+        "status": "not-run",
+        "variants": [
+          "baseline",
+          "avx2"
+        ],
+        "targets": [
+          "en",
+          "zh-Hans"
+        ]
+      }
+    },
+    {
+      "id": "hy-mt2-7b-q8-plain-beta",
+      "sha256": "58b3ad55dd6f6fa08c695cddc34fb5f8f708a844f78ae10508071914b0ed67c0",
+      "bytes": 7981928896,
+      "verdict": "unverified",
+      "summary": "Complete cold/cache captures, CPU variants, translation quality and Windows resource/performance validation remain unverified.",
+      "validation": [
+        {
+          "variant": "baseline",
+          "targetLanguage": "en",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        },
+        {
+          "variant": "baseline",
+          "targetLanguage": "zh-Hans",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        },
+        {
+          "variant": "avx2",
+          "targetLanguage": "en",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        },
+        {
+          "variant": "avx2",
+          "targetLanguage": "zh-Hans",
+          "status": "not-run",
+          "configuration": null,
+          "runnerOutput": null,
+          "technicalResults": null
+        }
+      ],
+      "currentCeilingValidation": {
+        "wholeSongSeconds": 600,
+        "coldTargets": [],
+        "cacheTargets": [],
+        "status": "not-run",
+        "variants": [
+          "baseline",
+          "avx2"
+        ],
+        "targets": [
+          "en",
+          "zh-Hans"
+        ]
+      }
+    }
+  ],
+  "ownerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.1-owner-decision.md",
+    "sha256": "cee4dd82f69a9157fe504b5092b9c8a06d18197a20a8674ac00216f7eca2c680"
+  },
+  "candidateValidation": {
+    "recordedAt": "2026-10-08T06:13:14Z",
+    "summary": "Fifteen local functional executions: ten passed, five failed, five retries included. Native no-DLC/install/navigation/action/Island/disable/re-enable/uninstall/data-retention/normal-shutdown lifecycle passed. Optional pixel readbacks did not pass content validation and remain explicit warnings. Final-main payload scenario, public module install and release readback are pending. No model inference or semantic qualification ran.",
+    "completedFunctionalExecutions": 15,
+    "passed": 10,
+    "failed": 5,
+    "retries": 5,
+    "aiExecutions": 0
+  },
+  "carriedForwardFrom": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.19-interface-only-reviewed.json",
+    "sha256": "d22626d6e18ad8963f469e057cdce474fa96011dd3e68ac2e775127f68b4f98e"
+  }
+}

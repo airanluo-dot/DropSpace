@@ -51,7 +51,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         Services.Media.MediaExperienceService mediaExperience,
         Services.Media.MediaApplicationIconService mediaIcons,
         NeteaseEnhancementViewModel enhancement,
-        Services.Dlc.DlcManagerService dlc)
+        Services.Dlc.DlcManagerService dlc,
+        Services.Dlc.FeatureModuleRuntime modules)
     {
         _viewModel = viewModel;
         _media = media;
@@ -108,8 +109,9 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             crossDeviceClipboard,
             dropLinkHost,
             sharing,
-            settingsEditor, media, sessions, mediaExperience, mediaIcons, enhancement, dlc);
+            settingsEditor, media, sessions, mediaExperience, mediaIcons, enhancement, dlc, modules);
         _mainPage = _createMainPage();
+        _mainPage.ModulePresentationChanged += OnModulePresentationChanged;
         RootContent.Content = _mainPage;
         AppWindow.Changed += OnWindowPresentationChanged;
         _viewModel.PropertyChanged += OnMediaSectionChanged;
@@ -118,6 +120,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     }
 
     public event EventHandler? ExitRequested;
+    internal Views.MainPage DiagnosticPage => _mainPage;
 
     private void OnWindowPresentationChanged(AppWindow sender, AppWindowChangedEventArgs args) => UpdateMediaVisibility();
     private void OnMediaSectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
@@ -129,8 +132,10 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             DispatcherQueue.TryEnqueue(() =>
             {
                 if (_allowClose) return;
+                _mainPage.ModulePresentationChanged -= OnModulePresentationChanged;
                 _mainPage.Retire();
                 _mainPage = _createMainPage();
+                _mainPage.ModulePresentationChanged += OnModulePresentationChanged;
                 RootContent.Content = _mainPage;
                 UpdateMediaVisibility();
                 XamlResourceOverride.Apply(this, "MainWindow");
@@ -143,9 +148,11 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     {
         var hostActive = !_allowClose && AppWindow.IsVisible &&
             AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized };
-        _media.SetPresentationVisible(this, hostActive && _viewModel.IsMusicVisible);
+        _media.SetPresentationVisible(this, hostActive && !_mainPage.IsModulePageVisible && _viewModel.IsMusicVisible);
         _mainPage.SetPresentationActive(hostActive);
     }
+
+    private void OnModulePresentationChanged(object? sender, EventArgs args) => UpdateMediaVisibility();
 
     public void InitializeTray(ILogger<NativeTrayService> logger)
     {
@@ -227,6 +234,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         _media.SetPresentationVisible(this, false);
         _closeExplanationCancellation.Cancel();
         Views.ContentDialogLifetime.RetireRoot(_mainPage.XamlRoot);
+        _mainPage.ModulePresentationChanged -= OnModulePresentationChanged;
         _mainPage.Retire();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.Dispose();

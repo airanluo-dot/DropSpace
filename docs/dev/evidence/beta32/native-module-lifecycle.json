@@ -1,0 +1,574 @@
+{
+  "SchemaVersion": 1,
+  "FunctionalScenarioExecutions": 1,
+  "EvidenceKind": "actual-main-window-and-overlay-winui-controls",
+  "Root": "C:\\Users\\Razer\\AppData\\Local\\Temp\\DropSpace-module-ui-9133f8d0195c41849f28f7aa6f5d8a3c",
+  "StartedAtUtc": "2026-10-08T06:11:43.8283003+00:00",
+  "Status": "passed",
+  "Stage": "controls-complete",
+  "Failure": null,
+  "PackageId": "dropspace.sample",
+  "PackageSha256": "8f51853aac8fa8e84edd05f87e316fa55ea25a9671cfba16275e6511cb6e5747",
+  "Observations": [
+    {
+      "Stage": "no-dlc-startup",
+      "Shell": {
+        "NavigationKeys": [
+          "Space",
+          "Clipboard",
+          "Pinned",
+          "Music",
+          "Settings"
+        ],
+        "SelectedKey": "Space",
+        "BuiltInSection": "Space",
+        "SelectedModuleId": null,
+        "BuiltInVisible": true,
+        "ModuleVisible": false,
+        "ModuleWidth": 0,
+        "ModuleHeight": 0,
+        "Loaded": true,
+        "RasterizationScale": 1.25
+      },
+      "Island": {
+        "State": "Hidden",
+        "Page": "Files",
+        "Variant": "Idle",
+        "ManuallyOpen": false,
+        "Loaded": false,
+        "Visible": false,
+        "Width": 0,
+        "Height": 0,
+        "FilesActive": true,
+        "MusicActive": false,
+        "WidgetsActive": false,
+        "ClipboardActive": false,
+        "ModuleCompactVisible": false,
+        "ModuleCompactText": "",
+        "Widgets": {
+          "StripVisible": false,
+          "Chips": [],
+          "Tiles": []
+        }
+      }
+    },
+    {
+      "Stage": "module-page",
+      "Shell": {
+        "NavigationKeys": [
+          "Space",
+          "Clipboard",
+          "Pinned",
+          "Music",
+          "module:dropspace.sample/sample",
+          "Settings"
+        ],
+        "SelectedKey": "module:dropspace.sample/sample",
+        "BuiltInSection": "Space",
+        "SelectedModuleId": "dropspace.sample",
+        "BuiltInVisible": false,
+        "ModuleVisible": true,
+        "ModuleWidth": 720.7999877929688,
+        "ModuleHeight": 503.20001220703125,
+        "Loaded": true,
+        "RasterizationScale": 1.25
+      },
+      "Island": {
+        "State": "Hidden",
+        "Page": "Files",
+        "Variant": "Idle",
+        "ManuallyOpen": false,
+        "Loaded": true,
+        "Visible": false,
+        "Width": 340,
+        "Height": 64,
+        "FilesActive": true,
+        "MusicActive": false,
+        "WidgetsActive": false,
+        "ClipboardActive": false,
+        "ModuleCompactVisible": false,
+        "ModuleCompactText": "",
+        "Widgets": {
+          "StripVisible": false,
+          "Chips": [],
+          "Tiles": []
+        }
+      }
+    },
+    {
+      "Stage": "manual-files-protected",
+      "Shell": {
+        "NavigationKeys": [
+          "Space",
+          "Clipboard",
+          "Pinned",
+          "Music",
+          "module:dropspace.sample/sample",
+          "Settings"
+        ],
+        "SelectedKey": "module:dropspace.sample/sample",
+        "BuiltInSection": "Space",
+        "SelectedModuleId": "dropspace.sample",
+        "BuiltInVisible": false,
+        "ModuleVisible": true,
+        "ModuleWidth": 720.7999877929688,
+        "ModuleHeight": 503.20001220703125,
+        "Loaded": true,
+        "RasterizationScale": 1.25
+      },
+      "Island": {
+        "State": "Expanded",
+        "Page": "Files",
+        "Variant": "EmptyWake",
+        "ManuallyOpen": true,
+        "Loaded": true,
+        "Visible": true,
+        "Width": 552,
+        "Height": 333.6000061035156,
+        "FilesActive": true,
+        "MusicActive": false,
+        "WidgetsActive": false,
+        "ClipboardActive": false,
+        "ModuleCompactVisible": false,
+        "ModuleCompactText": "",
+        "Widgets": {
+          "StripVisible": false,
+          "Chips": [],
+          "Tiles": [
+            {
+              "Index": 0,
+              "X": 0,
+              "Y": 0,
+              "Width": 113.5999984741211,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 1,
+              "X": 121.5999984741211,
+              "Y": 0,
+              "Width": 113.5999984741211,
+              "Height": 137.60000610351562
+            },
+            {
+              "Index": 2,
+              "X": 243.1999969482422,
+              "Y": 0,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 3,
+              "X": 0,
+              "Y": 72.80000305175781,
+              "Width": 52.79999923706055,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 4,
+              "X": 365.6000061035156,
+              "Y": 0,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 5,
+              "X": 243.1999969482422,
+              "Y": 72.80000305175781,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 6,
+              "X": 0,
+              "Y": 145.60000610351562,
+              "Width": 113.5999984741211,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 7,
+              "X": 427.20001220703125,
+              "Y": 72.80000305175781,
+              "Width": 52.79999923706055,
+              "Height": 64.80000305175781
+            }
+          ]
+        }
+      }
+    },
+    {
+      "Stage": "widgets-contribution",
+      "Shell": {
+        "NavigationKeys": [
+          "Space",
+          "Clipboard",
+          "Pinned",
+          "Music",
+          "module:dropspace.sample/sample",
+          "Settings"
+        ],
+        "SelectedKey": "module:dropspace.sample/sample",
+        "BuiltInSection": "Space",
+        "SelectedModuleId": "dropspace.sample",
+        "BuiltInVisible": false,
+        "ModuleVisible": true,
+        "ModuleWidth": 720.7999877929688,
+        "ModuleHeight": 503.20001220703125,
+        "Loaded": true,
+        "RasterizationScale": 1.25
+      },
+      "Island": {
+        "State": "Expanded",
+        "Page": "Widgets",
+        "Variant": "EmptyWake",
+        "ManuallyOpen": true,
+        "Loaded": true,
+        "Visible": true,
+        "Width": 560,
+        "Height": 340,
+        "FilesActive": false,
+        "MusicActive": false,
+        "WidgetsActive": true,
+        "ClipboardActive": false,
+        "ModuleCompactVisible": false,
+        "ModuleCompactText": "",
+        "Widgets": {
+          "StripVisible": true,
+          "Chips": [
+            {
+              "Name": "\u6A21\u5757\u793A\u4F8B: \u8FD9\u6761\u6D88\u606F\u5C06\u5728 30 \u79D2\u540E\u5931\u6548\u3002",
+              "Width": 152.8000030517578,
+              "Height": 18.399999618530273
+            }
+          ],
+          "Tiles": [
+            {
+              "Index": 0,
+              "X": 0,
+              "Y": 0,
+              "Width": 113.5999984741211,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 1,
+              "X": 121.5999984741211,
+              "Y": 0,
+              "Width": 113.5999984741211,
+              "Height": 137.60000610351562
+            },
+            {
+              "Index": 2,
+              "X": 243.1999969482422,
+              "Y": 0,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 3,
+              "X": 0,
+              "Y": 72.80000305175781,
+              "Width": 52.79999923706055,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 4,
+              "X": 365.6000061035156,
+              "Y": 0,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 5,
+              "X": 243.1999969482422,
+              "Y": 72.80000305175781,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 6,
+              "X": 0,
+              "Y": 145.60000610351562,
+              "Width": 113.5999984741211,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 7,
+              "X": 427.20001220703125,
+              "Y": 72.80000305175781,
+              "Width": 52.79999923706055,
+              "Height": 64.80000305175781
+            }
+          ]
+        }
+      }
+    },
+    {
+      "Stage": "disable-selected-page",
+      "Shell": {
+        "NavigationKeys": [
+          "Space",
+          "Clipboard",
+          "Pinned",
+          "Music",
+          "Settings"
+        ],
+        "SelectedKey": "Space",
+        "BuiltInSection": "Space",
+        "SelectedModuleId": null,
+        "BuiltInVisible": true,
+        "ModuleVisible": false,
+        "ModuleWidth": 0,
+        "ModuleHeight": 0,
+        "Loaded": true,
+        "RasterizationScale": 1.25
+      },
+      "Island": {
+        "State": "Expanded",
+        "Page": "Widgets",
+        "Variant": "EmptyWake",
+        "ManuallyOpen": true,
+        "Loaded": true,
+        "Visible": true,
+        "Width": 560,
+        "Height": 340,
+        "FilesActive": false,
+        "MusicActive": false,
+        "WidgetsActive": true,
+        "ClipboardActive": false,
+        "ModuleCompactVisible": false,
+        "ModuleCompactText": "",
+        "Widgets": {
+          "StripVisible": false,
+          "Chips": [],
+          "Tiles": [
+            {
+              "Index": 0,
+              "X": 0,
+              "Y": 0,
+              "Width": 113.5999984741211,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 1,
+              "X": 121.5999984741211,
+              "Y": 0,
+              "Width": 113.5999984741211,
+              "Height": 137.60000610351562
+            },
+            {
+              "Index": 2,
+              "X": 243.1999969482422,
+              "Y": 0,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 3,
+              "X": 0,
+              "Y": 72.80000305175781,
+              "Width": 52.79999923706055,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 4,
+              "X": 365.6000061035156,
+              "Y": 0,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 5,
+              "X": 243.1999969482422,
+              "Y": 72.80000305175781,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 6,
+              "X": 0,
+              "Y": 145.60000610351562,
+              "Width": 113.5999984741211,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 7,
+              "X": 427.20001220703125,
+              "Y": 72.80000305175781,
+              "Width": 52.79999923706055,
+              "Height": 64.80000305175781
+            }
+          ]
+        }
+      }
+    },
+    {
+      "Stage": "enable-and-uninstall",
+      "Shell": {
+        "NavigationKeys": [
+          "Space",
+          "Clipboard",
+          "Pinned",
+          "Music",
+          "Settings"
+        ],
+        "SelectedKey": "Space",
+        "BuiltInSection": "Space",
+        "SelectedModuleId": null,
+        "BuiltInVisible": true,
+        "ModuleVisible": false,
+        "ModuleWidth": 0,
+        "ModuleHeight": 0,
+        "Loaded": true,
+        "RasterizationScale": 1.25
+      },
+      "Island": {
+        "State": "Expanded",
+        "Page": "Widgets",
+        "Variant": "EmptyWake",
+        "ManuallyOpen": true,
+        "Loaded": true,
+        "Visible": true,
+        "Width": 560,
+        "Height": 340,
+        "FilesActive": false,
+        "MusicActive": false,
+        "WidgetsActive": true,
+        "ClipboardActive": false,
+        "ModuleCompactVisible": false,
+        "ModuleCompactText": "",
+        "Widgets": {
+          "StripVisible": false,
+          "Chips": [],
+          "Tiles": [
+            {
+              "Index": 0,
+              "X": 0,
+              "Y": 0,
+              "Width": 113.5999984741211,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 1,
+              "X": 121.5999984741211,
+              "Y": 0,
+              "Width": 113.5999984741211,
+              "Height": 137.60000610351562
+            },
+            {
+              "Index": 2,
+              "X": 243.1999969482422,
+              "Y": 0,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 3,
+              "X": 0,
+              "Y": 72.80000305175781,
+              "Width": 52.79999923706055,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 4,
+              "X": 365.6000061035156,
+              "Y": 0,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 5,
+              "X": 243.1999969482422,
+              "Y": 72.80000305175781,
+              "Width": 114.4000015258789,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 6,
+              "X": 0,
+              "Y": 145.60000610351562,
+              "Width": 113.5999984741211,
+              "Height": 64.80000305175781
+            },
+            {
+              "Index": 7,
+              "X": 427.20001220703125,
+              "Y": 72.80000305175781,
+              "Width": 52.79999923706055,
+              "Height": 64.80000305175781
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "Captures": [
+    {
+      "File": "no-dlc-main.png",
+      "Width": 962,
+      "Height": 670,
+      "RasterizationScale": 1.25,
+      "Sha256": "002f1642ef97d98842c33a94fef22f8fdd93b211a344bc7b0d8b5d237a40da99",
+      "PixelReadbackPassed": false
+    },
+    {
+      "File": "module-main.png",
+      "Width": 962,
+      "Height": 670,
+      "RasterizationScale": 1.25,
+      "Sha256": "a6f21ef64224e59166e72a9af32c3486bece0a5ac5eda716c12e7900f2530ab8",
+      "PixelReadbackPassed": false
+    },
+    {
+      "File": "module-island.png",
+      "Width": 700,
+      "Height": 425,
+      "RasterizationScale": 1.25,
+      "Sha256": "dafa1bba2890914fc799564088e48d1f58e904388186e379195e60a37992ba11",
+      "PixelReadbackPassed": false
+    },
+    {
+      "File": "retired-main.png",
+      "Width": 962,
+      "Height": 670,
+      "RasterizationScale": 1.25,
+      "Sha256": "702a8b2f5ab371c9afd502d4c2c9330b474b58deb54949c1d2a8b9234e5f20cf",
+      "PixelReadbackPassed": false
+    }
+  ],
+  "CaptureWarnings": [
+    {
+      "Capture": "no-dlc-main",
+      "Reason": "The actual pixel readback was uniform or lacked sufficient visible content; the unmodified readback was saved, and pixel validation did not pass.",
+      "RecordedAtUtc": "2026-10-08T06:11:44.0374578+00:00"
+    },
+    {
+      "Capture": "module-main",
+      "Reason": "The actual pixel readback was uniform or lacked sufficient visible content; the unmodified readback was saved, and pixel validation did not pass.",
+      "RecordedAtUtc": "2026-10-08T06:11:45.5850977+00:00"
+    },
+    {
+      "Capture": "module-island",
+      "Reason": "The actual pixel readback was uniform or lacked sufficient visible content; the unmodified readback was saved, and pixel validation did not pass.",
+      "RecordedAtUtc": "2026-10-08T06:11:46.2185118+00:00"
+    },
+    {
+      "Capture": "retired-main",
+      "Reason": "The actual pixel readback was uniform or lacked sufficient visible content; the unmodified readback was saved, and pixel validation did not pass.",
+      "RecordedAtUtc": "2026-10-08T06:11:46.3685793+00:00"
+    }
+  ],
+  "RuntimeAfterShutdown": {
+    "WorkerOwners": 0,
+    "AliveWorkers": 0,
+    "ActiveCalls": 0,
+    "HasExpiryTimer": false,
+    "Disposed": true
+  },
+  "OverlaySurfacesAfterShutdown": 0,
+  "ShutdownCompletedAtUtc": "2026-10-08T06:11:46.811298+00:00",
+  "Limitations": [
+    "One actual Windows desktop/DPI/language only; no full regression matrix.",
+    "Pixel capture is best-effort and does not gate lifecycle assertions; failed readbacks are recorded separately and passing lifecycle checks does not imply passing pixel validation.",
+    "Saved control pixel readbacks require visual review; no complete OS sandbox or external media behavior claim.",
+    "No user clipboard capture, updater run, model inference, drag stress or legacy broad smoke suite was requested by this entry point."
+  ]
+}

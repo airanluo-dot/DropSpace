@@ -17,8 +17,6 @@ public interface IAppStringLocalizer
 
     string Format(string key, params object?[] arguments);
 
-    // Refresh a previously rendered UI status without changing its underlying operation.
-    string Relocalize(string text) => text;
 }
 
 /// <summary>

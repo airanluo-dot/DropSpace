@@ -82,7 +82,8 @@ public sealed partial class MainPage : Page
         Services.Media.MediaExperienceService mediaExperience,
         Services.Media.MediaApplicationIconService mediaIcons,
         NeteaseEnhancementViewModel enhancement,
-        Services.Dlc.DlcManagerService dlc)
+        Services.Dlc.DlcManagerService dlc,
+        Services.Dlc.FeatureModuleRuntime modules)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
@@ -98,6 +99,7 @@ public sealed partial class MainPage : Page
         _crossDeviceClipboard = crossDeviceClipboard;
         _dropLinkHost = dropLinkHost;
         _sharing = sharing;
+        _modules = modules;
         try
         {
             InitializeComponent();
@@ -207,10 +209,12 @@ public sealed partial class MainPage : Page
             _dropLinkHost.HandoffOffered += OnHandoffOfferedAsync;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
             _settingsEditor.PropertyChanged += OnSettingsEditorPropertyChanged;
+            _modules.Changed += OnModulesChanged;
             _subscriptionsAttached = true;
         }
 
         EnsureQuickActionsSettings();
+        RefreshModuleNavigation();
         SyncNavigationSelection();
         SyncSettingsControls();
         UpdateSectionChrome();
@@ -227,8 +231,8 @@ public sealed partial class MainPage : Page
     private void UpdatePresentationActivity()
     {
         var active = _presentationActive && !_dialogLifetime.IsCancellationRequested;
-        _musicPage.SetActive(active && _viewModel.IsMusicVisible);
-        UpdateSettingsPresentationActivity(active && _viewModel.CurrentSection == "Settings");
+        _musicPage.SetActive(active && !IsModulePageVisible && _viewModel.IsMusicVisible);
+        UpdateSettingsPresentationActivity(active && !IsModulePageVisible && _viewModel.CurrentSection == "Settings");
     }
 
     internal void Retire()
@@ -236,6 +240,7 @@ public sealed partial class MainPage : Page
         SetPresentationActive(false);
         Interlocked.Increment(ref _navigationRevision);
         _dialogLifetime.Cancel();
+        RetireModulePage();
         if (!_subscriptionsAttached)
         {
             return;
@@ -243,6 +248,7 @@ public sealed partial class MainPage : Page
 
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _settingsEditor.PropertyChanged -= OnSettingsEditorPropertyChanged;
+        _modules.Changed -= OnModulesChanged;
         _dropLinkHost.TransferOffered -= OnTransferOfferedAsync;
         _dropLinkHost.PairingOffered -= OnPairingOfferedAsync;
         _dropLinkHost.HandoffOffered -= OnHandoffOfferedAsync;
@@ -291,6 +297,13 @@ public sealed partial class MainPage : Page
         // A newer request may bypass a flush that already drained its pending queue.
         // Only the latest live request may publish its destination after that save.
         if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return;
+        if (_moduleNavigation.TryGetValue(section, out var module))
+        {
+            if (IsModuleActive(module.Id)) ShowModulePage(section, module.Manifest, module.Page);
+            else RefreshModuleNavigation();
+            return;
+        }
+        RetireModulePage();
         _syncingNavigation = true;
         try
         {
@@ -1873,6 +1886,7 @@ public sealed partial class MainPage : Page
         }
         else if (args.PropertyName == nameof(MainViewModel.CurrentSection))
         {
+            RetireModulePage();
             SyncNavigationSelection();
             UpdateSectionChrome();
         }
@@ -1883,7 +1897,8 @@ public sealed partial class MainPage : Page
         _syncingNavigation = true;
         try
         {
-            Navigation.SelectedItem = GetNavigationItem(_viewModel.CurrentSection);
+            Navigation.SelectedItem = _selectedModuleKey is { } key && _moduleNavigation.TryGetValue(key, out var module)
+                ? module.Item : GetNavigationItem(_viewModel.CurrentSection);
         }
         finally
         {

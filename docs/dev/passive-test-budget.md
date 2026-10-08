@@ -1,6 +1,11 @@
 # Permanent passive CI test ceiling
 
-Automatically triggered DropSpace workflows execute at most **20 functional test cases or scenarios per passive trigger**, across eligible workflows. The frozen PR selection is **10 cases**, not a target to fill the budget. Explicit operator `workflow_dispatch` diagnostics are exempt. Keep this rule independent of App release version numbers.
+Use one project-wide task ledger with at most **20 actual functional cases/scenarios**, across
+local work, agents, PRs and workflows, including failures and retries. The limit never resets per
+trigger, language or module. The frozen legacy PR selection is **10 cases**, not a target to fill;
+execute only if the task budget permits. Unrestricted diagnostics need an explicit user request;
+a manual dispatch or development/release request alone is not an exemption. Keep this independent
+of App release version numbers.
 
 - Automatic PR: skip broad Core/Infrastructure/App regression suites, stress/native smoke, installer lifecycle and model inference. The next-Beta route compiles App/XAML and runs zero functional cases. Legacy routes may run the frozen 8 approved Core policy cases plus 2 approved Infrastructure lyric outcome cases, at most once. Source definitions have pinned Git blob identities, so new DataRows trigger fail-closed zero cases until reviewed.
 - Automatic website events and ordinary manual release refresh: Node/Playwright suites are skipped. Static site build, localization integrity, deployment and public metadata verification continue. Diagnostics require explicit `full_tests=true` opt-in.
@@ -16,7 +21,9 @@ actual static PRI inspection are production integrity checks, scoped once per re
 reuse the hash-bound package receipt. Keep one 20-case project-wide ledger across languages,
 workflows, failures and retries. A release request is not broad diagnostic opt-in.
 
-To run unrestricted CI tests, use `ci.yml` with `full_tests=true` on `workflow_dispatch`. Manual `release.yml`, website, CUDA, AI model and visual diagnostic workflows continue to support the deliberately requested validation suites.
+After an explicit user request for unrestricted tests, use `ci.yml` with `full_tests=true` on
+`workflow_dispatch`. Manual release, website, CUDA, model and visual diagnostics support deliberately
+requested suites; ordinary development and publication keep them disabled.
 
 ### Enforcement
 

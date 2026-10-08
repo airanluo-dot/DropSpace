@@ -875,4 +875,18 @@
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (無効)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌詞の翻訳先</value></data>
   <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>画面の言語とは別に、簡体字中国語か英語を選択します。</value></data>
+  <data name="ModuleEnabled" xml:space="preserve"><value>有効</value></data>
+  <data name="ModuleDisabled" xml:space="preserve"><value>無効</value></data>
+  <data name="ModuleEnable" xml:space="preserve"><value>有効にする</value></data>
+  <data name="ModuleDisable" xml:space="preserve"><value>無効にする</value></data>
+  <data name="ModuleRunning" xml:space="preserve"><value>実行中</value></data>
+  <data name="ModuleStopped" xml:space="preserve"><value>停止済み</value></data>
+  <data name="ModuleStarting" xml:space="preserve"><value>起動中…</value></data>
+  <data name="ModuleStopping" xml:space="preserve"><value>停止中…</value></data>
+  <data name="ModulePendingCleanup" xml:space="preserve"><value>クリーンアップ待ち</value></data>
+  <data name="ModuleSave" xml:space="preserve"><value>保存</value></data>
+  <data name="ModuleClearData" xml:space="preserve"><value>モジュールのデータを消去</value></data>
+  <data name="ModuleClearDataConfirm" xml:space="preserve"><value>このモジュールに保存されたデータと設定を削除しますか？</value></data>
+  <data name="ModuleRetryCleanup" xml:space="preserve"><value>クリーンアップを再試行</value></data>
+  <data name="ModuleHostRequired" xml:space="preserve"><value>このモジュールにはホストインターフェイス {0} と宣言された機能が必要です。DropSpace を互換性のあるバージョンに更新してください。</value></data>
 </root>

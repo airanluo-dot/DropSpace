@@ -1,4 +1,5 @@
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -52,6 +53,7 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
         private readonly TextBlock _help = new() { TextWrapping = TextWrapping.Wrap };
         private readonly Button _close = new() { MinWidth = 96 };
         private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
+        private AppUiMessage _statusMessage = AppUiMessage.Empty;
         private readonly Button _save = new() { IsEnabled = false, Visibility = Visibility.Collapsed, MinWidth = 96 };
         private readonly DispatcherQueueTimer _poll;
         private readonly CancellationTokenSource _stop = new();
@@ -102,15 +104,21 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
             _help.Text = _strings.Get("QqMusicLoginHelp");
             _save.Content = _strings.Get("QqMusicUseLogin");
             _close.Content = _strings.Get("QqMusicCloseLogin");
-            _status.Text = _strings.Relocalize(_status.Text);
+            _status.Text = _statusMessage.Render(_strings);
             if (Content is FrameworkElement root) root.Language = _strings.Culture.Name;
+        }
+
+        private void SetStatus(AppUiMessage message)
+        {
+            _statusMessage = message;
+            _status.Text = message.Render(_strings);
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs args)
         {
             if (_initialized) return;
             _initialized = true;
-            _status.Text = _strings.Get("QqMusicOpening");
+            SetStatus(AppUiMessage.Resource("QqMusicOpening"));
             try
             {
                 await _session.LoadAsync(_stop.Token);
@@ -132,7 +140,7 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
                 core.NavigationStarting += (_, navigation) =>
                 {
                     if (!TrustedNavigation(navigation.Uri))
-                    { navigation.Cancel = true; _status.Text = _strings.Get("QqMusicNavigationBlocked"); }
+                    { navigation.Cancel = true; SetStatus(AppUiMessage.Resource("QqMusicNavigationBlocked")); }
                 };
                 core.NewWindowRequested += (_, request) =>
                 {
@@ -150,7 +158,7 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
                 core.NavigationCompleted += (_, navigation) =>
                 {
                     if (_closed) return;
-                    if (!_ready) _status.Text = _strings.Get(navigation.IsSuccess ? "QqMusicCompleteLogin" : "QqMusicPageFailed");
+                    if (!_ready) SetStatus(AppUiMessage.Resource(navigation.IsSuccess ? "QqMusicCompleteLogin" : "QqMusicPageFailed"));
                 };
                 core.Navigate("https://y.qq.com/n/ryqq_v2/search?w=Happier");
                 _poll.Start();
@@ -158,7 +166,7 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
             catch (Exception error) when (error is not OutOfMemoryException)
             {
                 _logger.LogWarning("QQ Music sign-in page unavailable ({Category}, 0x{HResult:X8}).", error.GetType().Name, error.HResult);
-                if (!_closed) _status.Text = _strings.Get("QqMusicPageFailed");
+                if (!_closed) SetStatus(AppUiMessage.Resource("QqMusicPageFailed"));
             }
         }
 
@@ -186,11 +194,11 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
                 _ready = ready;
                 _save.Visibility = ready ? Visibility.Visible : Visibility.Collapsed;
                 _save.IsEnabled = ready;
-                _status.Text = _strings.Get(ready ? "QqMusicLoginReady" : "QqMusicCompleteLogin");
+                SetStatus(AppUiMessage.Resource(ready ? "QqMusicLoginReady" : "QqMusicCompleteLogin"));
             }
             catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
             catch (Exception error) when (error is not OutOfMemoryException)
-            { _poll.Stop(); if (!_closed) _status.Text = _strings.Get("QqMusicPageFailed"); }
+            { _poll.Stop(); if (!_closed) SetStatus(AppUiMessage.Resource("QqMusicPageFailed")); }
             finally { _polling = false; }
         }
 
@@ -207,10 +215,10 @@ public sealed class QqMusicLoginService(QqMusicSession session, IAppStringLocali
                 if (_closed) return;
                 Close();
             }
-            catch (InvalidDataException) { if (!_closed) _status.Text = _strings.Get("QqMusicLoginMissing"); }
+            catch (InvalidDataException) { if (!_closed) SetStatus(AppUiMessage.Resource("QqMusicLoginMissing")); }
             catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
             catch (Exception error) when (error is not OutOfMemoryException)
-            { if (!_closed) _status.Text = _strings.Get("QqMusicSaveFailed"); }
+            { if (!_closed) SetStatus(AppUiMessage.Resource("QqMusicSaveFailed")); }
             finally { _saving = false; if (!_closed) _save.IsEnabled = _ready; }
         }
 

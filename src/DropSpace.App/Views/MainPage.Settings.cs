@@ -13,6 +13,7 @@ public sealed partial class MainPage
     private Action? _openDlcSettings;
     private DlcPage? _dlcSettingsPage;
     private DownloadPanel? _downloadSettingsPanel;
+    private FeatureModuleInventoryView? _moduleInventory;
     private string _selectedSettingsPage = "General";
 
     private void OpenDlcSettings() => _openDlcSettings?.Invoke();
@@ -80,6 +81,9 @@ public sealed partial class MainPage
         _dlcSettingsPage = new DlcPage(dlc, _strings, editor);
         _downloadSettingsPanel = new DownloadPanel(editor, _strings, _windowHandle);
         groups["DLC"].Children.Add(_dlcSettingsPage);
+        _moduleInventory = new FeatureModuleInventoryView(_modules, _strings,
+            manifest => ShowModulePage(null, manifest, null));
+        groups["DLC"].Children.Add(_moduleInventory);
         groups["Downloads"].Children.Add(_downloadSettingsPanel);
         var activities = new SettingsForm(editor, _strings);
         activities.AddToggle("ActivitiesNotifications", s => s.SystemActivities.ShowWindowsNotifications, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowWindowsNotifications = v } }, editor.CheckNotificationAccessAsync);
@@ -131,6 +135,7 @@ public sealed partial class MainPage
     private void UpdateSettingsPresentationActivity(bool active)
     {
         _dlcSettingsPage?.SetActive(active && _selectedSettingsPage == "DLC");
+        _moduleInventory?.SetActive(active && _selectedSettingsPage == "DLC");
         _downloadSettingsPanel?.SetActive(active && _selectedSettingsPage == "Downloads");
     }
     private static bool ContainsElement(DependencyObject root, DependencyObject target)

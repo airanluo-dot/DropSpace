@@ -33,7 +33,8 @@ public sealed record ClipboardCaptureStatus(
     long SuppressedConsecutiveDuplicates,
     long FailedReads,
     long DroppedEvents,
-    string? Message);
+    string? Message,
+    AppUiMessage? MessageIdentity = null);
 
 public sealed class ClipboardCaptureService : IAsyncDisposable
 {
@@ -230,8 +231,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             _initialized = true;
             PublishStatus(
                 _notifications.Status.IsRegistered
-                    ? _paused ? _strings.Get("ClipboardPausedAtStartup") : null
-                    : _strings.Get("ClipboardListenerRegistrationFailed"),
+                    ? _paused ? AppUiMessage.Resource("ClipboardPausedAtStartup") : null
+                    : AppUiMessage.Resource("ClipboardListenerRegistrationFailed"),
                 _notifications.Status.IsRegistered ? null : ClipboardRecordingState.Error);
         }
         finally
@@ -263,7 +264,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     current => current with { ClipboardPaused = true }, cancellationToken).ConfigureAwait(false);
                 _paused = true;
                 Interlocked.Increment(ref _pauseGeneration);
-                PublishStatus(_strings.Get("ClipboardPaused"));
+                PublishStatus(AppUiMessage.Resource("ClipboardPaused"));
             }
             finally
             {
@@ -302,7 +303,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 await _consecutiveCaptures.ResetAsync(CancellationToken.None).ConfigureAwait(false);
                 _paused = false;
                 Interlocked.Increment(ref _pauseGeneration);
-                PublishStatus(_strings.Get("ClipboardResumed"));
+                PublishStatus(AppUiMessage.Resource("ClipboardResumed"));
             }
             finally
             {
@@ -745,7 +746,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         if (!TryQueueSignal(signal))
         {
             Interlocked.Increment(ref _droppedEvents);
-            PublishStatus(_strings.Get("ClipboardEventDropped"));
+            PublishStatus(AppUiMessage.Resource("ClipboardEventDropped"));
         }
         else if (_textReads.HasActiveRead || _providerReads.HasActiveRead)
         {
@@ -784,7 +785,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     {
         if (!status.IsRegistered)
         {
-            PublishStatus(_strings.Get("ClipboardListenerUnavailable"), ClipboardRecordingState.Error);
+            PublishStatus(AppUiMessage.Resource("ClipboardListenerUnavailable"), ClipboardRecordingState.Error);
         }
     }
 
@@ -951,7 +952,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         {
                             if (TryQueueSignal(signal with { Attempt = signal.Attempt + 1 }))
                             {
-                                PublishStatus(_strings.Get("ClipboardBusyRetrying"));
+                                PublishStatus(AppUiMessage.Resource("ClipboardBusyRetrying"));
                                 continue;
                             }
 
@@ -959,7 +960,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         }
                     }
 
-                    PublishStatus(_strings.Get("ClipboardItemCaptureFailed"));
+                    PublishStatus(AppUiMessage.Resource("ClipboardItemCaptureFailed"));
                 }
             }
         }
@@ -972,7 +973,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         {
             RecordDiagnostic(ClipboardDiagnosticDecision.WorkerFailed, exception: exception);
             _logger.LogError(exception, "Clipboard capture worker stopped unexpectedly.");
-            PublishStatus(_strings.Get("ClipboardCaptureStopped"), ClipboardRecordingState.Error);
+            PublishStatus(AppUiMessage.Resource("ClipboardCaptureStopped"), ClipboardRecordingState.Error);
         }
         finally { RecordDiagnostic(ClipboardDiagnosticDecision.WorkerCompleted); }
     }
@@ -1041,7 +1042,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 lastException = exception;
                 Interlocked.Increment(ref _failedReads);
                 RecordDiagnostic(ClipboardDiagnosticDecision.ReadFailed, signal, exception, attempt + 1);
-                PublishStatus(_strings.Get("ClipboardBusyRetrying"));
+                PublishStatus(AppUiMessage.Resource("ClipboardBusyRetrying"));
                 _logger.LogWarning(
                     exception,
                     "Transient clipboard read failure for sequence {SequenceNumber}, attempt {Attempt}.",
@@ -1872,7 +1873,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
     }
 
-    private void PublishStatus(string? message, ClipboardRecordingState? state = null)
+    private void PublishStatus(AppUiMessage? message, ClipboardRecordingState? state = null)
     {
         if (StatusChanged is not { } handlers) return;
         var status = CreateStatus(message, state);
@@ -1883,7 +1884,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
     }
 
-    private ClipboardCaptureStatus CreateStatus(string? message, ClipboardRecordingState? state = null) =>
+    private ClipboardCaptureStatus CreateStatus(AppUiMessage? message, ClipboardRecordingState? state = null) =>
         new(
             state ?? (!_notifications.Status.IsRegistered
                 ? ClipboardRecordingState.Error
@@ -1895,6 +1896,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             Interlocked.Read(ref _suppressedConsecutiveDuplicates),
             Interlocked.Read(ref _failedReads),
             Interlocked.Read(ref _droppedEvents),
+            message?.Render(_strings),
             message);
 
     private void ThrowIfDisposing() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeStarted) != 0, this);

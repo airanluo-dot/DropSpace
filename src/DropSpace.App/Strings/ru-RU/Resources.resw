@@ -875,4 +875,18 @@
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 ГБ (отключено)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Язык перевода песен</value></data>
   <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Выберите упрощённый китайский или английский независимо от языка интерфейса.</value></data>
+  <data name="ModuleEnabled" xml:space="preserve"><value>Включён</value></data>
+  <data name="ModuleDisabled" xml:space="preserve"><value>Отключён</value></data>
+  <data name="ModuleEnable" xml:space="preserve"><value>Включить</value></data>
+  <data name="ModuleDisable" xml:space="preserve"><value>Отключить</value></data>
+  <data name="ModuleRunning" xml:space="preserve"><value>Работает</value></data>
+  <data name="ModuleStopped" xml:space="preserve"><value>Остановлен</value></data>
+  <data name="ModuleStarting" xml:space="preserve"><value>Запуск…</value></data>
+  <data name="ModuleStopping" xml:space="preserve"><value>Остановка…</value></data>
+  <data name="ModulePendingCleanup" xml:space="preserve"><value>Ожидает очистки</value></data>
+  <data name="ModuleSave" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="ModuleClearData" xml:space="preserve"><value>Удалить данные модуля</value></data>
+  <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Удалить сохранённые данные и настройки этого модуля?</value></data>
+  <data name="ModuleRetryCleanup" xml:space="preserve"><value>Повторить очистку</value></data>
+  <data name="ModuleHostRequired" xml:space="preserve"><value>Для этого модуля требуется интерфейс хоста {0} и заявленные возможности. Обновите DropSpace до совместимой версии.</value></data>
 </root>
