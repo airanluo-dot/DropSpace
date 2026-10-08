@@ -16,6 +16,7 @@ public sealed class FeatureModuleRuntime(ModulePackageStore store, OfficialModul
         public ModuleWorkerClient? Worker;
         public ModuleRunState State;
         public long Generation;
+        public int PendingUninstalls;
         public CancellationTokenSource Requests = new();
         public SemaphoreSlim Gate = new(1, 1);
         public ModuleIslandContent? Island;
@@ -49,18 +50,21 @@ public sealed class FeatureModuleRuntime(ModulePackageStore store, OfficialModul
         get
         {
             lock (_sync) return AvailablePackages.Select(package => _slots.TryGetValue(package.Id, out var slot)
-                ? new ModuleSnapshot(slot.Installation, slot.State, slot.Manifest)
+                ? Snapshot(slot)
                 : new ModuleSnapshot(new(package.Id, null, false, 0), ModuleRunState.Stopped, null))
                 .Concat(_slots.Where(pair => !catalog.Packages.Any(p => p.Id == pair.Key))
-                    .Select(pair => new ModuleSnapshot(pair.Value.Installation, pair.Value.State, pair.Value.Manifest))).ToArray();
+                    .Select(pair => Snapshot(pair.Value))).ToArray();
         }
     }
+    // Admission/UI withdrawal is independent of the durable installation and serialized graph mutation.
+    private static ModuleSnapshot Snapshot(Slot slot) => new(slot.Installation,
+        slot.PendingUninstalls > 0 ? ModuleRunState.Stopping : slot.State, slot.Manifest);
     public IReadOnlyList<(string Id, ModuleManifest Manifest, ModuleIslandContent Content)> IslandContents
     {
         get
         {
             lock (_sync) return _slots.Where(pair => pair.Value is { State: ModuleRunState.Running, Manifest: not null, Island: not null } &&
-                pair.Value.Installation.Enabled && pair.Value.Island.ExpiresAt > DateTimeOffset.UtcNow)
+                pair.Value.PendingUninstalls == 0 && pair.Value.Installation.Enabled && pair.Value.Island.ExpiresAt > DateTimeOffset.UtcNow)
                 .Select(pair => (pair.Key, pair.Value.Manifest!, pair.Value.Island!)).ToArray();
         }
     }
@@ -297,15 +301,38 @@ public sealed class FeatureModuleRuntime(ModulePackageStore store, OfficialModul
     {
         var slot = GetSlot(id);
         lock (_sync)
-            if (_slots.Values.Any(other => other.Installation.Enabled && other.Manifest?.Dependencies.Any(d => d.Id == id) == true))
-                throw new InvalidOperationException("ModuleDependencyInUse");
-        return RunAsync(slot, async () =>
         {
-            // A dependent module must be disabled explicitly before removing its dependency.
-            lock (_sync)
-                if (_slots.Values.Any(other => other.Installation.Enabled && other.Manifest?.Dependencies.Any(d => d.Id == id) == true))
-                    throw new InvalidOperationException("ModuleDependencyInUse");
-            Retire(slot);
+            if (HasEnabledDependent(id)) throw new InvalidOperationException("ModuleDependencyInUse");
+            slot.PendingUninstalls++;
+        }
+        try
+        {
+            Retire(slot); // withdraw and cancel synchronously, before waiting for any transaction
+            return FinishUninstallAsync(slot, id);
+        }
+        catch { ReleaseUninstall(slot); throw; }
+    }
+    private bool HasEnabledDependent(string id) =>
+        _slots.Values.Any(other => other.Installation.Enabled && other.Manifest?.Dependencies.Any(d => d.Id == id) == true);
+    private void ReleaseUninstall(Slot slot)
+    {
+        lock (_sync) slot.PendingUninstalls--;
+        Notify();
+    }
+    private async Task FinishUninstallAsync(Slot slot, string id)
+    {
+        try { await RunAsync(slot, async () =>
+        {
+            bool dependencyInUse;
+            lock (_sync) dependencyInUse = HasEnabledDependent(id);
+            if (dependencyInUse)
+            {
+                // A dependent may have committed while we waited. Keep its package and restore
+                // the enabled worker retired by this request, under the same transaction/slot gates.
+                if (slot.Installation.Enabled) await EnableCoreAsync(slot).ConfigureAwait(false);
+                throw new InvalidOperationException("ModuleDependencyInUse");
+            }
+            Retire(slot); // retire any activation that was already queued ahead of this removal
             var version = slot.Installation.Version;
             await PublishInstallationAsync(slot, slot.Installation with { Enabled = false }).ConfigureAwait(false);
             var stopped = await StopWorkerAsync(slot).ConfigureAwait(false);
@@ -322,7 +349,8 @@ public sealed class FeatureModuleRuntime(ModulePackageStore store, OfficialModul
                 Transaction = clean ? ModuleTransactionState.None : ModuleTransactionState.PendingCleanup,
                 CandidateVersion = clean ? null : version, ErrorCode = clean ? null : "ModuleCleanupPending" }).ConfigureAwait(false);
             if (clean) lock (_sync) slot.Manifest = null;
-        });
+        }).ConfigureAwait(false); }
+        finally { ReleaseUninstall(slot); }
     }
     private void ValidateDependents(string id, string version)
     {
@@ -441,16 +469,16 @@ public sealed class FeatureModuleRuntime(ModulePackageStore store, OfficialModul
         ModuleWorkerClient worker; long generation;
         lock (_sync)
         {
-            if (!slot.Installation.Enabled || slot.State != ModuleRunState.Running || slot.Worker is null ||
+            if (slot.PendingUninstalls > 0 || !slot.Installation.Enabled || slot.State != ModuleRunState.Running || slot.Worker is null ||
                 slot.Manifest is null || !slot.Manifest.Ui.Pages.SelectMany(p => p.Actions).Any(a => a.Id == action))
                 throw new IOException("ModuleActionUnavailable");
             worker = slot.Worker; generation = slot.Generation;
         }
-        using var stop = BeginCall(slot, token, generation);
+        using var stop = BeginCall(slot, token, generation, userOperation: true);
         var result = await worker.RequestAsync("action", JsonSerializer.SerializeToElement(new { action, input = payload }), stop.Token).ConfigureAwait(false);
         lock (_sync)
         {
-            if (!IsCurrent(slot, generation) || slot.State != ModuleRunState.Running) throw new OperationCanceledException("ModuleResultExpired");
+            if (!IsCurrent(slot, generation) || slot.PendingUninstalls > 0 || slot.State != ModuleRunState.Running) throw new OperationCanceledException("ModuleResultExpired");
             if (result.Island is { } island)
             {
                 if (!ModuleContract.HasCapability(slot.Manifest!, "island.content") || island.ExpiresAt <= DateTimeOffset.UtcNow ||
@@ -489,12 +517,12 @@ public sealed class FeatureModuleRuntime(ModulePackageStore store, OfficialModul
             ModuleWorkerClient worker; long generation; ModuleSetting descriptor;
             lock (_sync)
             {
-                if (slot.State != ModuleRunState.Running || !slot.Installation.Enabled || slot.Worker is null) throw new IOException("ModuleNotRunning");
+                if (slot.PendingUninstalls > 0 || slot.State != ModuleRunState.Running || !slot.Installation.Enabled || slot.Worker is null) throw new IOException("ModuleNotRunning");
                 descriptor = slot.Manifest!.Ui.Settings.Single(s => s.Id == key);
                 worker = slot.Worker; generation = slot.Generation;
             }
             if (value.Length > 4096 || descriptor.Kind == "boolean" && value is not ("true" or "false")) throw new InvalidDataException("ModuleSettingInvalid");
-            using var stop = BeginCall(slot, token, generation);
+            using var stop = BeginCall(slot, token, generation, userOperation: true);
             var settings = await store.ReadSettingsAsync(id, stop.Token).ConfigureAwait(false);
             var values = slot.Manifest!.Ui.Settings.ToDictionary(s => s.Id, s => settings.GetValueOrDefault(s.Id, s.DefaultValue));
             values[key] = value;
@@ -544,10 +572,11 @@ public sealed class FeatureModuleRuntime(ModulePackageStore store, OfficialModul
                 await EnableCoreAsync(slot).ConfigureAwait(false);
         });
     }
-    private CallLifetime BeginCall(Slot slot, CancellationToken token, long expectedGeneration)
+    private CallLifetime BeginCall(Slot slot, CancellationToken token, long expectedGeneration, bool userOperation = false)
     {
         lock (_sync)
         {
+            if (userOperation && slot.PendingUninstalls > 0) throw new IOException("ModuleRequestUnavailable");
             if (slot.Generation != expectedGeneration) throw new OperationCanceledException("ModuleOperationRetired");
             if (_disposed || slot.Calls.Values.Sum() >= 8) throw new IOException("ModuleRequestUnavailable");
             var source = slot.Requests;

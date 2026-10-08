@@ -50,7 +50,8 @@ jobs:
             const names=execFileSync('git',['diff','--name-only','-z',base,'HEAD'],{encoding:'utf8'}).split('\0').filter(Boolean);
             const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md','website/_source/scripts/release-contract.mjs','ROADMAP.md','.github/release-notes/v0.3.1-beta.14.md','.github/release-notes/v0.3.1-beta.15.md','docs/dev/beta15-fix-audit.md']);
             moduleMaintenance=names.some(n=>/^src\/DropSpace\.(App\/Services|Core|Infrastructure)\/Dlc\//.test(n))&&names.every(n=>
-              /^src\/DropSpace\.(App\/Services|Core|Infrastructure)\/Dlc\/[^/]+\.cs$/.test(n)||
+              n==='src/DropSpace.App/Services/Dlc/FeatureModuleRuntime.cs'||
+              /^src\/DropSpace\.(Core|Infrastructure)\/Dlc\/[^/]+\.cs$/.test(n)||
               n.startsWith('scripts/feature-module-probe/')||n==='docs/dev/official-module-lifecycle-maintenance.md'||n==='.github/workflows/ci.yml');
             websiteOnly=names.length>0&&names.some(n=>n.startsWith('website/'))&&names.every(n=>n.startsWith('website/')||n==='.github/workflows/ci.yml');
             maintenance=websiteOnly||(names.length>0&&names.every(n=>allowed.has(n)));
@@ -1111,7 +1112,9 @@ jobs:
           cache-dependency-path: Directory.Packages.props
       - name: Compile production layers and run only focused lifecycle probes
         shell: pwsh
-        run: ./scripts/feature-module-probe/Run-LifecycleChecks.ps1
+        env:
+          UNINSTALL_CONCURRENCY_ONLY: ${{ github.event.pull_request.number == 123 }}
+        run: ./scripts/feature-module-probe/Run-LifecycleChecks.ps1 -UninstallConcurrencyOnly:($env:UNINSTALL_CONCURRENCY_ONLY -eq 'true')
       - name: Retain focused module lifecycle evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

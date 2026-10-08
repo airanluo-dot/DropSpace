@@ -32,6 +32,11 @@ while (await Console.In.ReadLineAsync() is { } line)
         await File.WriteAllTextAsync("hello-entered.txt", "entered");
         while (!File.Exists("release-hello.txt")) await Task.Delay(10);
     }
+    if (request.Method == "action" && request.Payload.GetProperty("action").GetString() == "hold")
+    {
+        await File.WriteAllTextAsync("action-entered.txt", "entered");
+        while (!File.Exists("release-action.txt")) await Task.Delay(10);
+    }
     if (request.Method == "action" && request.Payload.GetProperty("action").GetString() == "crash") return 9;
     var result = request.Method == "hello"
         ? JsonSerializer.SerializeToElement(new { moduleId = manifest.Id, moduleVersion = manifest.Version, protocol = 1, dataVersion = 1 })

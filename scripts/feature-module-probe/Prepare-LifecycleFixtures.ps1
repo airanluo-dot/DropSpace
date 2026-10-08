@@ -12,6 +12,7 @@ $workerHash = (Get-FileHash -LiteralPath $worker -Algorithm SHA256).Hash.ToLower
 $packages = @()
 foreach ($identity in @(@{Id='probe.a';Version='1.0.0';Dependency='probe.b'},
     @{Id='probe.b';Version='1.0.0';Dependency=$null}, @{Id='probe.b';Version='2.0.0';Dependency=$null},
+    @{Id='probe.e';Version='1.0.0';Dependency=$null}, @{Id='probe.f';Version='1.0.0';Dependency='probe.e'},
     @{Id='probe.c';Version='1.0.0';Dependency='probe.d'}, @{Id='probe.d';Version='1.0.0';Dependency='probe.c'})) {
     $resources = @{}
     foreach ($language in @('en-US','zh-CN','zh-TW','ja-JP','ko-KR','de-DE','fr-FR','es-ES','pt-BR','ru-RU')) {
@@ -23,6 +24,12 @@ foreach ($identity in @(@{Id='probe.a';Version='1.0.0';Dependency='probe.b'},
         Id=$identity.Id;Version=$identity.Version;EntryPoint='FixtureWorker.exe';Name=@{Key='name'}
         Resources=$resources;Dependencies=$dependencies
         Files=@(@{Path='FixtureWorker.exe';Bytes=$workerBytes;Sha256=$workerHash})
+    }
+    if ($identity.Id -eq 'probe.e') {
+        $manifest.RequiredCapabilities = @(@{Id='ui.pages';Version=1}, @{Id='ui.settings';Version=1})
+        $manifest.Ui = @{Icon='Puzzle';Pages=@(@{Id='work';Title=@{Key='name'};Description=@{Key='name'}
+            Actions=@(@{Id='ping';Label=@{Key='name'}}, @{Id='hold';Label=@{Key='name'}})})
+            Settings=@(@{Id='flag';Label=@{Key='name'};Kind='boolean';DefaultValue='false'})}
     }
     $name = "$($identity.Id)-$($identity.Version)-win-x64.zip"
     $archivePath = Join-Path $destination $name

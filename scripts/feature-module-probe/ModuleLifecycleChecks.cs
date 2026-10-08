@@ -27,7 +27,8 @@ internal static class ModuleLifecycleChecks
         if (!fixtures.StartsWith(allowed, StringComparison.OrdinalIgnoreCase) || !Directory.Exists(fixtures))
             throw new InvalidOperationException("Fixtures must stay inside the probe artifacts directory.");
         var known = new[] { "uninstall-crash", "cleanup-retry", "update-cleanup", "capabilities", "dependency-order",
-            "dependency-corrupt", "dependency-cycle", "dependency-race", "job-stop", "job-parent-crash" };
+            "dependency-corrupt", "dependency-cycle", "dependency-race", "job-stop", "job-parent-crash",
+            "uninstall-withdrawal", "uninstall-dependent-rejection" };
         if (!known.Contains(scenario, StringComparer.Ordinal)) throw new ArgumentException("Unknown focused lifecycle scenario");
         var root = Path.Combine(artifacts, "lifecycle-" + scenario);
         if (Directory.Exists(root) || File.Exists(root + ".json")) throw new InvalidOperationException("Fresh scenario root and receipt required.");
@@ -206,6 +207,70 @@ internal static class ModuleLifecycleChecks
                     Check(rejected && Snapshot(runtime, "probe.b").Installation.Version == "1.0.0" &&
                         Snapshot(runtime, "probe.a").RunState == ModuleRunState.Running,
                         "Incompatible dependency update rolls back without breaking the enabled dependent");
+                    break;
+                }
+                case "uninstall-withdrawal":
+                case "uninstall-dependent-rejection":
+                {
+                    var dependent = scenario == "uninstall-dependent-rejection";
+                    await PrepareAsync("probe.e");
+                    await store.WriteAsync(new("probe.e", "1.0.0", true, 1));
+                    if (!dependent) { await PrepareAsync("probe.b"); await store.WriteAsync(new("probe.b", "1.0.0", false, 1)); }
+                    var blocker = dependent ? "probe.f" : "probe.a";
+                    await SeedAsync(Package(blocker));
+                    var data = store.GetDataDirectory(blocker);
+                    var targetData = store.GetDataDirectory("probe.e");
+                    await File.WriteAllTextAsync(Path.Combine(targetData, "retained.txt"), "preserve");
+                    await File.WriteAllTextAsync(Path.Combine(data, "hold-hello.txt"), "hold");
+                    await using var runtime = Runtime();
+                    await runtime.InitializeAsync();
+                    var action = runtime.InvokeAsync("probe.e", "hold", JsonSerializer.SerializeToElement(new { }), CancellationToken.None);
+                    await WaitFileAsync(Path.Combine(targetData, "action-entered.txt"));
+                    var installing = runtime.InstallAsync(blocker);
+                    await WaitFileAsync(Path.Combine(data, "hello-entered.txt"));
+                    var uninstalling = runtime.UninstallAsync("probe.e");
+                    var duplicate = dependent ? null : runtime.UninstallAsync("probe.e");
+                    Check(Snapshot(runtime, "probe.e").RunState == ModuleRunState.Stopping,
+                        "Uninstall synchronously withdraws the target before the unrelated transaction completes");
+                    var denied = false;
+                    try { await runtime.InvokeAsync("probe.e", "ping", JsonSerializer.SerializeToElement(new { }), CancellationToken.None); }
+                    catch (IOException) { denied = true; }
+                    Check(denied, "New actions are rejected during queued uninstall");
+                    denied = false;
+                    try { await runtime.WriteSettingAsync("probe.e", "flag", "true", CancellationToken.None); }
+                    catch (IOException) { denied = true; }
+                    Check(denied && !(await store.ReadSettingsAsync("probe.e")).ContainsKey("flag"),
+                        "Queued uninstall rejects settings without changing durable user preferences");
+                    var canceled = false;
+                    try { await action.WaitAsync(TimeSpan.FromSeconds(2)); }
+                    catch (OperationCanceledException) { canceled = true; }
+                    Check(canceled && !installing.IsCompleted && !uninstalling.IsCompleted &&
+                        Directory.Exists(store.GetVersionDirectory("probe.e", "1.0.0")),
+                        "Already admitted action is canceled while graph transaction and package deletion remain queued");
+                    Check((await store.LoadAsync()).Single(s => s.Id == "probe.e") is { Version: "1.0.0", Enabled: true },
+                        "Immediate UI/request retirement does not overwrite the durable installation journal");
+                    await File.WriteAllTextAsync(Path.Combine(data, "release-hello.txt"), "release");
+                    await installing;
+                    if (dependent)
+                    {
+                        var rejected = false;
+                        try { await uninstalling; } catch (InvalidOperationException error) when (error.Message == "ModuleDependencyInUse") { rejected = true; }
+                        Check(rejected && Snapshot(runtime, blocker).RunState == ModuleRunState.Running &&
+                            Snapshot(runtime, "probe.e") is { RunState: ModuleRunState.Running, Installation.Version: "1.0.0", Installation.Enabled: true } &&
+                            Directory.Exists(store.GetVersionDirectory("probe.e", "1.0.0")),
+                            "Newly committed dependency rejects removal and restores the retired enabled target");
+                        await runtime.InvokeAsync("probe.e", "ping", JsonSerializer.SerializeToElement(new { }), CancellationToken.None);
+                        Check((await store.LoadAsync()).Single(s => s.Id == "probe.e") is { Version: "1.0.0", Enabled: true, Transaction: ModuleTransactionState.None },
+                            "Rejected removal leaves a usable worker and a consistent durable installation");
+                    }
+                    else
+                    {
+                        await uninstalling; await duplicate!;
+                        Check(Snapshot(runtime, "probe.e") is { RunState: ModuleRunState.Stopped, Installation.Version: null, Installation.Enabled: false,
+                            Installation.Transaction: ModuleTransactionState.None } && !Directory.Exists(store.GetVersionDirectory("probe.e", "1.0.0")),
+                            "Repeated queued requests finish scoped cleanup after confirmed worker exit without resurrection");
+                    }
+                    Check(await File.ReadAllTextAsync(Path.Combine(targetData, "retained.txt")) == "preserve", "Both removal outcomes retain user data");
                     break;
                 }
                 case "job-stop":
