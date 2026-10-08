@@ -46,5 +46,11 @@ foreach ($identity in @(@{Id='probe.a';Version='1.0.0';Dependency='probe.b'},
         sha256=(Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
     }
 }
-@{schemaVersion=1;packages=$packages} | ConvertTo-Json -Depth 8 |
+ConvertTo-Json -InputObject @($packages) -Depth 8 |
+    Set-Content -LiteralPath (Join-Path $destination 'descriptors.json') -Encoding utf8NoBOM
+# A catalog contains only one current version per ID; installed historical descriptors remain usable offline.
+$current = @($packages | Group-Object id | ForEach-Object {
+    $_.Group | Sort-Object { [version]$_.version } -Descending | Select-Object -First 1
+})
+@{schemaVersion=1;packages=$current} | ConvertTo-Json -Depth 8 |
     Set-Content -LiteralPath (Join-Path $destination 'catalog.json') -Encoding utf8NoBOM

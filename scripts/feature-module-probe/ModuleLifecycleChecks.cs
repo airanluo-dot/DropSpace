@@ -40,7 +40,9 @@ internal static class ModuleLifecycleChecks
             if (!condition) throw new InvalidOperationException(message);
             assertions.Add(message);
         }
-        OfficialModulePackage Package(string id, string version = "1.0.0") => catalog.Packages.Single(p => p.Id == id && p.Version == version);
+        var descriptors = JsonSerializer.Deserialize<OfficialModulePackage[]>(
+            await File.ReadAllBytesAsync(Path.Combine(fixtures, "descriptors.json")), ModulePackageStore.JsonOptions)!;
+        OfficialModulePackage Package(string id, string version = "1.0.0") => descriptors.Single(p => p.Id == id && p.Version == version);
         ModuleSnapshot Snapshot(FeatureModuleRuntime runtime, string id) => runtime.Snapshots.Single(s => s.Installation.Id == id);
         FeatureModuleRuntime Runtime() => new(store, catalog, NullLogger<FeatureModuleRuntime>.Instance);
         async Task SeedAsync(OfficialModulePackage package)
