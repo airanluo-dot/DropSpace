@@ -88,11 +88,16 @@ The installer framework's standard wizard translations come from the existing SH
 pinned Inno Setup 7.0.2 package. Repository-owned ISL language names, CustomMessages and any
 future Messages overrides belong to the App resource gate and reviewed fingerprints; an override
 cannot silently fall back to English. Preserve Inno `%1`/`%2` variables and `%n` newline markers.
+The main installer script's `[Messages]` and `[CustomMessages]` sections must remain empty;
+put repository-owned entries in reviewed locale `.isl` files. The [installer gate](installer-localization-gate.md)
+uses the pinned compiler's distinct section-specific percent/newline rules for both checking
+and confirmation, including `%1` versus `%%1` and `%n` versus `%%n`.
 
 ## Focused verification and publication
 
-Keep one project-wide passive ledger: at most 20 actual functional cases/scenarios including
-failures, retries, languages and workflows. A development/release request or manual release
+Keep one truthful project-wide execution ledger including failures, retries, languages and
+workflows, without a fixed ceiling. Select necessary checks and avoid unchanged reruns.
+A development/release request or manual release
 refresh does not authorize broad diagnostics. Do not resume full suites, ten-language browser
 matrices, repeated screenshot sweeps or model tests. Resource entry counts are separate:
 compilation, source/resource integrity, static package inspection, hashes and publication/API

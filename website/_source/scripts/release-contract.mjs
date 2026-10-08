@@ -30,10 +30,11 @@ export function compareReleaseTags(left, right) {
   return a[3] > b[3] ? 1 : -1;
 }
 
-// Dedicated model mirrors and the pinned CUDA package are never App release/update entries.
+// Official optional modules, model mirrors and the pinned CUDA package are separate resources.
 function isResourceRelease(release) {
   const tag = String(release.tag_name ?? "");
-  return /^models-hy-mt2-q8-v\d+$/.test(tag) || tag === "cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1";
+  return /^models-hy-mt2-q8-v\d+$/.test(tag) || tag === "cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1" ||
+    /^dlc-[a-z][a-z0-9.-]{0,79}-\d+\.\d+\.\d+$/.test(tag);
 }
 
 function releaseArtifactKind(name) {

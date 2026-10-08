@@ -41,6 +41,8 @@ public partial class App : Application
     private OverlayWindowService? _overlayWindows;
     private Services.Media.MediaExperienceService? _mediaExperience;
     private Services.Dlc.DlcManagerService? _dlcManager;
+    private Services.Dlc.FeatureModuleRuntime? _featureModules;
+    private Task? _featureModuleStartup;
     private SystemActivityExperienceService? _systemActivities;
     private AppInstance? _mainInstance;
     private readonly object _shutdownSync = new();
@@ -48,6 +50,7 @@ public partial class App : Application
     private readonly CancellationTokenSource _appLifetimeCancellation = new();
     private Task? _startupUpdateTask;
     private RedactingFileLoggerProvider? _fileLogger;
+    private Services.Diagnostics.FeatureModuleUiSmokeOptions? _moduleUiOptions;
 
     public App()
     {
@@ -63,6 +66,17 @@ public partial class App : Application
         try
         {
             var commandLine = Environment.GetCommandLineArgs();
+            if (Services.Diagnostics.FeatureModuleUiSmoke.IsRequested(commandLine))
+            {
+                try
+                {
+                    _moduleUiOptions = Services.Diagnostics.FeatureModuleUiSmoke.Parse(commandLine,
+                        Environment.GetEnvironmentVariable("DROPSPACE_TEST_DATA_ROOT"));
+                    await Services.Diagnostics.FeatureModuleUiSmokeFixture.PrepareRootAsync(_moduleUiOptions.Root);
+                }
+                catch (Exception error)
+                { Debug.WriteLine(error); Environment.Exit(3); return; }
+            }
             if (Services.Diagnostics.LyricsLanguageSmoke.IsRequested(commandLine))
             {
                 Environment.Exit(await Services.Diagnostics.LyricsLanguageSmoke.RunAsync(commandLine)); return;
@@ -83,7 +97,7 @@ public partial class App : Application
             }
 
             var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
-            _mainInstance = AppInstance.FindOrRegisterForKey("DropSpace.Main");
+            _mainInstance = AppInstance.FindOrRegisterForKey(_moduleUiOptions is null ? "DropSpace.Main" : "DropSpace.ModuleUi." + Path.GetFileName(_moduleUiOptions.Root));
             if (!_mainInstance.IsCurrent)
             {
                 await _mainInstance.RedirectActivationToAsync(activation);
@@ -186,6 +200,7 @@ public partial class App : Application
             _dlcManager = _services.GetRequiredService<Services.Dlc.DlcManagerService>();
             await _dlcManager.RestoreAsync();
             _ = _dlcManager.RefreshAsync();
+            _featureModules = _services.GetRequiredService<Services.Dlc.FeatureModuleRuntime>();
             _window = new MainWindow(
                 viewModel,
                 strings,
@@ -205,7 +220,11 @@ public partial class App : Application
                 _services.GetRequiredService<Services.Media.MediaExperienceService>(),
                 _services.GetRequiredService<Services.Media.MediaApplicationIconService>(),
                 _services.GetRequiredService<NeteaseEnhancementViewModel>(),
-                _dlcManager);
+                _dlcManager,
+                _featureModules);
+            // Module handshake must never delay the built-in window startup.
+            var moduleStartupLogger = _services.GetRequiredService<ILogger<App>>();
+            _featureModuleStartup = ObserveModuleStartupAsync(_featureModules, moduleStartupLogger);
             _window.SetStartupInteractionEnabled(false);
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
@@ -279,8 +298,8 @@ public partial class App : Application
                         recovery.ErrorCategory,
                         recovery.QuarantineFileName,
                         recovery.PreservedNonUiPreferences);
-                    viewModel.SettingsRecoveryMessage = strings.Get(recovery.PreservedNonUiPreferences
-                        ? "SettingsRecoveredPreferencesKept" : "SettingsRecoveredDefaults");
+                    viewModel.SetSettingsRecoveryMessage(AppUiMessage.Resource(recovery.PreservedNonUiPreferences
+                        ? "SettingsRecoveredPreferencesKept" : "SettingsRecoveredDefaults"));
                 }
 
                 var updatedArgument = Array.FindIndex(commandLine, value =>
@@ -321,7 +340,22 @@ public partial class App : Application
                         .HandleAsync(activation);
                 }
 
-                if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+                if (_moduleUiOptions is { } moduleUiOptions)
+                {
+                    var runtime = _featureModules!;
+                    var overlay = _overlayWindows;
+                    await _featureModuleStartup!;
+                    var receipt = await Services.Diagnostics.FeatureModuleUiSmoke.RunAsync(moduleUiOptions, _window, overlay, runtime,
+                        _services.GetRequiredService<DropSpace.Infrastructure.Dlc.ModulePackageStore>(),
+                        _services.GetRequiredService<DropSpace.Core.Island.IslandExperienceCoordinator>(), _appLifetimeCancellation.Token);
+                    await ShutdownAsync();
+                    var state = runtime.DiagnosticState;
+                    Environment.Exit(Services.Diagnostics.FeatureModuleUiSmoke.Complete(receipt,
+                        new { state.WorkerOwners, state.AliveWorkers, state.ActiveCalls, state.HasExpiryTimer, state.Disposed },
+                        state.Disposed && state.WorkerOwners == 0 && state.ActiveCalls == 0 && !state.HasExpiryTimer, overlay.DiagnosticSurfaceCount));
+                    return;
+                }
+                else if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
                     _window.VerifyLocalizedResources();
                     _overlayWindows.VerifyLocalizedResources();
@@ -364,6 +398,11 @@ public partial class App : Application
             catch (OperationCanceledException) when (_appLifetimeCancellation.IsCancellationRequested) { }
             catch (Exception exception)
             {
+                if (_moduleUiOptions is not null)
+                {
+                    WriteModuleUiStartupFailure(exception);
+                    await ShutdownAsync(); Environment.Exit(1); return;
+                }
                 WriteCrashMarker("startup", exception);
                 _services.GetService<ILogger<App>>()?.LogCritical(exception, "Application startup failed.");
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
@@ -393,6 +432,11 @@ public partial class App : Application
         }
         catch (Exception exception)
         {
+            if (_moduleUiOptions is not null)
+            {
+                WriteModuleUiStartupFailure(exception);
+                await ShutdownAsync(); Environment.Exit(1); return;
+            }
             WriteCrashMarker("launch", exception);
             _services?.GetService<ILogger<App>>()?.LogCritical(exception, "Application launch failed.");
             if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
@@ -434,6 +478,12 @@ public partial class App : Application
         if (_dlcManager is { } dlcManager)
             await CleanupAsync("DLC package operations", () => dlcManager.DisposeAsync().AsTask());
         _dlcManager = null;
+        if (_featureModules is { } featureModules)
+            await CleanupAsync("feature module workers", () => featureModules.DisposeAsync().AsTask());
+        _featureModules = null;
+        if (_featureModuleStartup is { } moduleStartup)
+            await CleanupAsync("feature module startup", () => moduleStartup);
+        _featureModuleStartup = null;
 
         if (services is not null)
             await CleanupAsync("file downloads", () => services.GetRequiredService<DropSpace.Infrastructure.Downloads.DownloadManager>().ShutdownAsync());
@@ -496,6 +546,13 @@ public partial class App : Application
                 Debug.WriteLine(exception);
             }
         }
+    }
+
+    private static async Task ObserveModuleStartupAsync(Services.Dlc.FeatureModuleRuntime modules, ILogger<App> logger)
+    {
+        try { await modules.InitializeAsync(); }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        { logger.LogWarning("Feature module recovery isolated ({Category}).", error.GetType().Name); }
     }
 
     private ServiceProvider BuildServices()
@@ -585,7 +642,9 @@ public partial class App : Application
         services.AddSingleton<DragStorageItemService>();
         services.AddSingleton<IFileReferenceService, LocalFileReferenceService>();
         services.AddSingleton<ILocalStorageMetrics, LocalStorageMetrics>();
-        services.AddSingleton<IStartupRegistrationService, StartupRegistrationService>();
+        if (Services.Diagnostics.FeatureModuleUiSmoke.IsRequested(Environment.GetCommandLineArgs()))
+            services.AddSingleton<IStartupRegistrationService, ModuleUiStartupRegistration>();
+        else services.AddSingleton<IStartupRegistrationService, StartupRegistrationService>();
         services.AddSingleton<WindowsShareIntegrationService>();
         services.AddSingleton<ShareTargetActivationService>();
         services.AddSingleton<IDeploymentModeService, DeploymentModeService>();
@@ -686,6 +745,11 @@ public partial class App : Application
         services.AddSingleton<IDlcPackageProvider, Services.Dlc.CudaRuntimeDlcProvider>();
         services.AddSingleton<IDlcPackageProvider, Services.Dlc.NeteaseComponentsDlcProvider>();
         services.AddSingleton<Services.Dlc.DlcManagerService>();
+        services.AddSingleton<DropSpace.Infrastructure.Dlc.OfficialModuleCatalog>();
+        services.AddSingleton(provider => new DropSpace.Infrastructure.Dlc.ModulePackageStore(
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "Modules"),
+            provider.GetRequiredService<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>()));
+        services.AddSingleton<Services.Dlc.FeatureModuleRuntime>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();
@@ -778,11 +842,11 @@ public partial class App : Application
         }
     }
 
-    private static void WriteCrashMarker(string stage, Exception exception)
+    private void WriteCrashMarker(string stage, Exception exception)
     {
         try
         {
-            var paths = AppStoragePaths.CreateForCurrentUser();
+            var paths = _moduleUiOptions is { } options ? new AppStoragePaths(options.Root) : AppStoragePaths.CreateForCurrentUser();
             Directory.CreateDirectory(paths.Logs);
             var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={LogRedactor.Redact(SummarizeExceptionChain(exception))}";
             if (!string.IsNullOrWhiteSpace(exception.StackTrace))
@@ -795,6 +859,22 @@ public partial class App : Application
         {
             Debug.WriteLine(markerException.GetType().Name);
         }
+    }
+
+    private void WriteModuleUiStartupFailure(Exception exception)
+    {
+        if (_moduleUiOptions is not { } options) return;
+        WriteCrashMarker("module-ui-startup", exception);
+        File.WriteAllText(Path.Combine(options.Root, "module-ui-startup-failure.json"), JsonSerializer.Serialize(new
+        { status = "failed", functionalScenarioExecutions = 1, failedAtUtc = DateTimeOffset.UtcNow, error = SummarizeExceptionChain(exception) }));
+    }
+
+    // The explicit disposable diagnostic never changes the current user's Run registration.
+    private sealed class ModuleUiStartupRegistration : IStartupRegistrationService
+    {
+        public bool IsEnabled { get; private set; }
+        public Task SetEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
+        { cancellationToken.ThrowIfCancellationRequested(); IsEnabled = enabled; return Task.CompletedTask; }
     }
 
     private static string SummarizeExceptionChain(Exception exception)

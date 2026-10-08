@@ -1,0 +1,20 @@
+{
+  "scenario": "2",
+  "failureMode": null,
+  "rejectionMode": null,
+  "startedAtUtc": "2026-10-08T06:19:17.7004628+00:00",
+  "finishedAtUtc": "2026-10-08T06:19:36.4271027+00:00",
+  "passed": true,
+  "errorCategory": null,
+  "actualFunctionalScenarios": 1,
+  "provenance": "production embedded official catalog",
+  "packageSource": "anonymous official downloader",
+  "assertions": [
+    "Actual install completes worker handshake and runs",
+    "Actual action returns declared message/island content",
+    "Repeated disable stops once and withdraws island contributions",
+    "Reactivation restores acknowledged host-owned settings",
+    "Repeated uninstall records actual physical package removal",
+    "Uninstall retains module-owned user data"
+  ]
+}

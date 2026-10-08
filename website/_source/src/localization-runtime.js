@@ -6,6 +6,7 @@
   const historyKey = 'dropspace.interfaceLanguageFallback';
   const root = document.documentElement;
   const supported = new Map(catalog.languages.map(language => [language.code.toLowerCase(), language.code]));
+  const fallbackLinkUrls = new WeakMap();
   function matchLanguage(value) {
     const tag = String(value || '').replaceAll('_', '-').toLowerCase();
     if (supported.has(tag)) return supported.get(tag);
@@ -33,21 +34,36 @@
   try { pageChoice = supported.get(String(history.state?.[historyKey] || '').toLowerCase()); } catch { /* Browser preferences remain available. */ }
   let language = linkedLanguage || pageChoice || saved || preferredLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]);
   function rememberLanguage(choice) {
-    try { localStorage.setItem(storageKey, choice); } catch { storageAvailable = false; }
+    let remembered = false;
+    // A readable store may reject writes, and a previously denied store may recover.
+    try { localStorage.setItem(storageKey, choice); storageAvailable = true; remembered = true; } catch { storageAvailable = false; }
     try {
       const previous = history.state;
       // Preserve other page state; opaque states keep the existing navigation fallback.
-      if (previous !== null && (typeof previous !== 'object' || Array.isArray(previous))) return;
-      if (storageAvailable && !Object.hasOwn(previous || {}, historyKey)) return;
+      if (previous !== null && (typeof previous !== 'object' || Array.isArray(previous))) return remembered;
+      if (storageAvailable && !Object.hasOwn(previous || {}, historyKey)) return true;
       const next = { ...(previous || {}) };
       if (storageAvailable) delete next[historyKey]; else next[historyKey] = choice;
       history.replaceState(next, '', location.href);
+      remembered = true;
     } catch { /* Internal links still carry the choice when browser state is unavailable. */ }
+    return remembered;
   }
+  // Recover only an explicit manual fallback. Browser matching is never persisted.
+  // An explicit URL choice wins and must be written instead of an older history choice.
+  if (pageChoice && !linkedLanguage) rememberLanguage(pageChoice);
   if (linkedLanguage) {
-    rememberLanguage(linkedLanguage);
-    parameters.delete('ds-language');
-    try { history.replaceState(history.state, '', location.pathname + (parameters.size ? '?' + parameters.toString() : '') + location.hash); } catch { /* The page remains usable. */ }
+    if (rememberLanguage(linkedLanguage)) {
+      parameters.delete('ds-language');
+      try {
+        let state = history.state;
+        // Retry our cleanup atomically with URL consumption if the earlier history write failed.
+        if (storageAvailable && state !== null && typeof state === 'object' && !Array.isArray(state) && Object.hasOwn(state, historyKey)) {
+          state = { ...state }; delete state[historyKey];
+        }
+        history.replaceState(state, '', location.pathname + (parameters.size ? '?' + parameters.toString() : '') + location.hash);
+      } catch { /* The explicit URL hint remains available if history cannot be written. */ }
+    }
   }
   function t(key, args = {}) {
     const value = resources[language]?.[key] || resources[catalog.defaultLanguage][key] || key;
@@ -78,9 +94,16 @@
         });
       }
     }
-    if (!storageAvailable) for (const link of document.querySelectorAll('a[href]')) {
-      const destination = new URL(link.getAttribute('href'), location.href);
+    for (const link of document.querySelectorAll('a[href]')) {
+      const originalHref = fallbackLinkUrls.get(link);
+      if (storageAvailable) {
+        // Remove only hints this runtime injected, preserving each original link exactly.
+        if (originalHref !== undefined) { link.setAttribute('href', originalHref); fallbackLinkUrls.delete(link); }
+        continue;
+      }
+      const destination = new URL(originalHref ?? link.getAttribute('href'), location.href);
       if (destination.origin !== location.origin || destination.pathname === location.pathname || !/\/(?:index\.html|changelog\/)?$/.test(destination.pathname)) continue;
+      if (originalHref === undefined) fallbackLinkUrls.set(link, link.getAttribute('href'));
       destination.searchParams.set('ds-language', language);
       link.href = destination.pathname + destination.search + destination.hash;
     }

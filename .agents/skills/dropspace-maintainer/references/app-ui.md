@@ -58,10 +58,15 @@ or `DropSpace.Infrastructure`.
 
 ## Adding or extending a feature
 
-A typical feature may involve a Core model or interface, an implementation in App or
+A built-in feature may involve a Core model or interface, an implementation in App or
 Infrastructure, registration in the composition root, a ViewModel-facing operation, and a XAML
 surface. Small UI-only changes may need only the existing View and ViewModel. Follow the nearest
 working feature instead of creating a new abstraction for every change.
+
+Optional officially delivered code follows `docs/dev/feature-modules.md`, the worker template under
+`modules/templates/worker`, `FeatureModuleRuntime` and the host-rendered `FeatureModulePage`.
+Keep package IO, lifecycle and UI separate; keep current music/item behavior built in.
+Long-lived statuses own `AppUiMessage` keys/raw arguments, never rendered-string reverse lookup.
 
 Localized XAML and imperative strings are under:
 

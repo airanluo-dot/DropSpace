@@ -28,6 +28,8 @@ public sealed class OverlayWindowService : IDisposable
     private readonly WidgetViewModel _widgetViewModel;
     private readonly ClipboardIslandViewModel _clipboardViewModel;
     private readonly SystemActivityViewModel _systemActivityViewModel;
+    private readonly Dlc.FeatureModuleRuntime? _modules;
+    private int _moduleRefreshQueued;
     private readonly OleDragDropService _dragDropService;
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
@@ -79,12 +81,14 @@ public sealed class OverlayWindowService : IDisposable
         MediaViewModel mediaViewModel,
         WidgetViewModel widgetViewModel,
         ClipboardIslandViewModel clipboardViewModel,
-        SystemActivityViewModel systemActivityViewModel)
+        SystemActivityViewModel systemActivityViewModel,
+        Dlc.FeatureModuleRuntime? modules = null)
     {
         _viewModel = viewModel;
         _strings = strings;
         _mainViewModel = mainViewModel;
         _systemActivityViewModel = systemActivityViewModel;
+        _modules = modules;
         _displayLanguage = mainViewModel.Language;
         _quickActionDialog = quickActionDialog;
         _monitorLayout = monitorLayout;
@@ -127,6 +131,7 @@ public sealed class OverlayWindowService : IDisposable
 
         _viewModel.SnapshotChanged += OnSnapshotChanged;
         _experience.Changed += OnExperienceChanged;
+        if (_modules is not null) _modules.Changed += OnFeatureModulesChanged;
         _mediaViewModel.PropertyChanged += OnMediaSettingsChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested += OnOverlayPlacementEditRequested;
@@ -147,6 +152,9 @@ public sealed class OverlayWindowService : IDisposable
         UpdateFullscreenRefreshTimer();
         ApplySnapshot(_viewModel.Snapshot);
     }
+
+    internal OverlayWindow DiagnosticActiveWindow => GetActiveWindow();
+    internal int DiagnosticSurfaceCount => _windows.Count;
 
     public async Task<OverlayLifecycleMetrics> RunLifecycleSmokeAsync(
         int cycles,
@@ -559,6 +567,7 @@ public sealed class OverlayWindowService : IDisposable
         _fullscreenRefreshTimer.Tick -= OnFullscreenRefreshTick;
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _experience.Changed -= OnExperienceChanged;
+        if (_modules is not null) _modules.Changed -= OnFeatureModulesChanged;
         _mediaViewModel.PropertyChanged -= OnMediaSettingsChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested -= OnOverlayPlacementEditRequested;
@@ -614,6 +623,18 @@ public sealed class OverlayWindowService : IDisposable
             snapshot.Transition?.Cause,
             snapshot.Transition?.MotionPreference);
         ApplySnapshot(snapshot);
+    }
+
+    private void OnFeatureModulesChanged(object? sender, EventArgs args)
+    {
+        if (_disposed || Interlocked.Exchange(ref _moduleRefreshQueued, 1) != 0) return;
+        if (!_dispatcher.TryEnqueue(() =>
+        {
+            Interlocked.Exchange(ref _moduleRefreshQueued, 0);
+            if (_disposed) return;
+            foreach (var window in _windows) window.RefreshModules();
+            ApplySnapshot(_viewModel.Snapshot);
+        })) Interlocked.Exchange(ref _moduleRefreshQueued, 0);
     }
 
     private void OnForegroundChanged(object? sender, EventArgs args) => ApplySnapshot(_viewModel.Snapshot);
@@ -961,7 +982,8 @@ public sealed class OverlayWindowService : IDisposable
                 _mediaViewModel,
                 _widgetViewModel,
                 _clipboardViewModel,
-                _systemActivityViewModel);
+                _systemActivityViewModel,
+                _modules);
             if (glowTransfers is not null && glowTransfers.TryGetValue(monitor.Id, out var transfer))
                 window.StageGlowHandoff(transfer);
             window.ApplyTheme(_mediaViewModel.Settings.IslandAppearance.Theme);

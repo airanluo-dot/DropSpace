@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.19
+## Release target: v0.3.2-beta.1
 
-The current Beta target is `v0.3.1-beta.19` (Beta 19).
-v0.3.1-beta.18 is the immediate upgrade baseline for this release.
+The current Beta target is `v0.3.2-beta.1` (Beta 1).
+v0.3.1-beta.19 is the immediate upgrade baseline for this release.
 
-Deliver ten offline App and website interface languages, independently persisted Simplified Chinese / English lyric translation targets, one official URL per website content page, and fail-closed translation completeness checks. Reuse existing templates, .resw resources, updater schemas and independent component bytes. New release summaries, notes and version highlights are English only.
+Deliver the official optional feature-module v1 contract incrementally around the existing host: official-source packages/catalog with integrity checks, compatible worker IPC, recoverable install/activation/disable/uninstall, host-rendered pages/settings and constrained expiring Island content. Keep built-in features, default settings, existing data and independent component bytes. Include the six focused language/installer/evidence corrections and rewrite the canonical skill as the implemented development standard.
 
-Preserve lyric and AI business behavior; only the settings and display/target bindings necessary for interface isolation change. Keep all project scenario executions, including failures and retries, within the shared 20-scenario budget. The [release notes](.github/release-notes/v0.3.1-beta.19.md) and [development audit](docs/dev/ten-language-release-audit.md) record actual scope, validation and publication evidence.
+Preserve lyric/AI business behavior and the ten-language/unified-URL interface contract. Select necessary checks without a fixed ceiling and record every actual execution, failure and retry; compilation is not runtime acceptance. Publication remains gated by the [release notes](.github/release-notes/v0.3.2-beta.1.md), [actual baseline](docs/dev/beta32-baseline.md) and [execution ledger](docs/dev/beta32-test-ledger.md).
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.19
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.1
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

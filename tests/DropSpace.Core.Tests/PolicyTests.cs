@@ -145,8 +145,17 @@ public sealed class PolicyTests
         Assert.AreEqual(
             AppLanguagePolicy.SimplifiedChineseLanguageTag,
             AppLanguagePolicy.ResolveEffectiveLanguageTag(AppLanguagePreference.SimplifiedChinese, ["en-US"]));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+        // Unknown preferences use the ordered system language policy; strict settings
+        // validation above remains an independent input contract.
+        Assert.AreEqual(
+            AppLanguagePolicy.EnglishLanguageTag,
             AppLanguagePolicy.ResolveEffectiveLanguageTag((AppLanguagePreference)99, ["en-US"]));
+        Assert.AreEqual(
+            AppLanguagePolicy.SimplifiedChineseLanguageTag,
+            AppLanguagePolicy.ResolveEffectiveLanguageTag((AppLanguagePreference)99, ["zh-CN", "en-US"]));
+        Assert.AreEqual("ja-JP", AppLanguagePolicy.ResolveEffectiveLanguageTag((AppLanguagePreference)99, ["ja", "en-US"]));
+        Assert.AreEqual(AppLanguagePolicy.EnglishLanguageTag,
+            AppLanguagePolicy.ResolveEffectiveLanguageTag((AppLanguagePreference)99, ["not-a-supported-language"]));
     }
 
     [TestMethod]

@@ -69,6 +69,43 @@ test("resource filtering still rejects unrecognized or malformed release tags", 
   }
 });
 
+test("official DLC sample preserves Beta19 and Beta1 App release selection", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const readJson = async (relative) => JSON.parse(await readFile(new URL(relative, import.meta.url), "utf8"));
+  const catalog = await readJson("../../../modules/catalog.json");
+  const sample = catalog.packages.find(item => item.id === "dropspace.sample");
+  const sampleUrl = new URL(sample.url);
+  const sampleTag = sampleUrl.pathname.split("/").filter(Boolean)[4];
+  assert.equal(sampleTag, "dlc-dropspace.sample-1.0.0");
+  const module = { tag_name: sampleTag, draft: false, prerelease: true,
+    html_url: `https://github.com/airanluo-dot/DropSpace/releases/tag/${sampleTag}`,
+    assets: [{ name: sampleUrl.pathname.split("/").at(-1), size: sample.bytes, browser_download_url: sample.url }] };
+  const baseline = await readJson("../../../docs/dev/evidence/ten-language/public-download-verification.json");
+  const beta19 = { tag_name: baseline.release, name: `DropSpace ${baseline.release}`,
+    body: await readFile(new URL("../../../.github/release-notes/v0.3.1-beta.19.md", import.meta.url), "utf8"),
+    draft: baseline.draft, prerelease: baseline.prerelease, published_at: baseline.publishedAt, html_url: baseline.releaseUrl,
+    assets: baseline.assets.map(asset => ({ name: asset.name, size: asset.bytes, browser_download_url: asset.url })) };
+  // Beta1 is an unpublished identity/body fixture; inherited sizes do not claim published Beta1 bytes.
+  const beta1Tag = "v0.3.2-beta.1";
+  const beta1 = { ...beta19, tag_name: beta1Tag, name: `DropSpace ${beta1Tag}`,
+    html_url: `https://github.com/airanluo-dot/DropSpace/releases/tag/${beta1Tag}`,
+    body: await readFile(new URL("../../../.github/release-notes/v0.3.2-beta.1.md", import.meta.url), "utf8"),
+    assets: beta19.assets.map(asset => ({ ...asset,
+      browser_download_url: `https://github.com/airanluo-dot/DropSpace/releases/download/${beta1Tag}/${asset.name}` })) };
+  const committed = await readJson("../data/releases.json");
+  const stableApi = committed.api.releases.find(item => !item.isPrerelease);
+  const stable = { tag_name: stableApi.tagName, name: stableApi.name, body: stableApi.body, draft: false, prerelease: false,
+    published_at: stableApi.publishedAt, html_url: stableApi.htmlUrl,
+    assets: stableApi.assets.map(asset => ({ name: asset.name, size: asset.size, browser_download_url: asset.downloadUrl })) };
+  const data = createWebsiteReleaseData([module, beta19, beta1, stable]);
+  assert.equal(data.stable.tag, stable.tag_name);
+  assert.equal(data.prereleases[0].tag, beta1Tag);
+  assert.deepEqual(data.api.releases.map(item => item.tagName), [beta1Tag, baseline.release, stable.tag_name]);
+  assert.equal(createLatestChangeApi(data.api).release.tagName, beta1Tag);
+  assert.deepEqual(normalizeGitHubReleases([module, beta19, beta1, stable]).releases.map(item => item.tagName),
+    [baseline.release, beta1Tag, stable.tag_name]);
+});
+
 test("rejects mismatched release, asset and schema identities", () => {
   assert.throws(() => normalizeGitHubReleases([{ ...valid, html_url: "https://attacker.invalid/release" }]));
   assert.throws(() => normalizeGitHubReleases([{ ...valid, assets: [{ ...valid.assets[0], browser_download_url: "https://attacker.invalid/update.exe" }] }]));

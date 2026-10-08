@@ -877,4 +877,18 @@
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB（已关闭）</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌词翻译目标</value></data>
   <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>独立于界面语言，选择简体中文或 English 歌词译文。</value></data>
+  <data name="ModuleEnabled" xml:space="preserve"><value>已启用</value></data>
+  <data name="ModuleDisabled" xml:space="preserve"><value>已停用</value></data>
+  <data name="ModuleEnable" xml:space="preserve"><value>启用</value></data>
+  <data name="ModuleDisable" xml:space="preserve"><value>停用</value></data>
+  <data name="ModuleRunning" xml:space="preserve"><value>运行中</value></data>
+  <data name="ModuleStopped" xml:space="preserve"><value>已停止</value></data>
+  <data name="ModuleStarting" xml:space="preserve"><value>正在启动…</value></data>
+  <data name="ModuleStopping" xml:space="preserve"><value>正在停止…</value></data>
+  <data name="ModulePendingCleanup" xml:space="preserve"><value>等待清理</value></data>
+  <data name="ModuleSave" xml:space="preserve"><value>保存</value></data>
+  <data name="ModuleClearData" xml:space="preserve"><value>清除模块数据</value></data>
+  <data name="ModuleClearDataConfirm" xml:space="preserve"><value>删除此模块保存的数据和设置？</value></data>
+  <data name="ModuleRetryCleanup" xml:space="preserve"><value>重试清理</value></data>
+  <data name="ModuleHostRequired" xml:space="preserve"><value>此模块需要宿主接口 {0} 及其声明的能力。请将 DropSpace 更新到兼容版本。</value></data>
 </root>

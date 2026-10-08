@@ -1,0 +1,506 @@
+{
+  "schemaVersion": 1,
+  "moduleId": "dropspace.sample",
+  "languages": {
+    "en-US": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.031Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      }
+    },
+    "zh-CN": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "0c7c9880a6388075f6c095bc190de8a0a89e8cca5e672787a9a4b1ea6b5d39f7",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "0c7c9880a6388075f6c095bc190de8a0a89e8cca5e672787a9a4b1ea6b5d39f7",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "3bec9ebf5bf187a7a5761fd13acd3c0a0a2b836c30fce358e582b512f04cdefd",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "9933d98156ffe44d6fb7b85873d7450aa934fcb3c9259a6a231236dd57bebe44",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "ccf2fc5927c20613f930223e2340ad2a3cdac2becb282c7b67f9edc0ad7596b4",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "3f980481b4b27e7b839452aba6bdc946206ccf06e66ccb1a7b95480b125e327a",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "877a2703870118d39f25e6fb144698e171bbb535bfa42341c00f2ce7a370a0c1",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "f2864bdbf041debbcb1ed69379d20eb44e4ae0e306be981d441f7cce79763cf1",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      }
+    },
+    "zh-TW": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "8cffec75a01a3fe6f1da1f3d9f1445cd4c83294e342e5241da4061041937ebd1",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "8cffec75a01a3fe6f1da1f3d9f1445cd4c83294e342e5241da4061041937ebd1",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "b506e353608ddf8799f3cdaca1f30fb9fa87b0fa644fe8e890a9681280b0b275",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "9bef213496a4d1dd547c02668105dd8b6f54178d7c5346b92bddc1e2f5f30230",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "063e5d8951e2baa7f6ad4bd12e79c938d5b067cd16bb7bab0dc8234766bff608",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "839d597257138851d528cb0a8374e25832b7854af4697403f1b2c84d559938b3",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "f72d6c0c54aac2111c16e435021d734322dcc65ba01542448e5c7433dd04f3be",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "20e7f644b60723641f13ddd5069490e66103e8fd9b87b6d831e0897fb5902eea",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      }
+    },
+    "ja-JP": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "2aadc6c5800d974235d6cbe0aa3dc069abc4d1acc2c793cd29df978ab1112b3c",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "2aadc6c5800d974235d6cbe0aa3dc069abc4d1acc2c793cd29df978ab1112b3c",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "0ffadc1845dc1df5a863a3f9830deca99f1d495f1af2f76c0d759c6ea32aa915",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "c48cf342c73a65cbd88e0e9e973ce3e9b3889afbc01fab3e50a887816a97d217",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "7fea91a6e278559c6319fcf48d0ae50195e5215a918d52e8dee4c97782fa1237",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "7873fc81d55a112e0488c0d97324dfeda329efeadaa62bc9ea9a9e192cb33bd2",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "c15ba1adee4570cb5e29a51b5e920c504e8c4d3d1a9dc0f6f005dffa4d71a87e",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "2a1540b31d5d64c0fd502084d0df6697a1cd7c09f6d712cbb4c1d4df4280f3d2",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      }
+    },
+    "ko-KR": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "9f734fe44704adb2c83b44322eb66a838eb13737ff80268a5366d479ab0e57f8",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "9f734fe44704adb2c83b44322eb66a838eb13737ff80268a5366d479ab0e57f8",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "86092daa1d18fc489c1dfc02ccd0383360481931f1030c7e4a360c12012a60c2",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "aebbc6df68ecb910ccba9bea3377f21c3a5c70603269c7525c663f92b0352a9a",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "57d0c107a85ecfdcc23b3e6e92e1324c52c7c53f4884b4da0aaa59cd60b5ceba",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "8a2ef5f07514367579fa800e7cc600ade90954bc0ba1ec231f592b230d4a4fd0",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "4827ca1f0f952d8e9c0d8e8c089fc99a6c322b0514c12ed2933c55e583b49071",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "81688d247205424b7f0ae94a5fff8feb81f23b9b6cc30a90fe5fa634fff1a1bf",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      }
+    },
+    "de-DE": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "cdaec0cd4b2f58f365cbfb62a63de2a3e2d4ede953d08de86487de37b384632c",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "cdaec0cd4b2f58f365cbfb62a63de2a3e2d4ede953d08de86487de37b384632c",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "07345e6e52ef59355dedb56fcc3572a4c8caa4e59da446a702e35f63d9265de3",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "6c0f29b8e1d16c6bfda19ca9b7ecd82f5b92bfc8e3166a431d89bc89fc82bc54",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "65e0642eb4919b79a1f4176ec7a1173276532d07c2941f50b7f27d46e1f5faf3",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "ff7758a2a1d90727b4997c4a0bf97696987fe2b363759b4c05b2b7de9ee6a412",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "525299b93981f0c5ec4ef97403718dae9b62e982df582a30bac6a2c3d07354ff",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "09d85d8ae232cbce825770e6be81213380d21d33166a391e7938aeb4661c7a59",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      }
+    },
+    "fr-FR": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "b69fdecd0b285354784083bc49ffc1239d562f2a9adc7f05672371e91e427b6d",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "b69fdecd0b285354784083bc49ffc1239d562f2a9adc7f05672371e91e427b6d",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "77ffc40ea1aa1a21d1f8d6916fe99d9fa0247780881907846aa6bb9da9645593",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "a79e8e0789036d6406bdc80a9602a9e2fd963e91e98c0d7a682ece32ec5e7748",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "f9c80961799072d8a5c99704b59598eaa5c0b95aa990edb9c30c2ad96e5bbad2",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "0e8c31395af403734b2a2410f6036cbc665ae87187dfb2428486468b8d8ebd9f",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "dee78b42ae3484bbc742cac7dafa7d58fb1ded70f3668be9454f00dadd119db6",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "328631b1b3852dfe457994163ad9781637bf9fdd7dc1c1f35f16edb94c691f2b",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      }
+    },
+    "es-ES": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "e208bb48cde7206949082252cd7e2197a6aeb41dd96d75f4c5bf65a0b71ddfd5",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "e208bb48cde7206949082252cd7e2197a6aeb41dd96d75f4c5bf65a0b71ddfd5",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "d8225ad3aa852f2b67d3531a67d26fd2a677a976fdc4bf5eefaa97ffb2b7e3da",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "b72571e69e76f7e879d6a2a21212a978c073d3cbd30bd1ca236a2f713e89f414",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "ab5414bc8a76eb0078be76acf8e955f58b9d8c358b2b7e9a3f5024dce8fbf416",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "893a6cb04929c175886face3f5ade9f090686ff73c0a56efe9a5be19b055799f",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "0e34816479b8c76beff62d7301e11026b8b9e94f4bfe55d221bb3ec6eb8113b3",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "1b21ea304abedffcef3efb65d40d7d9e6743ad1b437b3a04350fea3d0a5dd089",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      }
+    },
+    "pt-BR": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "a88f3ecae0b05815d98cab8b3e783da40649fa9497fdd567eead5b8f49ded2b5",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "a88f3ecae0b05815d98cab8b3e783da40649fa9497fdd567eead5b8f49ded2b5",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "86ec95a28aa7e41243c4a0bf8f285772a10a3da6cc983c72f622d5a449b0b7b3",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "224c429d5b119da5cd74ea5f52b7370d596e7f56cf5e78f31404e61adafd4597",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "af8d12894e8c74544e7ea87fcbd8ba23386acc84d9b46bcb1c3a0da698f09f60",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "95b96f81baf1befc5100aab0e59bb8e607ef24e6cf66766b0dfeb5ae1ad0b1a4",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "8820e21721ed1fbdf8c13c12a8bdb76a266810714c68c535005c980671200460",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.032Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "9012c830c3aac6b4d16727f4ba07d6b25f5a999c08f8aab769274587d97b51d1",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      }
+    },
+    "ru-RU": {
+      "name": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "b7c4f407b55b650dbde1cb74df75b26dd8a3ca62f15c1dd47ac67e9dcb5b1014",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      },
+      "title": {
+        "sourceSha256": "3e0c4513abefca600743907966c5bdddbe5f26e5f53c7a4b65f576033da4c048",
+        "translationSha256": "b7c4f407b55b650dbde1cb74df75b26dd8a3ca62f15c1dd47ac67e9dcb5b1014",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      },
+      "description": {
+        "sourceSha256": "57d8ed97ef1a81c2555de49b1fbbeddfc7ed2fd9cd4e53dfc9c498ed9cc1af7a",
+        "translationSha256": "66101a3964feb27e374c00fff1ad88696e632f5c0eb72974c38fa06654dc3faa",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      },
+      "action": {
+        "sourceSha256": "da9b2eaa1680682419f5c0aca33b18eb12dbb46a39f8a2c21c9ebdfb9ee87733",
+        "translationSha256": "91d924ab94cf00bab170c85dd1c027949d7a6ab3e36b90fb41c66a88eba13e3a",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      },
+      "setting": {
+        "sourceSha256": "7d0c21f61ac1aa9573fa309b9dd1237327bfea709ec57c9cb83ea8d4eb92e3dd",
+        "translationSha256": "e565ce56e8fb597e239dd6ca80f4fe8191c7556fcb71b92b926f84d9df0a3aac",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      },
+      "message": {
+        "sourceSha256": "185b6938cb05027764d735345d2bfc0fda6aff45176541c44d100b7284420d33",
+        "translationSha256": "51f423e3adb38610ff7322806f3d4ed4d92f5269f7bd972ccbe106f524282e55",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      },
+      "compact": {
+        "sourceSha256": "a8c42c88cadd548eddf159386c04cc86539f86f2f797cd0dd1974b47f24a57ed",
+        "translationSha256": "eb3c5b70c742108a54c233f21033190fe20b88f175a8d95b59b39d251b7277ba",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      },
+      "expanded": {
+        "sourceSha256": "50d526323900478e540baabc37b3dcba0247f0e678ad6721a8c19c15248a24fd",
+        "translationSha256": "404dd672a86b1605bd360bd276ebacfdf170824c1d60e48ab6a5f47580277e23",
+        "reviewer": "Codex: authored and reviewed the eight optional sample interface keys; interface-only scope",
+        "confirmedAt": "2026-10-08T05:01:21.033Z"
+      }
+    }
+  }
+}

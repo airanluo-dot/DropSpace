@@ -57,7 +57,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private string _searchText = string.Empty;
     private string _pageTitle = string.Empty;
     private string _pageDescription = string.Empty;
-    private string _statusMessage = string.Empty;
+    private AppUiMessage _statusMessage = AppUiMessage.Empty;
     private string _clipboardStatusText = string.Empty;
     private bool _isBusy;
     private bool _isEmpty = true;
@@ -72,7 +72,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private bool _batchProjectionRefreshQueued;
     private ItemCardViewModel? _selectedItem;
     private AppSettings _settings = new();
-    private string _storageSummary = string.Empty;
+    private AppUiMessage _storageSummary = AppUiMessage.Empty;
     private UpdateStatusSnapshot _updateStatus;
     private UndoOperationKind? _lastUndoKind;
     private bool _undoRequested;
@@ -131,7 +131,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         _pageTitle = _strings.Get("PageTitleSpace");
         _pageDescription = _strings.Get("PageDescriptionSpace");
         _clipboardStatusText = _strings.Get("ClipboardStarting");
-        _storageSummary = _strings.Get("StorageCalculating");
+        _storageSummary = AppUiMessage.Resource("StorageCalculating");
         _clipboard.ItemCaptured += OnItemCaptured;
         _clipboard.ItemImported += OnItemCaptured;
         _clipboard.StatusChanged += OnClipboardStatusChanged;
@@ -185,28 +185,26 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         private set => SetProperty(ref _pageDescription, value);
     }
 
-    public string StatusMessage
+    public string StatusMessage => _statusMessage.Render(_strings);
+
+    private AppUiMessage Status
     {
-        get => _strings.Relocalize(_statusMessage);
-        private set
+        get => _statusMessage;
+        set
         {
-            if (SetProperty(ref _statusMessage, value))
-            {
+            if (SetProperty(ref _statusMessage, value, nameof(StatusMessage)))
                 OnPropertyChanged(nameof(HasStatusMessage));
-            }
         }
     }
 
     public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
 
-    private string _settingsRecoveryMessage = string.Empty;
-    public string SettingsRecoveryMessage
+    private AppUiMessage _settingsRecoveryMessage = AppUiMessage.Empty;
+    public string SettingsRecoveryMessage => _settingsRecoveryMessage.Render(_strings);
+    public void SetSettingsRecoveryMessage(AppUiMessage message)
     {
-        get => _strings.Relocalize(_settingsRecoveryMessage);
-        set
-        {
-            if (SetProperty(ref _settingsRecoveryMessage, value)) OnPropertyChanged(nameof(HasSettingsRecoveryMessage));
-        }
+        if (SetProperty(ref _settingsRecoveryMessage, message, nameof(SettingsRecoveryMessage)))
+            OnPropertyChanged(nameof(HasSettingsRecoveryMessage));
     }
     public bool HasSettingsRecoveryMessage => !string.IsNullOrEmpty(SettingsRecoveryMessage);
 
@@ -565,7 +563,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public string UpdateStatusText => string.IsNullOrWhiteSpace(UpdateStatus.Message)
         ? _strings.Get("UpdateNotChecked")
-        : _strings.Relocalize(UpdateStatus.Message);
+        : UpdateStatus.MessageIdentity?.Render(_strings) ?? UpdateStatus.Message;
 
     public string UpdateProgressText => UpdateStatus.Progress is { Stage: DropSpace.Core.Downloads.DownloadStage.Queued }
         ? _strings.Get("DownloadStageQueued") : UpdateStatus.Progress is { } progress
@@ -604,7 +602,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public bool HasWindowsShareIdentity => _windowsShareIntegration.HasPackageIdentity;
 
-    public string WindowsShareIntegrationStatus => _strings.Relocalize(_windowsShareIntegration.StatusText);
+    public string WindowsShareIntegrationStatus => _windowsShareIntegration.StatusText;
 
     public Task<bool> OpenDropTraySettingsAsync() =>
         _windowsShareIntegration.OpenDropTraySettingsAsync();
@@ -615,20 +613,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         package.SetText(_dragSessionDetector.CreateCompatibilityReport());
         Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
         Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
-        StatusMessage = _strings.Get("DragCompatibilityReportCopied");
+        Status = AppUiMessage.Resource("DragCompatibilityReportCopied");
     }
 
     public string StoragePath => _storageMetrics.RootPath;
 
-    public string StorageSummary
+    public string StorageSummary => _storageSummary.Render(_strings);
+
+    private AppUiMessage StorageSummaryMessage
     {
-        get => _strings.Relocalize(_storageSummary);
-        private set
+        set
         {
-            if (SetProperty(ref _storageSummary, value))
-            {
+            if (SetProperty(ref _storageSummary, value, nameof(StorageSummary)))
                 OnPropertyChanged(nameof(StorageSummaryText));
-            }
         }
     }
 
@@ -736,7 +733,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             : Task.FromResult(false);
 
     public void ShowUpdatedVersion(ReleaseVersion version) =>
-        StatusMessage = _strings.Format("AppUpdated", version);
+        Status = AppUiMessage.Resource("AppUpdated", version);
 
     public async Task NavigateAsync(string section, CancellationToken cancellationToken = default)
     {
@@ -830,9 +827,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
 
-            StatusMessage = !string.IsNullOrWhiteSpace(request.SearchText) && Items.Count == 0
-                ? _strings.Get("SearchNoMatches")
-                : string.Empty;
+            Status = !string.IsNullOrWhiteSpace(request.SearchText) && Items.Count == 0
+                ? AppUiMessage.Resource("SearchNoMatches")
+                : AppUiMessage.Empty;
         }
         finally
         {
@@ -956,9 +953,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             }
         }
 
-        StatusMessage = rejected == 0
-            ? _strings.Format("ItemsAdded", accepted)
-            : _strings.Format("ItemsAddedWithRejected", accepted, rejected);
+        Status = rejected == 0
+            ? AppUiMessage.Resource("ItemsAdded", accepted)
+            : AppUiMessage.Resource("ItemsAddedWithRejected", accepted, rejected);
         await ReloadAsync(cancellationToken);
         await PublishSpaceProjectionChangedAsync(cancellationToken);
         return accepted;
@@ -979,9 +976,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         var accepted = result.Accepted;
         var rejected = result.Rejected;
 
-        StatusMessage = rejected == 0
-            ? _strings.Format("ItemsAdded", accepted)
-            : _strings.Format("ItemsAddedWithRejected", accepted, rejected);
+        Status = rejected == 0
+            ? AppUiMessage.Resource("ItemsAdded", accepted)
+            : AppUiMessage.Resource("ItemsAddedWithRejected", accepted, rejected);
         await ReloadAsync(cancellationToken);
         await PublishSpaceProjectionChangedAsync(cancellationToken);
         return accepted;
@@ -1194,7 +1191,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             await PublishSpaceProjectionChangedAsync(cancellationToken);
         }
 
-        StatusMessage = _strings.Get("ItemRemoved");
+        Status = AppUiMessage.Resource("ItemRemoved");
     }
 
     public async Task<IReadOnlyList<ItemCardViewModel>> GetRecentSpaceItemsAsync(
@@ -1236,9 +1233,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
         else
         {
-            StatusMessage = item.File is null
-                ? _strings.Get("ItemCannotOpen")
-                : _strings.Get("FileUnavailableRelocate");
+            Status = item.File is null
+                ? AppUiMessage.Resource("ItemCannotOpen")
+                : AppUiMessage.Resource("FileUnavailableRelocate");
         }
 
         return opened;
@@ -1249,7 +1246,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ArgumentNullException.ThrowIfNull(card);
         await _shell.CopyAsync(card.Item, cancellationToken);
         await _repository.MarkUsedAsync(card.Id, cancellationToken);
-        StatusMessage = _strings.Get("ItemCopied");
+        Status = AppUiMessage.Resource("ItemCopied");
     }
 
     public async Task ShowInFolderAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
@@ -1257,7 +1254,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ArgumentNullException.ThrowIfNull(card);
         if (!await _shell.ShowInFolderAsync(card.Item, cancellationToken))
         {
-            StatusMessage = _strings.Get("ItemCannotShowInFolder");
+            Status = AppUiMessage.Resource("ItemCannotShowInFolder");
         }
     }
 
@@ -1283,7 +1280,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             await PublishSpaceProjectionChangedAsync(cancellationToken);
         }
 
-        StatusMessage = _strings.Get("FileReferenceUpdated");
+        Status = AppUiMessage.Resource("FileReferenceUpdated");
     }
 
     public async Task SetClipboardPausedAsync(bool paused, CancellationToken cancellationToken = default)
@@ -1303,7 +1300,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         // Preserve the edit's original baseline, but serialize commit through UI
         // publication so a late callback cannot replace a newer committed snapshot.
         var previous = Settings;
-        var previousStatus = StatusMessage;
+        var previousStatus = Status;
         await _settingsPublicationGate.WaitAsync(cancellationToken);
         try
         {
@@ -1315,7 +1312,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             await _dispatcher.EnqueueAsync(() =>
             {
                 Settings = updated;
-                StatusMessage = string.Empty;
+                Status = AppUiMessage.Empty;
                 return Task.CompletedTask;
             });
         }
@@ -1325,7 +1322,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             await _dispatcher.EnqueueAsync(() =>
             {
                 Settings = recovered;
-                StatusMessage = previousStatus;
+                Status = previousStatus;
                 return Task.CompletedTask;
             });
             throw;
@@ -1344,7 +1341,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         await _clipboard.ResetCaptureSequenceAsync(cancellationToken);
         var result = new ClearResult(state?.ItemCount ?? 0, Array.Empty<string>());
 
-        StatusMessage = _strings.Format("ItemsCleared", result.RemovedCount);
+        Status = AppUiMessage.Resource("ItemsCleared", result.RemovedCount);
         if (CurrentSection is "Clipboard" or "Pinned")
         {
             await ReloadAsync(cancellationToken);
@@ -1370,7 +1367,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return false;
         }
 
-        StatusMessage = _strings.Get("UndoCompleted");
+        Status = AppUiMessage.Resource("UndoCompleted");
         if (!IsSettingsVisible)
         {
             await ReloadAsync(cancellationToken);
@@ -1399,7 +1396,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
 
         await _payloadStore.ExportAsync(card.Item.Payload.RelativePath, destinationPath, cancellationToken);
-        StatusMessage = _strings.Get("ImageExported");
+        Status = AppUiMessage.Resource("ImageExported");
     }
 
     public void Dispose()
@@ -1532,7 +1529,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "Search refresh failed.");
-            StatusMessage = _strings.Get("SearchUnavailable");
+            Status = AppUiMessage.Resource("SearchUnavailable");
         }
     }
 
@@ -1677,7 +1674,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ClipboardStatusText = FormatClipboardStatus(status);
         if (!string.IsNullOrWhiteSpace(status.Message))
         {
-            StatusMessage = status.Message;
+            Status = status.MessageIdentity ?? AppUiMessage.Literal(status.Message);
         }
     }
 
@@ -1834,7 +1831,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         cancellationToken.ThrowIfCancellationRequested();
         if (!_disposed && !string.IsNullOrWhiteSpace(result.MessageResourceKey))
         {
-            StatusMessage = _strings.Get(result.MessageResourceKey);
+            Status = AppUiMessage.Resource(result.MessageResourceKey);
         }
 
         return result;
@@ -1908,11 +1905,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             var bytes = await _storageMetrics.GetByteLengthAsync(cancellationToken);
             if (bytes is null)
             {
-                StorageSummary = _strings.Get("StorageUnavailable");
+                StorageSummaryMessage = AppUiMessage.Resource("StorageUnavailable");
                 return;
             }
 
-            StorageSummary = FormatBytes(bytes.Value);
+            StorageSummaryMessage = AppUiMessage.Bytes(bytes.Value);
         }
         catch (OperationCanceledException)
         {
@@ -1920,7 +1917,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            StorageSummary = _strings.Get("StorageUnavailable");
+            StorageSummaryMessage = AppUiMessage.Resource("StorageUnavailable");
         }
     }
 }

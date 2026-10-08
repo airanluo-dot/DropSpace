@@ -1,6 +1,15 @@
-# Permanent passive CI test ceiling
+# Focused testing and execution records
 
-Automatically triggered DropSpace workflows execute at most **20 functional test cases or scenarios per passive trigger**, across eligible workflows. The frozen PR selection is **10 cases**, not a target to fill the budget. Explicit operator `workflow_dispatch` diagnostics are exempt. Keep this rule independent of App release version numbers.
+Current and future development tasks have **no fixed functional case/scenario ceiling**. Minimize
+unnecessary testing and select checks that resolve concrete risks in the affected behavior. Keep
+one truthful project-wide execution record across local work, agents, PRs and workflows, including
+failures and retries. Historical Beta18/Beta19 records retain their original limits and actual
+counts; do not rewrite them or attribute new executions to those releases.
+
+The frozen legacy automatic PR selection remains **10 cases**, not a target to fill. Its exact
+selection guards against accidental automatic suite expansion; it is not a cap on necessary task
+testing. Full suites and heavy diagnostics remain disabled by default and need an explicit user
+request. A manual dispatch or development/release request alone does not enable them.
 
 - Automatic PR: skip broad Core/Infrastructure/App regression suites, stress/native smoke, installer lifecycle and model inference. The next-Beta route compiles App/XAML and runs zero functional cases. Legacy routes may run the frozen 8 approved Core policy cases plus 2 approved Infrastructure lyric outcome cases, at most once. Source definitions have pinned Git blob identities, so new DataRows trigger fail-closed zero cases until reviewed.
 - Automatic website events and ordinary manual release refresh: Node/Playwright suites are skipped. Static site build, localization integrity, deployment and public metadata verification continue. Diagnostics require explicit `full_tests=true` opt-in.
@@ -13,11 +22,18 @@ Automatically triggered DropSpace workflows execute at most **20 functional test
 
 Resource entries are not functional test cases. Localization source/translation checks and
 actual static PRI inspection are production integrity checks, scoped once per resource set;
-reuse the hash-bound package receipt. Keep one 20-case project-wide ledger across languages,
-workflows, failures and retries. A release request is not broad diagnostic opt-in.
+reuse the hash-bound package receipt. Record actual functional cases across languages, workflows,
+failures and retries without a fixed ceiling. A release request is not broad diagnostic opt-in.
 
-To run unrestricted CI tests, use `ci.yml` with `full_tests=true` on `workflow_dispatch`. Manual `release.yml`, website, CUDA, AI model and visual diagnostic workflows continue to support the deliberately requested validation suites.
+After an explicit user request for unrestricted tests, use `ci.yml` with `full_tests=true` on
+`workflow_dispatch`. Manual release, website, CUDA, model and visual diagnostics support deliberately
+requested suites; ordinary development and publication keep them disabled.
 
 ### Enforcement
 
-`scripts/passive-test-budget.mjs audit` classifies the 12 existing workflows on every PR; unknown future workflows or accidental diagnostic auto triggers fail the audit. `preflight` checks frozen test source identities, and `verify` reads actual TRX case counts, rejects repeats/failures or any unapproved case expansion. This permanent policy changes no App source, `RELEASE_VERSION`, existing tags or published assets.
+`scripts/passive-test-budget.mjs audit` classifies the 12 existing workflows on every PR; unknown
+future workflows or accidental diagnostic auto triggers fail the audit. `preflight` checks frozen
+test source identities, and `verify` reads actual TRX counts and requires the exact selected PR
+cases to pass without automatic expansion. These guards do not enforce a task-wide numerical
+ceiling or prohibit necessary focused testing. This policy changes no App source,
+`RELEASE_VERSION`, historical receipts, existing tags or published assets.

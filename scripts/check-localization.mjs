@@ -4,6 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { checkModuleResources } from '../modules/check-module-resources.mjs';
 
 const defaultRoot = fileURLToPath(new URL('../', import.meta.url));
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -65,10 +66,59 @@ function resw(file, JSDOM) {
   if (!Object.keys(values).length) throw Error(`${file}: no resources`);
   return values;
 }
-function placeholders(value) {
+// Match the pinned Inno Setup 7.0.2 compiler and FmtMessage in two stages.
+// Messages expands every %n, even in %%n; CustomMessages skips percent pairs
+// during newline expansion. FmtMessage then handles %% and single-digit %1..%9.
+// See docs/dev/installer-localization-gate.md for the versioned source references.
+export function installerMessageTokens(value, section) {
+  if (!['Messages', 'CustomMessages'].includes(section)) throw Error(`Unknown installer message section ${section}`);
+  let compiled = '';
+  if (section === 'Messages') compiled = value.replaceAll('%n', '\r\n');
+  else {
+    for (let index = 0; index < value.length; index++) {
+      if (value[index] === '%' && index + 1 < value.length) {
+        compiled += value[index + 1] === 'n' ? '\r\n' : value.slice(index, index + 2);
+        index++;
+      } else compiled += value[index];
+    }
+  }
+  const tokens = [];
+  for (let index = 0; index < compiled.length; index++) {
+    if (compiled[index] === '\r' && compiled[index + 1] === '\n') {
+      tokens.push('newline'); index++;
+    } else if (compiled[index] === '%') {
+      const next = compiled[index + 1];
+      if (next === '%') { tokens.push('percent:escaped'); index++; }
+      else if (next && /[1-9]/.test(next)) { tokens.push(`argument:${next}`); index++; }
+      else tokens.push('percent:literal');
+    }
+  }
+  return sorted(tokens);
+}
+
+// All repository-owned overrides belong in the reviewed locale .isl files.
+// Reject qualified entries too: main-script entries take final precedence and
+// must not create a second resource definition/review path. Empty values also
+// override the wizard text. Conditional/preprocessor content fails closed here.
+export function checkInstallerScriptOverrides(text, filename = 'installer/DropSpace.iss') {
+  let section = '';
+  for (const [index, line] of text.replace(/^\uFEFF/, '').split(/\r?\n/).entries()) {
+    const trimmed = line.trim();
+    const heading = trimmed.match(/^\[([^\]]+)\]$/);
+    if (heading) { section = heading[1].toLowerCase(); continue; }
+    if (!['messages', 'custommessages'].includes(section) || !trimmed || trimmed.startsWith(';')) continue;
+    throw Error(`${filename}:${index + 1}: main-script [${section === 'messages' ? 'Messages' : 'CustomMessages'}] overrides are forbidden; move this entry to the reviewed installer/localization/<locale>.isl files`);
+  }
+}
+
+function placeholders(value, id = '') {
   const escaped = value.replaceAll('{{', '').replaceAll('}}', '');
   // C# composite formats and JS named interpolation must preserve identifiers/format specifiers.
-  return sorted([...escaped.matchAll(/\{(?:\d+(?:,-?\d+)?(?::[^{}]+)?|[A-Za-z_][\w.-]*)\}|\$\{[^{}]+\}|%(?:\d+\$)?[sdifn]|%\d+|<\/?(?:strong|em|b|i|code|br|a)\b[^>]*>/g)].map(item => item[0]));
+  const markers = [...escaped.matchAll(/\{(?:\d+(?:,-?\d+)?(?::[^{}]+)?|[A-Za-z_][\w.-]*)\}|\$\{[^{}]+\}|%(?:\d+\$)?[sdifn]|%\d+|<\/?(?:strong|em|b|i|code|br|a)\b[^>]*>/g)].map(item => item[0]);
+  const installerSection = id.match(/^Installer\.(Messages|CustomMessages)\./)?.[1];
+  return sorted(installerSection
+    ? [...markers.filter(item => !item.startsWith('%')), ...installerMessageTokens(value, installerSection)]
+    : markers);
 }
 function allowEqual(policy, scope, id, value, locale) {
   const exceptions = policy.equalText?.[scope] ?? {};
@@ -80,6 +130,7 @@ function sourceResources(root, scope, locale, JSDOM) {
   const file = scope === 'app' ? path.join(root, 'src/DropSpace.App/Strings', locale, 'Resources.resw') : path.join(root, 'website/_source/src/locales', `${locale}.json`);
   const values = scope === 'app' ? resw(file, JSDOM) : json(file);
   if (scope === 'app') {
+    checkInstallerScriptOverrides(read(path.join(root, 'installer/DropSpace.iss')));
     const installer = path.join(root, 'installer/localization', `${locale}.isl`);
     let section = '';
     for (const line of read(installer).replace(/^\uFEFF/, '').split(/\r?\n/)) {
@@ -108,7 +159,7 @@ function resourceChecks(root, scope, manifest, policy, JSDOM, issues) {
       const value = translation.values[id];
       const prefix = `${language.code} ${id} ${id.startsWith('Installer.') ? `installer/localization/${language.code}.isl` : relative(root, translation.file)}`;
       if (typeof value !== 'string' || !value.trim()) { issues.push(`${prefix}: missing/empty translation`); continue; }
-      if (!same(placeholders(source.values[id]), placeholders(value))) issues.push(`${prefix}: placeholder/required markup differs from en-US`);
+      if (!same(placeholders(source.values[id], id), placeholders(value, id))) issues.push(`${prefix}: placeholder/required markup differs from en-US`);
       if (language.code !== manifest.defaultLanguage && value === source.values[id] && !allowEqual(policy, scope, id, value, language.code)) issues.push(`${prefix}: untranslated English; add a narrowly documented invariant only if this is fixed protocol/brand/sample data`);
     }
     for (const id of Object.keys(translation.values)) if (!Object.hasOwn(source.values, id)) issues.push(`${language.code} ${id} ${relative(root, translation.file)}: unknown resource`);
@@ -161,10 +212,20 @@ function checkApp(root, manifest, source, policy, issues) {
   const installerLanguages = fs.readdirSync(path.join(root,'installer/localization')).filter(item=>item.endsWith('.isl')).map(item=>item.slice(0,-4));
   if (!same(installerLanguages,manifest.languages.map(item=>item.code))) issues.push('installer/localization: language files differ from shared catalog');
   const uids = new Set();
+  // Stable messages created outside App retain the same resource completeness
+  // contract without expanding the App hardcoded-UI scan into model internals.
+  for (const filename of ['src/DropSpace.Core/Models/AppUiMessage.cs', 'src/DropSpace.Infrastructure/Updates/UpdateService.cs']) {
+    const file = path.join(root, filename);
+    if (!fs.existsSync(file)) continue;
+    const content = read(file);
+    for (const [, id] of content.matchAll(/\b(?:AppUiMessage\.Resource|strings\.Format)\("([^"]+)"\s*[,)]/g))
+      if (!Object.hasOwn(source, id)) issues.push(`${filename}: missing stable message resource reference '${id}'`);
+  }
   for (const file of files(app, ['.cs', '.xaml'])) {
     const content = read(file), filename = relative(root, file);
     if (filename.includes('/Diagnostics/')) continue; // Explicit diagnostics are not product UI.
     for (const [, id] of content.matchAll(/\b(?:_strings|strings|localizer|_localizer)\.(?:Get|Format)\("([^"]+)"\s*[,)]/g)) if (!Object.hasOwn(source, id)) issues.push(`${filename}: missing resource reference '${id}'`);
+    for (const [, id] of content.matchAll(/\bAppUiMessage\.Resource\("([^"]+)"\s*[,)]/g)) if (!Object.hasOwn(source, id)) issues.push(`${filename}: missing stable message resource reference '${id}'`);
     for (const [, prefix] of content.matchAll(/\b(?:_strings|strings)\.Get\("([^"]+)"\s*\+/g)) if (!['DownloadStage','DownloadState','QqMusicState','LyricsProvider'].includes(prefix) || !Object.keys(source).some(id=>id.startsWith(prefix))) issues.push(`${filename}: undeclared or unbound dynamic resource prefix '${prefix}'`);
     for (const [, uid] of content.matchAll(/XamlResourceOverride\.Uid="([^"]+)"/g)) uids.add(uid);
     if (file.endsWith('.xaml') && /\bx:Uid=/.test(content)) issues.push(`${filename}: use XamlResourceOverride.Uid for unpackaged localization`);
@@ -258,7 +319,11 @@ export async function checkLocalization({ root = defaultRoot, scopes = ['app', '
   for (const scope of scopes) {
     if (!['app', 'website'].includes(scope)) throw Error(`Unknown resource scope ${scope}`);
     const source = resourceChecks(root, scope, manifest, policy, JSDOM, issues); counts[scope] = source.count;
-    if (scope === 'app') { checkApp(root, manifest, source.values, policy, issues); checkFrozenLyrics(root, issues); }
+    if (scope === 'app') {
+      checkApp(root, manifest, source.values, policy, issues); checkFrozenLyrics(root, issues);
+      try { issues.push(...checkModuleResources(path.join(root, 'modules/templates/worker/module.template.json')).map(issue => `modules/templates/worker: ${issue}`)); }
+      catch (error) { issues.push(error.message); }
+    }
     else checkWebsite(root, manifest, source.values, policy, JSDOM, issues);
   }
   if (issues.length) throw Error(`Localization integrity failed (${issues.length} issues):\n${issues.join('\n')}`);
@@ -361,7 +426,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         if (!Array.isArray(keys) || !keys.length || new Set(keys).size !== keys.length) throw Error('--keys-file must list distinct explicitly reviewed IDs');
         for (const id of keys) {
           const original = source.values[id], value = translation.values[id];
-          if (typeof original !== 'string' || typeof value !== 'string' || !value.trim() || !same(placeholders(original),placeholders(value))) throw Error(`${locale}/${id}: missing, empty, unknown or malformed translation cannot be confirmed`);
+          if (typeof original !== 'string' || typeof value !== 'string' || !value.trim() || !same(placeholders(original, id),placeholders(value, id))) throw Error(`${locale}/${id}: missing, empty, unknown or malformed translation cannot be confirmed`);
           if (original === value && !allowEqual(policy,scope,id,value,locale)) throw Error(`${locale}/${id}: copied English cannot be confirmed`);
           current.resources[id] = [hash(original),hash(value)];
         }

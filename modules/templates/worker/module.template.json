@@ -1,0 +1,101 @@
+{
+  "ManifestVersion": 1,
+  "Id": "dropspace.sample",
+  "Version": "1.0.0",
+  "MinimumHostInterface": 1,
+  "MaximumHostInterface": 1,
+  "ProtocolVersion": 1,
+  "UiVersion": 1,
+  "System": "windows",
+  "Architecture": "x64",
+  "MinimumWindowsBuild": 20348,
+  "EntryPoint": "DropSpace.Module.Worker.exe",
+  "Name": { "Key": "name" },
+  "RequiredCapabilities": [
+    { "Id": "ui.pages", "Version": 1 },
+    { "Id": "ui.settings", "Version": 1 },
+    { "Id": "module.data", "Version": 1 }
+  ],
+  "OptionalCapabilities": [ { "Id": "island.content", "Version": 1, "Fallback": "omit" } ],
+  "Dependencies": [],
+  "Data": { "Version": 1, "MinimumReadableVersion": 1, "MaximumReadableVersion": 1 },
+  "Ui": {
+    "Icon": "Puzzle",
+    "Pages": [ {
+      "Id": "sample",
+      "Title": { "Key": "title" },
+      "Description": { "Key": "description" },
+      "Actions": [ { "Id": "show", "Label": { "Key": "action" } } ]
+    } ],
+    "Settings": [ {
+      "Id": "show-island",
+      "Label": { "Key": "setting" },
+      "Kind": "boolean",
+      "DefaultValue": "true"
+    } ]
+  },
+  "Resources": {
+    "en-US": {
+      "name": "Module sample", "title": "Module sample",
+      "description": "An optional sample with its own worker. It shows a short message and leaves your files and app features unchanged.",
+      "action": "Show message", "setting": "Show the message in Dynamic Island",
+      "message": "The sample is ready.", "compact": "Sample ready", "expanded": "This message expires after 30 seconds."
+    },
+    "zh-CN": {
+      "name": "模块示例", "title": "模块示例",
+      "description": "带有独立工作进程的可选示例。它显示一条简短消息，保留你的文件和应用原有功能。",
+      "action": "显示消息", "setting": "在灵动岛显示消息",
+      "message": "示例已就绪。", "compact": "示例已就绪", "expanded": "这条消息将在 30 秒后失效。"
+    },
+    "zh-TW": {
+      "name": "模組範例", "title": "模組範例",
+      "description": "具備獨立工作處理序的選用範例。它會顯示一則簡短訊息，保留你的檔案和應用程式原有功能。",
+      "action": "顯示訊息", "setting": "在動態島顯示訊息",
+      "message": "範例已就緒。", "compact": "範例已就緒", "expanded": "這則訊息將在 30 秒後失效。"
+    },
+    "ja-JP": {
+      "name": "モジュールのサンプル", "title": "モジュールのサンプル",
+      "description": "独立したワーカープロセスを使う任意のサンプルです。短いメッセージを表示し、ファイルや既存のアプリ機能を変更しません。",
+      "action": "メッセージを表示", "setting": "Dynamic Island にメッセージを表示",
+      "message": "サンプルの準備ができました。", "compact": "サンプルの準備完了", "expanded": "このメッセージは 30 秒後に期限切れになります。"
+    },
+    "ko-KR": {
+      "name": "모듈 예제", "title": "모듈 예제",
+      "description": "독립 작업 프로세스를 사용하는 선택적 예제입니다. 짧은 메시지를 표시하며 파일과 기존 앱 기능을 그대로 유지합니다.",
+      "action": "메시지 표시", "setting": "Dynamic Island에 메시지 표시",
+      "message": "예제가 준비되었습니다.", "compact": "예제 준비 완료", "expanded": "이 메시지는 30초 후 만료됩니다."
+    },
+    "de-DE": {
+      "name": "Modulbeispiel", "title": "Modulbeispiel",
+      "description": "Ein optionales Beispiel mit eigenem Arbeitsprozess. Es zeigt eine kurze Nachricht an und lässt Ihre Dateien und die bisherigen App-Funktionen unverändert.",
+      "action": "Nachricht anzeigen", "setting": "Nachricht in Dynamic Island anzeigen",
+      "message": "Das Beispiel ist bereit.", "compact": "Beispiel bereit", "expanded": "Diese Nachricht läuft nach 30 Sekunden ab."
+    },
+    "fr-FR": {
+      "name": "Exemple de module", "title": "Exemple de module",
+      "description": "Un exemple facultatif avec son propre processus de travail. Il affiche un court message et conserve vos fichiers et les fonctions existantes de l’application.",
+      "action": "Afficher le message", "setting": "Afficher le message dans Dynamic Island",
+      "message": "L’exemple est prêt.", "compact": "Exemple prêt", "expanded": "Ce message expire après 30 secondes."
+    },
+    "es-ES": {
+      "name": "Módulo de ejemplo", "title": "Módulo de ejemplo",
+      "description": "Un ejemplo opcional con su propio proceso de trabajo. Muestra un mensaje breve y mantiene tus archivos y las funciones existentes de la aplicación.",
+      "action": "Mostrar mensaje", "setting": "Mostrar el mensaje en Dynamic Island",
+      "message": "El ejemplo está listo.", "compact": "Ejemplo listo", "expanded": "Este mensaje caduca después de 30 segundos."
+    },
+    "pt-BR": {
+      "name": "Módulo de exemplo", "title": "Módulo de exemplo",
+      "description": "Um exemplo opcional com seu próprio processo de trabalho. Ele mostra uma mensagem curta e mantém seus arquivos e os recursos existentes do aplicativo.",
+      "action": "Mostrar mensagem", "setting": "Mostrar a mensagem na Dynamic Island",
+      "message": "O exemplo está pronto.", "compact": "Exemplo pronto", "expanded": "Esta mensagem expira após 30 segundos."
+    },
+    "ru-RU": {
+      "name": "Пример модуля", "title": "Пример модуля",
+      "description": "Необязательный пример с отдельным рабочим процессом. Он показывает короткое сообщение и сохраняет ваши файлы и существующие функции приложения.",
+      "action": "Показать сообщение", "setting": "Показывать сообщение в Dynamic Island",
+      "message": "Пример готов.", "compact": "Пример готов", "expanded": "Срок действия сообщения — 30 секунд."
+    }
+  },
+  "Files": [],
+  "Publisher": "airanluo-dot/DropSpace"
+}

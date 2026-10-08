@@ -3490,9 +3490,85 @@
     "Installer.CustomMessages.DeleteDataHelp": [
       "6acf37cbdb05356b25e380bc088533e4624bc589ed492ff67742803bc8dda8af",
       "f9d759e848c1d492eafc584cbacce7fc730f0cd3b74364bce044b8e3371034d4"
+    ],
+    "ModuleEnabled": [
+      "92c1cdfdf4cb9cf6fcca962f206de36fd5d60db1178bc9461052f8de703a0e06",
+      "0b8162990567631a5ee4cb94815ef67bfcd037ed32646f953b65bd31afabcb4e"
+    ],
+    "ModuleDisabled": [
+      "75081b593d15cf6e631971bc6768723f593b88b172477e40ae7d363e4829816d",
+      "a3fbed94428e866e5015e30c76744dc0b9b37228b0c2b090693222831ca6b4b9"
+    ],
+    "ModuleEnable": [
+      "5342e09f2729fbc6514528e727aeb9857afb31719d43568e6b18661ace7d1014",
+      "a54eaf37858d1a30fc38b6220a4528208424091f781d13b24f4731e021a9f3a2"
+    ],
+    "ModuleDisable": [
+      "b7e3e4aa4257b9a11a82f59faf34c8450ca10d4116885b0a29fedf60842d81d5",
+      "bb5bdd176cdf98dfc325185bd623dffe58eb547c68bb79e80425b807f2958cc7"
+    ],
+    "ModuleRunning": [
+      "f4ccae29e1bb0c20a124570a1b43f4347ea94bba9f84ffdfddd9c7445b126128",
+      "0232a305412b9292848990f0a8e64ca790cb0a246ba59a82a66bf51e76eef9d6"
+    ],
+    "ModuleStopped": [
+      "1a4f630ac1b69fd00728fa8a672ded71d0eae8516cb23e78f94529113399b79b",
+      "39e74d43c11a72f196f0bee6a3dcb8c27e8a1b4918fccee02e98658aac153782"
+    ],
+    "ModuleStarting": [
+      "bbe5fc3b9ef39f994c259eaf233d625a500b5219784c82f73b50808d4f79d5dc",
+      "9758181eb436e0ac1e817300d292316232e90d96aa51e9b8543c970b8129af85"
+    ],
+    "ModuleStopping": [
+      "bbe8574175aba84f29afa398a91f00ad7598ff0b98e3ae1ddc5473d1b8c0b0ee",
+      "5278f65bf45ffe6465c4fdc5e176875d86127d849ed158f5214f3f543ef16d9d"
+    ],
+    "ModulePendingCleanup": [
+      "747d464599cc00c224a7ea768155ba9bef564ba163c8126454dd0c126f50c4bf",
+      "16b5ae2bd8f933d96ad1b3d4ececce7f65e4e2450dc25c71f8a82df9698df5cf"
+    ],
+    "ModuleSave": [
+      "1509f561f2416598629b886ad7d3c05a7e221e4e0675c84bbff4ee6d9e03913d",
+      "b4d30cae52894cf0a87c1c072b864768dace8b01d2d800a9e8741a6f1b50791e"
+    ],
+    "ModuleClearData": [
+      "e0f8927f497dc4b42ef09223c5209c36743b91df1058cb48f02998cd378c66ed",
+      "aae4c062a8107c9441bccb06063a8d75e04427719725b4df27c95e934c73bee9"
+    ],
+    "ModuleClearDataConfirm": [
+      "8d7d34ad55f1b4da1be7406b531f3eab7043e8b59ea72491ca61036b59490bbd",
+      "ddd8e03492872e96007967c66836a760d5a999c28e27a902649d4cd24abf6797"
+    ],
+    "ModuleRetryCleanup": [
+      "8b02bf7e658ba33dbaf05ecbf047485c5067c9639268b5b0cb4bc2a02c7892c2",
+      "79f5e8bee3397aa5d8768fa385d2f3e78c64cd38d87b55599688fd6438878f43"
+    ],
+    "ModuleHostRequired": [
+      "7a79f63ce25778474891a4c84d84ea2e48d7dccc599209372096fe27cb51f5c0",
+      "e6417a34b8743af01dbdf9b83d8103c43d849f517ca6b2e1c1403ae84665fb77"
     ]
   },
-  "reviewedBy": "app_resources: initial machine-assisted UI translations; regional terminology and high-risk/context review; installer custom UI authored; no automatic semantic certification",
-  "reviewedAt": "2026-10-07T21:43:57.597Z",
-  "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification"
+  "reviewedBy": "Codex: reviewed fourteen new feature-module lifecycle labels",
+  "reviewedAt": "2026-10-08T04:54:22.167Z",
+  "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
+  "latestReviewScope": {
+    "ids": [
+      "ModuleEnabled",
+      "ModuleDisabled",
+      "ModuleEnable",
+      "ModuleDisable",
+      "ModuleRunning",
+      "ModuleStopped",
+      "ModuleStarting",
+      "ModuleStopping",
+      "ModulePendingCleanup",
+      "ModuleSave",
+      "ModuleClearData",
+      "ModuleClearDataConfirm",
+      "ModuleRetryCleanup",
+      "ModuleHostRequired"
+    ],
+    "reviewedBy": "Codex: reviewed fourteen new feature-module lifecycle labels",
+    "reviewedAt": "2026-10-08T04:54:22.167Z"
+  }
 }

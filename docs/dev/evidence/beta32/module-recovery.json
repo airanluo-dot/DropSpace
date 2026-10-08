@@ -1,0 +1,19 @@
+{
+  "scenario": "3",
+  "failureMode": null,
+  "rejectionMode": null,
+  "startedAtUtc": "2026-10-08T05:58:31.436718+00:00",
+  "finishedAtUtc": "2026-10-08T05:58:32.3736137+00:00",
+  "passed": true,
+  "errorCategory": null,
+  "actualFunctionalScenarios": 1,
+  "provenance": "production embedded official catalog",
+  "packageSource": "locally cached ZIP verified against independent embedded catalog",
+  "assertions": [
+    "Local cache exactly matches independently embedded package bytes/SHA",
+    "Interrupted activation removes only candidate and retains committed version",
+    "Locked package records real pending cleanup",
+    "Next startup recovers cleanup after lock release",
+    "Interrupted install/uninstall recovery retains scoped data"
+  ]
+}

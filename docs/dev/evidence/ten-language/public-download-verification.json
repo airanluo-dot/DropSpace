@@ -53,8 +53,34 @@
       "sha256": "b840ab45fa22fdbae3326e17869b2079a67ee7c629893d59822c06bd5b9e9936",
       "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/update-manifest.json",
       "httpStatus": 200
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 621,
+      "sha256": "38b40a91a41a265b367caf278849d1d4c888c4acdabf10f3dce240dc502aeeb1",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/SHA256SUMS.txt",
+      "httpStatus": 200,
+      "downloadStartedAtUtc": "2026-10-08T04:42:39.2575699Z",
+      "downloadCompletedAtUtc": "2026-10-08T04:42:42.5201614Z",
+      "verificationMethod": "Anonymous HTTPS GET of the browser download URL, no Authorization header; original response bytes saved before SHA-256 calculation.",
+      "rawEvidenceFile": "beta19-SHA256SUMS.txt",
+      "releaseAssetId": 619962173,
+      "releaseMetadataBytes": 621,
+      "releaseMetadataDigest": "sha256:38b40a91a41a265b367caf278849d1d4c888c4acdabf10f3dce240dc502aeeb1",
+      "matchesReleaseMetadata": true
     }
   ],
+  "checksumReadback": {
+    "releaseMetadataUrl": "https://api.github.com/repos/airanluo-dot/DropSpace/releases/tags/v0.3.1-beta.19",
+    "releaseId": 406210432,
+    "releaseAssetCount": 8,
+    "checksumEntryCount": 7,
+    "checksumAssetNamesAndHashesMatchPreviousSevenRecords": true,
+    "previousSevenSizesUrlsAndHashesMatchReleaseMetadata": true,
+    "checksumDoesNotContainItsOwnHash": true,
+    "previousSevenDownloadsReexecuted": false,
+    "scope": "The eight-asset release metadata was read anonymously. The newly downloaded checksum bytes contain exactly the seven prior asset names and SHA-256 values. This is metadata/checksum corroboration of the preserved seven full-download records, not seven new downloads."
+  },
   "updateChannel": "beta",
-  "scope": "Anonymous public full downloads and production hash/version/channel readback; no functional scenario execution."
+  "scope": "The original seven anonymous full-download records are preserved. Only SHA256SUMS.txt was newly downloaded on 2026-10-08; its raw byte count, HTTP status, UTC interval and computed hash are recorded separately. Release metadata and all seven checksum entries agree. No Beta19 tag or public asset was modified; no functional scenario execution."
 }

@@ -875,4 +875,18 @@
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0GB(비활성화됨)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>가사 번역 언어</value></data>
   <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>인터페이스 언어와 별도로 중국어 간체 또는 영어를 선택하세요.</value></data>
+  <data name="ModuleEnabled" xml:space="preserve"><value>활성화됨</value></data>
+  <data name="ModuleDisabled" xml:space="preserve"><value>비활성화됨</value></data>
+  <data name="ModuleEnable" xml:space="preserve"><value>활성화</value></data>
+  <data name="ModuleDisable" xml:space="preserve"><value>비활성화</value></data>
+  <data name="ModuleRunning" xml:space="preserve"><value>실행 중</value></data>
+  <data name="ModuleStopped" xml:space="preserve"><value>중지됨</value></data>
+  <data name="ModuleStarting" xml:space="preserve"><value>시작 중…</value></data>
+  <data name="ModuleStopping" xml:space="preserve"><value>중지 중…</value></data>
+  <data name="ModulePendingCleanup" xml:space="preserve"><value>정리 대기 중</value></data>
+  <data name="ModuleSave" xml:space="preserve"><value>저장</value></data>
+  <data name="ModuleClearData" xml:space="preserve"><value>모듈 데이터 삭제</value></data>
+  <data name="ModuleClearDataConfirm" xml:space="preserve"><value>이 모듈에 저장된 데이터와 설정을 삭제할까요?</value></data>
+  <data name="ModuleRetryCleanup" xml:space="preserve"><value>정리 다시 시도</value></data>
+  <data name="ModuleHostRequired" xml:space="preserve"><value>이 모듈에는 호스트 인터페이스 {0} 및 선언된 기능이 필요합니다. DropSpace를 호환되는 버전으로 업데이트하세요.</value></data>
 </root>
