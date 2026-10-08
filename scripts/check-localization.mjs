@@ -211,6 +211,15 @@ function checkFrozenLyrics(root, issues) {
 }
 function checkWebsite(root, manifest, source, policy, JSDOM, issues) {
   const sourceRoot = path.join(root, 'website/_source/src');
+  // Static regression contract: no browser scenarios or functional test executions.
+  const languageRuntime = read(path.join(sourceRoot, 'localization-runtime.js'));
+  for (const [name, required] of [
+    ['explicit/history/stored preference priority', 'linkedLanguage || pageChoice || saved || preferredLanguage'],
+    ['storage recovery migration', 'if (pageChoice && storageAvailable && !linkedLanguage) rememberLanguage(pageChoice);'],
+    ['remove temporary history fallback after saving', 'if (storageAvailable) delete next[historyKey]; else next[historyKey] = choice;'],
+    ['preserve unrelated history state', 'const next = { ...(previous || {}) };'],
+    ['preserve URL/query/hash on recovery', "history.replaceState(next, '', location.href)"],
+  ]) if (!languageRuntime.includes(required)) issues.push(`website language storage recovery: missing ${name}`);
   for (const file of files(sourceRoot, ['.html'])) {
     const document = new JSDOM(read(file)).window.document;
     for (const element of document.querySelectorAll('[data-i18n]')) if (!Object.hasOwn(source, element.dataset.i18n)) issues.push(`${relative(root, file)}: unknown resource '${element.dataset.i18n}'`);
