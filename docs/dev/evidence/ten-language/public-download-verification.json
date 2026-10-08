@@ -53,8 +53,23 @@
       "sha256": "b840ab45fa22fdbae3326e17869b2079a67ee7c629893d59822c06bd5b9e9936",
       "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/update-manifest.json",
       "httpStatus": 200
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 621,
+      "sha256": "38b40a91a41a265b367caf278849d1d4c888c4acdabf10f3dce240dc502aeeb1",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/SHA256SUMS.txt",
+      "releaseAssetId": 619962173,
+      "evidenceMethod": "GitHub Release API asset size/digest plus independent reconstruction of seven recorded SHA256 entries as ASCII CRLF lines, matching published asset digest",
+      "metadataUrl": "https://api.github.com/repos/airanluo-dot/DropSpace/releases/assets/619962173",
+      "anonymousDownloadVerifiedInThisReview": false
     }
   ],
   "updateChannel": "beta",
-  "scope": "Anonymous public full downloads and production hash/version/channel readback; no functional scenario execution."
+  "scope": "Seven anonymously downloaded public assets with recorded HTTP status/bytes/hashes; the eighth (SHA256SUMS.txt) is independently corroborated by GitHub Release API size/digest and a matching seven-line ASCII CRLF reconstruction. No new anonymous GET of SHA256SUMS.txt is claimed. No functional scenario execution.",
+  "maintenanceEvidence": {
+    "date": "2026-10-08",
+    "kind": "checksum-asset-metadata-and-cryptographic-reconstruction",
+    "note": "This adds verifiable metadata-backed evidence without relabeling it as an anonymous public download."
+  }
 }
