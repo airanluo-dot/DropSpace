@@ -65,16 +65,68 @@ function resw(file, JSDOM) {
   if (!Object.keys(values).length) throw Error(`${file}: no resources`);
   return values;
 }
-function placeholders(value) {
+// Treat %% as an escaped literal percent, not the start of a %n/%1 argument.
+// Counting escape pairs also detects a translated %% becoming an unsafe bare %.
+function innoPercentPlaceholders(value) {
+  const tokens = [];
+  for (let index = 0; index < value.length; index++) {
+    if (value[index] !== '%') continue;
+    if (value[index + 1] === '%') { tokens.push('%%'); index++; continue; }
+    const marker = value.slice(index).match(/^%(?:\d+\$)?[sdifn]|^%\d+/);
+    if (marker) { tokens.push(marker[0]); index += marker[0].length - 1; }
+    else tokens.push('%');
+  }
+  return tokens;
+}
+function placeholders(value, installer = false) {
   const escaped = value.replaceAll('{{', '').replaceAll('}}', '');
   // C# composite formats and JS named interpolation must preserve identifiers/format specifiers.
-  return sorted([...escaped.matchAll(/\{(?:\d+(?:,-?\d+)?(?::[^{}]+)?|[A-Za-z_][\w.-]*)\}|\$\{[^{}]+\}|%(?:\d+\$)?[sdifn]|%\d+|<\/?(?:strong|em|b|i|code|br|a)\b[^>]*>/g)].map(item => item[0]));
+  const markers = [...escaped.matchAll(/\{(?:\d+(?:,-?\d+)?(?::[^{}]+)?|[A-Za-z_][\w.-]*)\}|\$\{[^{}]+\}|%(?:\d+\$)?[sdifn]|%\d+|<\/?(?:strong|em|b|i|code|br|a)\b[^>]*>/g)].map(item => item[0]);
+  return sorted(installer
+    ? [...markers.filter(item => !item.startsWith('%')), ...innoPercentPlaceholders(value)]
+    : markers);
 }
 function allowEqual(policy, scope, id, value, locale) {
   const exceptions = policy.equalText?.[scope] ?? {};
   const exception = exceptions[id];
   return exception && (exception.value === value || exception.values?.includes(value)) &&
     (!exception.languages || exception.languages.includes(locale)) && Boolean(exception.reason);
+}
+// Inno's main [Messages] entries take priority over framework and .isl messages.
+// An unqualified entry applies to EVERY language, so fail closed instead of treating
+// English as a translated override (see Inno Setup [Messages] documentation).
+function installerScriptMessages(root) {
+  const filename = path.join(root, 'installer/DropSpace.iss');
+  const lines = read(filename).replace(/^\uFEFF/, '').split(/\r?\n/);
+  const localeForName = new Map();
+  let section = '';
+  for (const line of lines) {
+    const heading = line.trim().match(/^\[([^\]]+)\]$/);
+    if (heading) { section = heading[1]; continue; }
+    if (section !== 'Languages') continue;
+    const language = line.trim().match(/^Name:\s*"([^"]+)";\s*MessagesFile:\s*"[^"]*localization\\([\w-]+)\.isl"/);
+    if (language) {
+      if (localeForName.has(language[1])) throw Error(`${filename}: duplicated installer language name '${language[1]}'`);
+      localeForName.set(language[1], language[2]);
+    }
+  }
+  if (!localeForName.size) throw Error(`${filename}: cannot audit [Messages] without [Languages] declarations`);
+  section = '';
+  const entries = [];
+  for (const [index, line] of lines.entries()) {
+    const heading = line.trim().match(/^\[([^\]]+)\]$/);
+    if (heading) { section = heading[1]; continue; }
+    if (section !== 'Messages' || !line.trim() || /^\s*[;#]/.test(line)) continue;
+    const item = line.match(/^\s*([^;=][^=]*?)\s*=(.*)$/);
+    if (!item) throw Error(`${filename}:${index + 1}: malformed [Messages] override`);
+    const qualified = item[1].trim().match(/^([^.]+)\.(.+)$/);
+    if (!qualified) throw Error(`${filename}:${index + 1}: unqualified [Messages] override '${item[1].trim()}' affects all languages; use reviewed per-language entries`);
+    const locale = localeForName.get(qualified[1]);
+    if (!locale) throw Error(`${filename}:${index + 1}: unknown [Messages] language prefix '${qualified[1]}'`);
+    if (entries.some(entry => entry.locale === locale && entry.key === qualified[2])) throw Error(`${filename}:${index + 1}: duplicate [Messages] override '${item[1].trim()}'`);
+    entries.push({ locale, key: qualified[2], value: item[2] });
+  }
+  return entries;
 }
 function sourceResources(root, scope, locale, JSDOM) {
   const file = scope === 'app' ? path.join(root, 'src/DropSpace.App/Strings', locale, 'Resources.resw') : path.join(root, 'website/_source/src/locales', `${locale}.json`);
@@ -92,6 +144,12 @@ function sourceResources(root, scope, locale, JSDOM) {
         values[id] = item[2];
       }
     }
+    // Effective main-script messages override .isl values for their named language.
+    // Their resource ID/value fingerprints flow through the same translation review gate.
+    for (const override of installerScriptMessages(root)) {
+      if (override.locale !== locale) continue;
+      values[`Installer.Messages.${override.key}`] = override.value;
+    }
   }
   return { file, values };
 }
@@ -108,7 +166,7 @@ function resourceChecks(root, scope, manifest, policy, JSDOM, issues) {
       const value = translation.values[id];
       const prefix = `${language.code} ${id} ${id.startsWith('Installer.') ? `installer/localization/${language.code}.isl` : relative(root, translation.file)}`;
       if (typeof value !== 'string' || !value.trim()) { issues.push(`${prefix}: missing/empty translation`); continue; }
-      if (!same(placeholders(source.values[id]), placeholders(value))) issues.push(`${prefix}: placeholder/required markup differs from en-US`);
+      if (!same(placeholders(source.values[id], id.startsWith('Installer.')), placeholders(value, id.startsWith('Installer.')))) issues.push(`${prefix}: placeholder/required markup differs from en-US`);
       if (language.code !== manifest.defaultLanguage && value === source.values[id] && !allowEqual(policy, scope, id, value, language.code)) issues.push(`${prefix}: untranslated English; add a narrowly documented invariant only if this is fixed protocol/brand/sample data`);
     }
     for (const id of Object.keys(translation.values)) if (!Object.hasOwn(source.values, id)) issues.push(`${language.code} ${id} ${relative(root, translation.file)}: unknown resource`);
@@ -361,7 +419,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         if (!Array.isArray(keys) || !keys.length || new Set(keys).size !== keys.length) throw Error('--keys-file must list distinct explicitly reviewed IDs');
         for (const id of keys) {
           const original = source.values[id], value = translation.values[id];
-          if (typeof original !== 'string' || typeof value !== 'string' || !value.trim() || !same(placeholders(original),placeholders(value))) throw Error(`${locale}/${id}: missing, empty, unknown or malformed translation cannot be confirmed`);
+          if (typeof original !== 'string' || typeof value !== 'string' || !value.trim() || !same(placeholders(original, id.startsWith('Installer.')),placeholders(value, id.startsWith('Installer.')))) throw Error(`${locale}/${id}: missing, empty, unknown or malformed translation cannot be confirmed`);
           if (original === value && !allowEqual(policy,scope,id,value,locale)) throw Error(`${locale}/${id}: copied English cannot be confirmed`);
           current.resources[id] = [hash(original),hash(value)];
         }
