@@ -44,6 +44,9 @@
       history.replaceState(next, '', location.href);
     } catch { /* Internal links still carry the choice when browser state is unavailable. */ }
   }
+  // Recover a manual choice from history when storage becomes writable again.
+  // Persist before internal links are rendered without their temporary language hints.
+  if (pageChoice && storageAvailable && !linkedLanguage) rememberLanguage(pageChoice);
   if (linkedLanguage) {
     rememberLanguage(linkedLanguage);
     parameters.delete('ds-language');
