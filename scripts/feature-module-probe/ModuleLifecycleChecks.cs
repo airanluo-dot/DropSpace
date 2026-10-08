@@ -254,7 +254,7 @@ internal static class ModuleLifecycleChecks
                     if (dependent)
                     {
                         var rejected = false;
-                        try { await uninstalling; } catch (InvalidOperationException error) when (error.Message == "ModuleDependencyInUse") { rejected = true; }
+                        try { await uninstalling; } catch (InvalidOperationException rejection) when (rejection.Message == "ModuleDependencyInUse") { rejected = true; }
                         Check(rejected && Snapshot(runtime, blocker).RunState == ModuleRunState.Running &&
                             Snapshot(runtime, "probe.e") is { RunState: ModuleRunState.Running, Installation.Version: "1.0.0", Installation.Enabled: true } &&
                             Directory.Exists(store.GetVersionDirectory("probe.e", "1.0.0")),

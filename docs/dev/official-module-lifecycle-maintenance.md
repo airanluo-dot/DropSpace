@@ -59,3 +59,5 @@ CI selects `Run-LifecycleChecks.ps1 -UninstallConcurrencyOnly` for this follow-u
 | uninstall-dependent-rejection | 1 | Held dependent handshake; immediate target withdrawal; dependency commit; rejected deletion; restored usable target and durable enabled state |
 
 Total selected functional execution for the combined task: prior 15 plus 2 new cases, without rerunning prior passing scenarios. No full regression matrix or real user-machine App/UI check is selected. New case results must be read from their Windows CI receipts; source reasoning alone does not prove their execution.
+
+Execution record: follow-up run [37779997899](https://github.com/airanluo-dot/DropSpace/actions/runs/37779997899) compiled production Core/Infrastructure but stopped before functional execution because the new probe catch variable shadowed its receipt error variable (CS0136). The catch variable was renamed; zero functional cases ran in that attempt. The corrected head selects only the same two new cases, not the prior 15.
