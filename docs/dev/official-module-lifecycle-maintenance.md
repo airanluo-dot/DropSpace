@@ -37,7 +37,8 @@ Run scripts/feature-module-probe/Run-LifecycleChecks.ps1 in a clean Windows chec
 | dependency-race | 2 | Uninstall during A handshake, incompatible B update |
 | job-stop | 1 | Child spawned before hello, graceful root stop, child lock release |
 | job-parent-crash | 1 | Root crash with live child, job-wide stop/lock release |
+| empty-modules | 1 | No module storage, worker or startup directory created |
 
-Total: 10 scenarios / 14 functional cases. Each writes a separate JSON receipt even on failure. CI runs this selection only for affected module/probe paths. It does not dispatch full regression/model/browser matrices.
+Total: 11 scenarios / 15 functional cases. Each writes a separate JSON receipt even on failure. CI runs this selection only for affected module/probe paths. It does not dispatch full regression/model/browser matrices.
 
 Source inspection establishes the original paths and intended state invariants. Windows CI probe results establish only the recorded automated scenarios. The probe does not establish installed App navigation/UI behavior, real user-machine shutdown, abrupt host-power loss, every OS build/nested-job environment, or public module download provenance. No user-machine App verification has been performed by this change.

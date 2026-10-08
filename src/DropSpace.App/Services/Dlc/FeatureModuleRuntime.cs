@@ -154,14 +154,23 @@ public sealed class FeatureModuleRuntime(ModulePackageStore store, OfficialModul
                 {
                     if (slot.State == ModuleRunState.Faulted || slot.Manifest is not { } manifest) return;
                     foreach (var dependency in manifest.Dependencies)
-                        if (_slots.TryGetValue(dependency.Id, out var required)) await ActivateRecoveredAsync(required).ConfigureAwait(false);
+                    {
+                        Slot? required;
+                        lock (_sync) _slots.TryGetValue(dependency.Id, out required);
+                        if (required is not null) await ActivateRecoveredAsync(required).ConfigureAwait(false);
+                    }
                     ValidateManifest(manifest, slot.Installation.DataVersion);
                     if (slot.Installation.Enabled) await ActivateAsync(slot, manifest, slot.Generation).ConfigureAwait(false);
                 }
                 catch (Exception error) when (error is not OutOfMemoryException) { RecoveryFailed(slot, error); }
                 finally { visiting.Remove(id); visited.Add(id); }
             }
-            foreach (var entry in entries) await ActivateRecoveredAsync(_slots[entry.Id]).ConfigureAwait(false);
+            foreach (var entry in entries)
+            {
+                Slot slot;
+                lock (_sync) slot = _slots[entry.Id];
+                await ActivateRecoveredAsync(slot).ConfigureAwait(false);
+            }
         }
         finally { _transactions.Release(); }
         Notify();
