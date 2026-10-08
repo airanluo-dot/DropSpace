@@ -79,7 +79,7 @@ public static class ModuleContract
             if (!Capabilities.TryGetValue(capability.Id, out var version) || version < capability.Version || capability.Version < 1)
                 throw new InvalidDataException("RequiredCapabilityMissing:" + capability.Id);
         foreach (var capability in manifest.OptionalCapabilities)
-            if ((!Capabilities.TryGetValue(capability.Id, out var version) || version < capability.Version) &&
+            if (capability.Version < 1 || (!Capabilities.TryGetValue(capability.Id, out var version) || version < capability.Version) &&
                 capability.Fallback != "omit") throw new InvalidDataException("OptionalFallbackRequired");
         foreach (var dependency in manifest.Dependencies)
             if (dependency.Id == manifest.Id || !ValidId(dependency.Id) || !ValidVersion(dependency.MinimumVersion) ||
@@ -123,5 +123,5 @@ public static class ModuleContract
     }
     public static bool HasCapability(ModuleManifest manifest, string id) =>
         manifest.RequiredCapabilities.Concat(manifest.OptionalCapabilities).Any(c => c.Id == id &&
-            Capabilities.TryGetValue(id, out var version) && c.Version <= version);
+            Capabilities.TryGetValue(id, out var version) && c.Version >= 1 && c.Version <= version);
 }

@@ -19,9 +19,34 @@ internal sealed class ModuleProcessJob : IDisposable
         if (!SetInformationJobObject(_handle, 9, ref limits, (uint)Marshal.SizeOf<ExtendedLimits>()))
         { var error = Marshal.GetLastWin32Error(); _handle.Dispose(); throw new Win32Exception(error); }
     }
-    public void Assign(nint process)
+    internal SafeFileHandle Handle => _handle;
+    public void Terminate()
     {
-        if (!AssignProcessToJobObject(_handle, process)) throw new Win32Exception(Marshal.GetLastWin32Error());
+        if (!TerminateJobObject(_handle, 1)) throw new Win32Exception(Marshal.GetLastWin32Error());
+    }
+    public bool IsEmpty
+    {
+        get
+        {
+            if (!QueryInformationJobObject(_handle, 1, out var accounting, (uint)Marshal.SizeOf<Accounting>(), 0))
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            return accounting.ActiveProcesses == 0;
+        }
+    }
+    public async Task<bool> WaitForEmptyAsync(TimeSpan timeout)
+    {
+        var deadline = System.Diagnostics.Stopwatch.StartNew();
+        do
+        {
+            if (IsEmpty) return true;
+            await Task.Delay(20).ConfigureAwait(false);
+        } while (deadline.Elapsed < timeout);
+        return IsEmpty;
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct Accounting
+    {
+        public long TotalUserTime, TotalKernelTime, ThisPeriodTotalUserTime, ThisPeriodTotalKernelTime;
+        public uint TotalPageFaultCount, TotalProcesses, ActiveProcesses, TotalTerminatedProcesses;
     }
     public void Dispose() => _handle.Dispose();
     [StructLayout(LayoutKind.Sequential)] private struct BasicLimits
@@ -45,5 +70,7 @@ internal sealed class ModuleProcessJob : IDisposable
     [DllImport("kernel32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetInformationJobObject(SafeFileHandle job, int informationClass, ref ExtendedLimits information, uint length);
     [DllImport("kernel32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool AssignProcessToJobObject(SafeFileHandle job, nint process);
+    private static extern bool TerminateJobObject(SafeFileHandle job, uint exitCode);
+    [DllImport("kernel32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool QueryInformationJobObject(SafeFileHandle job, int informationClass, out Accounting information, uint length, nint returnedLength);
 }

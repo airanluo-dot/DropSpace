@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Dlc;
@@ -8,7 +7,7 @@ namespace DropSpace.Infrastructure.Dlc;
 /// <summary>One owned process/session, one bounded outstanding request. This is fault isolation, not an OS sandbox.</summary>
 public sealed class ModuleWorkerClient : IAsyncDisposable
 {
-    private readonly Process _process;
+    private readonly ModuleWorkerProcess _process;
     private readonly ModuleProcessJob _job;
     private readonly SemaphoreSlim _requests = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
@@ -25,22 +24,9 @@ public sealed class ModuleWorkerClient : IAsyncDisposable
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Official modules require Windows.");
         _job = new();
-        var start = new ProcessStartInfo(executable)
-        {
-            WorkingDirectory = dataDirectory, UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
-            StandardInputEncoding = new UTF8Encoding(false), StandardOutputEncoding = new UTF8Encoding(false),
-        };
-        start.ArgumentList.Add("--module-session"); start.ArgumentList.Add(_session);
-        start.ArgumentList.Add("--data-version"); start.ArgumentList.Add(dataVersion.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        _process = new Process { StartInfo = start, EnableRaisingEvents = true };
+        try { _process = ModuleWorkerProcess.Start(executable, dataDirectory, _session, dataVersion, _job); }
+        catch { _job.Dispose(); throw; }
         _process.Exited += OnExited;
-        try
-        {
-            if (!_process.Start()) throw new IOException("ModuleStartFailed");
-            _job.Assign(_process.Handle);
-        }
-        catch { TryKill(); _process.Dispose(); _job.Dispose(); throw; }
         _stderr = DrainStderrAsync();
     }
 
@@ -139,7 +125,7 @@ public sealed class ModuleWorkerClient : IAsyncDisposable
     private void OnExited(object? sender, EventArgs args) => Exited?.Invoke(this, EventArgs.Empty);
     private void TryKill()
     {
-        try { if (!_process.HasExited) _process.Kill(entireProcessTree: true); }
+        try { _job.Terminate(); }
         catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException) { }
     }
     private void RetireSession()
@@ -207,7 +193,7 @@ public sealed class ModuleWorkerClient : IAsyncDisposable
         TryKill();
         try { await _process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false); }
         catch (TimeoutException) { return false; }
-        return _process.HasExited;
+        return _process.HasExited && await _job.WaitForEmptyAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
     }
     public async ValueTask DisposeAsync()
     {
