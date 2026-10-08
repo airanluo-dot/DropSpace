@@ -6,7 +6,7 @@ and retries. Beta19's sealed 20/20 record is not reused as new execution.
 Build, source/resource integrity, package/hash checks and real public metadata/
 asset readback follow the existing non-functional production-check classification.
 
-Executed before final-main Actions: **16**. Failures: **5**. Retries: **5**.
+Executed before final-main Actions: **17**. Passes: **12**. Failures: **5**. Retries: **5**.
 
 Reserved before execution:
 
@@ -21,6 +21,7 @@ Reserved before execution:
 | 10 | Owned worker timeout and bounded stop | 1 | Failed 2026-10-08 before scenario assertions: same catalog field casing mismatch |
 | 11 | Official public sample installation through the shared downloader | 1 | Passed 2026-10-08T06:19:17Z–06:19:36Z; actual anonymous download of committed-source release ZIP, `docs/dev/evidence/beta32/public-module-lifecycle.json` |
 | 12 | Existing final-main installer payload extraction/uninstall producer scenario | 1 | Reserved for Actions |
+| 18 | Website release selection with the real official DLC tag, Beta19 and Beta1 candidate metadata | 1 | Passed 2026-10-08T06:52:28Z–06:52:29Z; one named case, `docs/dev/evidence/beta32/website-dlc-filter-case.json` |
 
 This narrowed plan selected 12 executions before the owner removed the fixed ceiling.
 Keep the focused selection; add a check only when it resolves a concrete risk. Do not rerun

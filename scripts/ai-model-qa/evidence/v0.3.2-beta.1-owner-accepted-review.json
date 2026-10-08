@@ -2944,10 +2944,10 @@
     "sha256": "cee4dd82f69a9157fe504b5092b9c8a06d18197a20a8674ac00216f7eca2c680"
   },
   "candidateValidation": {
-    "recordedAt": "2026-10-08T06:24:43Z",
-    "summary": "Sixteen local functional executions: eleven passed, five failed, five retries included. Native no-DLC/install/navigation/action/Island/disable/re-enable/uninstall/data-retention/normal-shutdown lifecycle passed. The final committed-source official module was anonymously downloaded, installed, operated and uninstalled. Optional pixel readbacks did not pass content validation and remain explicit warnings. One reserved final-main payload scenario and App release readback are pending. No model inference or semantic qualification ran.",
-    "completedFunctionalExecutions": 16,
-    "passed": 11,
+    "recordedAt": "2026-10-08T06:53:11Z",
+    "summary": "Seventeen local functional executions: twelve passed, five failed, five retries included. Native no-DLC/install/navigation/action/Island/disable/re-enable/uninstall/data-retention/normal-shutdown lifecycle passed. The final committed-source official module was anonymously downloaded, installed, operated and uninstalled. Official DLC release selection passed one focused website case. Optional pixel readbacks did not pass content validation and remain explicit warnings. One reserved final-main payload scenario and App release readback are pending. No model inference or semantic qualification ran.",
+    "completedFunctionalExecutions": 17,
+    "passed": 12,
     "failed": 5,
     "retries": 5,
     "aiExecutions": 0

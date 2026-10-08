@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "functionalScenarioExecutions": 1,
+  "startedAtUtc": "2026-10-08T06:52:28.7261474+00:00",
+  "completedAtUtc": "2026-10-08T06:52:29.0609704+00:00",
+  "command": "node --test --test-name-pattern '^official DLC sample preserves Beta19 and Beta1 App release selection$' website/_source/scripts/release-contract.test.mjs",
+  "exitCode": 0,
+  "status": "passed",
+  "contractSourceSha256": "1f1a01ddeebd334733c9acd783974cce6d68117d7319eae4de5433a8195f92fd",
+  "testSourceSha256": "66a7ff4b68f3acf8a6be6c6661360b9770e36ae39da2692199de508c59af7271",
+  "limitation": "Beta1 metadata is an explicit unpublished identity/body fixture; no public Beta1 artifact download or updater runtime execution."
+}
