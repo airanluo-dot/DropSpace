@@ -163,12 +163,60 @@ caller integration received source review. Raw evidence and source boundaries ar
 [file-race validation](evidence/local-iterations-2026-10-13/file-race-validation.md) and
 [Locate/Undo validation](evidence/local-iterations-2026-10-13/file-relocate-validation.md).
 
+## 5. Module inventory recovery
+
+Current source confirms dependency validation ran against only the records already
+enumerated. A valid dependent enumerated before its dependency became Faulted.
+An interrupted uninstall could also remove its candidate/current package then retain
+that version as installed. Startup management operations could create a slot before
+recovery replaced that slot, losing its worker owner.
+
+The implementation recovers all journals and verifies package inventory
+before dependency validation/activation. It distinguishes uninstall cleanup from
+retired-version cleanup and shares initialization with management operations.
+Disable records startup retirement intent and immediately fences an existing owner;
+queued activation cannot adopt its replacement generation. Uninstall waits for the
+complete dependency check before deciding whether retirement is permitted.
+
+Planned minimal verification, recorded before execution: one new managed-inventory
+case in the existing feature-module probe, one necessary compile/run. Temporary
+fixtures bind dependencies to actual enumeration order and exercise interrupted
+uninstall plus initialization/management ownership. The fixture declares minimum
+Windows build 0; no worker, native UI, external download or Windows compatibility
+is exercised. Historical worker cases are not included in this run.
+
+Result: the offline locked restore and one necessary probe build/run passed; the
+single case completed ten assertions in approximately 173 ms. All five fixtures
+were disabled, so early Disable exercised owner/barrier behavior, not a running
+worker or enabled-startup suppression. Those paths received independent source
+review. Physical stop remains behind initialization/slot serialization even though
+Disable immediately withdraws contributions and cancels requests. See the exact
+[module evidence](evidence/local-iterations-2026-10-13/module-inventory-validation.md).
+
+## 6. Cross-device clipboard acknowledgement (in progress)
+
+The HTTP host snapshots receiver delegates before awaiting them. Disable could win
+the service lifecycle gate, after which the copied receiver returned normally without
+importing. The host then returned Accepted=true. A copied delegate could also become
+active again after re-enable. Each subscription now captures its generation and
+rejects retired calls with the existing receiver-unavailable protocol category.
+Accepted event identities remain in the existing bounded TTL guard across toggles;
+failed imports release their reservation so a retry can still succeed.
+
+Planned minimal verification before execution: one source-linked receiver lifecycle
+scenario with real temporary settings and SQLite imports; only native clipboard and
+peer-discovery boundaries are substituted. A cached ephemeral identity avoids DPAPI;
+no server, network, protected identity persistence or system clipboard will run.
+The HTTP exception mapping receives compilation/source review, not live HTTP proof.
+
 ## Continuation
 
-The integrated media changes are saved in local commit `0e01f77`. The file-lifetime
-iteration is saved in a separate local checkpoint. The next confirmed defect is
-optional-module startup dependency validation against a partially loaded inventory;
-investigate interrupted-uninstall recovery in the same initialization boundary.
+The integrated media changes are saved in local commit `0e01f77`, and file lifetime
+changes in `845649f`. Module recovery is saved in a separate local checkpoint. A parallel independent
+inspection also confirmed that a captured cross-device clipboard callback could
+return normally after Disable, causing the HTTP host to acknowledge an event that
+was never imported; receive-generation fencing and an explicit unavailable response
+are implemented and awaiting focused validation.
 The original user failures remain unverified on the target platform until the
 Windows/NetEase observations above are available. Do not infer success from C#
 compilation or controlled publishers. No background execution is implied after

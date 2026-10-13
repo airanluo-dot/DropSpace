@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -10,18 +11,20 @@ using DropSpace.Infrastructure.Downloads;
 using Microsoft.Extensions.Logging.Abstractions;
 
 if (args.Contains("--module-session", StringComparer.Ordinal)) return await PathologicalWorkerAsync(args);
-if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("The worker lifecycle probe requires Windows.");
 string? Option(string name)
 {
     var index = Array.IndexOf(args, name);
     return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
 }
 var selected = Option("--case");
+// Case 6 never starts a worker: only managed inventory and journal recovery are exercised.
+if (selected != "6" && !OperatingSystem.IsWindows())
+    throw new PlatformNotSupportedException("The worker lifecycle probe requires Windows.");
 var evidenceFile = Option("--evidence");
 var storageRoot = Option("--root");
-if (selected is not ("1" or "2" or "3" or "4" or "5") || evidenceFile is null || storageRoot is null)
+if (selected is not ("1" or "2" or "3" or "4" or "5" or "6") || evidenceFile is null || storageRoot is null)
 {
-    Console.WriteLine("Opt-in only: --case 1|2|3|4|5 --root <fresh probe artifacts directory> --evidence <new JSON file> [--package <pinned ZIP>] [--failure-mode cancel|crash|timeout] [--rejection-mode traversal|hash|required-capability|incompatible-update]");
+    Console.WriteLine("Opt-in only: --case 1|2|3|4|5|6 --root <fresh probe artifacts directory> --evidence <new JSON file> [--package <pinned ZIP>] [--failure-mode cancel|crash|timeout] [--rejection-mode traversal|hash|required-capability|incompatible-update]");
     return 2;
 }
 var repositoryDirectory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -44,6 +47,7 @@ var provenance = "production embedded official catalog";
 #if MODULE_PROBE_FIXTURE_CATALOG
 provenance = "probe-only independently hash-pinned fixture catalog; not public publisher/download verification";
 #endif
+if (selected == "6") provenance = "local synthetic inventory fixtures (MinimumWindowsBuild=0); no Windows compatibility, worker or publisher/download verification";
 string? errorCategory = null;
 var passed = false;
 var assertions = new List<string>();
@@ -157,6 +161,108 @@ try
             Check(!worker.IsAlive, "Retired session cannot deliver a late result into a live worker");
             break;
         }
+        case "6":
+        {
+            const string firstId = "probe.order-one", secondId = "probe.order-two";
+            const string cleanedId = "probe.removing", blockedId = "probe.after-cleanup", missingId = "probe.missing";
+            const string version = "1.0.0";
+            await SeedInventoryAsync(firstId, []);
+            await SeedInventoryAsync(secondId, []);
+            await SeedInventoryAsync(blockedId, [new(cleanedId, version, "2.0.0")]);
+            await SeedInventoryAsync(missingId, [new("probe.never-installed", version, "2.0.0")]);
+            await SeedInventoryAsync(cleanedId, [], uninstalling: true);
+            // Bind the dependency direction to the actual store enumeration, without
+            // relying on insertion order or the filesystem's sorting policy.
+            var observed = (await store.LoadAsync()).Select(entry => entry.Id).ToArray();
+            var orderedPair = observed.Where(id => id is firstId or secondId).ToArray();
+            Check(orderedPair.Length == 2, "Both installed order fixtures were enumerated");
+            var dependentId = orderedPair[0];
+            var dependencyId = orderedPair[1];
+            await SeedInventoryAsync(dependentId, [new(dependencyId, version, "2.0.0")], writeState: false);
+            var actualOrder = (await store.LoadAsync()).Select(entry => entry.Id).ToArray();
+            Check(Array.IndexOf(actualOrder, dependentId) < Array.IndexOf(actualOrder, dependencyId),
+                "The dependent is actually enumerated before its installed dependency");
+            var preservedData = Path.Combine(store.GetDataDirectory(cleanedId), "retained.txt");
+            await File.WriteAllTextAsync(preservedData, "fixture user data");
+            await using var runtime = new FeatureModuleRuntime(store, catalog, NullLogger<FeatureModuleRuntime>.Instance);
+            // Hold only this temporary store's gate to make the startup/mutation
+            // overlap deterministic; the actual store and runtime remain unchanged.
+            var storeGate = (SemaphoreSlim)typeof(ModulePackageStore).GetField("_gate",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(store)!;
+            await storeGate.WaitAsync();
+            Task initializing;
+            Task disabling;
+            try
+            {
+                initializing = runtime.InitializeAsync();
+                disabling = runtime.DisableAsync(dependentId);
+                Check(!initializing.IsCompleted && !disabling.IsCompleted,
+                    "A public mutation waits for the in-progress inventory instead of constructing another slot");
+            }
+            finally { storeGate.Release(); }
+            await Task.WhenAll(initializing, disabling);
+            Check(runtime.Snapshots.Count(snapshot => snapshot.Installation.Id == dependentId) == 1,
+                "Overlapping startup and disable retain exactly one authoritative module slot");
+            var dependent = One(runtime, dependentId);
+            var dependency = One(runtime, dependencyId);
+            Check(dependent.Manifest is not null && dependent.RunState == ModuleRunState.Stopped &&
+                dependency.Manifest is not null && dependency.RunState == ModuleRunState.Stopped &&
+                !dependency.Installation.Enabled,
+                "A dependent-first inventory accepts its verified installed dependency even when disabled");
+            var cleaned = One(runtime, cleanedId);
+            Check(cleaned.Installation.Version is null && cleaned.Installation.Transaction == ModuleTransactionState.None &&
+                cleaned.Installation.CandidateVersion is null && cleaned.Manifest is null &&
+                !Directory.Exists(store.GetVersionDirectory(cleanedId, version)),
+                "Recovered uninstall physically removes the package and clears the installed version");
+            var persisted = (await store.LoadAsync()).Single(entry => entry.Id == cleanedId);
+            Check(persisted.Version is null && persisted.CandidateVersion is null &&
+                persisted.Transaction == ModuleTransactionState.None && File.Exists(preservedData),
+                "Completed uninstall state is durable while its scoped data is retained");
+            Check(One(runtime, blockedId).Manifest is null && One(runtime, blockedId).RunState == ModuleRunState.Faulted,
+                "A cleaned uninstall journal cannot satisfy another module's dependency");
+            Check(One(runtime, missingId).Manifest is null && One(runtime, missingId).RunState == ModuleRunState.Faulted,
+                "A genuinely missing dependency is still rejected");
+            Check(runtime.DiagnosticState is { WorkerOwners: 0, AliveWorkers: 0, ActiveCalls: 0, HasExpiryTimer: false },
+                "Inventory recovery owns no workers, calls or expiry timer");
+            break;
+
+            async Task SeedInventoryAsync(string id, ModuleDependency[] dependencies, bool uninstalling = false, bool writeState = true)
+            {
+                // Inert bytes are never launched. The manifest deliberately declares
+                // build 0 so this managed scenario can run on Linux without changing
+                // ModuleContract's production compatibility checks.
+                var worker = Encoding.UTF8.GetBytes("inert inventory-only fixture");
+                var manifest = new ModuleManifest
+                {
+                    Id = id, Version = version, EntryPoint = "InventoryFixture.exe", Name = new("name"),
+                    MinimumWindowsBuild = 0, Dependencies = dependencies,
+                    Files = [new("InventoryFixture.exe", worker.Length, Convert.ToHexString(SHA256.HashData(worker)).ToLowerInvariant())],
+                    Resources = ModuleContract.Languages.ToDictionary(language => language,
+                        _ => new Dictionary<string, string> { ["name"] = "Inventory fixture" }),
+                };
+                var manifestBytes = JsonSerializer.SerializeToUtf8Bytes(manifest, ModulePackageStore.JsonOptions);
+                var directory = store.GetVersionDirectory(id, version);
+                Directory.CreateDirectory(directory);
+                var archivePath = Path.Combine(directory, ".package.zip");
+                await using (var archiveFile = new FileStream(archivePath, FileMode.Create, FileAccess.Write))
+                using (var archive = new ZipArchive(archiveFile, ZipArchiveMode.Create))
+                {
+                    await using (var file = archive.CreateEntry("manifest.json").Open()) await file.WriteAsync(manifestBytes);
+                    await using (var file = archive.CreateEntry("InventoryFixture.exe").Open()) await file.WriteAsync(worker);
+                }
+                var archiveBytes = await File.ReadAllBytesAsync(archivePath);
+                var package = new OfficialModulePackage(id, version, OfficialModuleCatalog.PackageUrl(id, version),
+                    archiveBytes.Length, Convert.ToHexString(SHA256.HashData(archiveBytes)).ToLowerInvariant());
+                await File.WriteAllBytesAsync(Path.Combine(directory, "manifest.json"), manifestBytes);
+                await File.WriteAllBytesAsync(Path.Combine(directory, "InventoryFixture.exe"), worker);
+                await File.WriteAllBytesAsync(Path.Combine(directory, ".package-record.json"),
+                    JsonSerializer.SerializeToUtf8Bytes(package, ModulePackageStore.JsonOptions));
+                if (writeState)
+                    await store.WriteAsync(new(id, version, false, 1,
+                        uninstalling ? ModuleTransactionState.Cleaning : ModuleTransactionState.None,
+                        CandidateVersion: uninstalling ? version : null));
+            }
+        }
         case "5":
         {
 #if !MODULE_PROBE_FIXTURE_CATALOG
@@ -202,7 +308,8 @@ finally
     {
         scenario = selected, failureMode, rejectionMode, startedAtUtc = started, finishedAtUtc = DateTimeOffset.UtcNow,
         passed, errorCategory, actualFunctionalScenarios = 1, provenance,
-        packageSource = selected is "1" or "4" ? "not used in this process-only scenario" :
+        packageSource = selected == "6" ? "locally generated inert inventory files; no downloader or installer invoked" :
+            selected is "1" or "4" ? "not used in this process-only scenario" :
             Option("--package") is null ? "anonymous official downloader" : "locally cached ZIP verified against independent embedded catalog",
         assertions,
     }, new JsonSerializerOptions { WriteIndented = true });

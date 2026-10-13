@@ -1,0 +1,24 @@
+{
+  "scenario": "6",
+  "failureMode": null,
+  "rejectionMode": null,
+  "startedAtUtc": "2026-10-13T03:23:21.2264522+00:00",
+  "finishedAtUtc": "2026-10-13T03:23:21.3997486+00:00",
+  "passed": true,
+  "errorCategory": null,
+  "actualFunctionalScenarios": 1,
+  "provenance": "local synthetic inventory fixtures (MinimumWindowsBuild=0); no Windows compatibility, worker or publisher/download verification",
+  "packageSource": "locally generated inert inventory files; no downloader or installer invoked",
+  "assertions": [
+    "Both installed order fixtures were enumerated",
+    "The dependent is actually enumerated before its installed dependency",
+    "A public mutation waits for the in-progress inventory instead of constructing another slot",
+    "Overlapping startup and disable retain exactly one authoritative module slot",
+    "A dependent-first inventory accepts its verified installed dependency even when disabled",
+    "Recovered uninstall physically removes the package and clears the installed version",
+    "Completed uninstall state is durable while its scoped data is retained",
+    "A cleaned uninstall journal cannot satisfy another module\u0027s dependency",
+    "A genuinely missing dependency is still rejected",
+    "Inventory recovery owns no workers, calls or expiry timer"
+  ]
+}

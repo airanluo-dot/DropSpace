@@ -1,0 +1,71 @@
+{
+  "round": 5,
+  "scenario": "6",
+  "actualFunctionalExecutions": 1,
+  "failedExecutions": 0,
+  "historicalCasesRun": [],
+  "restore": "once; --locked-mode --source /home/agent/.nuget/packages/ --ignore-failed-sources",
+  "buildAndRun": "one dotnet run --no-restore; exit code 0; no stdout/stderr emitted",
+  "fixturesEnabled": false,
+  "productionMinimumWindowsBuildPolicyChanged": false,
+  "fixtureMinimumWindowsBuild": 0,
+  "workerAndWindowsVerification": false,
+  "inputs": [
+    {
+      "path": "scripts/feature-module-probe/FeatureModuleProbe.csproj",
+      "sha256": "7ded3d2891ed7972000d9352ad6351a8968ede2a809a35535884199fcad97ae4"
+    },
+    {
+      "path": "scripts/feature-module-probe/Program.cs",
+      "sha256": "1ba1eb30ed7d4086cec9053ac17d2ac54c3447dae9002cf597cfcfe928119116"
+    },
+    {
+      "path": "scripts/feature-module-probe/README.md",
+      "sha256": "1f6fa132dc46211270d8cd862fc37853cf17116158d00d046424d9e36bf1a329"
+    },
+    {
+      "path": "scripts/feature-module-probe/packages.lock.json",
+      "sha256": "dbba51527fd104cca9a373cb1527ab92b807f56be6cc95d6ec22533a6de23ad4"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Dlc/FeatureModuleRuntime.cs",
+      "sha256": "7fd4376116e01ce401da8afa5068d0df4ad234605dddaccc149853b75d179299"
+    },
+    {
+      "path": "src/DropSpace.Core/Dlc/ModuleContracts.cs",
+      "sha256": "03d53fa244a5fe67479dc8a8709c6eff040a15cf5356feb9f271abb4d104bc84"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/ModulePackageStore.cs",
+      "sha256": "5ce5960092d7f6e09b74ff9c1f8a01ce386088d3f8c7ea0611ea0f9e050cd1a5"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/ModuleProcessJob.cs",
+      "sha256": "a3c3c2f6525f5f0d67b50fe387defb8da02d9a4fdcf67bbdde571ccd38912606"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/ModuleWorkerClient.cs",
+      "sha256": "1eaa1513f6531f9349dd54af924f6cd00561654f39fd09e9b1dbe19380babdd2"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/OfficialModuleCatalog.cs",
+      "sha256": "1d69e294522f77f1f1341379f55d7b81a2c39ba178bab398d7f57023805c0138"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/official-modules.json",
+      "sha256": "2a8fc541c1c676af1b8e33476195a8172f79730372fd0d0b786eae162291b839"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadStorage.cs",
+      "sha256": "810ae27eab2f9c921a9019f93245445643ecf417a75f069d511b12b3cbb027a6"
+    }
+  ],
+  "assembly": {
+    "path": "scripts/feature-module-probe/bin/Debug/net10.0/DropSpace.FeatureModuleProbe.dll",
+    "sha256": "950e882ed3f646920a2609268c6e3e54654461ebe0cc260bd155d1397c8f1ad5"
+  },
+  "machineEvidence": {
+    "path": "module-inventory-result.json",
+    "sha256": "1f3e7fea60d5a83171357eef47cde61286db56ef27da1b4fae6de7eb16ea7b0b"
+  }
+}
