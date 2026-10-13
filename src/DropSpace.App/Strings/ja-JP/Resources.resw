@@ -394,6 +394,7 @@
   <data name="TransferSentTitle" xml:space="preserve"><value>転送が送信されました</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>信頼できるデバイスは転送を受け入れ、DropSpace はコミット前にコンテンツを検証しました。</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>転送不可</value></data>
+  <data name="TransferBusyContent" xml:space="preserve"><value>ほかの転送がまだ進行中、または終了処理中です。いずれかが終了してから、もう一度お試しください。</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>選択した内容に含まれるフォルダー内の項目が多すぎるか、パスが長すぎます。選択する項目を減らすか、より小さいサブフォルダーを選択して、もう一度お試しください。</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>ペアリングされたデバイスがありません</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>まず、[設定] → [デバイスと共有] で、信頼できる Windows デバイスを見つけてペアリングします。</value></data>

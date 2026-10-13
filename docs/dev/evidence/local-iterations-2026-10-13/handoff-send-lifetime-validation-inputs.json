@@ -1,0 +1,184 @@
+{
+  "round": 17,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "one successful offline-cache restore; 2 referenced projects already up to date",
+  "build": "one normal source-linked console probe build/run; default analyzers and warnings-as-errors retained; no build warning/error output",
+  "commands": [
+    "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet restore scripts/handoff-send-lifecycle-probe/HandoffSendLifecycleProbe.csproj --source /home/agent/.nuget/packages/ --ignore-failed-sources --nologo",
+    "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet run --project scripts/handoff-send-lifecycle-probe/HandoffSendLifecycleProbe.csproj --no-restore --no-launch-profile"
+  ],
+  "result": {
+    "restoreExitCode": 0,
+    "probeExitCode": 0,
+    "passed": 1,
+    "admittedOwners": 5,
+    "finalOutstanding": 0
+  },
+  "platform": "Linux; actual source-linked lifetime and typed exception; actual Infrastructure TransferProgress; controlled pending sends and cancellation callbacks",
+  "measured": [
+    "disabled and busy admission do not invoke a send delegate",
+    "two actual pending sends retain both slots after disable cancels callers and re-enable begins a new scope",
+    "old scope and settled send progress are rejected while fresh scope progress is accepted",
+    "actual completion with a blocked cancellation callback retains its slot; another fresh pending send keeps admission busy",
+    "late failure is observed and logged without reviving canceled callers",
+    "fresh success recovers after old actual work and cancellation callbacks retire",
+    "active original failure reaches the caller unchanged",
+    "active provider TaskCanceledException becomes IOException preserving its cause and faults rather than cancels the caller",
+    "five owners retire with zero outstanding sends"
+  ],
+  "staticOnly": [
+    "DeviceHandoffService settings/disposal and SendFiles/SendText wiring",
+    "shared clipboard client remains independent",
+    "MainPage typed error mapping",
+    "external caller-token cancellation and already-posted IProgress consumption boundary"
+  ],
+  "localization": {
+    "source": "native_context execution and root-copied raw log",
+    "explicitReviewExecutions": 9,
+    "scopeAppExecutions": 1,
+    "functionCaseCount": 0,
+    "languages": 10,
+    "appIds": 888,
+    "rawLog": "handoff-send-lifetime-localization.log.txt"
+  },
+  "unexecuted": [
+    "historical functional tests/probes",
+    "actual DropLink client/host/network/peer",
+    "actual filesystem transfer",
+    "settings/disposal UI flow",
+    "full App/XAML compilation",
+    "Windows WinUI interaction"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffSendLifetime.cs",
+      "sha256": "8eac9e79f3a737f2492acb52ce412563cc4a6bbfb6474e2572d2c53cd3bf87b9"
+    },
+    {
+      "path": "src/DropSpace.App/Services/HandoffSendUnavailableException.cs",
+      "sha256": "b3402dc4e7d59ef7e345695e82e128c69f5396ef3835fd00a2516fa4de414b27"
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffService.cs",
+      "sha256": "ec978bda0a7d1bdcef808ec514fab7da9b276476e186197001358feac345f21b"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+      "sha256": "5ba3430635895abbcbe2c96d86cef413eff293c4a340ba6a990b6c9c35b517fd"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkClient.cs",
+      "sha256": "8ad84e9ad167a7547570d587add9abc2877825b3fdea4a9ccc09024b31d0e623"
+    },
+    {
+      "path": "scripts/handoff-send-lifecycle-probe/HandoffSendLifecycleProbe.csproj",
+      "sha256": "3da68b0de0590b99532a08f9d539b81a2fcdb1b2932f95468295046af672fd6f"
+    },
+    {
+      "path": "scripts/handoff-send-lifecycle-probe/Program.cs",
+      "sha256": "e1e1693cb65a98b8da743ae4aeb79d5782f177faecde7381f0d380ff791b8374"
+    },
+    {
+      "path": "scripts/handoff-send-lifecycle-probe/README.md",
+      "sha256": "40b5f905cb2ffadf7ebcc3ef97f1fd0d44b1f1587ee32a13ca5e8d4c349b0f96"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+    },
+    {
+      "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+      "sha256": "5d697fd66f1e7c34f815eafd02bdc2fde9b3669a83877e38c55a03c318b6a274"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj",
+      "sha256": "acb4adbc54274bca7331456c584db46f60968fb6b3dc912a7d7ecf7893c401de"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
+      "sha256": "cea48d72837f33d50d65531be332c32526e55dea8b84adc400690d3cd5ad1c98"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+      "sha256": "c1b32d102e985a85b00407303b6efc73ff36d2dbb71aaef7defb4608c48db703"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
+      "sha256": "11c328e6329162539dbca6f2fae7aacd762b334ff27d0953ebfec9ce30d912f1"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
+      "sha256": "5ac266e276becec4c9bdd87c49986c0626bf8ac7d47496389a44dfd5377d88f1"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
+      "sha256": "2587978884a0fc2a4482c9670cf020a1487c511b2603d5024c39ad1d5739276e"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
+      "sha256": "442a6e70dcd5e180bf74ec5d0c3d9f7e1eb66fa4a318e18c4cd4803ff15faa81"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
+      "sha256": "4419c42293cc7b1626514262c07e47e7a63eb6df0b31c78e0a631d2e9cd8275d"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
+      "sha256": "813edf144fe34c1e249e2b19a0dac3a87d9ce60ff32fa10aa2c84e2805898ce5"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+      "sha256": "382d18a75d8adf6a69784476c052cedc5447ead4eaf61ff6c5ba9ea928112bca"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
+      "sha256": "be2fa1c5b205adae07f12f42912491ec4c3a3d128738244ec34051274b343e0d"
+    },
+    {
+      "path": "localization/reviews/app/de-DE.json",
+      "sha256": "cbe47429fcb695769171dd2d70ad915538c99ef86f67f4da9643d1b7ca849cf7"
+    },
+    {
+      "path": "localization/reviews/app/es-ES.json",
+      "sha256": "0f24323da64993825024db21b98750c47f3e369d184293098abd816af484cb7a"
+    },
+    {
+      "path": "localization/reviews/app/fr-FR.json",
+      "sha256": "65bc21cd15faa25f27fad8918b2c99b291921ca71d76436448c677d661c7340c"
+    },
+    {
+      "path": "localization/reviews/app/ja-JP.json",
+      "sha256": "cde839b1875dfe7aa608e4ce80cfc212197bf8edb68c96bded1cdd0483a2a421"
+    },
+    {
+      "path": "localization/reviews/app/ko-KR.json",
+      "sha256": "acfcd49d9b64250e4fe12c681847e3b6dfc5f4d0a1fceca8f7e2e2ee468f6bb5"
+    },
+    {
+      "path": "localization/reviews/app/pt-BR.json",
+      "sha256": "fced4b388493d2dd7f7f2d3c5fd76e2c4b28071e553257bf089c8bf61c3224cf"
+    },
+    {
+      "path": "localization/reviews/app/ru-RU.json",
+      "sha256": "de67893638a1d079ff639c1627185ac0310de59ab8d71fa979876ef3934a4ee2"
+    },
+    {
+      "path": "localization/reviews/app/zh-CN.json",
+      "sha256": "80b7884fa18c39774386b99e4e64cc6da17c244dd823cc9ab12fefea6a0100fa"
+    },
+    {
+      "path": "localization/reviews/app/zh-TW.json",
+      "sha256": "5d3cc687a121fd63f62904f4ba2bec4002c0ebb2730185dcb1f0b085b67f98a1"
+    }
+  ],
+  "builtAssembly": {
+    "path": "scripts/handoff-send-lifecycle-probe/bin/Debug/net10.0/HandoffSendLifecycleProbe.dll",
+    "sha256": "615f55c3dd43f103324d3341c7ebca152e3ec1422b96202f53b2a8289261d44a"
+  }
+}

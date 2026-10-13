@@ -394,6 +394,7 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Übertragung gesendet</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>Das vertrauenswürdige Gerät hat die Übertragung akzeptiert und DropSpace den Inhalt vor dem Übertragen überprüft.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Übertragung nicht verfügbar</value></data>
+  <data name="TransferBusyContent" xml:space="preserve"><value>Andere Übertragungen laufen noch oder werden gerade beendet. Versuchen Sie es erneut, sobald eine davon beendet ist.</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>Die Auswahl enthält zu viele Ordnereinträge oder zu lange Pfade. Wählen Sie weniger Elemente oder einen kleineren Unterordner aus und versuchen Sie es erneut.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>Keine gekoppelten Geräte</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Suchen und koppeln Sie zunächst ein vertrauenswürdiges Windows-Gerät unter Einstellungen → Geräte &amp; Freigabe.</value></data>

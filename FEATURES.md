@@ -51,8 +51,8 @@ results remain in `docs/dev/netease-enhancement.md`; this catalogue does not est
 - Beta 26 bounds clipboard, manual file drops, virtual OLE materialization, batch persistence, native-window recovery, updater cancellation and integrity failures without changing the local-first or source-file-safe boundary. Virtual-file batches reserve distinct names, payload operations reject linked-directory escapes, and failed cleanup obligations cannot starve later work.
 - ZIP exports retain hierarchy and empty folders. Installer/update artifacts must match RELEASE_VERSION; cancellation before installer launch restores a retryable state or exposes a rollback failure.
 
-Beta 28 is the current Beta release; its validation evidence is recorded in
-`docs/dev/beta28-media-ui-audit.md`. Beta 27 evidence remains in
+The repository's current Beta target is recorded in `RELEASE_VERSION`. Historical
+Beta 28 validation evidence is recorded in `docs/dev/beta28-media-ui-audit.md`. Beta 27 evidence remains in
 `docs/dev/beta27-lyrics-netease-audit.md`. Beta 26 publication and native acceptance remain
 in `docs/dev/beta26-rc-audit.md`. Feature contracts do not imply that
 every physical display, music player, source application or network is verified.

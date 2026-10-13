@@ -1549,7 +1549,7 @@
     ],
     "TransferSentTitle": [
       "4bae2d0a22b5773a0f971cc7e578460bed74c6607aa71d128850e451e766457f",
-      "0fd58c8596760c45dd38bd3c7d47dbc3f17a4603833e5b9e59613751f0e2e2b8"
+      "a39efac08f4fc050eabce7286fb0c6219c421d4ebd8b4745e372f49e03b9dd4b"
     ],
     "TransferSentContent": [
       "51a3a5660b8e12fff18d31d28f147f4b83b12f5bf80612f55965deb3a8420c7b",
@@ -3550,17 +3550,21 @@
     "TransferPreparationLimitContent": [
       "fe0530b2c95d65b4b819c0668cca8d06a332dc1badcdddb3bf908ac59e265424",
       "8ac4f5f193f01ef653df160f1597f24ac847dcce0a2431ab5657e4d7fc186124"
+    ],
+    "TransferBusyContent": [
+      "9da805fd8d489cf7730c4fa8dcb89234111eb2ad1e7f0d3a4c0ffb37ca74c061",
+      "b963dabb1f551794b938bdc66128c4c050fe68132be0ea6c44c5ee611917cd0a"
     ]
   },
-  "reviewedBy": "Codex native_context; independent enhancement_lifecycle review: transfer preparation guidance and ko/ru data-transfer titles",
-  "reviewedAt": "2026-10-13T04:39:08.400Z",
+  "reviewedBy": "Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title",
+  "reviewedAt": "2026-10-13T04:46:33.930Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "TransferPreparationLimitContent",
-      "TransferUnavailableTitle"
+      "TransferBusyContent",
+      "TransferSentTitle"
     ],
-    "reviewedBy": "Codex native_context; independent enhancement_lifecycle review: transfer preparation guidance and ko/ru data-transfer titles",
-    "reviewedAt": "2026-10-13T04:39:08.400Z"
+    "reviewedBy": "Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title",
+    "reviewedAt": "2026-10-13T04:46:33.930Z"
   }
 }

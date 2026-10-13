@@ -396,6 +396,7 @@ Nothing will be opened automatically.</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Transfer sent</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>The trusted device accepted the transfer and DropSpace verified the content before commit.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Transfer unavailable</value></data>
+  <data name="TransferBusyContent" xml:space="preserve"><value>Other transfers are still running or finishing. Try again after one completes.</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>This selection contains too many folder entries or paths that are too long. Select fewer items or a smaller subfolder and try again.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>No paired devices</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Find and pair a trusted Windows device in Settings → Devices &amp; Sharing first.</value></data>

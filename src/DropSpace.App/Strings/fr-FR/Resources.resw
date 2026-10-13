@@ -394,6 +394,7 @@ Aucun contenu ne sera ouvert automatiquement.</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Transfert envoyé</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>L'appareil de confiance a accepté le transfert et DropSpace a vérifié le contenu avant la validation.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Transfert indisponible</value></data>
+  <data name="TransferBusyContent" xml:space="preserve"><value>D’autres transferts sont encore en cours ou en train de se terminer. Réessayez une fois que l’un d’eux sera terminé.</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>La sélection contient trop d’éléments dans les dossiers ou des chemins trop longs. Sélectionnez moins d’éléments ou un sous-dossier plus petit, puis réessayez.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>Aucun appareil couplé</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Recherchez et associez d'abord un appareil Windows de confiance dans Paramètres → Appareils et partage.</value></data>

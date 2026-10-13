@@ -20,6 +20,7 @@ public sealed class DeviceHandoffService(
     private bool _initialized;
     private bool _disposed;
     private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+    private readonly DeviceHandoffSendLifetime _outgoing = new(logger);
     private IAsyncDisposable? _registration;
     private string? _unavailableReason;
 
@@ -70,6 +71,7 @@ public sealed class DeviceHandoffService(
                 _registration = await discovery.RegisterAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 _unavailableReason = null;
+                _outgoing.Enable();
                 _initialized = true;
                 IsEnabled = true;
             }
@@ -86,6 +88,7 @@ public sealed class DeviceHandoffService(
 
     private async Task DisableCoreAsync()
     {
+        _outgoing.Disable();
         IsEnabled = false;
         _initialized = false;
         try
@@ -120,7 +123,9 @@ public sealed class DeviceHandoffService(
         IReadOnlyList<string> sourcePaths,
         IProgress<TransferProgress>? progress = null,
         CancellationToken cancellationToken = default) =>
-        client.SendFilesAsync(peer, endpoint, sourcePaths, progress, cancellationToken: cancellationToken);
+        _outgoing.RunAsync((token, scopedProgress) =>
+            client.SendFilesAsync(peer, endpoint, sourcePaths, scopedProgress, cancellationToken: token),
+            progress, cancellationToken);
 
     public Task<HandoffMessageResponse> SendTextOrUrlAsync(
         PeerDevice peer,
@@ -129,7 +134,9 @@ public sealed class DeviceHandoffService(
         string payload,
         string? displayLabel = null,
         CancellationToken cancellationToken = default) =>
-        client.SendHandoffAsync(peer, endpoint, kind, payload, displayLabel, cancellationToken);
+        _outgoing.RunAsync((token, _) =>
+            client.SendHandoffAsync(peer, endpoint, kind, payload, displayLabel, token),
+            cancellationToken: cancellationToken);
 
     public Task<TransferStatusResponse> ApproveTransferAsync(
         PeerDevice peer,

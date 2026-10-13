@@ -502,6 +502,52 @@ succeeded (10 languages, 887 IDs); these are not functional test cases. Windows
 long paths, MainPage's real dialog and network transmission remain unexecuted.
 See the [handoff preparation evidence](evidence/local-iterations-2026-10-13/handoff-enumeration-validation.md).
 
+## 17. Retire explicit handoff sends across service switches
+
+File and text sends previously forwarded straight from DeviceHandoffService to
+the shared client. Disabling or disposing the service stopped discovery and the
+receiving host, but did not cancel those outgoing requests. Main's calls supply
+no cancellation token, and repeated actions had no shared capacity limit. The
+clipboard bridge also uses the client independently, so imposing the handoff
+switch on the entire client would break a separate feature.
+
+The repair is scoped to the service's two explicit send methods. A successful
+enable owns a new admission identity; disable, rollback and disposal withdraw it.
+At most two actual sends may remain active or retiring across all identities, with
+immediate feedback when capacity is occupied. Caller cancellation and native/IO
+completion remain separate: abandoned work must retain its slot and cancellation
+resources through actual completion. Old service results and progress reports are
+fenced. A third-party Progress<T> consumer's already-posted UI callbacks cannot be
+retracted by this service; a future progress UI must fence its own consumption.
+Cancellation also cannot undo a remote commit that already completed.
+
+Busy feedback has ten offline translations; the reused Russian success title is
+corrected to describe data transmission. Planned validation is one source-linked
+owner scenario with blocked operation/cancellation boundaries, plus independent
+service/UI review. The App localization integrity check ran once after explicit
+review of the changed IDs (10 languages, 888 IDs); its log is retained. No actual
+network send is planned for these checks, and Windows interaction is unavailable.
+The visible progress/cancel workflow is a separate next iteration, not claimed
+as implemented by this service-lifetime repair.
+
+Final review also traced a concrete feedback gap: the client's ten-minute HTTP
+timeout can throw TaskCanceledException, while MainPage treats any cancellation
+as a quiet exit. Only a provider cancellation observed while this send's own
+tokens and admission identity remain current is now wrapped in IOException,
+preserving the original exception. Intentional caller/service cancellation stays
+cancellation; the code does not label every provider cancellation a timeout.
+
+Result: the single controlled ownership composite passed on its first run after
+one offline-cache restore and normal compilation with default analyzers. It
+exercised retained slots through actual work and blocked cancellation callbacks,
+disable/re-enable, stale progress, fresh recovery, original failure propagation,
+and provider cancellation versus intentional cancellation. Five actual owners
+retired with none left. This did not run a real client, peer, Windows UI or full
+App/XAML compilation. Independent service and UI reviews passed. See the
+[send lifetime evidence](evidence/local-iterations-2026-10-13/handoff-send-lifetime-validation.md).
+The feature catalogue's stale claim that historical Beta 28 is the current
+release was also replaced with a pointer to RELEASE_VERSION; no version changed.
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -512,9 +558,10 @@ The pin/removal Undo ordering fix is saved in `d510192`, and download-startup
 ownership in `783fec7`, and image-export handles in `d03c59d`. Pause failure
 feedback is saved in `c12d283`, and discarded-card asset cancellation in `796f90b`.
 Quick Panel keyboard focus is saved in `5216d4e`. DropLink directory preparation
-budgets and their localized feedback have passed focused verification and are
-ready for their checkpoint. The next repair gives explicit device handoff sends
-their own service lifetime and bounded capacity across disable/re-enable.
+budgets and their localized feedback are saved in `b51e307`. Explicit device
+handoff sends now retain their service lifetime and bounded capacity across
+disable/re-enable. The next iteration adds a native progress and cancellation
+surface for file sends, with state owned independently of a MainPage instance.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.

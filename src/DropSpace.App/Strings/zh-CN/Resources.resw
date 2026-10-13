@@ -396,6 +396,7 @@
   <data name="TransferSentTitle" xml:space="preserve"><value>已发送传输</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>可信设备已接受传输，DropSpace 在提交前完成了内容校验。</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>传输不可用</value></data>
+  <data name="TransferBusyContent" xml:space="preserve"><value>其他传输仍在进行或收尾。请等待其中一项结束后再试。</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>所选内容中的文件或文件夹过多，或路径过长。请选择更少的项目或较小的子文件夹，然后重试。</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>没有已配对设备</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>请先在“设置 → 设备与分享”中查找并配对可信 Windows 设备。</value></data>

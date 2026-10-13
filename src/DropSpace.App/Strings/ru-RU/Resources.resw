@@ -391,9 +391,10 @@
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>Отправить на устройство</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>Создать ссылку «Рядом»</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>Создать безопасную ссылку в Интернет</value></data>
-  <data name="TransferSentTitle" xml:space="preserve"><value>Перевод отправлен</value></data>
+  <data name="TransferSentTitle" xml:space="preserve"><value>Передача отправлена</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>Доверенное устройство приняло передачу и DropSpace проверило содержимое перед фиксацией.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Передача недоступна</value></data>
+  <data name="TransferBusyContent" xml:space="preserve"><value>Другие передачи ещё выполняются или завершаются. Повторите попытку после завершения одной из них.</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>Выбранное содержимое включает слишком много элементов папок или слишком длинные пути. Выберите меньше элементов или подпапку меньшего размера и повторите попытку.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>Нет сопряженных устройств</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Сначала найдите и подключите доверенное устройство Windows в «Настройки» → «Устройства и общий доступ».</value></data>

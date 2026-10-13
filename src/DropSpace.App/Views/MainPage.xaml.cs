@@ -2407,6 +2407,17 @@ public sealed partial class MainPage : Page
         {
             _logger.LogWarning(exception, "A main-page operation failed.");
             if (_dialogLifetime.IsCancellationRequested || XamlRoot is null) return;
+            if (exception is HandoffSendUnavailableException handoffFailure)
+            {
+                var (title, content) = handoffFailure.Reason switch
+                {
+                    HandoffSendUnavailableReason.Disabled => ("DevicesDisabledTitle", "DevicesDisabledContent"),
+                    HandoffSendUnavailableReason.Busy => ("TransferUnavailableTitle", "TransferBusyContent"),
+                    _ => ("OperationIncompleteTitle", "OperationIncompleteContent"),
+                };
+                await ShowMessageAsync(_strings.Get(title), _strings.Get(content));
+                return;
+            }
             if (exception is TransferPreparationLimitException)
             {
                 await ShowMessageAsync(_strings.Get("TransferUnavailableTitle"),
