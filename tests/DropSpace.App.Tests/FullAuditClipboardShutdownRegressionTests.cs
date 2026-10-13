@@ -13,7 +13,7 @@ public sealed class FullAuditClipboardShutdownRegressionTests
         // No platform operation is reached: hold the clipboard-write gate until
         // Dispose has completed, then let the queued operation observe shutdown.
         var capture = new ClipboardCaptureService(null!, null!, null!, null!, null!, null!, null!, null!,
-            NullLogger<ClipboardCaptureService>.Instance);
+            NullLogger<ClipboardCaptureService>.Instance, null!);
         var gate = (SemaphoreSlim)typeof(ClipboardCaptureService)
             .GetField("_clipboardWriteGate", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(capture)!;
         await gate.WaitAsync();

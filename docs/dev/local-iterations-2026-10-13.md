@@ -1,8 +1,11 @@
 # Local development — 2026-10-13
 
-Baseline: `461be3d`; the working tree was clean. All work is local. No version
-change, remote push/PR, release, installer or real user-data mutation is authorized
-or performed. This record continues independently of historical release ledgers.
+Baseline: `461be3d`; the working tree was clean. Rounds 1–25 were scoped to
+local development, with no remote publication or real user-data mutation. After
+round 25 entered final validation, the owner explicitly requested completion of
+that task followed by publication of the next Beta with minimal testing. The
+publication phase supersedes the earlier local-only restriction; it is recorded
+separately without turning local probes into Windows runtime evidence.
 
 ## 1. NetEase discovery and controls
 
@@ -801,6 +804,36 @@ recorded separately in the [PDF evidence](evidence/local-iterations-2026-10-13/p
 Actual Windows PDF parsing, rendering, rapid navigation, cancellation latency,
 dispatcher shutdown and native cleanup remain target-platform verification gaps.
 
+## 25. Preserve unpin Undo through concurrent clipboard retention
+
+An old pinned clipboard image becomes retention-eligible as soon as Unpin commits.
+ClipboardCaptureService previously invoked repository retention independently of
+UndoCoordinator's eight-second Undo owner. A normal retention pass could therefore
+remove both the database row and owned payload before Undo tried to restore its
+pin state. Round 10 serialized pin persistence and Undo registration but did not
+cover this separate retention entry point.
+
+Retention now enters the shared UndoCoordinator gate and retains it through the
+repository deletion. Only the active, unexpired pin-change IDs are excluded. The
+SQLite query excludes those rows before ROW_NUMBER, so a protected newest row
+also cannot push unrelated history beyond the count limit. A parameterized JSON
+array contains hex GUID bytes in the existing persisted byte order, avoiding a
+large batch's SQLite variable limit. Existing repository callers retain the old
+three-argument overload. Clipboard capture requires the same registered singleton;
+there is no optional production bypass, extra timer or extended Undo period.
+
+Independent static review found no blocking issue in the four production files or
+seven necessary App fixture adaptations (nine constructor sites). The single opt-in
+real-SQLite `retention` scenario passed once with one normal build, default analyzers
+and no restore. A barrier after real unpin commit proved retention waits for Undo
+registration; protected old/new image rows and bytes survived, unrelated compliant
+history was not displaced, and only the unprotected expired image entered and
+drained from the deletion outbox. Undo restored both pins. Explicit finalization
+then restored normal age/count deletion and physical cleanup without waiting eight
+seconds. The original probe scenario was not repeated. See the [retention receipt](evidence/local-iterations-2026-10-13/undo-retention-validation.md).
+Automatic timer expiry and replacement by another Undo remain static-only; actual
+WinUI clipboard interaction remains unavailable on Linux.
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -821,9 +854,12 @@ lifecycle are saved in `b1a2e77`. The downloaded-update recovery repair and its
 unique targeted check are saved in `fa5673a`. The independent
 lyric settings-coalescing repair is saved in `cfeb744` after static review. Next,
 the outdated interface/lyric language assertion and its one targeted Core result
-are saved in `767ddfe`. Native PDF preview operation ownership is the active local
-implementation.
-Further local workflow investigation continues; target-platform gaps remain explicit.
+are saved in `767ddfe`. Native PDF preview operation ownership is saved in
+`7f80aca`. The final local task, retention protection for unpin Undo, has passed
+its one focused validation and is ready to save.
+Per the owner’s latest instruction, no new development iteration will start after
+that task; the next phase prepares and publishes the next Beta through existing
+release gates with minimal testing. Target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the

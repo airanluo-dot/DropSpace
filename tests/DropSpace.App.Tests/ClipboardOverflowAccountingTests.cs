@@ -12,7 +12,7 @@ public sealed class ClipboardOverflowAccountingTests
     {
         // No native listener/dispatcher is needed to exercise notification admission.
         await using var service = new ClipboardCaptureService(null!, null!, null!, null!, null!, null!, null!, null!,
-            NullLogger<ClipboardCaptureService>.Instance);
+            NullLogger<ClipboardCaptureService>.Instance, null!);
         var callback = typeof(ClipboardCaptureService).GetMethod("OnClipboardChanged", BindingFlags.Instance | BindingFlags.NonPublic)!;
         for (uint sequence = 1; sequence <= 200; sequence++)
             callback.Invoke(service, [null, new ClipboardNotification(sequence, DateTimeOffset.UtcNow)]);

@@ -42,6 +42,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private static readonly TimeSpan RemoteImageReadTimeout = TimeSpan.FromSeconds(5);
 
     private readonly IItemRepository _repository;
+    private readonly UndoCoordinator _undo;
     private readonly ISettingsService _settingsService;
     private readonly IPayloadStore _payloadStore;
     private readonly IPreviewCache _previews;
@@ -105,9 +106,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         DispatcherQueue dispatcher,
         IAppStringLocalizer strings,
         ILogger<ClipboardCaptureService> logger,
+        UndoCoordinator undo,
         IPayloadCleanupCoordinator? payloadCleanup = null)
     {
         _repository = repository;
+        _undo = undo;
         _settingsService = settingsService;
         _payloadStore = payloadStore;
         _previews = previews;
@@ -1731,7 +1734,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 return;
             }
 
-            var result = await _repository.ApplyRetentionAsync(
+            var result = await _undo.ApplyRetentionAsync(
                     now.AddDays(-_settings.RetentionDays),
                     _settings.RetentionItemCount,
                     cancellationToken)

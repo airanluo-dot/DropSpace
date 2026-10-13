@@ -244,6 +244,31 @@ public sealed class UndoCoordinator(
         }
     }
 
+    public async Task<RetentionResult> ApplyRetentionAsync(
+        DateTimeOffset ageCutoffUtc,
+        int countLimit,
+        CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            // Retention must share the pin/Undo boundary until the database deletion
+            // completes. Reading the active IDs outside this gate leaves a commit gap.
+            var protectedIds = _active is { PreviousPinStates: { } previousStates } active &&
+                DateTimeOffset.UtcNow < active.State.ExpiresAtUtc
+                ? previousStates.Keys.ToArray()
+                : Array.Empty<Guid>();
+            return await repository.ApplyRetentionAsync(
+                    ageCutoffUtc, countLimit, protectedIds, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task RecoverStaleAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);

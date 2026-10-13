@@ -12,6 +12,14 @@ using DropSpace.Infrastructure.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 
+if (args.Length > 0)
+{
+    if (args.Length != 1 || args[0] != "retention")
+        throw new ArgumentException("Choose retention, or omit arguments for the original pin/Undo scenario.");
+    await RetentionScenario.RunAsync();
+    return;
+}
+
 var deadline = TimeSpan.FromSeconds(5);
 var paths = new AppStoragePaths(Path.Combine(Path.GetTempPath(), "DropSpace-pin-undo-probe", Guid.NewGuid().ToString("N")));
 try
@@ -96,13 +104,17 @@ public class RepositoryCommitBarrier : DispatchProxy
     public TaskCompletionSource Committed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _removalCalls;
+    private int _retentionCalls;
     public int RemovalCalls => Volatile.Read(ref _removalCalls);
+    public int RetentionCalls => Volatile.Read(ref _retentionCalls);
 
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
     {
         ArgumentNullException.ThrowIfNull(targetMethod);
         if (targetMethod.Name == nameof(IItemRepository.BeginPendingRemovalAsync))
             Interlocked.Increment(ref _removalCalls);
+        if (targetMethod.Name == nameof(IItemRepository.ApplyRetentionAsync))
+            Interlocked.Increment(ref _retentionCalls);
         object? result;
         try { result = targetMethod.Invoke(Repository, args); }
         catch (TargetInvocationException error) when (error.InnerException is not null)

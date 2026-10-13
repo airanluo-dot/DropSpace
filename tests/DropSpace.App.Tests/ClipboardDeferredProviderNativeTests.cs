@@ -36,10 +36,13 @@ public sealed class ClipboardDeferredProviderNativeTests
         var repository = new SqliteItemRepository(new SqliteDatabase(paths, NullLogger<SqliteDatabase>.Instance), NullLogger<SqliteItemRepository>.Instance);
         var consumer = new NativeOwner(heartbeat: true);
         var producer = new NativeOwner(heartbeat: false);
+        var payloads = new FilePayloadStore(paths);
+        var previews = new FilePreviewCache(paths);
+        var undo = new UndoCoordinator(repository, payloads, previews, NullLogger<UndoCoordinator>.Instance);
         var notifications = new ClipboardNotificationService(NullLogger<ClipboardNotificationService>.Instance);
         var capture = new ClipboardCaptureService(repository, new JsonSettingsService(paths),
-            new FilePayloadStore(paths), new FilePreviewCache(paths), new LocalFileReferenceService(),
-            notifications, consumer.Queue, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance);
+            payloads, previews, new LocalFileReferenceService(),
+            notifications, consumer.Queue, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance, undo);
         var unique = Guid.NewGuid().ToString("N");
         var first = $"DropSpaceDeferredNative-{unique}-first";
         var deferred = $"DropSpaceDeferredNative-{unique}-obsolete";
@@ -176,6 +179,7 @@ public sealed class ClipboardDeferredProviderNativeTests
                 return Task.CompletedTask;
             }).WaitAsync(TimeSpan.FromSeconds(8)));
             await CleanupAsync(CleanupPhase.CaptureDispose, () => capture.DisposeAsync().AsTask());
+            await CleanupAsync(CleanupPhase.UndoDispose, () => undo.DisposeAsync().AsTask());
             await CleanupAsync(CleanupPhase.ListenerDispose, () => consumer.Queue.EnqueueAsync(() =>
             {
                 notifications.Dispose();
@@ -240,10 +244,13 @@ public sealed class ClipboardDeferredProviderNativeTests
         var repository = new SqliteItemRepository(new SqliteDatabase(paths, NullLogger<SqliteDatabase>.Instance), NullLogger<SqliteItemRepository>.Instance);
         var consumer = new NativeOwner(heartbeat: true);
         var producer = new NativeOwner(heartbeat: false);
+        var payloads = new FilePayloadStore(paths);
+        var previews = new FilePreviewCache(paths);
+        var undo = new UndoCoordinator(repository, payloads, previews, NullLogger<UndoCoordinator>.Instance);
         var notifications = new ClipboardNotificationService(NullLogger<ClipboardNotificationService>.Instance);
         var capture = new ClipboardCaptureService(repository, new JsonSettingsService(paths),
-            new FilePayloadStore(paths), new FilePreviewCache(paths), new LocalFileReferenceService(),
-            notifications, consumer.Queue, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance);
+            payloads, previews, new LocalFileReferenceService(),
+            notifications, consumer.Queue, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance, undo);
         DataPackage? package = null;
         HeldDataProvider? provider = null;
         try
@@ -284,6 +291,7 @@ public sealed class ClipboardDeferredProviderNativeTests
             finally
             {
                 await capture.DisposeAsync();
+                await undo.DisposeAsync();
                 await consumer.Queue.EnqueueAsync(() => { notifications.Dispose(); return Task.CompletedTask; });
                 await producer.DisposeAsync(); await consumer.DisposeAsync();
                 GC.KeepAlive(package);
@@ -336,6 +344,9 @@ public sealed class ClipboardDeferredProviderNativeTests
         var repository = new SqliteItemRepository(new SqliteDatabase(paths, NullLogger<SqliteDatabase>.Instance), NullLogger<SqliteItemRepository>.Instance);
         var consumer = new NativeOwner(heartbeat: true);
         var producer = new NativeOwner(heartbeat: false);
+        var payloads = new FilePayloadStore(paths);
+        var previews = new FilePreviewCache(paths);
+        var undo = new UndoCoordinator(repository, payloads, previews, NullLogger<UndoCoordinator>.Instance);
         var notifications = new ClipboardNotificationService(NullLogger<ClipboardNotificationService>.Instance);
         var targetSequence = 0u;
         var targetReadAttempts = 0;
@@ -347,8 +358,8 @@ public sealed class ClipboardDeferredProviderNativeTests
         var cleanupFailures = new List<Exception>();
         Exception? originalFailure = null;
         var capture = new ClipboardCaptureService(repository, new JsonSettingsService(paths),
-            new FilePayloadStore(paths), new FilePreviewCache(paths), new LocalFileReferenceService(),
-            notifications, consumer.Queue, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance)
+            payloads, previews, new LocalFileReferenceService(),
+            notifications, consumer.Queue, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance, undo)
         {
             ClipboardViewReader = () =>
             {
@@ -507,6 +518,7 @@ public sealed class ClipboardDeferredProviderNativeTests
         {
             // Stop capture first so cleanup Clear cannot start another controlled probe.
             await CleanupAsync(() => capture.DisposeAsync().AsTask());
+            await CleanupAsync(() => undo.DisposeAsync().AsTask());
             await CleanupAsync(() => consumer.Queue.EnqueueAsync(() => { notifications.Dispose(); return Task.CompletedTask; })
                 .WaitAsync(TimeSpan.FromSeconds(8)));
             await CleanupAsync(() => producer.Queue.EnqueueAsync(() => { Clipboard.Clear(); return Task.CompletedTask; })
@@ -602,7 +614,7 @@ public sealed class ClipboardDeferredProviderNativeTests
     }
 
     private enum Checkpoint { OwnersInitializing, FirstText, ConsecutiveSuppression, ProviderPublishing, SecondTextPublishing, SecondTextCapture, Complete }
-    private enum CleanupPhase { ProviderRelease, ClipboardClear, CaptureDispose, ListenerDispose, DiagnosticsDispose, ProducerDispose, ConsumerDispose, StorageDelete }
+    private enum CleanupPhase { ProviderRelease, ClipboardClear, CaptureDispose, ListenerDispose, DiagnosticsDispose, ProducerDispose, ConsumerDispose, StorageDelete, UndoDispose }
 
     private sealed class HeldDataProvider(object value)
     {

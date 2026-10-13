@@ -66,7 +66,7 @@ public sealed class ClipboardStateRaceTests
     private static ClipboardCaptureService CreateService(ISettingsService settings) => new(
         null!, settings, null!, null!, null!,
         new ClipboardNotificationService(NullLogger<ClipboardNotificationService>.Instance),
-        null!, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance);
+        null!, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance, null!);
 
     private sealed class InstrumentedSettings(ISettingsService inner) : ISettingsService
     {

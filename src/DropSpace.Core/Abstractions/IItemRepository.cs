@@ -155,6 +155,12 @@ public interface IItemRepository
         int countLimit,
         CancellationToken cancellationToken = default);
 
+    Task<RetentionResult> ApplyRetentionAsync(
+        DateTimeOffset ageCutoffUtc,
+        int countLimit,
+        IReadOnlyCollection<Guid> protectedIds,
+        CancellationToken cancellationToken = default);
+
     Task<int> CountAsync(ItemSource? source = null, bool pinnedOnly = false, CancellationToken cancellationToken = default);
 
     Task<int> CountClipboardAsync(DateTimeOffset? fromUtc, bool includePinned, CancellationToken cancellationToken = default);

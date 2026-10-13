@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
@@ -1126,12 +1127,24 @@ public sealed class SqliteItemRepository(
         }
     }
 
+    public Task<RetentionResult> ApplyRetentionAsync(
+        DateTimeOffset ageCutoffUtc,
+        int countLimit,
+        CancellationToken cancellationToken = default) =>
+        ApplyRetentionAsync(ageCutoffUtc, countLimit, Array.Empty<Guid>(), cancellationToken);
+
     public async Task<RetentionResult> ApplyRetentionAsync(
         DateTimeOffset ageCutoffUtc,
         int countLimit,
+        IReadOnlyCollection<Guid> protectedIds,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(countLimit);
+        ArgumentNullException.ThrowIfNull(protectedIds);
+        // One JSON parameter avoids a parameter-count limit for large pin batches.
+        // Match SQLite's hex(BLOB) using the same byte order as persisted item IDs.
+        var protectedIdJson = JsonSerializer.Serialize(protectedIds
+            .Where(id => id != Guid.Empty).Distinct().Select(id => Convert.ToHexString(ToBytes(id))));
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -1139,6 +1152,8 @@ public sealed class SqliteItemRepository(
             var ids = new List<Guid>();
             await using (var command = connection.CreateCommand())
             {
+                // Exclude Undo-protected rows before ranking so an unpin cannot
+                // push unrelated history past the count limit during its Undo window.
                 command.CommandText = """
                     WITH ranked AS (
                         SELECT id, created_at_utc,
@@ -1147,6 +1162,7 @@ public sealed class SqliteItemRepository(
                         WHERE source = @source
                           AND is_pinned = 0
                           AND pending_delete_token IS NULL
+                          AND hex(id) NOT IN (SELECT value FROM json_each(@protected_ids))
                     )
                     SELECT id
                     FROM ranked
@@ -1155,6 +1171,7 @@ public sealed class SqliteItemRepository(
                 command.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
                 command.Parameters.AddWithValue("@cutoff", ToTimestamp(ageCutoffUtc));
                 command.Parameters.AddWithValue("@count_limit", countLimit);
+                command.Parameters.AddWithValue("@protected_ids", protectedIdJson);
                 await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                 {

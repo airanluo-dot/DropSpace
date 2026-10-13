@@ -1,0 +1,115 @@
+{
+  "capturedBeforeExecutionAtUtc": "2026-10-13T06:29:11.767604+00:00",
+  "compiledInputs": [
+    {
+      "path": "scripts/undo-lifecycle-probe/UndoLifecycleProbe.csproj",
+      "sha256": "04e07f5f6813bae46a8090ac16e9457f5df55b73797092260cc48a389914208c"
+    },
+    {
+      "path": "scripts/undo-lifecycle-probe/Program.cs",
+      "sha256": "d01d032cd3c7521ae7ea241a46b44f10c84111643ff6a5e5140a55a2415e4202"
+    },
+    {
+      "path": "scripts/undo-lifecycle-probe/RetentionScenario.cs",
+      "sha256": "c25deb435a4284298b30f09b92ef61b9735dd57ade5b49871fc47b8f7c302c72"
+    },
+    {
+      "path": "src/DropSpace.App/Services/UndoCoordinator.cs",
+      "sha256": "40775f3345fcfabb7343adc794ed463fc3ca989c994f191a3c152491b91dd6db"
+    },
+    {
+      "path": "src/DropSpace.App/Services/PinItemsUseCase.cs",
+      "sha256": "951f44565d7548113c50db2c4086f854852d13ba6a13867bee3af1a99044bdcd"
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeSubscriberNotification.cs",
+      "sha256": "18e50de26cf91ed64caad8fcb5b46be5f80a8c7fee763abca0f850077f80c09d"
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IItemRepository.cs",
+      "sha256": "3d18f036b4b91a4b1d84d026aa85a5274b74c450f92d4ffc9a1ec23b53943764"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteItemRepository.cs",
+      "sha256": "6265a16db3dd1801686bd7dbcc8aedfea9920ea7d64c67b5558d92cbc49256c3"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteDatabase.cs",
+      "sha256": "bffc6016d6f679bd00ee6e359e4baba07a20ce5c8eccc73fd7562a23519594b5"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/PayloadCleanupCoordinator.cs",
+      "sha256": "a95a2fd770949c3bfc3ef3cf6e5206a5f63e770c301246f5f61a68a99f828138"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/FilePayloadStore.cs",
+      "sha256": "a4b81bc0d90da946cb1a9d81c4aa79a90ac3154253232702943d66e9f99d3b44"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/OwnedPayloadReconciler.cs",
+      "sha256": "e715622434a6bb854dde8f3ebda345c60839719ea362f1c07f1eb492ef4e35d7"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/FilePreviewCache.cs",
+      "sha256": "a89ffcda4844c1fb8b1bff40693e7755bccfa61c0fd38c5ab79ee7d2530d8e94"
+    },
+    {
+      "path": "src/DropSpace.Core/Models/DomainModels.cs",
+      "sha256": "d0feb608165dd0060a3db3b54aa3d9c15d89c3637419b2368d0ab6ef2a1e5a9f"
+    },
+    {
+      "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+      "sha256": "5d697fd66f1e7c34f815eafd02bdc2fde9b3669a83877e38c55a03c318b6a274"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj",
+      "sha256": "acb4adbc54274bca7331456c584db46f60968fb6b3dc912a7d7ecf7893c401de"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+    }
+  ],
+  "staticOnlyInputs": [
+    {
+      "path": "src/DropSpace.App/Services/ClipboardCaptureService.cs",
+      "sha256": "feff2d55692495d796a2fc4f809e82d48bbfda5f29252eb52271f55e89008d1d"
+    },
+    {
+      "path": "scripts/undo-lifecycle-probe/README.md",
+      "sha256": "f76f67863d8aab0e07232c3d35381a21687259510866e9b3a1b815b7bb644b77"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/ClipboardDeferredProviderNativeTests.cs",
+      "sha256": "86b2d25747d7c3e33ccc27f2f97ce86b58453ffd4440fafebff3aed4322cc21a"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/ClipboardDiagnosticsTests.cs",
+      "sha256": "9d5e357914d7fc8ee27d80a8d7694e4a969b67d06fd152db5b2d42b69e100838"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/ClipboardOverflowAccountingTests.cs",
+      "sha256": "a7403d99424191889abc594c6d509569f6d36ec9828c85d9b03e0d979b191f42"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/ClipboardStateRaceTests.cs",
+      "sha256": "7e087f8f5a0c2852bee18ef26323009ec062a00a746433d4c22671e82590628f"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/ClipboardTextSupersessionTests.cs",
+      "sha256": "33ef005197eb41bcd0595835a03f39529a0c6a0702e48f7af947ea444f5f7774"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/FullAuditClipboardShutdownRegressionTests.cs",
+      "sha256": "175efb1a66afeb4299daf2538717ce9fc83c2653856d580fb939ea5eb5599982"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/RemoteClipboardImageFormatTests.cs",
+      "sha256": "cb82758185694f95d98f2c967300b825e4e9d65a162577df252ba212098aba2b"
+    }
+  ]
+}
