@@ -673,6 +673,68 @@ check passed (ten languages, 920 IDs). See the
 Actual WinUI rendering, focus/keyboard, clipboard and QR display, OS network
 changes, and cross-device behavior remain unverified. No full App/XAML build ran.
 
+## 21. Keep a verified local update usable after a background check
+
+Startup first recovers a persisted, integrity-checked update into ReadyToInstall.
+The later default automatic check publishes a fresh Checking snapshot without
+its Candidate or Download. Offline failure then publishes a fresh Failed state;
+the native install/open-location actions only accept ReadyToInstall, so the
+already downloaded package becomes inaccessible through those actions. An online
+check of the same version also reenters the download/verification pipeline. The
+real downloader can reuse a matching cached file, so this is not evidence that
+it always downloads the payload again.
+
+The selected repair preserves an eligible ready snapshot through failed or
+canceled metadata checks and when no newer usable candidate is found. Eligibility
+must respect the selected channel and current deployment mode. Matching a fresh
+manifest requires the same payload identity, not merely the same version. A new
+version or changed payload retains the normal candidate path. Recovered publisher
+trust remains unknown; this work must not enable unattended installation or
+restore an older snapshot after a subsequent install has changed state. Review
+also identified that skipping the old download pipeline must not skip its file
+verification: the retained payload is rechecked before reuse, so external removal
+or modification does not leave a permanently stale portable-update entry.
+
+Result: the one controlled-source composite passed once (141 ms runner summary,
+120.4211 ms TRX) with one normal targeted build and existing restore assets.
+Real state persistence, manifest parsing and SHA-256 verification covered offline
+startup, cancellation through actual shared-operation completion, identical
+payload reuse and an empty release list. New versions, changed payload hashes,
+a deleted local file and a beta-to-stable switch correctly rejected stale reuse.
+Strict test dependencies confirmed no download, publisher verification or
+installer launch. No failure, retry, restore or other suite occurred. See the
+[update-ready evidence](evidence/local-iterations-2026-10-13/update-ready-validation.md).
+This is service behavior against controlled metadata and temporary files, not
+real release access, Windows installation or portable UI interaction. The latter
+integration, interruption during integrity verification, a lower remote version,
+and post-selection install recovery were reviewed statically. No publication or
+version change occurred.
+
+## 22. Preserve lyric reloads when settings notifications coalesce
+
+OnSettingsChanged immediately invalidates the generation and cancels lyric work
+when a semantic preference changes. The single-slot DropOldest notification queue
+can combine A-to-B-to-A changes before the worker reads them. Its final settings
+then equal its previous settings, and no reload is scheduled despite cancellation.
+The media-change path already records this condition in `_reloadRequest`; the
+settings path omitted that increment.
+
+The repair adds the same increment before canceling the current request. The
+worker compares and commits a captured request counter, so later observations
+remain pending. Existing capacity/maintenance admission and retirement wakeups
+still own retries, and generation/token/track/settings guards still reject old
+results. No provider, cache, model, prompt, translation-target policy, or display
+preference changes are included.
+
+Independent static review covered the consumer, pending work, initialization,
+soft restart, disposal and result publication. This is a three-line production
+change reusing the existing track-change mechanism; no extra test fixture or
+build was added. It is saved in `cfeb744`, independently of round 21's pending
+validation. Actual rapid setting changes in WinUI remain unverified. Review
+also found an older Core test still coupling interface language to lyric reload;
+that assertion predates the explicit Chinese/English target policy and is recorded
+for a separate correction, not treated as passing evidence for this repair.
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -688,10 +750,12 @@ handoff sends retain their service lifetime and bounded capacity across
 disable/re-enable in `8553eac`. A native progress and cancellation surface for
 file sends, with state owned independently of a MainPage instance, is saved in
 `8734660`. Download publication cancellation and checkpoint errors are repaired
-in `c5b5622`. In-session Nearby-link management is implemented and its server
-lifecycle has passed the targeted local check, using the existing server's
-bounded registry and revocation contract. The next iteration investigates
-remaining user-visible failure and recovery paths against current source.
+in `c5b5622`. In-session Nearby-link management and its verified local server
+lifecycle are saved in `b1a2e77`. The downloaded-update recovery repair has passed
+its unique targeted check and is ready for a local checkpoint. The independent
+lyric settings-coalescing repair is saved in `cfeb744` after static review. Next,
+the outdated interface/lyric language assertion is being corrected, and native
+PDF preview operation ownership is under investigation.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.

@@ -1,0 +1,49 @@
+{
+  "capturedBeforeExecutionAtUtc": "2026-10-13T05:50:37.183459+00:00",
+  "inputs": [
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateService.cs",
+      "sha256": "6f1982955a2473a33f7b4b955b4a2a1e985a0f04eeb6616cf7d1a600e07ccba8"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateStateStore.cs",
+      "sha256": "16b64d23f80983d72aa2981375cd8f50e41f749d549aa58b419c4a985e537b20"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateManifestParser.cs",
+      "sha256": "e3d330d2d3baa2af330d9ca483a578e2918043b98d77e922cc17548ffae939a1"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateFileVerifier.cs",
+      "sha256": "908c7b61762b9ab47d3b02fd7232cdbb596124249e9740ba665dfa6bd9c7cce6"
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/UpdateModels.cs",
+      "sha256": "f6503e465b397ccf88ffc152f5bcf9e1507e6c092026f8627f8910ea6cb8c278"
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/UpdateReleaseSelector.cs",
+      "sha256": "a6bd000f9f01dceacb104df51eb02ff2be02df1363a25db446c7b50e3b4cf09e"
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/ReleaseVersion.cs",
+      "sha256": "0b40d84ade296f759192cbdc775ef8b5487e37e47569960161ee76d7dd29f1db"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/UpdateReadyRecoveryTests.cs",
+      "sha256": "1ff92c5516d7f2358c2f083c0cedabbb49ab9742f934c40771649283ca74eb2e"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj",
+      "sha256": "3456e89a0f3cc87621a574e5316cab277c6cba8af04791ee3e73f7956eb05618"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+    }
+  ]
+}
