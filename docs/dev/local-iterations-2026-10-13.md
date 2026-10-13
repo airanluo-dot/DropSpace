@@ -382,6 +382,32 @@ Zero functional scenarios ran. Full App/XAML compilation and native image encodi
 remain unverified. See the
 [image output compilation evidence](evidence/local-iterations-2026-10-13/image-output-native-validation.md).
 
+## 13. Honest pause feedback after settings failures
+
+The Main pause toggle changes visually before persistence. Capture correctly keeps
+recording if Pause cannot save, but the ordinary IO failure path only showed an
+error and did not reset that toggle. It could therefore display Paused while
+recording remained active. The settings service also performs a real follow-up
+read after a successful transition, so blindly restoring the previous checkbox
+would be wrong when Resume committed but that read failed.
+
+The narrow repair is in MainViewModel's pause failure path. While still holding the
+existing settings publication gate, it reads capture's actual paused state on the
+UI dispatcher, changes only that setting field and notifies the existing Settings
+subscribers. If the field is unchanged it explicitly notifies anyway, resetting the
+initiating control. Changed fields use the normal setter without duplicate events.
+The original error still reaches existing feedback; successful operations are
+unchanged. Main, tray, widget and Island consumers use the existing notification.
+The control-sync flag prevents the visual correction from starting another save.
+
+Verification: independent control-flow/consumer review and whitespace/diff check
+only. Zero builds or functional scenarios ran; a substitute helper test would not
+exercise this native UI path. Real WinUI interaction under a refused settings write
+and a postcommit read failure remains unverified. Ordinary settings-field merging,
+late permission-response guards and timestamp/pause publication locking were
+already present, so they were not changed or retested. Shutdown ownership and
+postcommit read optimization remain observations, not additional claimed defects.
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -389,9 +415,9 @@ changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
 `0e32575`. ZIP result correctness is saved in `907ff86`. Preview cache-generation
 ownership is saved in `2d89b32` and remote image ownership in `8e3901a`.
 The pin/removal Undo ordering fix is saved in `d510192`, and download-startup
-ownership in `783fec7`. The image-export handle fix passed independent review
-and its focused SDK compilation, and is ready for its checkpoint. The next
-read-only investigation covers settings publication and rollback across UI awaits.
+ownership in `783fec7`, and image-export handles in `d03c59d`. Pause failure
+feedback has passed independent static review and is ready for its checkpoint.
+Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the

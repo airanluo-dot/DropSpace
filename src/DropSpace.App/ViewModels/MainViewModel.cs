@@ -1324,6 +1324,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             var updated = await _settingsCoordinator.SetClipboardPausedAsync(paused, cancellationToken);
             await _dispatcher.EnqueueAsync(() => { Settings = updated; return Task.CompletedTask; });
         }
+        catch
+        {
+            await _dispatcher.EnqueueAsync(() =>
+            {
+                // Persistence can fail before the transition, or the follow-up read
+                // can fail after it committed. Reflect the capture service's actual
+                // state instead of assuming that the requested change was rolled back.
+                var isPaused = _clipboard.IsPaused;
+                if (Settings.ClipboardPaused != isPaused)
+                    Settings = Settings with { ClipboardPaused = isPaused };
+                else
+                    // A rejected edit still needs to reset the initiating toggle.
+                    OnPropertyChanged(nameof(Settings));
+                return Task.CompletedTask;
+            });
+            throw;
+        }
         finally { _settingsPublicationGate.Release(); }
     }
 
