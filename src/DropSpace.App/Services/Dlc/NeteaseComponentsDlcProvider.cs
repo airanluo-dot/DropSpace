@@ -10,6 +10,9 @@ public sealed class NeteaseComponentsDlcProvider : IDlcPackageProvider, IDisposa
 {
     private const string EnhancementId = "netease-music-enhancement";
     private const string RuntimeId = "netease-visual-cpp-runtime";
+    // Both official enhancement assets have this installation limit. Do not hash an
+    // externally replaced, oversized file as part of otherwise lightweight inventory.
+    private const long MaximumInspectionAssetBytes = 32 * 1024 * 1024;
     private readonly NeteaseInstallationProbe _probe;
     private readonly InfLinkDeploymentService _deployment;
     private readonly INeteaseEnhancementService _enhancement;
@@ -56,14 +59,28 @@ public sealed class NeteaseComponentsDlcProvider : IDlcPackageProvider, IDisposa
         var receipt = await _deployment.GetManagedReceiptAsync(installation, token).ConfigureAwait(false);
         var local = await new BetterNcmProbe().FindAsync(installation, token).ConfigureAwait(false);
         long ownedBytes = 0;
+        var boundedFiles = true;
         if (receipt is not null)
-            foreach (var file in receipt.Files.Where(file => file.Owned))
+            foreach (var file in receipt.Files)
             {
+                token.ThrowIfCancellationRequested();
                 DeploymentPaths.AssertSafe(file.TargetPath);
-                if (File.Exists(file.TargetPath)) ownedBytes = checked(ownedBytes + new FileInfo(file.TargetPath).Length);
+                if (!File.Exists(file.TargetPath)) continue;
+                var length = new FileInfo(file.TargetPath).Length;
+                boundedFiles &= length <= MaximumInspectionAssetBytes;
+                if (file.Owned) ownedBytes = checked(ownedBytes + length);
             }
-        return new(local.LoaderPresent && local.PluginPresent && receipt?.Committed != false,
+        // The Music card already distinguishes local presence from intact managed
+        // bytes. Keep DLC inventory consistent without exercising the player or
+        // contacting an update source. Independent installations remain presence-only.
+        var enhancementInstalled = receipt is null ? local.LoaderPresent && local.PluginPresent :
+            receipt.Committed && boundedFiles &&
+                await _deployment.IsManagedInstallationIntactAsync(receipt, token).ConfigureAwait(false);
+        var reason = receipt is { Committed: false } ? "NeteaseEnhancementErrorRollback" :
+            receipt is not null && !enhancementInstalled ? "NeteaseEnhancementErrorConflict" : null;
+        return new(enhancementInstalled,
             receipt is not null, receipt is null ? null : ownedBytes, !_enhancement.Current.IsBusy,
+            UnavailableReasonResourceKey: reason,
             CanDelete: receipt is not null && !_enhancement.Current.IsBusy);
     }
 

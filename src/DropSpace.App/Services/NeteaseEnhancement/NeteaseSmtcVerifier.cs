@@ -19,6 +19,8 @@ public sealed class NeteaseSmtcVerifier : IDisposable
     private readonly TimeProvider _time;
     private readonly object _ownershipGate = new();
     private readonly Media.BoundedMediaOperation _nativeOperations = new(1, 1);
+    private readonly Media.BoundedMediaOperation _artworkOperations = new(4, 1);
+    private readonly Media.MediaNativeContext? _nativeContext;
     private readonly Media.MediaWorkCancellation _stop = new(CancellationToken.None);
     private Task _cleanup = Task.CompletedTask;
     private readonly TimeSpan _controlTimeout;
@@ -29,7 +31,19 @@ public sealed class NeteaseSmtcVerifier : IDisposable
     private bool _disposed;
     internal Action<string>? Diagnostic { get; set; }
 
-    public NeteaseSmtcVerifier(DispatcherQueue dispatcher) : this(CreateManagerAsync, TimeProvider.System, ControlTimeout) { }
+    public NeteaseSmtcVerifier(DispatcherQueue dispatcher)
+    {
+        ArgumentNullException.ThrowIfNull(dispatcher);
+        // Keep the proven single-apartment Windows lifetime without placing a
+        // synchronous publisher call on the application's UI dispatcher.
+        var context = new Media.MediaNativeContext();
+        _nativeContext = context;
+        _time = TimeProvider.System;
+        _controlTimeout = ControlTimeout;
+        _nativeOperations = new(1, 1, executor: context);
+        _artworkOperations = new(4, 1, executor: context);
+        _createManager = token => CreateManagerAsync(token, context, _artworkOperations);
+    }
     internal NeteaseSmtcVerifier(Func<CancellationToken, Task<IProbeManager>> createManager,
         TimeProvider time, TimeSpan controlTimeout)
     { _createManager = createManager; _time = time; _controlTimeout = controlTimeout; }
@@ -98,8 +112,8 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         }
     }
 
-    // SMTC manager/session objects are Agile. All native calls, including synchronous
-    // property getters and event add/remove, stay on the retained worker, never the UI.
+    // All real manager/session calls and event add/remove remain on the same native
+    // apartment across awaits. The caller's bounded wait still runs independently.
     private async Task<NeteaseMediaCapabilities> VerifyCoreAsync(TimeSpan timeout, bool exerciseControls,
         CancellationToken cancellationToken)
     {
@@ -139,13 +153,28 @@ public sealed class NeteaseSmtcVerifier : IDisposable
             {
                 token.ThrowIfCancellationRequested();
                 var sessions = new List<IProbeSession>();
+                var unidentified = new List<IProbeSession>();
                 try
                 {
                     foreach (var session in manager.GetSessions().Take(512))
                     {
                         token.ThrowIfCancellationRequested();
-                        try { if (!invalid.Contains(session.Identity) && IsNeteaseSource(session.Source)) sessions.Add(session); }
-                        catch (Exception exception) when (IsRecoverable(exception)) { Report("Discovery.Source", exception); Retire(session, exception); }
+                        if (invalid.Contains(session.Identity)) continue;
+                        try
+                        {
+                            var source = session.Source;
+                            if (string.IsNullOrWhiteSpace(source))
+                            {
+                                if (unidentified.Count < 16) unidentified.Add(session);
+                            }
+                            else if (IsNeteaseSource(source)) sessions.Add(session);
+                        }
+                        catch (Exception exception) when (IsRecoverable(exception))
+                        {
+                            Report("Discovery.Source", exception);
+                            Retire(session, exception);
+                            if (!invalid.Contains(session.Identity) && unidentified.Count < 16) unidentified.Add(session);
+                        }
                         if (sessions.Count == 16) break;
                     }
                 }
@@ -161,15 +190,54 @@ public sealed class NeteaseSmtcVerifier : IDisposable
                     continue;
                 }
                 discoveryFailures = 0;
-                _lastDiscovered.Clear();
-                _lastDiscovered.UnionWith(sessions.Select(session => session.Identity));
-                if (controlled is not null && !sessions.Any(session => ReferenceEquals(session.Identity, controlled.Identity)))
-                    Retire(controlled);
-                foreach (var removed in samples.Keys.Where(key => !sessions.Any(session => ReferenceEquals(session.Identity, key))).ToArray())
-                    samples.Remove(removed);
                 var subscriptions = new List<IDisposable>();
                 try
                 {
+                    var alreadySubscribed = new HashSet<object>(ReferenceEqualityComparer.Instance);
+                    // A newly published renderer may not have a source yet. Observe only
+                    // the remaining bounded candidate slots, then reread after subscribing
+                    // to close the publication/registration race. Known other apps stay out.
+                    foreach (var session in unidentified.Take(16 - sessions.Count))
+                    {
+                        token.ThrowIfCancellationRequested();
+                        IDisposable? subscription = null;
+                        var keep = false;
+                        try
+                        {
+                            subscription = Subscribe(session, Signal, "Subscribe.Readiness");
+                            subscriptions.Add(subscription);
+                            var source = session.Source;
+                            if (string.IsNullOrWhiteSpace(source)) keep = true;
+                            else if (IsNeteaseSource(source))
+                            {
+                                sessions.Add(session);
+                                alreadySubscribed.Add(session.Identity);
+                                keep = true;
+                            }
+                        }
+                        catch (Exception exception) when (IsRecoverable(exception))
+                        {
+                            Report("Discovery.Readiness", exception);
+                            Retire(session, exception);
+                            keep = !invalid.Contains(session.Identity);
+                        }
+                        finally
+                        {
+                            if (!keep && subscription is not null)
+                            {
+                                // A disconnected or positively unrelated renderer must
+                                // stop delivering callbacks before this iteration waits.
+                                subscription.Dispose();
+                                subscriptions.Remove(subscription);
+                            }
+                        }
+                    }
+                    _lastDiscovered.Clear();
+                    _lastDiscovered.UnionWith(sessions.Select(session => session.Identity));
+                    if (controlled is not null && !sessions.Any(session => ReferenceEquals(session.Identity, controlled.Identity)))
+                        Retire(controlled);
+                    foreach (var removed in samples.Keys.Where(key => !sessions.Any(session => ReferenceEquals(session.Identity, key))).ToArray())
+                        samples.Remove(removed);
                     // Observe every candidate, including a complete InfLink session behind
                     // an incomplete native session. Source/AUMID is not session identity.
                     var candidates = new List<(IProbeSession Session, ProbeSnapshot Snapshot, NeteaseMediaCapabilities Evidence)>();
@@ -177,7 +245,8 @@ public sealed class NeteaseSmtcVerifier : IDisposable
                     {
                         try
                         {
-                            subscriptions.Add(Subscribe(session, Signal, "Subscribe.Candidate"));
+                            if (!alreadySubscribed.Contains(session.Identity))
+                                subscriptions.Add(Subscribe(session, Signal, "Subscribe.Candidate"));
                             using var readDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
                             readDeadline.CancelAfter(TimeSpan.FromSeconds(2));
                             var snapshot = await ReadAsync(session, readDeadline.Token, "Read.Candidate");
@@ -368,10 +437,24 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         {
             // Never detach a live owner's manager or block the UI on native removal.
             await _nativeOperations.DrainAsync().ConfigureAwait(false);
-            if (_manager is IDisposable disposable) disposable.Dispose();
+            // Optional artwork may outlive its caller's deadline; its cancellation
+            // and disposal still need the same live native dispatcher.
+            await _artworkOperations.DrainAsync().ConfigureAwait(false);
+            if (_manager is IDisposable disposable)
+            {
+                if (_nativeContext is { } context) await context.RunAsync(disposable.Dispose).ConfigureAwait(false);
+                else disposable.Dispose();
+            }
             _manager = null;
         }
-        finally { await _stop.CompleteWhenAsync(Task.CompletedTask).ConfigureAwait(false); }
+        finally
+        {
+            try
+            {
+                if (_nativeContext is { } context) await context.DisposeAsync().ConfigureAwait(false);
+            }
+            finally { await _stop.CompleteWhenAsync(Task.CompletedTask).ConfigureAwait(false); }
+        }
     }
 
     private bool ObserveProgress(Dictionary<object, ProgressSample> samples, object identity, ProbeSnapshot snapshot)
@@ -542,27 +625,34 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         IReadOnlyList<IProbeSession> GetSessions();
         IDisposable Subscribe(Action changed);
     }
-    private static async Task<IProbeManager> CreateManagerAsync(CancellationToken token)
+    private static async Task<IProbeManager> CreateManagerAsync(CancellationToken token,
+        Media.MediaNativeContext context, Media.BoundedMediaOperation artworkReads)
     {
         token.ThrowIfCancellationRequested();
-        var manager = await NativeAsyncLifetime.AwaitAsync(GlobalSystemMediaTransportControlsSessionManager.RequestAsync(), token).ConfigureAwait(false);
+        var manager = await NativeAsyncLifetime.AwaitAsync(GlobalSystemMediaTransportControlsSessionManager.RequestAsync(), token, context.RunAsync);
         token.ThrowIfCancellationRequested();
-        return new WindowsProbeManager(manager);
+        return new WindowsProbeManager(manager, context, artworkReads);
     }
 
     private sealed class WindowsProbeManager : IProbeManager, IDisposable
     {
         private readonly GlobalSystemMediaTransportControlsSessionManager _manager;
+        private readonly Media.MediaNativeContext _context;
+        private readonly Media.BoundedMediaOperation _artworkReads;
         private event Action? Changed;
-        public WindowsProbeManager(GlobalSystemMediaTransportControlsSessionManager manager)
+        public WindowsProbeManager(GlobalSystemMediaTransportControlsSessionManager manager,
+            Media.MediaNativeContext context, Media.BoundedMediaOperation artworkReads)
         {
             _manager = manager;
+            _context = context;
+            _artworkReads = artworkReads;
             // Keep the valid Windows connection/event registration across the
             // install restart. Per-probe subscriptions below are managed only.
             _manager.SessionsChanged += OnSessionsChanged;
         }
         private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager _, SessionsChangedEventArgs __) => Changed?.Invoke();
-        public IReadOnlyList<IProbeSession> GetSessions() => _manager.GetSessions().Take(512).Select(session => (IProbeSession)new WindowsProbeSession(session)).ToArray();
+        public IReadOnlyList<IProbeSession> GetSessions() => _manager.GetSessions().Take(512)
+            .Select(session => (IProbeSession)new WindowsProbeSession(session, _context, _artworkReads)).ToArray();
         public IDisposable Subscribe(Action changed)
         {
             Changed += changed;
@@ -570,7 +660,8 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         }
         public void Dispose() { Changed = null; _manager.SessionsChanged -= OnSessionsChanged; }
     }
-    private sealed class WindowsProbeSession(GlobalSystemMediaTransportControlsSession session) : IProbeSession
+    private sealed class WindowsProbeSession(GlobalSystemMediaTransportControlsSession session,
+        Media.MediaNativeContext context, Media.BoundedMediaOperation artworkReads) : IProbeSession
     {
         public object Identity => session;
         public string Source => session.SourceAppUserModelId;
@@ -609,7 +700,7 @@ public sealed class NeteaseSmtcVerifier : IDisposable
             try
             {
                 token.ThrowIfCancellationRequested();
-                var metadata = await NativeAsyncLifetime.AwaitAsync(session.TryGetMediaPropertiesAsync(), token).ConfigureAwait(false);
+                var metadata = await NativeAsyncLifetime.AwaitAsync(session.TryGetMediaPropertiesAsync(), token, context.RunAsync);
                 token.ThrowIfCancellationRequested();
                 phase = "Read.Playback";
                 var playback = session.GetPlaybackInfo();
@@ -637,7 +728,7 @@ public sealed class NeteaseSmtcVerifier : IDisposable
                     controls.IsPlayEnabled, controls.IsPauseEnabled, controls.IsPreviousEnabled, controls.IsNextEnabled, valid, false,
                     controls.IsPlaybackPositionEnabled);
                 phase = "Read.Artwork";
-                capabilities = capabilities with { Artwork = await HasArtworkAsync(metadata.Thumbnail, token) };
+                capabilities = capabilities with { Artwork = await HasArtworkAsync(metadata.Thumbnail, context, artworkReads, token) };
                 return new(key, playing, start, end, position, updated, capabilities);
             }
             catch (Exception exception) when (IsRecoverable(exception)) { exception.Data["SmtcStage"] = phase; throw; }
@@ -653,34 +744,34 @@ public sealed class NeteaseSmtcVerifier : IDisposable
                 ProbeCommand.Next => session.TrySkipNextAsync(),
                 ProbeCommand.Previous => session.TrySkipPreviousAsync(),
                 _ => throw new ArgumentOutOfRangeException(nameof(command)),
-            }, token).ConfigureAwait(false);
+            }, token, context.RunAsync);
             token.ThrowIfCancellationRequested();
             return accepted;
         }
     }
-    private static readonly Media.BoundedMediaOperation ArtworkReads = new(4, 1);
-
-    private static async Task<bool> HasArtworkAsync(IRandomAccessStreamReference? reference, CancellationToken token)
+    private static async Task<bool> HasArtworkAsync(IRandomAccessStreamReference? reference,
+        Media.MediaNativeContext context, Media.BoundedMediaOperation artworkReads, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         if (reference is null) return false;
         try
         {
-            return await ArtworkReads.RunAsync(reference, nativeToken => ReadArtworkAsync(reference, nativeToken),
+            return await artworkReads.RunAsync(reference, nativeToken => ReadArtworkAsync(reference, context, nativeToken),
                 TimeSpan.FromSeconds(2), token);
         }
         catch (TimeoutException) { return false; }
         catch (Exception exception) when (IsRecoverable(exception)) { return false; }
     }
 
-    private static async Task<bool> ReadArtworkAsync(IRandomAccessStreamReference reference, CancellationToken token)
+    private static async Task<bool> ReadArtworkAsync(IRandomAccessStreamReference reference,
+        Media.MediaNativeContext context, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        using var stream = await NativeAsyncLifetime.AwaitAsync(reference.OpenReadAsync(), token);
+        using var stream = await NativeAsyncLifetime.AwaitAsync(reference.OpenReadAsync(), token, context.RunAsync);
         token.ThrowIfCancellationRequested();
         if (stream.Size is 0 or > 4 * 1024 * 1024) return false;
         using var reader = new DataReader(stream);
-        var loaded = await NativeAsyncLifetime.AwaitAsync(reader.LoadAsync(1), token);
+        var loaded = await NativeAsyncLifetime.AwaitAsync(reader.LoadAsync(1), token, context.RunAsync);
         token.ThrowIfCancellationRequested();
         return loaded == 1;
     }

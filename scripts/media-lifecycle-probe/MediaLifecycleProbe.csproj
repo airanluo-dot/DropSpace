@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Compile Include="../../src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs" Link="Production/WindowsMediaSessionService.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/Media/BoundedMediaOperation.cs" Link="Production/BoundedMediaOperation.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/Media/MediaNativeContext.cs" Link="Production/MediaNativeContext.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/Media/MediaEventSubscription.cs" Link="Production/MediaEventSubscription.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs" Link="Production/MediaSubscriptionAdmission.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/Media/MediaSessionOwner.cs" Link="Production/MediaSessionOwner.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/NativeAsyncLifetime.cs" Link="Production/NativeAsyncLifetime.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/DispatcherQueueExtensions.cs" Link="Production/DispatcherQueueExtensions.cs" />
+  </ItemGroup>
+</Project>

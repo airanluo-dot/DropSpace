@@ -18,6 +18,7 @@ public sealed class NeteaseEnhancementCard : UserControl
     private readonly ProgressBar _progress = new() { IsIndeterminate = true };
     private readonly Button _install, _update, _reinstall, _remove;
     private bool _dialogOpen;
+    private bool _initialInspectionStarted;
     private CancellationTokenSource? _lifetime;
     private int _generation;
     private Task _confirmation = Task.CompletedTask;
@@ -60,6 +61,11 @@ public sealed class NeteaseEnhancementCard : UserControl
         _lifetime = new CancellationTokenSource();
         ++_generation;
         _view.PropertyChanged += Changed;
+        Refresh();
+        // Moving this card when its installation status changes raises Loaded again.
+        // Only its first load inspects; the Music refresh action explicitly reinspects.
+        if (_initialInspectionStarted) return;
+        _initialInspectionStarted = true;
         await RunAsync(_view.InspectAsync);
     }
     private void OnUnloaded(object sender, RoutedEventArgs args)

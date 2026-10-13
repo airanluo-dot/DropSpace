@@ -27,7 +27,8 @@ internal sealed class MediaEventSubscription
                     {
                         attach();
                         _ready.TrySetResult();
-                        await _retired.Task.ConfigureAwait(false);
+                        // Native event removal belongs to the same apartment as attach.
+                        await _retired.Task;
                         return true;
                     }
                     finally { detach(); }

@@ -12,7 +12,7 @@ public sealed class NeteaseEnhancementService(
     private readonly object _sync = new();
     private readonly CancellationTokenSource _stop = new();
     private Task _operation = Task.CompletedTask;
-    private bool _inspected, _disposed;
+    private bool _disposed;
     private NeteaseEnhancementState _current = new(NeteaseEnhancementStage.NotInstalled);
     public NeteaseEnhancementState Current => Volatile.Read(ref _current);
     public event EventHandler<NeteaseEnhancementState>? Changed;
@@ -21,8 +21,11 @@ public sealed class NeteaseEnhancementService(
     {
         lock (_sync)
         {
-            if (_inspected || _disposed || !_operation.IsCompleted) return _operation;
-            _inspected = true;
+            // An inspection request must read current local inventory.
+            // Components may have changed outside DropSpace since the previous visit.
+            // Coalesce concurrent requests with deployment/inspection, but never cache
+            // a successful negative result for the entire application lifetime.
+            if (_disposed || !_operation.IsCompleted) return _operation;
             return _operation = Task.Run(() => InspectCoreAsync(cancellationToken), CancellationToken.None);
         }
     }
@@ -78,7 +81,6 @@ public sealed class NeteaseEnhancementService(
         {
             logger.LogWarning("NetEase enhancement operation failed ({Category}, {Code}).", exception.GetType().Name,
                 exception is EnhancementDeploymentException failure ? failure.Code : "Operation");
-            lock (_sync) _inspected = false;
             PublishFailure(exception, receipt is not null, receipt?.PluginVersion);
         }
     }
