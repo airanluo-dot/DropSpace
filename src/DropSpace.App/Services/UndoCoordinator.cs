@@ -73,6 +73,43 @@ public sealed class UndoCoordinator(
         }
     }
 
+    public async Task<BatchPinResult> SetPinnedAsync(
+        IReadOnlyCollection<Guid> ids,
+        bool isPinned,
+        string messageResourceKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        ArgumentException.ThrowIfNullOrWhiteSpace(messageResourceKey);
+        var distinctIds = ids.Where(id => id != Guid.Empty).Distinct().ToArray();
+        if (distinctIds.Length == 0)
+        {
+            return new BatchPinResult(new Dictionary<Guid, bool>(), Array.Empty<Guid>());
+        }
+
+        // Pin persistence and its Undo ownership are one operation. Releasing this
+        // gate between them lets a late pin continuation commit a newer removal.
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            await FinalizeActiveCoreAsync(cancellationToken).ConfigureAwait(false);
+            var result = await repository.SetPinnedManyAsync(distinctIds, isPinned, cancellationToken)
+                .ConfigureAwait(false);
+            if (result.AffectedCount > 0)
+            {
+                // The repository has committed. Do not admit cancellation or another
+                // await before retaining the exact previous values for Undo.
+                RegisterPinChangeCore(result.PreviousStates, messageResourceKey);
+            }
+            return result;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task<UndoState?> RegisterPinChangeAsync(
         IReadOnlyDictionary<Guid, bool> previousStates,
         string messageResourceKey,
@@ -90,21 +127,28 @@ public sealed class UndoCoordinator(
         {
             ThrowIfDisposed();
             await FinalizeActiveCoreAsync(cancellationToken).ConfigureAwait(false);
-            var state = new UndoState(
-                OperationCorrelation.New(),
-                UndoOperationKind.PinChange,
-                DateTimeOffset.UtcNow.Add(UndoWindow),
-                messageResourceKey,
-                previousStates.Count);
-            _active = ActiveUndo.ForPinChange(state, previousStates);
-            PublishState(state);
-            StartExpiration(_active);
-            return state;
+            return RegisterPinChangeCore(previousStates, messageResourceKey);
         }
         finally
         {
             _gate.Release();
         }
+    }
+
+    private UndoState RegisterPinChangeCore(
+        IReadOnlyDictionary<Guid, bool> previousStates,
+        string messageResourceKey)
+    {
+        var state = new UndoState(
+            OperationCorrelation.New(),
+            UndoOperationKind.PinChange,
+            DateTimeOffset.UtcNow.Add(UndoWindow),
+            messageResourceKey,
+            previousStates.Count);
+        _active = ActiveUndo.ForPinChange(state, previousStates);
+        PublishState(state);
+        StartExpiration(_active);
+        return state;
     }
 
     public async Task<UndoState?> BeginClipboardClearAsync(

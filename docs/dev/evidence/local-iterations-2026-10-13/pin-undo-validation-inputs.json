@@ -1,0 +1,73 @@
+{
+  "round": 10,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "one successful offline-cache restore using --source /home/agent/.nuget/packages/ --ignore-failed-sources; 2 existing projects up to date",
+  "build": "one normal source-linked console probe build, default analyzers and warnings-as-errors retained",
+  "command": "dotnet run --project scripts/undo-lifecycle-probe/UndoLifecycleProbe.csproj --no-restore --no-launch-profile",
+  "result": {
+    "exitCode": 0,
+    "passed": 1,
+    "sqliteFinalHistoryRows": 2,
+    "undoStateAfterRestoration": null
+  },
+  "measured": [
+    "real pin SQLite commit completes before controlled result barrier",
+    "new Remove cannot enter repository while pin retains Undo gate",
+    "postcommit cancellation preserves PinChange then RemoveItem publication order",
+    "new removal token remains current",
+    "Undo restores B while A remains pinned"
+  ],
+  "staticOnly": [
+    "MainViewModel single and batch pin wiring"
+  ],
+  "unexecuted": [
+    "historical Undo/pin tests",
+    "Windows WinUI interaction",
+    "full App/XAML compilation",
+    "precommit failure and expiration subcases"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/Services/UndoCoordinator.cs",
+      "sha256": "ecb629d84fde32f9422bc2b0bb8712ea70bb9cb006bcfd398e701d1238fdba72"
+    },
+    {
+      "path": "src/DropSpace.App/Services/PinItemsUseCase.cs",
+      "sha256": "951f44565d7548113c50db2c4086f854852d13ba6a13867bee3af1a99044bdcd"
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeSubscriberNotification.cs",
+      "sha256": "18e50de26cf91ed64caad8fcb5b46be5f80a8c7fee763abca0f850077f80c09d"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+      "sha256": "2ea94a2f34f40a7ba584dab99acd377a476f0f200cc000ea1be24fd6b23afe26"
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IItemRepository.cs",
+      "sha256": "143a96e163ca7926d0c80d77464919dfdacbae1164b679516d1a851ea88ba0d1"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteItemRepository.cs",
+      "sha256": "bac2832b9dc0d41d9e2d5df25072022ca2537b82a2b63c9f2dd7206442490b5f"
+    },
+    {
+      "path": "scripts/undo-lifecycle-probe/UndoLifecycleProbe.csproj",
+      "sha256": "04e07f5f6813bae46a8090ac16e9457f5df55b73797092260cc48a389914208c"
+    },
+    {
+      "path": "scripts/undo-lifecycle-probe/Program.cs",
+      "sha256": "8c034187fd6f5fc0c071fd2e91e8db4a890b2b4e8161cc137caa506dc3918538"
+    },
+    {
+      "path": "scripts/undo-lifecycle-probe/README.md",
+      "sha256": "1e56973f3dd374e3ee02a0e8fb84c2cbf0bd6e5de77b86538d1a1ef7e46d4092"
+    }
+  ],
+  "builtAssembly": {
+    "path": "scripts/undo-lifecycle-probe/bin/Debug/net10.0/UndoLifecycleProbe.dll",
+    "sha256": "515e1bcfa2b309a8bae9500166b3ab34eab77ca93cd7d1339065e0fa9b600e1e"
+  }
+}

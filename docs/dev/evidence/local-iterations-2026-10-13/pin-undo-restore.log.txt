@@ -1,0 +1,3 @@
+  Determining projects to restore...
+  Restored /workspace/DropSpace/scripts/undo-lifecycle-probe/UndoLifecycleProbe.csproj (in 165 ms).
+  2 of 3 projects are up-to-date for restore.

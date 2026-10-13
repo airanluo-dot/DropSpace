@@ -290,14 +290,47 @@ mapping received independent source review, not dynamic coverage. Full WinUI/ima
 codec and HTTP interaction remain unavailable here. See the exact
 [image lifetime evidence](evidence/local-iterations-2026-10-13/remote-image-lifetime-validation.md).
 
+## 10. Pin persistence and removal Undo ordering
+
+Pinning previously finalized the old Undo, awaited a separate repository write,
+and only then registered its own Undo. SQLite deliberately runs this write on a
+worker. Main and Island button handlers do not serialize that three-step operation,
+so a later Remove could create its Undo while Pin was suspended. The earlier Pin
+continuation then finalized that newer removal, prematurely deleting its history
+row/owned payload and replacing the expected removal Undo. Original user files
+remain outside this deletion path.
+
+The shared Undo gate now covers pin finalization, persistence and immediate Undo
+registration. Both Main/Island single-item and batch pin paths use this boundary.
+Once the repository reports a successful commit, caller cancellation cannot
+interrupt registration of the actual previous states. Failed or unchanged writes
+do not create a pin Undo. The existing behavior of finalizing a prior operation
+before attempting a new one remains unchanged.
+
+Planned minimal check: one source-linked production Undo/Pin scenario with actual
+temporary SQLite, gating the return from an already-committed pin. Queue Remove,
+cancel the pin caller after commit, release the pin result, and confirm the later
+removal owns the visible Undo and can still restore its row. No native UI or broad
+Undo suite will run. Independent source review passed.
+
+Result: the one combined scenario passed on its only run, with one offline-cache
+restore and one normal build/run retaining default analyzers. Actual SQLite A was
+already pinned at the controlled return barrier; Remove had not entered its
+repository call. Postcommit cancellation still published PinChange then RemoveItem.
+The newer removal token remained current, Undo restored B, and A remained pinned.
+The final temporary database contained both rows. Main/Island clicking and full
+WinUI/XAML compilation remain unverified. See the exact
+[pin/Undo evidence](evidence/local-iterations-2026-10-13/pin-undo-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
 changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
 `0e32575`. ZIP result correctness is saved in `907ff86`. Preview cache-generation
-ownership is saved in `2d89b32`. Remote image ownership is ready for its local
-checkpoint. The next implementation closes a confirmed pin/removal ordering gap
-that could let an older pin continuation finalize a newer removal's undo window.
+ownership is saved in `2d89b32` and remote image ownership in `8e3901a`.
+The pin/removal Undo ordering fix passed its focused persistence check and is
+ready for its local checkpoint. Next is the confirmed download-startup ownership
+conflict between early Enqueue and background history restoration.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the

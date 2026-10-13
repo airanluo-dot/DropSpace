@@ -1013,17 +1013,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task TogglePinAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        await _undo.FinalizeActiveAsync(cancellationToken);
         var previousState = card.IsPinned;
         var nextState = !previousState;
-        var result = await _pinItems.SetAsync([card.Id], nextState, cancellationToken);
-        if (result.AffectedCount > 0)
-        {
-            await _undo.RegisterPinChangeAsync(
-                result.PreviousStates,
-                nextState ? "UndoPinned" : "UndoUnpinned",
-                cancellationToken);
-        }
+        await _pinItems.SetAsync([card.Id], nextState, cancellationToken);
         var refreshed = await _repository.GetAsync(card.Id, cancellationToken);
         if (refreshed is not null)
         {
@@ -1060,24 +1052,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
         var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
-        await _workspaceMutations.FinalizeActiveAsync(cancellationToken);
         if (members.Count == 0)
         {
             return;
         }
 
-        var pin = members.Any(item => !item.IsPinned);
-        var result = await _pinItems.SetAsync(
-            members.Select(member => member.Id).ToArray(),
-            pin,
-            cancellationToken);
-        if (result.AffectedCount > 0)
-        {
-            await _undo.RegisterPinChangeAsync(
-                result.PreviousStates,
-                pin ? "UndoPinned" : "UndoUnpinned",
-                cancellationToken);
-        }
+        await _pinItems.ToggleAsync(members, cancellationToken);
         await ReloadAsync(cancellationToken);
         await PublishSpaceProjectionChangedAsync(cancellationToken);
     }

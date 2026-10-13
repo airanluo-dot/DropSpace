@@ -1,13 +1,12 @@
-using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 
 namespace DropSpace.App.Services;
 
 /// <summary>
-/// Owns the batch-pin decision and delegates one atomic mutation to the repository boundary.
-/// UI projections never perform per-row pin writes themselves.
+/// Owns the batch-pin decision and delegates persistence plus Undo ownership to
+/// the shared mutation coordinator. UI projections never perform per-row writes.
 /// </summary>
-public sealed class PinItemsUseCase(IItemRepository repository)
+public sealed class PinItemsUseCase(UndoCoordinator undo)
 {
     public async Task<BatchPinResult> ToggleAsync(
         IReadOnlyList<DropItem> items,
@@ -20,7 +19,7 @@ public sealed class PinItemsUseCase(IItemRepository repository)
         }
 
         var target = items.Any(item => !item.IsPinned);
-        return await repository.SetPinnedManyAsync(
+        return await SetAsync(
                 items.Select(item => item.Id).ToArray(),
                 target,
                 cancellationToken)
@@ -31,5 +30,5 @@ public sealed class PinItemsUseCase(IItemRepository repository)
         IReadOnlyCollection<Guid> ids,
         bool isPinned,
         CancellationToken cancellationToken = default) =>
-        repository.SetPinnedManyAsync(ids, isPinned, cancellationToken);
+        undo.SetPinnedAsync(ids, isPinned, isPinned ? "UndoPinned" : "UndoUnpinned", cancellationToken);
 }
