@@ -271,7 +271,7 @@ is retained, and Windows rendering/UI interaction remain unverified. See the
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
 changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
 `0e32575`. ZIP result correctness is saved in `907ff86`. Preview cache-generation
-ownership is ready for its local checkpoint. Investigation continues into remote
+ownership is saved in `2d89b32`. Investigation continues into remote
 clipboard import cancellation and resource ownership.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
