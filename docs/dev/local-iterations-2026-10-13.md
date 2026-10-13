@@ -760,6 +760,47 @@ No other Core method or round 21 test was run. This policy check is separate fro
 round 22's App notification-lifecycle repair and does not validate WinUI events.
 See the [policy-check evidence](evidence/local-iterations-2026-10-13/lyrics-target-policy-validation.md).
 
+## 24. Retain PDF preview resources until native rendering really finishes
+
+PdfPreviewHost used a new cancellation token for every page click, while native
+PreparePageAsync and RenderToStreamAsync continued without that token. Buttons
+and the current page changed only after completion, so repeated clicks could
+start overlapping renders of the same next page. Closing the dialog immediately
+disposed its input stream even though a render could still be using it; a late
+failure also wrote an unavailable label after retirement. The provider's earlier
+two-slot read budget does not cover these later native operations.
+
+The selected repair gives each PDF host one actual operation, rejects navigation
+while busy, and retains input/document/cancellation ownership until real native
+completion and cancellation propagation settle. Across hosts, two bounded leases
+include retired operations still draining; lack of capacity uses the existing
+unavailable fallback. Disposal withdraws presentation immediately, while final
+resource cleanup occurs on the captured UI dispatcher before returning capacity.
+Preview creation also captures the original item/title/page token so asynchronous
+work cannot pair old bytes with a later card identity or outlive the opening page.
+
+Result: one normal source-linked probe build and one opt-in `pdf-native` scenario
+passed once, using existing assets without restore or retry. The actual managed
+lifetime and NativeAsyncLifetime retained capacity through separate native
+completion, blocked Cancel, owner cancellation callbacks and resource-cleanup
+barriers. Busy/retired calls never queued, parent cancellation and repeated
+retirement were safe, and a fresh session recovered after synchronous failure.
+The existing probe's analyzer setting was retained; no production analyzer
+setting changed. MainPage was independently reviewed but was not compiled by
+this probe.
+
+Final static review refined only MainPage's cancellation dispatch: PDF and writer
+operations use the existing background cancellation helper; the XAML SetSourceAsync
+action conservatively cancels on its owner dispatcher. Upstream WinUI source
+describes that action's class as thread-affine, while its OnCancel override is
+empty. This supports a conservative boundary, not a claim that background Cancel
+must fail or UI Cancel has bounded latency. The target SDK binary was not matched
+against that upstream commit. The compiled helper/probe inputs were unchanged,
+so the check was not repeated; as-run and final static-only MainPage hashes are
+recorded separately in the [PDF evidence](evidence/local-iterations-2026-10-13/pdf-native-validation.md).
+Actual Windows PDF parsing, rendering, rapid navigation, cancellation latency,
+dispatcher shutdown and native cleanup remain target-platform verification gaps.
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -779,9 +820,9 @@ in `c5b5622`. In-session Nearby-link management and its verified local server
 lifecycle are saved in `b1a2e77`. The downloaded-update recovery repair and its
 unique targeted check are saved in `fa5673a`. The independent
 lyric settings-coalescing repair is saved in `cfeb744` after static review. Next,
-the outdated interface/lyric language assertion is corrected and its one targeted
-Core check passed after a local assets repair. Native PDF preview operation
-ownership is selected for the next local implementation.
+the outdated interface/lyric language assertion and its one targeted Core result
+are saved in `767ddfe`. Native PDF preview operation ownership is the active local
+implementation.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.

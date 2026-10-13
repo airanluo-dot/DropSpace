@@ -1,0 +1,172 @@
+{
+  "round": 24,
+  "scenario": "pdf-native",
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restores": 0,
+  "normalProbeBuilds": 1,
+  "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet run --project scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj --no-restore -- pdf-native",
+  "exitCode": 0,
+  "result": "PASS pdf-native; PASS 1 selected production-source scenarios",
+  "rawOutput": "pdf-native-run.log.txt",
+  "trx": "not applicable: console probe, no test-runner TRX",
+  "analyzers": "Existing probe EnableNETAnalyzers=false retained; no production analyzer configuration changed.",
+  "scope": "Actual PdfPreviewLifetime and NativeAsyncLifetime source-linked; controlled WinRT operation boundary and resource-cleanup callback. MainPage is static-only and is not compiled by this project.",
+  "measured": [
+    "pre-cancelled parent throws without admission",
+    "two admitted sessions exhaust global capacity, including all retirement phases",
+    "busy and retired per-owner render calls reject without starting or queuing delegates",
+    "parent cancellation initiates actual retirement; repeated RetireAsync returns the same task",
+    "native Completed does not bypass blocked native Cancel",
+    "actual operation settles canceled while separate owner-token cancellation callback still retains capacity and prevents cleanup",
+    "resource cleanup begins only after actual work and cancel callbacks complete; its separate gate retains capacity",
+    "completed cleanup returns capacity for a fresh session",
+    "synchronous operation invokes on the calling managed thread; original synchronous IOException propagates; following render is accepted"
+  ],
+  "staticOnly": [
+    "MainPage/PdfPreviewHost loading, navigation and disposal wiring",
+    "UI dispatcher resource cleanup marshaling",
+    "cleanup failure retains owner/capacity and reports fault",
+    "retired initial load and page-render publication checks"
+  ],
+  "unexecuted": [
+    "real PDF files or Windows PDF parser",
+    "actual WinRT cancellation and apartment behavior",
+    "WinUI rendering or preview interaction",
+    "full App/XAML compilation",
+    "default media and previous image/drag scenarios"
+  ],
+  "frozenBeforeExecution": {
+    "capturedBeforeExecutionAtUtc": "2026-10-13T06:04:15.716670+00:00",
+    "compiledInputs": [
+      {
+        "path": "scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj",
+        "sha256": "90140e1aea05150227ae087f7373e1f2614d29ef4e966e24e77f70d564395ae3"
+      },
+      {
+        "path": "scripts/media-lifecycle-probe/Program.cs",
+        "sha256": "34cb5ee5bbe8f8f2656db3813171be3e1ef2267277d437948ff9e82c3c16fb22"
+      },
+      {
+        "path": "scripts/media-lifecycle-probe/PdfNativeScenario.cs",
+        "sha256": "65211621173743d26458b592753ab22923aaf890e7b4c0344fe2dad8dab24554"
+      },
+      {
+        "path": "scripts/media-lifecycle-probe/PlatformShims.cs",
+        "sha256": "411def206b0f4c424e75577f3af9071d4f608afd37ca81c3c049cb3a0e0a5a04"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
+        "sha256": "ba52dc248a47b093c6f2b1d7cec7953ab7c611d95ef49d8fc99723b64ee5c224"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/BoundedMediaOperation.cs",
+        "sha256": "4c107c099a8b243f7677365b3d078babcd9faf432cb43d2b725dfe302da348cd"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaNativeContext.cs",
+        "sha256": "aaaa4885d80c08c63c9ed9e4fb607500c439e4a1456fa43efb76954d2bb9f18b"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaEventSubscription.cs",
+        "sha256": "98258ed14141279e453081ca5bbc431d580632c266725133041a2a04e03c5cef"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs",
+        "sha256": "a2111b56685634a48925d953615e3efbfb32e86a345624892cae0d4b1aa25a4e"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaSessionOwner.cs",
+        "sha256": "685d876f8bc5b0770bee0a2c8c14d3baccfb974a89919c6e0e1649fe2b2aab93"
+      },
+      {
+        "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+        "sha256": "4c62f00a4f72c10780a1a147cd761096bbd23fd3daaefbf36ecc4fb861c3cd02"
+      },
+      {
+        "path": "src/DropSpace.App/Services/PdfPreviewLifetime.cs",
+        "sha256": "b99e718ebe5b453334d5b745ae4b7f032ec0baffd98fca0be81ffd4d77e7a235"
+      },
+      {
+        "path": "src/DropSpace.App/Services/ClipboardImageReadLifetime.cs",
+        "sha256": "62bc199832891a2ab97f0a2af31f5745d33940f2cdfa7c995670b02c6234ba81"
+      },
+      {
+        "path": "src/DropSpace.App/Services/ItemAssetWorkLifetime.cs",
+        "sha256": "7b930bb4d5fbff9e0e5ce63480c9738b71de95fdbb6f26c8706c51e863ab8d32"
+      },
+      {
+        "path": "src/DropSpace.App/Services/DragStorageItemService.cs",
+        "sha256": "2250b7e6b889254abf78a05e720c800bff462a257bfaaf160fbe09051cfc38d9"
+      },
+      {
+        "path": "src/DropSpace.App/Services/DispatcherQueueExtensions.cs",
+        "sha256": "59a3eb20b38fcc7a0ec0474e78e63c4345341f09c0fcfe5f2e9d78f9c4fed4c2"
+      },
+      {
+        "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+        "sha256": "5d697fd66f1e7c34f815eafd02bdc2fde9b3669a83877e38c55a03c318b6a274"
+      },
+      {
+        "path": "Directory.Build.props",
+        "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+      },
+      {
+        "path": "Directory.Packages.props",
+        "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+      }
+    ],
+    "staticOnlyInputs": [
+      {
+        "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+        "sha256": "52def99d524196ff664d9c9baef5273c6b7a2edd0d514c7fceccdf432bc703b9"
+      },
+      {
+        "path": "scripts/media-lifecycle-probe/README.md",
+        "sha256": "932f19bb0b047056ace8fd66ad5c3293da5adbe5c80cf937195f7691da641bfa"
+      }
+    ]
+  },
+  "frozenInputsUnchangedAfterExecution": true,
+  "additionalHarnessInputsAfterExecution": [
+    {
+      "path": "scripts/media-lifecycle-probe/ImageNativeScenario.cs",
+      "sha256": "b49a97c3b484fbecba38cafa78b961d2391ceb804c4ee5d520fc82406694bfad"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/DragNativeScenario.cs",
+      "sha256": "0e7a5e0c8fac25699276336d4ad9a2b649c92caaf4b46f9850a44ea4e4bb0aa9"
+    }
+  ],
+  "builtAssembly": {
+    "path": "scripts/media-lifecycle-probe/bin/Debug/net10.0/MediaLifecycleProbe.dll",
+    "sha256": "71d09b2cfe36cade772f9ee7d13e68ff845a51d143d4a0cb11da4030b5bffdd3"
+  },
+  "finalStaticInputs": {
+    "capturedAtUtc": "2026-10-13T06:14:23.320267+00:00",
+    "inputs": [
+      {
+        "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+        "sha256": "bc747b913fc0f22f8acb4e2c5f8203474aa3a3519bc2779909a1f1b1723e7219",
+        "compiledOrExecutedByProbe": false
+      }
+    ],
+    "why": "Post-run static review narrowed cancellation dispatch: five PDF/DataWriter operations use default off-thread NativeAsyncLifetime cancellation; only BitmapImage.SetSourceAsync cancellation uses the captured UI dispatcher. The as-run MainPage hash remains preserved in frozenBeforeExecution.staticOnlyInputs and the separate original frozen snapshot.",
+    "compiledProbeInputsStillMatchAsRun": true,
+    "additionalBuilds": 0,
+    "additionalFunctionalExecutions": 0,
+    "reviewStatus": "Independent reviewer and root approved the final static wiring before capture.",
+    "upstreamReviewEvidence": {
+      "source": "Fixed upstream source URLs already read by root, implementation agent and independent reviewer; no additional fetch in this evidence update.",
+      "commit": "5bc5c00049da6864f0acaf92bee8260c14d91ee6",
+      "urls": [
+        "https://github.com/microsoft/microsoft-ui-xaml/blob/5bc5c00049da6864f0acaf92bee8260c14d91ee6/dxaml/xcp/dxaml/lib/DXamlAsyncBase.h#L17",
+        "https://github.com/microsoft/microsoft-ui-xaml/blob/5bc5c00049da6864f0acaf92bee8260c14d91ee6/dxaml/xcp/dxaml/lib/DXamlAsyncBase.h#L67",
+        "https://github.com/microsoft/microsoft-ui-xaml/blob/5bc5c00049da6864f0acaf92bee8260c14d91ee6/dxaml/xcp/dxaml/lib/DXamlAsyncBase.h#L180",
+        "https://github.com/microsoft/microsoft-ui-xaml/blob/5bc5c00049da6864f0acaf92bee8260c14d91ee6/dxaml/xcp/dxaml/lib/BitmapSource_Partial.cpp#L239"
+      ],
+      "interpretation": "Conservative owner-context cancellation for the specific thread-affine XAML operation. The reviewed OnCancel override is empty. This does not prove off-thread Cancel fails or that cancellation cannot block. The upstream commit has not been established as the source of the target Microsoft.WindowsAppSDK 2.5.1 binaries; no real Windows behavior was executed."
+    }
+  }
+}

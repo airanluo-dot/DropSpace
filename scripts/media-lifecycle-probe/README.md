@@ -56,3 +56,21 @@ native operations complete. This tests managed queue/native ownership, not the M
 owner dictionary, navigation/clear integration, real Windows Storage/OLE, or thumbnails.
 No original media or image scenario is selected. Folder/image payload branches remain
 static-only coverage.
+
+The separate opt-in `pdf-native` scenario links the actual `PdfPreviewLifetime` and
+`NativeAsyncLifetime`:
+
+```sh
+dotnet run --project scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj --no-restore -- pdf-native
+```
+
+One combined scenario fills the global two-session bound, refuses a second render on
+the same owner without queuing, and retires through independently controlled native
+Completed, blocked native Cancel, owner cancellation callbacks, and resource cleanup.
+Each incomplete stage must retain its slot; fresh work and synchronous-failure recovery
+are checked afterward. It also covers pre-cancelled parents and idempotent retirement.
+Only the native operation boundary is controlled. No PDF parser, WinRT PDF operation,
+WinUI dispatcher/rendering, or actual preview host integration executes. The resource
+cleanup delegate is a controlled stand-in for the host's UI cleanup. The project retains
+its pre-existing `EnableNETAnalyzers=false`; production analyzer configuration is unchanged.
+No previous media, image, or drag scenario is selected by this command.

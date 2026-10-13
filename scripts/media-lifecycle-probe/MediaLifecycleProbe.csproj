@@ -15,6 +15,7 @@
     <Compile Include="../../src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs" Link="Production/MediaSubscriptionAdmission.cs" />
     <Compile Include="../../src/DropSpace.App/Services/Media/MediaSessionOwner.cs" Link="Production/MediaSessionOwner.cs" />
     <Compile Include="../../src/DropSpace.App/Services/NativeAsyncLifetime.cs" Link="Production/NativeAsyncLifetime.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/PdfPreviewLifetime.cs" Link="Production/PdfPreviewLifetime.cs" />
     <Compile Include="../../src/DropSpace.App/Services/ClipboardImageReadLifetime.cs" Link="Production/ClipboardImageReadLifetime.cs" />
     <Compile Include="../../src/DropSpace.App/Services/ItemAssetWorkLifetime.cs" Link="Production/ItemAssetWorkLifetime.cs" />
     <Compile Include="../../src/DropSpace.App/Services/DragStorageItemService.cs" Link="Production/DragStorageItemService.cs" />
