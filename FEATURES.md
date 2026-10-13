@@ -281,7 +281,7 @@ Settings save immediately after validation. Failed saves revert the control and 
 - DropLink source preparation limits visited entries across the complete selection to the configured file limit plus 4096, including empty folders. File and folder relative paths respect the configured path limit. Excessive selections stop before sending with localized guidance; they are never silently truncated.
 - Explicit file sends have a native progress panel that remains observable after navigation or an interface-language change. It reports preparation, receiver approval, acknowledged bytes and final saving; only the receiver's completed response indicates success.
 - File sends can be canceled before final saving. Cancellation remains visible while the operation closes, and the sender explains when the remote result may be uncertain. Closing the panel does not stop a transfer; finished results are bounded to ten records for the current app session and can be cleared without deleting files.
-- Nearby Share uses a private address, 192-bit token, TTL, receiver cap, range reads, and revoke. Internet Share encrypts the manifest and chunks in the client; a missing Worker configuration is a hard unavailable state.
+- Nearby Share uses a private address, 192-bit token, TTL, receiver cap, range reads, and revoke. Devices settings retain access to active links for copying, QR display and revocation, including while creation is disabled. Expiry, revocation and network changes withdraw links; downloads already started may continue. Internet Share encrypts the manifest and chunks in the client; a missing Worker configuration is a hard unavailable state.
 
 ## v0.3.0-preview.9 additions
 
