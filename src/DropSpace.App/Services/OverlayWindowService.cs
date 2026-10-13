@@ -891,6 +891,10 @@ public sealed class OverlayWindowService : IDisposable
             _activeSmartSessionId = 0;
             _stateMachine.OpenQuickPanel();
             _experience.Open();
+            // Surface routing includes Primary/fullscreen preferences. Let the
+            // window actually shown by ApplySnapshot accept the keyboard request.
+            foreach (var window in _windows)
+                if (window.TryActivateQuickPanel()) break;
             _logger.LogInformation("Quick Panel opened from the registered global hotkey.");
         });
     }

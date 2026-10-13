@@ -439,6 +439,30 @@ No previous media/image scenarios were rerun. Main's integration received two
 independent source reviews; no Main/App/XAML compile or native navigation ran.
 See the [asset cancellation evidence](evidence/local-iterations-2026-10-13/asset-drag-native-validation.md).
 
+## 15. Keyboard focus after opening Quick Panel by hotkey
+
+The product describes Quick Panel as keyboard-first, but the global hotkey only
+expanded it. Its normal show path uses `SW_SHOWNOACTIVATE`; the sole explicit
+`Activate()` was in the mouse-open path. Removing the no-activate style permits
+activation but does not request it. The hotkey therefore lacked the step needed
+to transfer keyboard input from the previously focused application.
+
+The hotkey now requests activation from the actual active, visible and safe
+expanded surface after synchronous monitor routing. It focuses the current page's
+first available control. A first show may await Loaded and at most one subsequent
+layout notification; these callbacks never reactivate the window. Page/hide
+generation checks and retirement on deactivation, hide, native failure, placement
+editing and shutdown prevent stale focus requests. Fullscreen activation policy
+still applies, and passive presentation/Smart Drag do not invoke this entry point.
+
+Verification: independent source review of routing, focus ownership and the
+existing Escape handler, plus diff checks. Zero builds or functional tests ran.
+The cache lacks the actual Microsoft.WinUI reference assembly, so no actual WinUI
+metadata/type verification is claimed. A large substitute window harness would
+not establish native foreground or keyboard behavior. First-show focus, Tab/Escape,
+multiple displays and fullscreen policy still need Windows interaction; the source
+repair is not represented as target-platform acceptance.
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -447,9 +471,10 @@ changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
 ownership is saved in `2d89b32` and remote image ownership in `8e3901a`.
 The pin/removal Undo ordering fix is saved in `d510192`, and download-startup
 ownership in `783fec7`, and image-export handles in `d03c59d`. Pause failure
-feedback is saved in `c12d283`. Discarded-card asset cancellation has passed its
-focused check and is ready for its checkpoint. Quick Panel keyboard focus is the
-next implementation in progress.
+feedback is saved in `c12d283`, and discarded-card asset cancellation in `796f90b`.
+Quick Panel keyboard focus has passed independent static review and is ready for
+its checkpoint. DropLink directory preparation budgets are the next selected
+improvement: file-count/byte limits do not bound traversal through empty folders.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
