@@ -25,6 +25,9 @@ public sealed class CrossDeviceClipboardService(
     private ClipboardPropagationQueue? _propagation;
     private AppSettings _settings = new();
     private long _originSequence;
+    private long _receiverGeneration;
+    private Func<ClipboardEnvelope, CancellationToken, Task>? _clipboardReceiver;
+    private EventHandler<DropItem>? _captureHandler;
     private DateTimeOffset _nextPeerRefreshUtc;
     private bool _initialized;
     private bool _disposed;
@@ -72,11 +75,21 @@ public sealed class CrossDeviceClipboardService(
                         if (settings.ClipboardPeerModes.TryGetValue(reachable.Peer.Id, out var mode))
                             _peers[reachable.Peer.Id] = new ClipboardPeerChannel(reachable.Peer, reachable.Endpoint, mode);
                 }
-                _propagation = new ClipboardPropagationQueue(
+                var propagation = new ClipboardPropagationQueue(
                     (item, token) => PropagateAsync(item, identity, token),
                     exception => logger.LogWarning(exception, "Cross-device clipboard propagation failed without changing local history."));
-                capture.ItemCaptured += OnItemCaptured;
-                host.ClipboardReceived += OnClipboardReceivedAsync;
+                _propagation = propagation;
+                // Capture publication snapshots delegates too. An old callback may
+                // only enqueue into its own retired queue, never the next lifetime.
+                _captureHandler = (_, item) =>
+                {
+                    if (!IsEnabled || capture.IsPaused) return;
+                    propagation.TryEnqueue(item);
+                };
+                capture.ItemCaptured += _captureHandler;
+                var receiverGeneration = ++_receiverGeneration;
+                _clipboardReceiver = (envelope, token) => OnClipboardReceivedAsync(envelope, receiverGeneration, token);
+                host.ClipboardReceived += _clipboardReceiver;
                 _settings = settings;
                 _initialized = true;
                 IsEnabled = true;
@@ -92,14 +105,20 @@ public sealed class CrossDeviceClipboardService(
 
     private async Task DisableCoreAsync()
     {
+        // HTTP may already hold a copy of the event delegate. Retire its ownership
+        // before unsubscribing so it cannot acknowledge or import after re-enable.
+        ++_receiverGeneration;
         IsEnabled = false;
         _initialized = false;
-        capture.ItemCaptured -= OnItemCaptured;
-        host.ClipboardReceived -= OnClipboardReceivedAsync;
+        if (_captureHandler is { } captureHandler) capture.ItemCaptured -= captureHandler;
+        _captureHandler = null;
+        if (_clipboardReceiver is { } receiver) host.ClipboardReceived -= receiver;
+        _clipboardReceiver = null;
         var propagation = Interlocked.Exchange(ref _propagation, null);
         if (propagation is not null) await propagation.DisposeAsync().ConfigureAwait(false);
         lock (_gate) _peers.Clear();
-        _loopGuard.Clear();
+        // Successful event receipts survive a settings toggle: a sender retry after
+        // re-enable must remain an acknowledged duplicate, not a second import.
         _identity = null;
     }
 
@@ -171,12 +190,6 @@ public sealed class CrossDeviceClipboardService(
         }
     }
 
-    private void OnItemCaptured(object? sender, DropItem item)
-    {
-        if (!IsEnabled || capture.IsPaused) return;
-        _propagation?.TryEnqueue(item);
-    }
-
     private async Task PropagateAsync(DropItem item, DeviceIdentity identity, CancellationToken cancellationToken)
     {
         if (!IsEnabled || capture.IsPaused) return;
@@ -219,13 +232,15 @@ public sealed class CrossDeviceClipboardService(
         }
     }
 
-    private async Task OnClipboardReceivedAsync(ClipboardEnvelope envelope, CancellationToken cancellationToken)
+    private async Task OnClipboardReceivedAsync(ClipboardEnvelope envelope, long receiverGeneration, CancellationToken cancellationToken)
     {
         await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var identity = _identity;
-            if (!IsEnabled || identity is null || envelope.OriginDeviceId == identity.DeviceId) return;
+            if (_disposed || !IsEnabled || identity is null || receiverGeneration != _receiverGeneration)
+                throw new ClipboardReceiverUnavailableException();
+            if (envelope.OriginDeviceId == identity.DeviceId) return;
             if (capture.IsPaused) throw new ClipboardPausedException();
             ClipboardEnvelopePolicy.Validate(envelope);
             if (!_loopGuard.TryAccept(envelope)) return;
@@ -284,7 +299,7 @@ public sealed class CrossDeviceClipboardService(
     public async ValueTask DisposeAsync()
     {
         await _lifecycleGate.WaitAsync().ConfigureAwait(false);
-        try { _disposed = true; await DisableCoreAsync().ConfigureAwait(false); }
+        try { _disposed = true; await DisableCoreAsync().ConfigureAwait(false); _loopGuard.Clear(); }
         finally { _lifecycleGate.Release(); }
     }
 }

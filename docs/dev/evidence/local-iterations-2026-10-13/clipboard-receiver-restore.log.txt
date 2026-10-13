@@ -1,0 +1,4 @@
+  Determining projects to restore...
+  Restored /workspace/DropSpace/src/DropSpace.Core/DropSpace.Core.csproj (in 115 ms).
+  Restored /workspace/DropSpace/scripts/clipboard-receiver-probe/ClipboardReceiverProbe.csproj (in 160 ms).
+  Restored /workspace/DropSpace/src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj (in 160 ms).

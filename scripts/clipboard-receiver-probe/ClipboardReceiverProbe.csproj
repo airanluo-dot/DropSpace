@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <!-- This fixture constructs Windows-annotated transport objects without starting
+         them, and seeds only the identity cache to avoid DPAPI. Keep all other analyzers. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <ProjectReference Include="../../src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj" />
+    <Compile Include="../../src/DropSpace.App/Services/CrossDeviceClipboardService.cs" Link="Production/CrossDeviceClipboardService.cs" />
+  </ItemGroup>
+</Project>

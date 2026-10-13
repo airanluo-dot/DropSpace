@@ -193,7 +193,7 @@ review. Physical stop remains behind initialization/slot serialization even thou
 Disable immediately withdraws contributions and cancels requests. See the exact
 [module evidence](evidence/local-iterations-2026-10-13/module-inventory-validation.md).
 
-## 6. Cross-device clipboard acknowledgement (in progress)
+## 6. Cross-device clipboard acknowledgement
 
 The HTTP host snapshots receiver delegates before awaiting them. Disable could win
 the service lifecycle gate, after which the copied receiver returned normally without
@@ -202,6 +202,9 @@ active again after re-enable. Each subscription now captures its generation and
 rejects retired calls with the existing receiver-unavailable protocol category.
 Accepted event identities remain in the existing bounded TTL guard across toggles;
 failed imports release their reservation so a retry can still succeed.
+The matching outbound race used a copied capture delegate that read the next
+session's queue. The callback now captures its own queue; exact unsubscription and
+writer completion prevent an obsolete callback from entering a later queue.
 
 Planned minimal verification before execution: one source-linked receiver lifecycle
 scenario with real temporary settings and SQLite imports; only native clipboard and
@@ -209,14 +212,24 @@ peer-discovery boundaries are substituted. A cached ephemeral identity avoids DP
 no server, network, protected identity persistence or system clipboard will run.
 The HTTP exception mapping receives compilation/source review, not live HTTP proof.
 
+Result: one offline restore and one Release build/run of the single receiver case
+passed on the first attempt. Copied callbacks are rejected while disabled and after
+re-enable; current and cross-toggle retries do not duplicate accepted events; a
+precommit failure remains retryable. The real temporary SQLite database contained
+exactly two accepted text rows. The host remained stopped and no protected identity
+file was written. Default analyzers remain enabled, with only the standalone
+fixture's documented Windows-boundary warning suppressed. HTTP acknowledgement
+mapping and outbound queue ownership received source review/compilation, not live
+HTTP or outbound transfer validation. See the
+[receiver evidence](evidence/local-iterations-2026-10-13/clipboard-receiver-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
-changes in `845649f`. Module recovery is saved in a separate local checkpoint. A parallel independent
-inspection also confirmed that a captured cross-device clipboard callback could
-return normally after Disable, causing the HTTP host to acknowledge an event that
-was never imported; receive-generation fencing and an explicit unavailable response
-are implemented and awaiting focused validation.
+changes in `845649f`, and module recovery in `d9ba41c`. Clipboard receiver/queue
+ownership is ready for its local checkpoint. Investigation continues into local
+retrieval and file quick-action completeness; previously fixed outbox batch rotation
+was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the
 Windows/NetEase observations above are available. Do not infer success from C#
 compilation or controlled publishers. No background execution is implied after
