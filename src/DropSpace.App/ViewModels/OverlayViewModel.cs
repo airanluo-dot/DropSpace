@@ -415,16 +415,16 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         Task ApplyOnDispatcherAsync()
         {
             cancellationToken.ThrowIfCancellationRequested();
+            for (var index = RecentItems.Count - 1; index >= 0; index--)
+                if (RecentItems[index].IsPresentationRetired) RecentItems.RemoveAt(index);
             ProjectionCollection.SynchronizeById(
                 RecentItems,
                 items,
                 static item => item.Id,
                 (existing, incoming) =>
                 {
-                    existing.Update(incoming.Item);
-                    existing.Thumbnail = incoming.Thumbnail;
-                    existing.DragStorageItem = incoming.DragStorageItem;
-                    _mainViewModel.RefreshPrimaryQuickActions(existing);
+                    if (existing.TryMergePresentation(incoming))
+                        _mainViewModel.RefreshPrimaryQuickActions(existing);
                 });
             _stateMachine.SetTemporaryItemCount(_mainViewModel.SpaceItemCount);
             OnPropertyChanged(nameof(CompactTitle));

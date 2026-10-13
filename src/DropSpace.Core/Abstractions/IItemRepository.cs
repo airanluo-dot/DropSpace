@@ -79,8 +79,33 @@ public interface IItemRepository
         string? reason,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Applies a file check only while the observed item revision and reference are
+    /// still current. False means no data was changed; callers must read current state.
+    /// </summary>
+    Task<bool> TryUpdateFileStatusAsync(
+        Guid id,
+        int expectedRevision,
+        string expectedNormalizedPath,
+        FileEntryKind expectedEntryKind,
+        ItemStatus status,
+        string? reason,
+        CancellationToken cancellationToken = default);
+
     Task ReplaceFileReferenceAsync(
         Guid id,
+        FileCandidate replacement,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces only the observed file reference. A concurrent edit or removal
+    /// retires that observation and returns false without changing storage.
+    /// </summary>
+    Task<bool> TryReplaceFileReferenceAsync(
+        Guid id,
+        int expectedRevision,
+        string expectedNormalizedPath,
+        FileEntryKind expectedEntryKind,
         FileCandidate replacement,
         CancellationToken cancellationToken = default);
 

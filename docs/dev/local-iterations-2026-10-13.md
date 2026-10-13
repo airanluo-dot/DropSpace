@@ -131,11 +131,44 @@ once per instance; the explicit Refresh action owns subsequent inspection. Exist
 localized status/errors and cancellation/lifetime guards are retained. This small
 UI/inventory change received source review; WinUI behavior/compilation is unverified.
 
+## 4. File reference and presentation lifetimes
+
+Source review confirmed that an availability check for A could complete after Locate
+replaced it with B, then write A's missing status/reason into B. Thumbnail and drag
+preparation had the same late-publication problem. Main and Island hold distinct
+cards, so protecting only one card instance cannot protect the stored record.
+
+The repository now offers conditional status and Locate writes bound to the observed
+revision, normalized path and entry kind. A rejected write changes neither the item
+nor reference details. Entering either pending-removal path increments revision:
+otherwise Remove followed by Undo restored the same identity/revision and allowed
+an obsolete operation to mutate the restored record. Existing unconditional APIs,
+transactional payload cleanup, Undo identity and source-file ownership are retained.
+
+Cards fence asynchronous availability/thumbnail/drag results by presentation
+generation and accept only non-older records. Reference changes clear obsolete
+assets immediately; pin/last-used updates preserve valid same-content work. Optional
+failed loads cannot erase usable same-content assets. Main and Island merge current
+records independently. Missing records retire their cards; stale Open/Locate work
+cannot act on a different replacement or revive its retired caller. Rejected Locate
+requests use existing localized feedback and are not automatically replayed.
+
+Validation: one real temporary-SQLite availability case and one production-card
+source-linked delayed-publication scenario passed once each. Independent review then
+found the Locate/Remove/Undo boundary above; one additional exact-name SQLite case
+passed once after its repair, covering both removal entry points and valid replacement.
+The unchanged card probe was not rerun. No broad suite ran. Complete Main/Overlay
+WinUI compilation and real Locate/drag/drop/Undo interaction remain unverified;
+caller integration received source review. Raw evidence and source boundaries are in
+[file-race validation](evidence/local-iterations-2026-10-13/file-race-validation.md) and
+[Locate/Undo validation](evidence/local-iterations-2026-10-13/file-relocate-validation.md).
+
 ## Continuation
 
-The integrated media changes are saved as a local checkpoint. The next independent
-investigation found late file availability/thumbnail/drag results can outlive a
-Locate replacement; inspect and repair that path without changing real source files.
+The integrated media changes are saved in local commit `0e01f77`. The file-lifetime
+iteration is saved in a separate local checkpoint. The next confirmed defect is
+optional-module startup dependency validation against a partially loaded inventory;
+investigate interrupted-uninstall recovery in the same initialization boundary.
 The original user failures remain unverified on the target platform until the
 Windows/NetEase observations above are available. Do not infer success from C#
 compilation or controlled publishers. No background execution is implied after

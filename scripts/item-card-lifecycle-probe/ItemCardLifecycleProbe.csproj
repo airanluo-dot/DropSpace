@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Compile Include="../../src/DropSpace.App/ViewModels/ItemCardViewModel.cs" Link="Production/ItemCardViewModel.cs" />
+    <Compile Include="../../src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs" Link="Production/QuickActionButtonViewModel.cs" />
+  </ItemGroup>
+</Project>

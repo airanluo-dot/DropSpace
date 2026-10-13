@@ -1182,6 +1182,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
         foreach (var journal in _projectionLoads) journal.RemovedIds.Add(card.Id);
+        card.RetirePresentation();
+        Items.FirstOrDefault(item => item.Id == card.Id)?.RetirePresentation();
         ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
         ApplyBatchProjectionState();
         ItemCount = Items.Count;
@@ -1219,13 +1221,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return card;
         }).ToArray();
         await Task.WhenAll(cards.Select(card => LoadThumbnailSafelyAsync(card, cancellationToken)));
-        return cards;
+        return cards.Where(card => !card.IsPresentationRetired).ToArray();
     }
 
     public async Task<bool> OpenAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
         var item = await RefreshFileAvailabilityAsync(card, cancellationToken);
+        if (item is null)
+        {
+            Status = AppUiMessage.Resource("ItemCannotOpen");
+            return false;
+        }
         var opened = await _shell.OpenAsync(item, cancellationToken);
         if (opened)
         {
@@ -1264,23 +1271,69 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        var candidate = await _fileReferences.InspectAsync(replacementPath, cancellationToken);
-        await _repository.ReplaceFileReferenceAsync(card.Id, candidate, cancellationToken);
-        var refreshed = await _repository.GetAsync(card.Id, cancellationToken);
-        if (refreshed is not null)
+        var item = card.Item;
+        var generation = card.PresentationGeneration;
+        if (_disposed || !card.IsPresentationCurrent(generation)) return;
+        if (item.File is not { } file)
         {
-            card.Update(refreshed);
-            RefreshPrimaryQuickActions(card);
-            card.DragStorageItem = null;
-            await LoadThumbnailSafelyAsync(card, cancellationToken);
+            Status = AppUiMessage.Resource("ActionUnavailable");
+            return;
+        }
+        var candidate = await _fileReferences.InspectAsync(replacementPath, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_disposed || !card.IsPresentationCurrent(generation)) return;
+        // The picker/inspection and SQLite write gate can both outlive this record.
+        // Preserve the original revision: even deletion followed by Undo is a new
+        // storage lifetime, not permission to replay this earlier Locate request.
+        var replaced = await _repository.TryReplaceFileReferenceAsync(item.Id, item.Revision,
+            file.NormalizedPath, file.EntryKind, candidate, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_disposed) return;
+
+        var projectedCard = Items.FirstOrDefault(value => value.Id == item.Id);
+        var projectedGeneration = projectedCard?.PresentationGeneration ?? -1;
+        var refreshed = await _repository.GetAsync(item.Id, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_disposed) return;
+        var originalStillCurrent = card.IsPresentationCurrent(generation);
+        var cardsToLoad = new List<ItemCardViewModel>(2);
+        if (originalStillCurrent)
+        {
+            if (refreshed is null) RetireMissingCard(card);
+            else if (card.TryUpdate(refreshed))
+            {
+                RefreshPrimaryQuickActions(card);
+                cardsToLoad.Add(card);
+            }
+        }
+        // A live Main projection may be a different instance from the initiating
+        // Island card. Refresh it independently, without reviving a retired caller
+        // or applying this read to a projection replaced while the read was pending.
+        if (projectedCard is not null && !ReferenceEquals(projectedCard, card) &&
+            Items.Contains(projectedCard) && projectedCard.IsPresentationCurrent(projectedGeneration))
+        {
+            if (refreshed is null) RetireMissingCard(projectedCard);
+            else if (projectedCard.TryUpdate(refreshed))
+            {
+                RefreshPrimaryQuickActions(projectedCard);
+                cardsToLoad.Add(projectedCard);
+            }
         }
 
-        if (card.Item.Source == ItemSource.Space)
+        var feedbackGeneration = card.PresentationGeneration;
+        if (originalStillCurrent && refreshed is null)
+            Status = AppUiMessage.Resource("ActionSourceUnavailable");
+        await Task.WhenAll(cardsToLoad.Select(value => LoadThumbnailSafelyAsync(value, cancellationToken)));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_disposed) return;
+        if (replaced && item.Source == ItemSource.Space)
         {
             await PublishSpaceProjectionChangedAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
-        Status = AppUiMessage.Resource("FileReferenceUpdated");
+        if (!_disposed && originalStillCurrent && card.IsPresentationCurrent(feedbackGeneration))
+            Status = AppUiMessage.Resource(replaced ? "FileReferenceUpdated" : "ActionUnavailable");
     }
 
     public async Task SetClipboardPausedAsync(bool paused, CancellationToken cancellationToken = default)
@@ -1483,29 +1536,67 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             TaskScheduler.Default);
     }
 
-    private async Task<DropItem> RefreshFileAvailabilityAsync(ItemCardViewModel card, CancellationToken cancellationToken)
+    private async Task<DropItem?> RefreshFileAvailabilityAsync(ItemCardViewModel card, CancellationToken cancellationToken)
     {
         var item = card.Item;
+        var generation = card.PresentationGeneration;
+        if (_disposed || !card.IsPresentationCurrent(generation)) return null;
         if (item.File is null)
         {
             return item;
         }
 
         var availability = await _fileReferences.CheckAvailabilityAsync(item.File, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_disposed || !card.IsPresentationCurrent(generation)) return null;
+        var expected = item;
+        var accepted = true;
         if (availability.Status != item.Status ||
             !string.Equals(availability.Reason, item.File.AvailabilityReason, StringComparison.Ordinal))
         {
-            await _repository.UpdateFileStatusAsync(
+            accepted = await _repository.TryUpdateFileStatusAsync(
                 item.Id,
+                card.Item.Revision,
+                item.File.NormalizedPath,
+                item.File.EntryKind,
                 availability.Status,
                 availability.Reason,
                 cancellationToken);
-            item = (await _repository.GetAsync(item.Id, cancellationToken))!;
-            card.Update(item);
-            RefreshPrimaryQuickActions(card);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_disposed || !card.IsPresentationCurrent(generation)) return null;
+            expected = item with
+            {
+                Status = availability.Status,
+                File = item.File with { AvailabilityReason = availability.Reason },
+            };
         }
 
-        return item;
+        // Main and Island own separate cards. Even an unchanged availability result
+        // must reconfirm storage: another card may have relocated or removed this row.
+        var current = await _repository.GetAsync(item.Id, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_disposed || !card.IsPresentationCurrent(generation)) return null;
+        if (current is null)
+        {
+            RetireMissingCard(card);
+            return null;
+        }
+        if (card.TryUpdate(current)) RefreshPrimaryQuickActions(card);
+        // Updating the display does not authorize opening a different file. A lost
+        // compare-and-swap also needs a fresh user operation, never a blind retry.
+        return accepted && ItemCardViewModel.HasSamePresentationContent(expected, card.Item)
+            ? card.Item : null;
+    }
+
+    private void RetireMissingCard(ItemCardViewModel card)
+    {
+        card.RetirePresentation();
+        // A reload may already have replaced this card (for example after Undo).
+        // Retire only the exact presentation whose storage read reported deletion.
+        if (!Items.Remove(card)) return;
+        ApplyBatchProjectionState();
+        ItemCount = Items.Count;
+        IsEmpty = Items.Count == 0;
     }
 
     private async Task DebouncedReloadAsync()
@@ -1537,17 +1628,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     {
         try
         {
+            if (_disposed || card.IsPresentationRetired) return;
             if (card.Item.File is not null)
             {
-                await RefreshFileAvailabilityAsync(card, cancellationToken);
+                if (await RefreshFileAvailabilityAsync(card, cancellationToken) is null) return;
             }
 
-            if ((card.Item.File is not null || (card.Item.Kind == ItemKind.Image && card.Item.Payload is not null)) && card.Item.Status == ItemStatus.Available)
+            var item = card.Item;
+            var generation = card.PresentationGeneration;
+            if (_disposed || !card.IsPresentationCurrent(generation)) return;
+            if ((item.File is not null || (item.Kind == ItemKind.Image && item.Payload is not null)) && item.Status == ItemStatus.Available)
             {
-                card.DragStorageItem = await _dragStorageItems.ResolveAsync(card.Item, cancellationToken);
+                var dragItem = await _dragStorageItems.ResolveAsync(item, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (_disposed || !card.TryApplyPresentation(generation, () => card.DragStorageItem = dragItem ?? card.DragStorageItem)) return;
             }
 
-            card.Thumbnail = await _thumbnails.LoadAsync(card.Item, cancellationToken: cancellationToken);
+            var thumbnail = await _thumbnails.LoadAsync(item, cancellationToken: cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!_disposed) card.TryApplyPresentation(generation, () => card.Thumbnail = thumbnail ?? card.Thumbnail);
         }
         catch (OperationCanceledException)
         {

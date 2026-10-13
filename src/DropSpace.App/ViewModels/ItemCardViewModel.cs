@@ -18,6 +18,8 @@ public sealed class ItemCardViewModel : ObservableObject
     private bool _isBatchHeader;
     private bool _isBatchMemberVisible = true;
     private bool _isBatchExpanded = true;
+    private long _presentationGeneration;
+    private bool _presentationRetired;
 
     public ItemCardViewModel(DropItem item, IAppStringLocalizer strings)
     {
@@ -168,7 +170,64 @@ public sealed class ItemCardViewModel : ObservableObject
         set => SetProperty(ref _dragStorageItem, value);
     }
 
-    public void Update(DropItem item) => Item = item;
+    internal long PresentationGeneration => _presentationGeneration;
+    internal bool IsPresentationRetired => _presentationRetired;
+
+    internal bool IsPresentationCurrent(long generation) =>
+        !_presentationRetired && generation == _presentationGeneration;
+
+    internal bool TryApplyPresentation(long generation, Action apply)
+    {
+        if (!IsPresentationCurrent(generation)) return false;
+        apply();
+        return true;
+    }
+
+    public void Update(DropItem item) => TryUpdate(item);
+
+    internal bool TryUpdate(DropItem item)
+    {
+        if (item.Id != Id || item.Revision < Item.Revision ||
+            (_presentationRetired && item.Revision == Item.Revision)) return false;
+        if (_presentationRetired || !HasSamePresentationContent(Item, item))
+        {
+            _presentationGeneration++;
+            Thumbnail = null;
+            DragStorageItem = null;
+        }
+        _presentationRetired = false;
+        Item = item;
+        return true;
+    }
+
+    internal void RetirePresentation()
+    {
+        _presentationRetired = true;
+        _presentationGeneration++;
+        Thumbnail = null;
+        DragStorageItem = null;
+    }
+
+    internal bool TryMergePresentation(ItemCardViewModel incoming)
+    {
+        if (incoming.IsPresentationRetired || !TryUpdate(incoming.Item) ||
+            !HasSamePresentationContent(Item, incoming.Item)) return false;
+        // An unchanged projection's failed optional load cannot erase a usable image
+        // or drag target. A content change already cleared both in TryUpdate.
+        Thumbnail = incoming.Thumbnail ?? Thumbnail;
+        DragStorageItem = incoming.DragStorageItem ?? DragStorageItem;
+        return true;
+    }
+
+    internal static bool HasSamePresentationContent(DropItem left, DropItem right) =>
+        left.Id == right.Id && left.Kind == right.Kind && left.Status == right.Status &&
+        left.File?.OriginalPath == right.File?.OriginalPath &&
+        left.File?.NormalizedPath == right.File?.NormalizedPath &&
+        left.File?.EntryKind == right.File?.EntryKind &&
+        left.File?.KnownSize == right.File?.KnownSize &&
+        left.File?.KnownModifiedAtUtc == right.File?.KnownModifiedAtUtc &&
+        left.File?.AvailabilityReason == right.File?.AvailabilityReason &&
+        left.Payload == right.Payload && left.Image == right.Image;
 
     private static DropBatchMetadata? TryReadBatchMetadata(string? json)
     {

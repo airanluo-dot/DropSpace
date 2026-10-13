@@ -47,6 +47,99 @@ public sealed class RepositoryRelinkAuditTests
     }
 
     [TestMethod]
+    public async Task LateAvailabilityForReplacedFileCannotChangeNewReference()
+    {
+        var repository = CreateRepository();
+        var original = await WriteCandidateAsync("observed-original.txt", "original contents");
+        var observed = await repository.AddFileAsync(original);
+        File.Delete(original.OriginalPath);
+        var lateResult = await new LocalFileReferenceService().CheckAvailabilityAsync(observed.File!);
+        Assert.AreEqual(ItemStatus.Missing, lateResult.Status);
+
+        var replacement = await WriteCandidateAsync("current-replacement.txt", "replacement contents");
+        await repository.ReplaceFileReferenceAsync(observed.Id, replacement);
+        var current = (await repository.GetAsync(observed.Id))!;
+
+        // Deliver A's completed check only after B has become the authoritative file.
+        Assert.IsFalse(await repository.TryUpdateFileStatusAsync(observed.Id, observed.Revision,
+            observed.File!.NormalizedPath, observed.File.EntryKind, lateResult.Status, lateResult.Reason));
+        Assert.AreEqual(current, await repository.GetAsync(observed.Id));
+
+        // Path and kind are part of the observed reference, even with a current revision.
+        Assert.IsFalse(await repository.TryUpdateFileStatusAsync(current.Id, current.Revision,
+            original.NormalizedPath, current.File!.EntryKind, lateResult.Status, lateResult.Reason));
+        Assert.IsFalse(await repository.TryUpdateFileStatusAsync(current.Id, current.Revision,
+            current.File.NormalizedPath, FileEntryKind.Folder, lateResult.Status, lateResult.Reason));
+        Assert.AreEqual(current, await repository.GetAsync(observed.Id));
+
+        File.Delete(replacement.OriginalPath);
+        var currentResult = await new LocalFileReferenceService().CheckAvailabilityAsync(current.File);
+        Assert.IsTrue(await repository.TryUpdateFileStatusAsync(current.Id, current.Revision,
+            current.File.NormalizedPath, current.File.EntryKind, currentResult.Status, currentResult.Reason));
+        var changed = (await repository.GetAsync(current.Id))!;
+        Assert.AreEqual(current.Revision + 1, changed.Revision);
+        Assert.AreEqual(currentResult.Status, changed.Status);
+        Assert.AreEqual(currentResult.Reason, changed.File!.AvailabilityReason);
+        Assert.AreEqual(replacement.NormalizedPath, changed.File.NormalizedPath);
+
+        // The accepted write retires its observation too; a repeated old result is inert.
+        Assert.IsFalse(await repository.TryUpdateFileStatusAsync(current.Id, current.Revision,
+            current.File.NormalizedPath, current.File.EntryKind, ItemStatus.Available, null));
+        Assert.AreEqual(changed, await repository.GetAsync(current.Id));
+    }
+
+    [TestMethod]
+    public async Task LateRelinkCannotReplaceNewReferenceOrRevivedItem()
+    {
+        var repository = CreateRepository();
+        var original = await WriteCandidateAsync("relink-observed.txt", "original contents");
+        var observed = await repository.AddFileAsync(original);
+        var replacement = await WriteCandidateAsync("relink-current.txt", "current contents");
+        var lateReplacement = await WriteCandidateAsync("relink-late.txt", "late contents");
+
+        Assert.IsTrue(await repository.TryReplaceFileReferenceAsync(observed.Id, observed.Revision,
+            observed.File!.NormalizedPath, observed.File.EntryKind, replacement));
+        var current = (await repository.GetAsync(observed.Id))!;
+        Assert.IsFalse(await repository.TryReplaceFileReferenceAsync(observed.Id, observed.Revision,
+            observed.File.NormalizedPath, observed.File.EntryKind, lateReplacement));
+        Assert.AreEqual(current, await repository.GetAsync(observed.Id));
+
+        // The picker/inspection may remain pending across both Remove and Undo.
+        Assert.AreEqual(1, await repository.BeginPendingRemovalAsync(
+            [current.Id], "pending-late-relink", DateTimeOffset.UtcNow.AddMinutes(1)));
+        Assert.IsFalse(await repository.TryReplaceFileReferenceAsync(current.Id, current.Revision,
+            current.File!.NormalizedPath, current.File.EntryKind, lateReplacement));
+        Assert.AreEqual(1, await repository.UndoPendingRemovalAsync("pending-late-relink"));
+        var restored = (await repository.GetAsync(current.Id))!;
+        Assert.AreEqual(current.Revision + 1, restored.Revision);
+        Assert.AreEqual(current with { Revision = restored.Revision }, restored);
+        Assert.IsFalse(await repository.TryReplaceFileReferenceAsync(current.Id, current.Revision,
+            current.File.NormalizedPath, current.File.EntryKind, lateReplacement));
+        Assert.IsFalse(await repository.TryUpdateFileStatusAsync(current.Id, current.Revision,
+            current.File.NormalizedPath, current.File.EntryKind, ItemStatus.Missing, "obsolete check"));
+        Assert.AreEqual(restored, await repository.GetAsync(current.Id));
+        Assert.IsTrue(await repository.TryReplaceFileReferenceAsync(restored.Id, restored.Revision,
+            restored.File!.NormalizedPath, restored.File.EntryKind, lateReplacement));
+        Assert.AreEqual(lateReplacement.NormalizedPath, (await repository.GetAsync(restored.Id))!.File!.NormalizedPath);
+
+        // Clipboard clear is a separate removal entry point with the same retirement rule.
+        var clipboard = await repository.AddClipboardFileAsync(original, "late-clipboard-relink", null);
+        Assert.AreEqual(1, await repository.BeginPendingClipboardClearAsync(
+            null, true, "pending-late-clear", DateTimeOffset.UtcNow.AddMinutes(1)));
+        Assert.AreEqual(1, await repository.UndoPendingRemovalAsync("pending-late-clear"));
+        var clearedThenRestored = (await repository.GetAsync(clipboard.Id))!;
+        Assert.AreEqual(clipboard.Revision + 1, clearedThenRestored.Revision);
+        Assert.IsFalse(await repository.TryReplaceFileReferenceAsync(clipboard.Id, clipboard.Revision,
+            clipboard.File!.NormalizedPath, clipboard.File.EntryKind, replacement));
+        Assert.IsFalse(await repository.TryUpdateFileStatusAsync(clipboard.Id, clipboard.Revision,
+            clipboard.File.NormalizedPath, clipboard.File.EntryKind, ItemStatus.Missing, "obsolete clear check"));
+        Assert.AreEqual(clearedThenRestored, await repository.GetAsync(clipboard.Id));
+        Assert.AreEqual("original contents", await File.ReadAllTextAsync(original.OriginalPath));
+        Assert.AreEqual("current contents", await File.ReadAllTextAsync(replacement.OriginalPath));
+        Assert.AreEqual("late contents", await File.ReadAllTextAsync(lateReplacement.OriginalPath));
+    }
+
+    [TestMethod]
     public async Task MissingOwnedSpaceFileRelinkDetachesTheMissingPayloadAndQueuesCleanup()
     {
         var repository = CreateRepository();

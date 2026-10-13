@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="ec57ab45-309d-4797-b792-23aea93c2597" name="@db02077afb37 2026-10-13 03:01:15" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-13T03:01:15.2073224+00:00" queuing="2026-10-13T03:01:15.2073224+00:00" start="2026-10-13T03:01:14.5744316+00:00" finish="2026-10-13T03:01:15.2119355+00:00" />
+  <TestSettings name="default" id="f5bc8995-ffe2-4e4b-ad9b-f89613ea4b79">
+    <Deployment runDeploymentRoot="_db02077afb37_2026-10-13_03_01_15" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e48efbbf-ef5f-4316-bc24-f7aea8fafbf3" testId="179ecd29-ad6c-80fd-ae3f-df3be31744b3" testName="LateAvailabilityForReplacedFileCannotChangeNewReference" computerName="db02077afb37" duration="00:00:00.1038922" startTime="2026-10-13T03:01:14.9906993+00:00" endTime="2026-10-13T03:01:15.1165593+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e48efbbf-ef5f-4316-bc24-f7aea8fafbf3" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="LateAvailabilityForReplacedFileCannotChangeNewReference" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/debug/net10.0/dropspace.infrastructure.tests.dll" id="179ecd29-ad6c-80fd-ae3f-df3be31744b3">
+      <Execution id="e48efbbf-ef5f-4316-bc24-f7aea8fafbf3" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Debug/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.RepositoryRelinkAuditTests" name="LateAvailabilityForReplacedFileCannotChangeNewReference" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="179ecd29-ad6c-80fd-ae3f-df3be31744b3" executionId="e48efbbf-ef5f-4316-bc24-f7aea8fafbf3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

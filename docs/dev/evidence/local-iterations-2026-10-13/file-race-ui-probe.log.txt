@@ -1,0 +1,1 @@
+PASS one card lifecycle scenario: delayed relink/overlay/delete results isolated; pin/last-used changes preserve current assets; a new revision can restore a retired card.
