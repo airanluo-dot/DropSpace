@@ -41,3 +41,18 @@ operation shim; no real image decoder, `ImportRemoteAsync`, bridge gate, databas
 or system clipboard executes. Those production call sites require separate static review
 and Windows execution. The original three media scenarios are unchanged and are not
 selected by this command. The project retains its existing analyzer configuration.
+
+The separate opt-in `drag-native` scenario links the actual `ItemAssetWorkLifetime`,
+`DragStorageItemService`, and native completion helper:
+
+```sh
+dotnet run --project scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj --no-restore -- drag-native
+```
+
+Eight controlled file lookups occupy all native slots while a ninth old request queues.
+Retiring the actual asset owners cancels the callers and queued work, while native lookups
+retain their slots until explicit Completed. Fresh work waits, then succeeds once old
+native operations complete. This tests managed queue/native ownership, not the Main list
+owner dictionary, navigation/clear integration, real Windows Storage/OLE, or thumbnails.
+No original media or image scenario is selected. Folder/image payload branches remain
+static-only coverage.

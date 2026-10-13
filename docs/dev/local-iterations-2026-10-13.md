@@ -408,6 +408,37 @@ late permission-response guards and timestamp/pause publication locking were
 already present, so they were not changed or retested. Shutdown ownership and
 postcommit read optimization remain observations, not additional claimed defects.
 
+## 14. Withdraw assets belonging to discarded Main cards
+
+A Main page can contain 200 cards. Its background asset requests previously used
+only the ViewModel lifetime token; a successful search replacement, navigation to
+Settings/Music, or live-history eviction did not cancel the old cards' work.
+Discarded cards therefore continued through file checks, drag preparation and
+thumbnail queues. Finite delayed IO is enough to retain unnecessary waiters and
+delay current requests. No measured latency or permanent leak is claimed.
+
+The repair gives each Main card's asset request an independent cancellation owner.
+Only an accepted replacement withdraws visible work; a failed/stale query leaves
+the current cards intact. External Island/recent-item requests and explicit batch
+drag keep their own lifetimes. Existing content-generation and repository guards
+remain in force. Drag storage resolution also needs actual-native ownership:
+its old cancellable projection could release the eight-slot gate before native
+completion. Routine navigation cancellation must not activate that latent flaw.
+
+Planned verification is independent integration review and one controlled scenario
+using the real asset-token owner, drag service and native-lifetime helper. It fills
+the native slots, withdraws old active/queued callers, and verifies that a new
+request waits for actual completion and then recovers. Main's UI wiring is covered
+by source review; actual WinUI navigation/drag remains a Windows verification gap.
+
+Result: the single opt-in `drag-native` scenario passed once, with one normal
+source-linked compilation using existing restore assets. Nine old callers retired;
+the queued ninth lookup never started, all eight native slots remained occupied
+until actual completion, and fresh work then recovered with all slots returned.
+No previous media/image scenarios were rerun. Main's integration received two
+independent source reviews; no Main/App/XAML compile or native navigation ran.
+See the [asset cancellation evidence](evidence/local-iterations-2026-10-13/asset-drag-native-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -416,7 +447,9 @@ changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
 ownership is saved in `2d89b32` and remote image ownership in `8e3901a`.
 The pin/removal Undo ordering fix is saved in `d510192`, and download-startup
 ownership in `783fec7`, and image-export handles in `d03c59d`. Pause failure
-feedback has passed independent static review and is ready for its checkpoint.
+feedback is saved in `c12d283`. Discarded-card asset cancellation has passed its
+focused check and is ready for its checkpoint. Quick Panel keyboard focus is the
+next implementation in progress.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
