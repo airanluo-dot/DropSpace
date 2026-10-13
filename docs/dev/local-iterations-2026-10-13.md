@@ -223,12 +223,35 @@ mapping and outbound queue ownership received source review/compilation, not liv
 HTTP or outbound transfer validation. See the
 [receiver evidence](evidence/local-iterations-2026-10-13/clipboard-receiver-validation.md).
 
+## 7. Honest ZIP results for selected directory links
+
+The intake and content resolver accept directory links as readable folders. ZIP
+execution then returned early for an explicitly selected linked root, yet the
+outer action reported success. A single selection produced an empty ZIP; a mixed
+selection silently omitted that selected item. Existing tests covered ordinary
+hierarchy, names and budgets, not this path.
+
+The selected-root path now fails through the existing ActionInvalidData feedback
+and incomplete-output cleanup. Descendant links retain the existing skip policy.
+Planned check: one new exact-name SQLite-independent Infrastructure test using
+temporary directory links and the real action registry. It covers single/mixed
+selection rejection, no residual archive, unchanged source content and ordinary
+directory success with an internal link skipped. Reuse the existing restore and
+do not rerun the large entry-budget case. Linux symbolic links do not establish
+Windows junction behavior or atomic protection from concurrent directory swapping.
+
+Result: the one new exact-name case passed, with no failure or skip (71 ms). It used
+the real action registry and real Linux symbolic links. The existing restore was
+reused, and no other ZIP case or broad suite ran. See the
+[ZIP evidence](evidence/local-iterations-2026-10-13/zip-selection-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
-changes in `845649f`, and module recovery in `d9ba41c`. Clipboard receiver/queue
-ownership is ready for its local checkpoint. Investigation continues into local
-retrieval and file quick-action completeness; previously fixed outbox batch rotation
+changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
+`0e32575`. ZIP result correctness is ready for its local checkpoint. Investigation
+continues into read-only quick actions and preview cancellation/cache ownership.
+Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the
 Windows/NetEase observations above are available. Do not infer success from C#
