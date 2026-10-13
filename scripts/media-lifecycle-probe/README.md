@@ -26,3 +26,18 @@ This does **not** emulate COM marshaling, a Windows STA, the Windows SMTC broker
 InfLink or WinUI rendering. Passing proves the managed lifecycle against a controlled
 publisher; Windows/NetEase startup and plugin-toggle controls still require real execution.
 No package publishing, production data, release builds or remote workflows are involved.
+
+The separate opt-in `image-native` scenario links `ClipboardImageReadLifetime` and
+`NativeAsyncLifetime` to check remote image native ownership:
+
+```sh
+dotnet run --project scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj --no-restore -- image-native
+```
+
+This single combined scenario cancels a waiting caller, keeps one input and its capacity
+until controlled native completion and a blocked Cancel both finish, refuses excess work,
+and verifies fresh work succeeds after retirement. It uses the existing narrow WinRT
+operation shim; no real image decoder, `ImportRemoteAsync`, bridge gate, database commit,
+or system clipboard executes. Those production call sites require separate static review
+and Windows execution. The original three media scenarios are unchanged and are not
+selected by this command. The project retains its existing analyzer configuration.

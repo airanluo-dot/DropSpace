@@ -1,0 +1,80 @@
+{
+  "round": 9,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "reused existing assets; --no-restore",
+  "build": "one necessary source-linked console probe build; existing EnableNETAnalyzers=false retained, not changed by this round",
+  "command": "dotnet run --project scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj --no-restore --no-launch-profile -- image-native",
+  "result": {
+    "exitCode": 0,
+    "selectedScenarios": [
+      "image-native"
+    ],
+    "passed": 1
+  },
+  "measured": [
+    "caller cancellation exits before native completion",
+    "native input and single slot retained through completion and blocked Cancel",
+    "capacity rejects another delegate without starting it",
+    "late result does not revive canceled caller",
+    "fresh success returns with input disposed and slot released"
+  ],
+  "staticOnly": [
+    "ImportRemoteAsync wiring, cancellation/disposal checks and payload/database exclusion",
+    "capture commit-gate and bridge lifecycle-gate release",
+    "production 5-second timeout and IOException conversion"
+  ],
+  "unexecuted": [
+    "original three media probe scenarios",
+    "real WinRT image decoder and native Cancel behavior",
+    "real ImportRemoteAsync, SQLite and bridge path",
+    "Windows system clipboard"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/Services/ClipboardImageReadLifetime.cs",
+      "sha256": "62bc199832891a2ab97f0a2af31f5745d33940f2cdfa7c995670b02c6234ba81"
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+      "sha256": "4c62f00a4f72c10780a1a147cd761096bbd23fd3daaefbf36ecc4fb861c3cd02"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardCaptureService.cs",
+      "sha256": "531a7fb10f27456ec9001adc84ad17785f18c50ba363bc0d7ec3c6b18a3c5dd2"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ImageDecoderPreflight.cs",
+      "sha256": "a42f36c2a765169d3359c7ded3252c4ec0be48dd4ec349fcc51ab373f5adec40"
+    },
+    {
+      "path": "src/DropSpace.App/Services/CrossDeviceClipboardService.cs",
+      "sha256": "91d3dc478f9ef5ed4bd4944b6432b4089ac5dd72a2d8149a70590fcd71a04668"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj",
+      "sha256": "6ec0f3a815bfb2f33df55e14a0fd2a985cc5f9ac7d8f5bb86f91ffc4396c43f1"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/Program.cs",
+      "sha256": "baceaf5f7598dd793c834b9b3937b222d74a20a7ce2562dbceb1026dfc757962"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/PlatformShims.cs",
+      "sha256": "411def206b0f4c424e75577f3af9071d4f608afd37ca81c3c049cb3a0e0a5a04"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/ImageNativeScenario.cs",
+      "sha256": "b49a97c3b484fbecba38cafa78b961d2391ceb804c4ee5d520fc82406694bfad"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/README.md",
+      "sha256": "ffb783a605704aa3c7f93dfda352a5dd9e87c2e0190ad4e8cc1948264b1c68b8"
+    }
+  ],
+  "builtAssembly": {
+    "path": "scripts/media-lifecycle-probe/bin/Debug/net10.0/MediaLifecycleProbe.dll",
+    "sha256": "161b9aefcd8e97c5dfea3d1f797b6e217b1518aaabc6b3f9152f5d2c20840c38"
+  }
+}

@@ -5,11 +5,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Windows.Media.Control;
 
 var selected = args.Length == 0 ? new[] { "startup", "recovery", "native" } : args;
-if (selected.Any(value => value is not ("startup" or "recovery" or "native")))
-    throw new ArgumentException("Choose startup, recovery or native.");
+if (selected.Any(value => value is not ("startup" or "recovery" or "native" or "image-native")))
+    throw new ArgumentException("Choose startup, recovery, native or image-native.");
 if (selected.Contains("startup")) await StartupAndToggleAsync();
 if (selected.Contains("recovery")) await FailedControlAndLateReadAsync();
 if (selected.Contains("native")) await NativeOwnerRetirementAsync();
+if (selected.Contains("image-native")) await ImageNativeScenario.RunAsync();
 Console.WriteLine($"PASS {selected.Length} selected production-source scenarios (controlled platform shims; no Windows/NetEase execution).");
 
 static async Task StartupAndToggleAsync()

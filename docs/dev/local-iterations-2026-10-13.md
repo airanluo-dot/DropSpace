@@ -266,13 +266,38 @@ it does not revoke a preview already requested by a caller. That return behavior
 is retained, and Windows rendering/UI interaction remain unverified. See the
 [preview evidence](evidence/local-iterations-2026-10-13/preview-generation-validation.md).
 
+## 9. Canceled remote image preparation
+
+Normal remote-import exceptions already release both the capture commit gate and
+bridge lifecycle gate. The uncovered boundary is native completion: dimension
+preflight correctly keeps its stream until `NativeAsyncLifetime` observes actual
+completion and any in-flight Cancel call. Awaiting that full owner directly inside
+ImportRemote also kept both gates after the HTTP caller canceled. This follows
+from the existing cancellation contract; no real codec hang has been observed here.
+
+Dimension preparation now has one retained owner and a separate bounded/cancelable
+caller wait. Persistence remains in the foreground import, with fresh cancellation
+and shutdown checks, so late dimensions cannot create payloads or database rows.
+Capacity and deadline failures use the existing rejection path.
+
+The one planned, controlled ownership scenario passed on its only run, reusing
+restore assets for one necessary probe build. It confirmed cancellation returns
+while the native input and sole slot remain owned through actual completion and a
+blocked Cancel; excess reads never start; late results stay canceled; fresh work
+returns with its slot already released. The existing probe analyzer configuration
+was retained. ImportRemote/bridge gate release, persistence exclusion and deadline
+mapping received independent source review, not dynamic coverage. Full WinUI/image
+codec and HTTP interaction remain unavailable here. See the exact
+[image lifetime evidence](evidence/local-iterations-2026-10-13/remote-image-lifetime-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
 changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
 `0e32575`. ZIP result correctness is saved in `907ff86`. Preview cache-generation
-ownership is saved in `2d89b32`. Investigation continues into remote
-clipboard import cancellation and resource ownership.
+ownership is saved in `2d89b32`. Remote image ownership is ready for its local
+checkpoint. The next implementation closes a confirmed pin/removal ordering gap
+that could let an older pin continuation finalize a newer removal's undo window.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the
