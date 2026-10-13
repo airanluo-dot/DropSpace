@@ -1,0 +1,85 @@
+{
+  "round": 19,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "existing assets reused with --no-restore",
+  "build": "one normal Infrastructure.Tests build; default analyzers and existing test warning settings retained",
+  "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj --no-restore --nologo --filter FullyQualifiedName=DropSpace.Infrastructure.Tests.OutputReservationLifecycleTests.CheckpointCancellationAndFailurePreserveOwnershipWhileRealCollisionsStillCommit --logger 'trx;LogFileName=output-checkpoint.trx' --results-directory /tmp/dropspace-round19-results",
+  "result": {
+    "exitCode": 0,
+    "testName": "CheckpointCancellationAndFailurePreserveOwnershipWhileRealCollisionsStillCommit",
+    "outcome": "Passed",
+    "duration": "00:00:00.0307312",
+    "counters": {
+      "total": "1",
+      "executed": "1",
+      "passed": "1",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "platform": "Linux actual OutputReservationService and temporary filesystem; three-byte staging plus independent external destination",
+  "measured": [
+    "cancellation during awaited checkpoint prevents publication and retains original staging bytes and marker",
+    "checkpoint IOException is propagated as the same instance despite an external destination appearing",
+    "failed checkpoint executes once and allocates no alternate marker",
+    "normal retry resolves an existing destination via PathExists and tracks the final replacement reservation",
+    "successful move preserves external bytes, publishes payload, consumes staging and removes owned markers"
+  ],
+  "staticOnly": [
+    "DownloadManager checkpoint/journal integration",
+    "File.Move instantaneous collision catch"
+  ],
+  "unexecuted": [
+    "historical tests",
+    "actual network or worker process",
+    "Windows file-sharing failure behavior",
+    "native UI interaction"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/OutputReservationService.cs",
+      "sha256": "a84dc4d79596e7f897927807acaca745d9ab3f2f61fb70bd99f6e2f691a77be7"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadStorage.cs",
+      "sha256": "810ae27eab2f9c921a9019f93245445643ecf417a75f069d511b12b3cbb027a6"
+    },
+    {
+      "path": "src/DropSpace.Core/Downloads/DownloadModels.cs",
+      "sha256": "b97765892fac44333211cb15c26d700c394bd36a7505c62e55e88782340d3ffb"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/OutputReservationLifecycleTests.cs",
+      "sha256": "69eb4dbe2b153c6c9beaee55023153e9924bc5411a0a80025639d4a6d5ebc1a8"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj",
+      "sha256": "3456e89a0f3cc87621a574e5316cab277c6cba8af04791ee3e73f7956eb05618"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+    }
+  ],
+  "builtAssembly": {
+    "path": "tests/DropSpace.Infrastructure.Tests/bin/Debug/net10.0/DropSpace.Infrastructure.Tests.dll",
+    "sha256": "567d6862614343466ca276897acaad7159498638a5fd62f6085768244adc88fb"
+  }
+}

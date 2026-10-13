@@ -601,6 +601,40 @@ IDs and one App integrity check passed (ten languages, 908 IDs). See the
 Actual Windows UI, keyboard/focus, language replacement and two-device transfer
 remain target-platform verification gaps. No full App/XAML compilation ran.
 
+## 19. Respect cancellation and checkpoint failures before download publication
+
+OutputReservationService checks cancellation before committing, but its initial
+beforeCommit callback then awaits DownloadManager's durable journal checkpoint.
+The old path moved the staging file immediately after that await, even when the
+user canceled during the checkpoint. The manager subsequently observed Completed
+and correctly declined to delete the delivered file; the missing boundary check
+was before delivery, not a reason to roll completed output back.
+
+The initial callback also sat inside the IOException collision handler. If a
+different process created the destination while the checkpoint failed, that
+storage error could be mistaken for a name collision and replaced by a retry.
+The selected repair moves checkpoint execution outside that handler and checks
+cancellation immediately before File.Move. Only actual publication IO remains in
+the collision-recovery block. Existing marker handoff, cancellation cleanup,
+pause retention and post-publication success semantics remain intact.
+
+One real-filesystem composite is being prepared: cancel during the callback,
+preserve staging and its reservation; surface an original checkpoint error even
+when an external destination appears; then successfully retry by reserving another
+name without changing the external file. Manager control/cleanup integration is
+reviewed statically, with no network, WinUI, or unchanged test suite planned.
+
+Result: the one Infrastructure composite passed once (54 ms runner summary,
+30.7312 ms in TRX), using existing restore assets and one normal targeted build.
+No failed or repeated execution occurred. It verified intact staging/marker bytes
+after cancellation and checkpoint failure, propagation of the original exception,
+and a later collision rename that preserves the external file and removes owned
+markers. The successful rename exercised the existing PathExists branch, not a
+forced race inside File.Move. Linux temporary-filesystem behavior is verified;
+Windows sharing/locking and the actual DownloadManager UI/control path remain
+outside runtime coverage. See the
+[publication evidence](evidence/local-iterations-2026-10-13/output-checkpoint-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -613,15 +647,10 @@ feedback is saved in `c12d283`, and discarded-card asset cancellation in `796f90
 Quick Panel keyboard focus is saved in `5216d4e`. DropLink directory preparation
 budgets and their localized feedback are saved in `b51e307`. Explicit device
 handoff sends retain their service lifetime and bounded capacity across
-disable/re-enable in `8553eac`. The active iteration adds a native progress and
-cancellation surface for file sends, with state owned independently of a
-MainPage instance.
-The next confirmed repair is the download publication boundary:
-OutputReservationService awaits its durable beforeCommit callback and then moves
-the file without rechecking cancellation. A cancel requested during that await
-can therefore still publish a completed download. The planned narrow repair is
-one token check before File.Move, with one controlled real-filesystem case and
-no rollback after a successful move. A later product candidate is a persistent
+disable/re-enable in `8553eac`. A native progress and cancellation surface for
+file sends, with state owned independently of a MainPage instance, is saved in
+`8734660`. The active repair tightens cancellation and checkpoint errors at the
+download publication boundary. A later product candidate is a persistent
 in-session Nearby-link management surface; the server already supports revoke,
 but the App has neither a revoke call nor a recoverable list of active links.
 Further local workflow investigation continues; target-platform gaps remain explicit.
