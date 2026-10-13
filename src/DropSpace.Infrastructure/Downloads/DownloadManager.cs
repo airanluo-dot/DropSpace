@@ -154,8 +154,12 @@ public sealed class DownloadManager : IAsyncDisposable
                 });
                 lock (_sync)
                 {
-                    if (!_work.ContainsKey(snapshot.Id) && !item.Snapshot.HistoryRemovalPending) _order.Add(snapshot.Id);
-                    _work[item.Snapshot.Id] = item;
+                    // Admission can finish before background recovery starts. Keep its
+                    // run, cancellation and reservation owner, including hidden cleanup
+                    // work; a persisted snapshot cannot replace that live ownership.
+                    if (_work.ContainsKey(snapshot.Id)) continue;
+                    if (!item.Snapshot.HistoryRemovalPending) _order.Add(snapshot.Id);
+                    _work.Add(snapshot.Id, item);
                 }
                 try
                 {

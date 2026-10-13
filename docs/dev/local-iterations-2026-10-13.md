@@ -322,15 +322,48 @@ The final temporary database contained both rows. Main/Island clicking and full
 WinUI/XAML compilation remain unverified. See the exact
 [pin/Undo evidence](evidence/local-iterations-2026-10-13/pin-undo-validation.md).
 
+## 11. Download startup recovery preserves admitted work
+
+App startup intentionally runs download-history restoration in the background so
+slow directories cannot block the window. The download panel can enqueue work
+before that restoration acquires the manager's action gate. Enqueue persists the
+new identity and starts its run; subsequent restoration then reads that same
+identity from the journal. It previously replaced the live Work with a snapshot-only
+Work, losing the original run, cancellation source and reservation owner. Later
+Cancel could clean files for the replacement without canceling the actual run.
+The action gate serialized calls but did not prevent this valid Enqueue-before-
+Restore ordering.
+
+Restoration now keeps every already-owned identity, including invisible pending
+cleanup, and only registers unseen IDs. Cold history and cleanup recovery retain
+their previous logic. The fix is specific to normal-file DownloadManager; optional
+components share the underlying downloader/budgets but have separate operation
+owners. Existing UI progress ordering guards were confirmed and left unchanged.
+
+Planned check: one exact Infrastructure test holds the downloader's transfer slot,
+admits a live task, restores its journal, and cancels the original run while still
+holding that slot. It also covers a separate cold history entry. There will be no
+external HTTP transfer or broad download suite; actual native download-panel
+interaction remains a Windows verification gap.
+
+Result: that exact case passed once (336 ms runner summary; no failure or skip),
+reusing restore assets for one normal targeted compilation. The same Work, Run,
+cancellation source and reservation survived recovery. Cancel settled that run
+and removed its marker; the separate cold record remained Paused. No listener or
+HTTP connection started. Hidden cleanup ownership received source review rather
+than an additional case. See the
+[download recovery evidence](evidence/local-iterations-2026-10-13/download-restore-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
 changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
 `0e32575`. ZIP result correctness is saved in `907ff86`. Preview cache-generation
 ownership is saved in `2d89b32` and remote image ownership in `8e3901a`.
-The pin/removal Undo ordering fix passed its focused persistence check and is
-ready for its local checkpoint. Next is the confirmed download-startup ownership
-conflict between early Enqueue and background history restoration.
+The pin/removal Undo ordering fix is saved in `d510192`. The download-startup
+ownership fix passed its targeted lifecycle case and is ready for its checkpoint.
+The next narrow review concerns image exports closing their newly reserved output
+handle before reopening it by path.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the

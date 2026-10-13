@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="b2bcedd3-549a-4416-9bde-fbe3022c967e" name="@db02077afb37 2026-10-13 03:59:52" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-13T03:59:52.1143470+00:00" queuing="2026-10-13T03:59:52.1143470+00:00" start="2026-10-13T03:59:51.1077119+00:00" finish="2026-10-13T03:59:52.1195923+00:00" />
+  <TestSettings name="default" id="06270f3e-9c37-428e-9401-9d2f0663b12b">
+    <Deployment runDeploymentRoot="_db02077afb37_2026-10-13_03_59_52" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="556bf722-4fef-406a-a671-c93a51b12b4b" testId="1f84efe4-d590-8b04-b547-b236ed60cb9f" testName="LateRestorePreservesAdmittedRunOwnershipAndStillRecoversNewTasks" computerName="db02077afb37" duration="00:00:00.3139088" startTime="2026-10-13T03:59:51.6836858+00:00" endTime="2026-10-13T03:59:52.0202158+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="556bf722-4fef-406a-a671-c93a51b12b4b" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="LateRestorePreservesAdmittedRunOwnershipAndStillRecoversNewTasks" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/debug/net10.0/dropspace.infrastructure.tests.dll" id="1f84efe4-d590-8b04-b547-b236ed60cb9f">
+      <Execution id="556bf722-4fef-406a-a671-c93a51b12b4b" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Debug/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.DownloadManagerLifetimeTests" name="LateRestorePreservesAdmittedRunOwnershipAndStillRecoversNewTasks" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="1f84efe4-d590-8b04-b547-b236ed60cb9f" executionId="556bf722-4fef-406a-a671-c93a51b12b4b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>
