@@ -29,10 +29,22 @@ public static class ActionOutputPolicy
         string directory,
         string stem,
         string extension,
+        out string path) =>
+        CreateNewFile(directory, stem, extension, FileAccess.Write, out path);
+
+    public static FileStream CreateNewFile(
+        string directory,
+        string stem,
+        string extension,
+        FileAccess access,
         out string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         ArgumentException.ThrowIfNullOrWhiteSpace(extension);
+        if (access is not (FileAccess.Write or FileAccess.ReadWrite))
+        {
+            throw new ArgumentOutOfRangeException(nameof(access), "Export streams must support writing.");
+        }
         Directory.CreateDirectory(directory);
 
         var safeStem = SanitizeFileName(stem, "DropSpace export");
@@ -49,7 +61,7 @@ public static class ActionOutputPolicy
                 var output = new FileStream(
                     candidate,
                     FileMode.CreateNew,
-                    FileAccess.Write,
+                    access,
                     FileShare.None,
                     81_920,
                     FileOptions.Asynchronous | FileOptions.SequentialScan);

@@ -354,16 +354,44 @@ HTTP connection started. Hidden cleanup ownership received source review rather
 than an additional case. See the
 [download recovery evidence](evidence/local-iterations-2026-10-13/download-restore-validation.md).
 
+## 12. Image exports retain their reserved output handle
+
+Hash, QR and ZIP keep their CreateNew output stream through completion. The native
+image transform instead immediately closed that reservation and awaited two
+path-based WinRT open operations. The output path could identify a replacement
+file before encoding began. This is a demonstrated ownership gap in code, not an
+observed real-world replacement incident or a claim about malicious filesystem
+mutation.
+
+The narrow change keeps the original exclusive read/write CreateNew stream and
+passes its random-access adapter directly to the encoder. Existing callers retain
+their write-only default; encoding formats, dimensions, metadata behavior, memory
+budgets and cancellation semantics are unchanged. This removes the asynchronous
+reopen window, not every possible external mutation around cleanup.
+
+Planned verification: independent source review and one necessary C# subset compile
+against the actual pinned Windows SDK reference assemblies. No mock codec scenario
+or repeated action suite is planned. Actual WinRT encoding, output-format acceptance
+and Windows filesystem sharing behavior cannot execute in this Linux workspace.
+
+Result: one offline-cache restore and the single actual-SDK subset compilation
+succeeded, with zero warnings/errors in 9.45 seconds. It compiled the real image
+service and preflight helpers against SDK 10.0.20348.57, with default analyzers and
+warnings-as-errors, confirming the real random-access adapter/encoder API types.
+Zero functional scenarios ran. Full App/XAML compilation and native image encoding
+remain unverified. See the
+[image output compilation evidence](evidence/local-iterations-2026-10-13/image-output-native-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
 changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
 `0e32575`. ZIP result correctness is saved in `907ff86`. Preview cache-generation
 ownership is saved in `2d89b32` and remote image ownership in `8e3901a`.
-The pin/removal Undo ordering fix is saved in `d510192`. The download-startup
-ownership fix passed its targeted lifecycle case and is ready for its checkpoint.
-The next narrow review concerns image exports closing their newly reserved output
-handle before reopening it by path.
+The pin/removal Undo ordering fix is saved in `d510192`, and download-startup
+ownership in `783fec7`. The image-export handle fix passed independent review
+and its focused SDK compilation, and is ready for its checkpoint. The next
+read-only investigation covers settings publication and rollback across UI awaits.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the

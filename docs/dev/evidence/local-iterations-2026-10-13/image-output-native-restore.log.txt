@@ -1,0 +1,3 @@
+  Determining projects to restore...
+  Restored /workspace/.tools/image-transform-native-compile/ImageTransformCompile.csproj (in 130 ms).
+  2 of 3 projects are up-to-date for restore.

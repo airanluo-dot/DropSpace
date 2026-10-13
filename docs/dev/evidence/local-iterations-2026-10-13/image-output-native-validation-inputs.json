@@ -1,0 +1,80 @@
+{
+  "round": 12,
+  "functionalScenarios": 0,
+  "functionalExecutions": 0,
+  "restoreAttempts": 1,
+  "buildAttempts": 1,
+  "failedBuildAttempts": 0,
+  "result": {
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0,
+    "elapsedSeconds": 9.45
+  },
+  "scope": "Actual production C# image transform/preflight/native lifetime sources and current Core/Infrastructure; actual Windows SDK projections; no shims, XAML, media rebuild or Windows execution",
+  "analyzers": "default .NET analyzers with AnalysisLevel 10.0 and warnings-as-errors; SupportedOSPlatform(windows10.0.20348) assembly contract; no CA1416 suppression",
+  "restore": "offline existing package cache only; 2 referenced projects up to date",
+  "sdkPackage": {
+    "name": "Microsoft.Windows.SDK.NET.Ref",
+    "version": "10.0.20348.57",
+    "projectionTarget": "net8.0",
+    "source": "reused genuine package DLLs cached during round 1"
+  },
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/Services/WindowsImageTransformService.cs",
+      "sha256": "ceab704458b62a453d025661e7cb2de2a9ec861a0e84cca25e31f861d7ea1a5d"
+    },
+    {
+      "path": "src/DropSpace.App/Services/WindowsImageCodecPreflight.cs",
+      "sha256": "fe6702eb73a87583bb99039bd1f32ec0f90a02dc95794cc8c5d79244b4d09df2"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ImageDecoderPreflight.cs",
+      "sha256": "a42f36c2a765169d3359c7ded3252c4ec0be48dd4ec349fcc51ab373f5adec40"
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+      "sha256": "4c62f00a4f72c10780a1a147cd761096bbd23fd3daaefbf36ecc4fb861c3cd02"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Actions/ActionOutputPolicy.cs",
+      "sha256": "c27d314f9a9ca5b99313474297017de013ab2022f7622f82fa369d370c2a3310"
+    },
+    {
+      "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+      "sha256": "5d697fd66f1e7c34f815eafd02bdc2fde9b3669a83877e38c55a03c318b6a274"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj",
+      "sha256": "acb4adbc54274bca7331456c584db46f60968fb6b3dc912a7d7ecf7893c401de"
+    }
+  ],
+  "references": [
+    {
+      "path": "/workspace/.tools/media-native-refs/microsoft.windows.sdk.net.ref/lib/net8.0/Microsoft.Windows.SDK.NET.dll",
+      "sha256": "8cbe983887b84ee0f85cfcb14fbd759e487dc7b96f6ce9c93aa09baf129a5f72"
+    },
+    {
+      "path": "/workspace/.tools/media-native-refs/microsoft.windows.sdk.net.ref/lib/net8.0/WinRT.Runtime.dll",
+      "sha256": "bcf3a14e8712a90837fc5c0d8c8a24696af2bd7f74e9767597ec81ededfb23db"
+    }
+  ],
+  "compileProject": {
+    "path": "/workspace/.tools/image-transform-native-compile/ImageTransformCompile.csproj",
+    "savedCopy": "image-output-native-subset.csproj.txt",
+    "sha256": "b732ac8e8f7ce227ddb88ad395edd6f66a1458293bf48f81db51866dfc8d7ce1"
+  },
+  "unexecuted": [
+    "WinRT BitmapEncoder execution",
+    "Windows FileShare.None handle/rename behavior",
+    "concurrent output replacement attempt",
+    "encoder cancellation/failure cleanup on Windows",
+    "full App/XAML compilation",
+    "historical image/hash/QR/media scenarios"
+  ],
+  "builtAssembly": {
+    "path": "/workspace/.tools/image-transform-native-compile/bin/Debug/net10.0/ImageTransformCompile.dll",
+    "sha256": "efc2a3edc5e72f40f0f5720c68414c33a69ad337ab5ad32c15b95071a58e0dee"
+  }
+}
