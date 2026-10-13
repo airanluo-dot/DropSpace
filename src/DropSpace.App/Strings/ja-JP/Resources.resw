@@ -391,6 +391,26 @@
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>デバイスに送信</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>近くのリンクを作成する</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>安全なインターネットリンクを作成する</value></data>
+  <data name="FileTransfersTitle" xml:space="preserve"><value>ファイル転送</value></data>
+  <data name="FileTransfersActiveCount" xml:space="preserve"><value>進行中：{0}</value></data>
+  <data name="FileTransfersEmpty" xml:space="preserve"><value>表示するファイル転送の記録はありません。</value></data>
+  <data name="FileTransfersContinue" xml:space="preserve"><value>このパネルを閉じても転送は停止しません。</value></data>
+  <data name="FileTransfersClearCompleted" xml:space="preserve"><value>終了した転送の記録を消去</value></data>
+  <data name="FileTransferTarget" xml:space="preserve"><value>送信先：{0}</value></data>
+  <data name="FileTransferPreparing" xml:space="preserve"><value>ファイルを準備しています…</value></data>
+  <data name="FileTransferWaitingForApproval" xml:space="preserve"><value>相手のデバイスが転送を承認するのを待っています…</value></data>
+  <data name="FileTransferSending" xml:space="preserve"><value>ファイルを送信しています…</value></data>
+  <data name="FileTransferFinalizing" xml:space="preserve"><value>相手のデバイスがファイルを検証して保存するのを待っています…</value></data>
+  <data name="FileTransferCanceling" xml:space="preserve"><value>転送をキャンセルしています…</value></data>
+  <data name="FileTransferCanceled" xml:space="preserve"><value>転送をキャンセルしました</value></data>
+  <data name="FileTransferCanceledOutcomeUnknown" xml:space="preserve"><value>このデバイスで送信をキャンセルしました。相手のデバイスは、ファイルの一部またはすべてをすでに受信している可能性があります。再送信する前に確認してください。</value></data>
+  <data name="FileTransferRejected" xml:space="preserve"><value>相手のデバイスが転送を拒否しました。</value></data>
+  <data name="FileTransferApprovalTimeout" xml:space="preserve"><value>相手のデバイスから時間内に応答がありませんでした。相手の準備ができてから、もう一度お試しください。</value></data>
+  <data name="FileTransferNetworkError" xml:space="preserve"><value>相手のデバイスとの接続に失敗しました。再試行する前に、相手の受信状況を確認してください。</value></data>
+  <data name="FileTransferSourceError" xml:space="preserve"><value>元のファイルが見つからないか、読み取れないか、変更されています。元のファイルを確認して、もう一度お試しください。</value></data>
+  <data name="FileTransferFailed" xml:space="preserve"><value>転送が完了しませんでした。元のファイルと相手のデバイスの受信状況を確認してから、もう一度お試しください。</value></data>
+  <data name="FileTransferByteProgress" xml:space="preserve"><value>{1} 中 {0}</value></data>
+  <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>{1} への {0} の転送をキャンセル</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>転送が送信されました</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>信頼できるデバイスは転送を受け入れ、DropSpace はコミット前にコンテンツを検証しました。</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>転送不可</value></data>

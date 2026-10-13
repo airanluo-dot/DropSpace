@@ -213,6 +213,7 @@ public sealed partial class MainPage : Page
             _subscriptionsAttached = true;
         }
 
+        AttachTransferPresentation();
         EnsureQuickActionsSettings();
         RefreshModuleNavigation();
         SyncNavigationSelection();
@@ -237,6 +238,7 @@ public sealed partial class MainPage : Page
 
     internal void Retire()
     {
+        RetireTransferPresentation();
         SetPresentationActive(false);
         Interlocked.Increment(ref _navigationRevision);
         _dialogLifetime.Cancel();
@@ -1205,11 +1207,7 @@ public sealed partial class MainPage : Page
         if (peer is null) return;
         if (item.File?.OriginalPath is { } path)
         {
-            var response = await _deviceHandoff.SendFilesAsync(peer.Peer, peer.Endpoint, [path]);
-            var completed = response.State == TransferSessionState.Completed;
-            await ShowMessageAsync(
-                completed ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
-                completed ? _strings.Get("TransferSentContent") : response.ErrorCategory ?? _strings.Get("ActionUnavailable"));
+            StartTrackedFileTransfer(peer, path, item.Title);
             return;
         }
 

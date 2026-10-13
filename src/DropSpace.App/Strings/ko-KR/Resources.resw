@@ -391,6 +391,26 @@
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>장치로 보내기</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>Nearby 링크 만들기</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>보안 인터넷 링크 생성</value></data>
+  <data name="FileTransfersTitle" xml:space="preserve"><value>파일 전송</value></data>
+  <data name="FileTransfersActiveCount" xml:space="preserve"><value>진행 중: {0}</value></data>
+  <data name="FileTransfersEmpty" xml:space="preserve"><value>표시할 파일 전송 기록이 없습니다.</value></data>
+  <data name="FileTransfersContinue" xml:space="preserve"><value>이 패널을 닫아도 전송은 중지되지 않습니다.</value></data>
+  <data name="FileTransfersClearCompleted" xml:space="preserve"><value>끝난 전송 기록 지우기</value></data>
+  <data name="FileTransferTarget" xml:space="preserve"><value>받는 기기: {0}</value></data>
+  <data name="FileTransferPreparing" xml:space="preserve"><value>파일 준비 중…</value></data>
+  <data name="FileTransferWaitingForApproval" xml:space="preserve"><value>상대 기기에서 전송을 수락하기를 기다리는 중…</value></data>
+  <data name="FileTransferSending" xml:space="preserve"><value>파일 전송 중…</value></data>
+  <data name="FileTransferFinalizing" xml:space="preserve"><value>상대 기기에서 파일을 확인하고 저장하기를 기다리는 중…</value></data>
+  <data name="FileTransferCanceling" xml:space="preserve"><value>전송 취소 중…</value></data>
+  <data name="FileTransferCanceled" xml:space="preserve"><value>전송이 취소됨</value></data>
+  <data name="FileTransferCanceledOutcomeUnknown" xml:space="preserve"><value>이 기기에서 전송을 취소했습니다. 상대 기기가 이미 파일의 일부 또는 전부를 받았을 수 있습니다. 다시 보내기 전에 확인하세요.</value></data>
+  <data name="FileTransferRejected" xml:space="preserve"><value>상대 기기가 이 전송을 거절했습니다.</value></data>
+  <data name="FileTransferApprovalTimeout" xml:space="preserve"><value>상대 기기가 제시간에 응답하지 않았습니다. 상대 기기가 준비되면 다시 시도하세요.</value></data>
+  <data name="FileTransferNetworkError" xml:space="preserve"><value>상대 기기와 연결하지 못했습니다. 다시 시도하기 전에 상대 기기의 수신 상태를 확인하세요.</value></data>
+  <data name="FileTransferSourceError" xml:space="preserve"><value>원본 파일이 없거나, 읽을 수 없거나, 변경되었습니다. 원본 파일을 확인한 후 다시 시도하세요.</value></data>
+  <data name="FileTransferFailed" xml:space="preserve"><value>전송이 완료되지 않았습니다. 원본 파일과 상대 기기의 수신 상태를 확인한 후 다시 시도하세요.</value></data>
+  <data name="FileTransferByteProgress" xml:space="preserve"><value>전체 {1} 중 {0}</value></data>
+  <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>{1}(으)로 보내는 {0} 전송 취소</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>전송됨</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>신뢰할 수 있는 장치가 전송을 수락하고 DropSpace이 커밋하기 전에 콘텐츠를 확인했습니다.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>전송할 수 없음</value></data>

@@ -138,6 +138,17 @@ public sealed class DeviceHandoffService(
             client.SendHandoffAsync(peer, endpoint, kind, payload, displayLabel, token),
             cancellationToken: cancellationToken);
 
+    internal Task<TransferCompleteResponse> SendFilesTrackedAsync(
+        PeerDevice peer,
+        Uri endpoint,
+        IReadOnlyList<string> sourcePaths,
+        IProgress<TransferProgress> progress,
+        Action onRetired,
+        CancellationToken cancellationToken) =>
+        _outgoing.RunAsync((token, scopedProgress) =>
+            client.SendFilesAsync(peer, endpoint, sourcePaths, scopedProgress, cancellationToken: token),
+            progress, cancellationToken, onRetired);
+
     public Task<TransferStatusResponse> ApproveTransferAsync(
         PeerDevice peer,
         Uri endpoint,

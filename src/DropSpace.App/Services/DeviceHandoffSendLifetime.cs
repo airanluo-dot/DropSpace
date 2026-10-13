@@ -33,19 +33,28 @@ internal sealed class DeviceHandoffSendLifetime(ILogger logger)
     internal async Task<T> RunAsync<T>(
         Func<CancellationToken, IProgress<TransferProgress>?, Task<T>> send,
         IProgress<TransferProgress>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action? onRetired = null)
     {
-        ArgumentNullException.ThrowIfNull(send);
-        cancellationToken.ThrowIfCancellationRequested();
         SendOperation operation;
-        lock (_gate)
+        try
         {
-            if (_scope is not { } scope)
-                throw new HandoffSendUnavailableException(HandoffSendUnavailableReason.Disabled);
-            if (_operations.Count >= MaximumSends)
-                throw new HandoffSendUnavailableException(HandoffSendUnavailableReason.Busy);
-            operation = new SendOperation(scope, cancellationToken);
-            _operations.Add(operation);
+            ArgumentNullException.ThrowIfNull(send);
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_gate)
+            {
+                if (_scope is not { } scope)
+                    throw new HandoffSendUnavailableException(HandoffSendUnavailableReason.Disabled);
+                if (_operations.Count >= MaximumSends)
+                    throw new HandoffSendUnavailableException(HandoffSendUnavailableReason.Busy);
+                operation = new SendOperation(scope, cancellationToken, onRetired);
+                _operations.Add(operation);
+            }
+        }
+        catch
+        {
+            NotifyRetired(onRetired);
+            throw;
         }
 
         Task<T> owned;
@@ -129,8 +138,18 @@ internal sealed class DeviceHandoffSendLifetime(ILogger logger)
                     _operations.Remove(operation);
                     outstanding = _operations.Count;
                 }
+                NotifyRetired(operation.OnRetired);
                 logger.LogDebug("Device handoff send retired; {Outstanding} sends remain.", outstanding);
             }
+        }
+    }
+
+    private void NotifyRetired(Action? onRetired)
+    {
+        try { onRetired?.Invoke(); }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Device handoff retirement notification failed.");
         }
     }
 
@@ -144,7 +163,22 @@ internal sealed class DeviceHandoffSendLifetime(ILogger logger)
             // Never invoke external code under the admission lock. A consumer
             // that queues callbacks must also fence them when consuming: this
             // guard cannot retract work already posted by an arbitrary IProgress.
-            if (owner.IsCurrent(operation)) target.Report(value);
+            if (!owner.IsCurrent(operation))
+            {
+                // Disable withdraws the scope before cancelling its snapshot of
+                // owners. Close that short gap before the client resumes after
+                // this report. Already-retired callbacks remain harmless no-ops.
+                operation.RequestCancellation();
+                return;
+            }
+            target.Report(value);
+            // The consumer can arbitrate Cancel against Finalizing synchronously.
+            // Its caller token may already be cancelled while its asynchronous
+            // cancellation callback is still queued. Stop before the client can
+            // advance from this report into a remote commit request.
+            if (operation.CallerToken.IsCancellationRequested || !owner.IsCurrent(operation))
+                operation.RequestCancellation();
+            operation.WorkToken.ThrowIfCancellationRequested();
         }
     }
 
@@ -157,9 +191,11 @@ internal sealed class DeviceHandoffSendLifetime(ILogger logger)
         private Task? _cancellation;
         private bool _completed;
 
-        internal SendOperation(object scope, CancellationToken caller)
+        internal SendOperation(object scope, CancellationToken caller, Action? onRetired)
         {
             Scope = scope;
+            OnRetired = onRetired;
+            CallerToken = caller;
             WorkToken = _workCancellation.Token;
             WaitToken = _waitCancellation.Token;
             _callerRegistration = caller.UnsafeRegister(
@@ -167,6 +203,8 @@ internal sealed class DeviceHandoffSendLifetime(ILogger logger)
         }
 
         internal object Scope { get; }
+        internal Action? OnRetired { get; }
+        internal CancellationToken CallerToken { get; }
         internal CancellationToken WorkToken { get; }
         internal CancellationToken WaitToken { get; }
 

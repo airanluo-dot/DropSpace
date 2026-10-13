@@ -3554,16 +3554,115 @@
     "TransferBusyContent": [
       "9da805fd8d489cf7730c4fa8dcb89234111eb2ad1e7f0d3a4c0ffb37ca74c061",
       "31f480358f455bd974c85e13bfe921b097840bc1dbe74dca122a6a453cac9dc3"
+    ],
+    "FileTransfersTitle": [
+      "d65ed3bdc8d0f9a97341297d50417cbd35ea02a5353d91280c0936b7768fcd0c",
+      "b247c396dc28753e51b84d29776c9b2d86e83e0a6d46c7cbfde57479dd5aa279"
+    ],
+    "FileTransfersActiveCount": [
+      "74397ea32a24ef4868400576926c2d60f9712a53dd81000adb81b6508b60bd7f",
+      "526a5d346d14e425456825a73bd93ad2e14206c303d14e211042ed74aa4c685a"
+    ],
+    "FileTransfersEmpty": [
+      "0adffce0eaae76e0eddb20e13f13416a16cfe9050aeac216967d7f41a0092496",
+      "2596be7aeb0324a9326cb120fa9750cacbb57b9a064ca65d1fef751a619ba64c"
+    ],
+    "FileTransfersContinue": [
+      "fdb59cb3cbe4601db21963c75c55fb9bf7aeb960aa309fde2f4845081362951c",
+      "a9137add6c1e902e581b3efa828d0b762588ebe87243c48198b14646aff9ef60"
+    ],
+    "FileTransfersClearCompleted": [
+      "101d80445a6e56641fef59017bc106b5d52bcc4a6667548a87dbaf29cb8a467c",
+      "db4e1711e3b3209b144b45c7926d3974bbf8300c5bc2c39e258ea429fc47684d"
+    ],
+    "FileTransferTarget": [
+      "e7bc111d7406a4062cc9ca932ea01e499811bbc986d3155ea7adc048e5f929bf",
+      "2b2704db8ee7f12968df55c2f4a2b4fb000cc305bc53a2be906c06af7eeeb2b3"
+    ],
+    "FileTransferPreparing": [
+      "7e49ef7b55f182661c8c0a0cbc0b2a0c22981d0d1ce08d005e55d4d930d6d0f2",
+      "7a56becd38674022370d5e915499dfab299cad12c09444090eb64b3f3f316d51"
+    ],
+    "FileTransferWaitingForApproval": [
+      "fd690b3b34237d00ce6dfcf3e71ce81a00449545f976e707d4cbb4edccacbaec",
+      "b91b5f59b96b4bddde1d7a3cfb3622de52531bb7f983fac2943c5dbc2644f71b"
+    ],
+    "FileTransferSending": [
+      "ce555a98a2e0bf4e9676f15ca6618ee3ab179609e31f7c58f678c9cd8d2cbcd4",
+      "7eacca4f3d8d65e665a640d1cbc99bbd8d4a74e7175b2dece90cb02afb700fbd"
+    ],
+    "FileTransferFinalizing": [
+      "d06c94b14bec863546107a02e7d266cecfe58df5378c1c622672c5e2ed318f1a",
+      "15c7eb70403379f07c0b90ef907d16c197342fc93e02907b95eef8de2908cad7"
+    ],
+    "FileTransferCanceling": [
+      "430e38ccf73d04668ad07ab6d216566fc9a7e467e60659ba6b8bf7e03776a63c",
+      "a8e25c5f30728aced9f181b4aac6efb0781327592159ca8fbd18a3abf4d3c68f"
+    ],
+    "FileTransferCanceled": [
+      "a3a6f30a901356fe0c05b903bc61d575587fc9f3894e3f1238b6671a95a127b7",
+      "bce642c9db346619ee522d282222de5c2d9ad007a2c70f1c3f26a2ffeb0aad5f"
+    ],
+    "FileTransferCanceledOutcomeUnknown": [
+      "708adb10095fc1a1c2fcc7c8a23329bcf1b08f0735eca86ebccebe20e48dfe01",
+      "2523131493d86743b3b455c19a37a84318b262020fcc0085e0952c35e1f4ba19"
+    ],
+    "FileTransferRejected": [
+      "5b00162cc32507075ffa14b3e7d0dd2f6d7a5385de9580c79ac7649cfb41a29e",
+      "5f59b6fe34b49d3e0629cea02c725abd90192da25401080feadbe246db50c2c5"
+    ],
+    "FileTransferApprovalTimeout": [
+      "deb72ff794414e6d01858931565a62de692352250cb99ad2808c69a12c60945d",
+      "6fd67f8fee9aebc4cbab592075c28cb1851472a84da9b3918196c7aac0d67ca2"
+    ],
+    "FileTransferNetworkError": [
+      "5f54916d8cc5a48ebf55206fac87055fb19d3525778e47e2c141b434f09ec542",
+      "e9486dd91bdf5d50d0ee38fbba8a015202f6b70e4fe2d69b646d51354ff4f34b"
+    ],
+    "FileTransferSourceError": [
+      "024c5f950f3a59152d0ceeb875ecc85b1875bdd6aa49cdbb11ae2b09ab1f10b2",
+      "306f27013338041df49d5c8f327df26fcb5caa1c4abd789e4569112028c02fc2"
+    ],
+    "FileTransferFailed": [
+      "d1be650e157756dfc7b92478b3cdad4eda1623bffe3fe186535c063ffd5e7182",
+      "0c0083989c547b306db84a9586b0f702dbcebe1a149c10b2cdd1133240d36d5b"
+    ],
+    "FileTransferByteProgress": [
+      "9fea8201753aa74d07526b957c3b193baf893f3246074b750a113588c55dedc7",
+      "173f266defc80c6406d86ed3e01ec32408ef077e02ef72443c20f43bea3190cd"
+    ],
+    "FileTransferCancelAutomationName": [
+      "13aaae7363cbc4189131cd104aabd76151a2a82abb7f69fe653fbce6bd844776",
+      "89b1bb8f079dd77bb2c5cb275681614aec1e5120224071af7e8526bd23189da2"
     ]
   },
-  "reviewedBy": "Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title",
-  "reviewedAt": "2026-10-13T04:46:31.441Z",
+  "reviewedBy": "Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history",
+  "reviewedAt": "2026-10-13T05:11:00.847Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "TransferBusyContent"
+      "FileTransfersTitle",
+      "FileTransfersActiveCount",
+      "FileTransfersEmpty",
+      "FileTransfersContinue",
+      "FileTransfersClearCompleted",
+      "FileTransferTarget",
+      "FileTransferPreparing",
+      "FileTransferWaitingForApproval",
+      "FileTransferSending",
+      "FileTransferFinalizing",
+      "FileTransferCanceling",
+      "FileTransferCanceled",
+      "FileTransferCanceledOutcomeUnknown",
+      "FileTransferRejected",
+      "FileTransferApprovalTimeout",
+      "FileTransferNetworkError",
+      "FileTransferSourceError",
+      "FileTransferFailed",
+      "FileTransferByteProgress",
+      "FileTransferCancelAutomationName"
     ],
-    "reviewedBy": "Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title",
-    "reviewedAt": "2026-10-13T04:46:31.441Z"
+    "reviewedBy": "Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history",
+    "reviewedAt": "2026-10-13T05:11:00.847Z"
   }
 }

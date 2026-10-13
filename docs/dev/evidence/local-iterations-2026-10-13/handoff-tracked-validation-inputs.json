@@ -1,0 +1,233 @@
+{
+  "round": 18,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "reused existing assets; no restore command",
+  "build": "two normal build/run attempts; default analyzers and warnings-as-errors retained",
+  "attempts": [
+    {
+      "attempt": 1,
+      "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet run --project scripts/handoff-send-lifecycle-probe/HandoffSendLifecycleProbe.csproj --no-restore --no-launch-profile -- tracked",
+      "exitCode": 1,
+      "functionalExecutions": 0,
+      "result": "CS1001 in probe lambda parameter named scoped; no scenario ran",
+      "rawLog": "handoff-tracked-build-attempt1.log.txt"
+    },
+    {
+      "attempt": 2,
+      "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet run --project scripts/handoff-send-lifecycle-probe/HandoffSendLifecycleProbe.csproj --no-restore --no-launch-profile -- tracked",
+      "exitCode": 0,
+      "functionalExecutions": 1,
+      "result": "Passed after only renaming that probe parameter/reference to scopedProgress",
+      "rawLog": "handoff-tracked-probe-attempt2.log.txt"
+    }
+  ],
+  "result": {
+    "passed": 1,
+    "actualSends": 14,
+    "disabledRejectedAttempts": 1,
+    "retirementCallbacks": 15,
+    "finalTrackedSnapshots": 0,
+    "maximumActive": 2,
+    "terminalHistoryLimit": 10,
+    "trackerBusyRejectedStarts": 1
+  },
+  "platform": "Linux; source-linked actual helper/tracker and actual Infrastructure transfer types; controlled send delegate; no WinUI stand-ins",
+  "measured": [
+    "disabled preadmission retires exactly once without actual work and settles Failed/Disabled",
+    "preparing/approval/sending/finalizing/completed events, bytes and revisions advance",
+    "replacement observer can reread the current tracked snapshot without changing ownership",
+    "two active tracked operations reject a third",
+    "caller-first cancellation remains Cancelling until actual retirement",
+    "owner-first retirement cannot settle before delayed caller outcome",
+    "cancel-first prevents a controlled post-report commit marker via actual helper and work-token fence",
+    "finalizing-first refuses cancellation and permits the controlled marker",
+    "post-network-stage cancellation is outcome unknown while pre-offer cancellation is definite",
+    "stale tracker progress cannot overwrite cancellation or completion",
+    "one active plus eleven short completed sends retain exactly ten terminal records; clear preserves the active record",
+    "all fifteen helper attempts notify retirement exactly once; separate tracker busy rejection invokes no helper; final snapshot is empty"
+  ],
+  "staticOnly": [
+    "DropLinkClient network phase placement and offer cancellation cleanup",
+    "DeviceHandoffService/UseCase real routing",
+    "MainPage native panel, observer retirement, language and resource integration"
+  ],
+  "unexecuted": [
+    "round17 default probe",
+    "historical tests and other probes",
+    "actual client/host/peer/network",
+    "actual file transfer or remote commit/rollback",
+    "Windows window reconstruction, keyboard and accessibility interaction",
+    "full App/XAML compilation"
+  ],
+  "localization": {
+    "source": "native_context execution and root-copied raw evidence",
+    "explicitReviewExecutions": 9,
+    "scopeAppExecutions": 1,
+    "functionCaseCount": 0,
+    "languages": 10,
+    "appIds": 908,
+    "changedIds": 20,
+    "rawLog": "handoff-tracked-localization.log.txt",
+    "keys": "handoff-tracked-localization-keys.json"
+  },
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffSendLifetime.cs",
+      "sha256": "23ce43c0e0b03d40348d513b4430809bb6c5d766dc2317f399853795677d68c1"
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffSendTracker.cs",
+      "sha256": "d7e9b695b403b1a431ac72303e34e74f2835f76aebb86c3ff5a64681daf020da"
+    },
+    {
+      "path": "src/DropSpace.App/Services/HandoffSendUnavailableException.cs",
+      "sha256": "b3402dc4e7d59ef7e345695e82e128c69f5396ef3835fd00a2516fa4de414b27"
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffService.cs",
+      "sha256": "891febe82a8f9276835e423b9577186e0d259491a6b0bc8655939a3355e7ac5c"
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffUseCase.cs",
+      "sha256": "3396d6fb03fb585dd9de8f0a857554d790c9bf36275fec60c121e5664219cc1b"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkClient.cs",
+      "sha256": "9b484471e9bf18a898fdbeed5869db9e104a7e4a0cda038c48628ef0cc621708"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkDtos.cs",
+      "sha256": "666ac5e1a77b1e3536a92598c36679fb82e8a87f9ae67db2a65e12d5a5d1af5a"
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/TransferModels.cs",
+      "sha256": "4b8dd5d5e8d085d7531b64e7b7061a392facfa12cb4a2744772485f86b99fb6d"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml",
+      "sha256": "eb6abf51151013e014ceaa9f18e89b9daf4acd8c6ddba4467109f58bd65d0cf9"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+      "sha256": "3ca76946c0902e095c893d2c37413712308c40ae4ae06ed2e418cbb782cea1ae"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.Transfers.cs",
+      "sha256": "f31e37b2925eb7a0aca42f3a19e5e11f2541b72c8cdf35f602f6b17bc18755c7"
+    },
+    {
+      "path": "scripts/handoff-send-lifecycle-probe/HandoffSendLifecycleProbe.csproj",
+      "sha256": "0245698e7e49031845eeb7f271704ca0bd221987a29a519f94e8a63342168ff7"
+    },
+    {
+      "path": "scripts/handoff-send-lifecycle-probe/Program.cs",
+      "sha256": "2209b0535fe9ee7711a1bb76906a57c92a778d3170d4d9941dea2a3b4ac004eb"
+    },
+    {
+      "path": "scripts/handoff-send-lifecycle-probe/TrackedScenario.cs",
+      "sha256": "f03ddcaf4413359de4b00d92f0292a325718aef121c386bf58c68229614dc3e8"
+    },
+    {
+      "path": "scripts/handoff-send-lifecycle-probe/README.md",
+      "sha256": "d2abda72b978de4d850a3d8f0b313b11c35851ee8c489a4ed8e7843a062d0d1e"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+    },
+    {
+      "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+      "sha256": "5d697fd66f1e7c34f815eafd02bdc2fde9b3669a83877e38c55a03c318b6a274"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj",
+      "sha256": "acb4adbc54274bca7331456c584db46f60968fb6b3dc912a7d7ecf7893c401de"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
+      "sha256": "fdaad8bf120d011fc6d904fae9cf21c3c250cdacb3b8069611e3a5199e0cd732"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+      "sha256": "10fcfd301eb758831c295e9faf5407a7f65d78d0a46a13ded44772723c37927a"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
+      "sha256": "d951d898c704b3e65d7ebd57c932f94ed3e31b17cb1114fec8b2e83d4b685e57"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
+      "sha256": "4a4b754740e0df6177d2077fe451e6d3c66c574571d67f4d34817698f03c7be3"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
+      "sha256": "567143a7ae94aa8272e245cc21acd2d59fdeff8adaa4876484fe56562aa5ef6e"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
+      "sha256": "9be0f0b7e6da5c25c24a6a4b7e5de7b33699b955f971ace0613fa2e333c4de65"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
+      "sha256": "f1820f2d47df9d1f1cb91a869742cfd32e57bd15d6ae73f46f365eeaac81b662"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
+      "sha256": "c59ddbeed661910ba08b54a21c72c8898ec4628af7ad6a5b62e27a92bb566996"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+      "sha256": "2c62942be746d7cf7ba027d3f7eeca3def1a51be4090ad7501223a163760c530"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
+      "sha256": "881a0bb1a7027f6e908670833d1ebf87827743fde51c7d8512036e91590654c1"
+    },
+    {
+      "path": "localization/reviews/app/de-DE.json",
+      "sha256": "21341c44b8c3ecf7622430a6e1ae5c1890ec82e595081b74aeceae65f284610c"
+    },
+    {
+      "path": "localization/reviews/app/es-ES.json",
+      "sha256": "8c2e80add7f319f1bcb605f8f80c1b8a2bd77ae3274628f1c2fa4bcc01c2c258"
+    },
+    {
+      "path": "localization/reviews/app/fr-FR.json",
+      "sha256": "67a83c8fc846c98af2bbe6cb43e4e2b17759d1051b19d6c981e824fabcd2c851"
+    },
+    {
+      "path": "localization/reviews/app/ja-JP.json",
+      "sha256": "fdfd3eef1b9f5a4deb8d773e7b8ebf8150985af54fe5bc30dd529297bbf5c85b"
+    },
+    {
+      "path": "localization/reviews/app/ko-KR.json",
+      "sha256": "2d103459a58cd2a94ae98b68de44d4568952f5c4ba16d865b2d0b244652ef7f8"
+    },
+    {
+      "path": "localization/reviews/app/pt-BR.json",
+      "sha256": "c1c25acf20f067d86fd8c50e09f20b2dded535ac4a459f4ae72d26ce65606b42"
+    },
+    {
+      "path": "localization/reviews/app/ru-RU.json",
+      "sha256": "7977345ecd2f88c9db59954e33176f5103dbfca9440543485b27b475d5abbc8e"
+    },
+    {
+      "path": "localization/reviews/app/zh-CN.json",
+      "sha256": "4a3af9bfca27153623a3ae07f9d1d32700ef5f43acf4eeb95f6171bbfeea83f1"
+    },
+    {
+      "path": "localization/reviews/app/zh-TW.json",
+      "sha256": "fa3c6352e489b8822d271d50efbe773e9f51bb67e7bbbb6438ce8a6fa091d426"
+    }
+  ],
+  "builtAssembly": {
+    "path": "scripts/handoff-send-lifecycle-probe/bin/Debug/net10.0/HandoffSendLifecycleProbe.dll",
+    "sha256": "2339d4df3ea8fe5f8831439344bc0f740fa190d87efd845ad1c1581f62294221"
+  }
+}

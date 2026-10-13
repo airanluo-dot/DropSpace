@@ -391,6 +391,26 @@
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>Отправить на устройство</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>Создать ссылку «Рядом»</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>Создать безопасную ссылку в Интернет</value></data>
+  <data name="FileTransfersTitle" xml:space="preserve"><value>Передача файлов</value></data>
+  <data name="FileTransfersActiveCount" xml:space="preserve"><value>В процессе: {0}</value></data>
+  <data name="FileTransfersEmpty" xml:space="preserve"><value>В списке нет передач файлов.</value></data>
+  <data name="FileTransfersContinue" xml:space="preserve"><value>Закрытие этой панели не останавливает передачу.</value></data>
+  <data name="FileTransfersClearCompleted" xml:space="preserve"><value>Убрать завершённые передачи из списка</value></data>
+  <data name="FileTransferTarget" xml:space="preserve"><value>Получатель: {0}</value></data>
+  <data name="FileTransferPreparing" xml:space="preserve"><value>Подготовка файлов…</value></data>
+  <data name="FileTransferWaitingForApproval" xml:space="preserve"><value>Ожидание согласия другого устройства…</value></data>
+  <data name="FileTransferSending" xml:space="preserve"><value>Отправка файлов…</value></data>
+  <data name="FileTransferFinalizing" xml:space="preserve"><value>Ожидание проверки и сохранения файлов на другом устройстве…</value></data>
+  <data name="FileTransferCanceling" xml:space="preserve"><value>Отмена передачи…</value></data>
+  <data name="FileTransferCanceled" xml:space="preserve"><value>Передача отменена</value></data>
+  <data name="FileTransferCanceledOutcomeUnknown" xml:space="preserve"><value>Отправка отменена на этом устройстве. Другое устройство могло уже получить часть файлов или все файлы. Проверьте это перед повторной отправкой.</value></data>
+  <data name="FileTransferRejected" xml:space="preserve"><value>Другое устройство отклонило эту передачу.</value></data>
+  <data name="FileTransferApprovalTimeout" xml:space="preserve"><value>Другое устройство не ответило вовремя. Повторите попытку, когда оно будет готово.</value></data>
+  <data name="FileTransferNetworkError" xml:space="preserve"><value>Не удалось установить или сохранить соединение с другим устройством. Проверьте состояние передачи на нём перед повторной попыткой.</value></data>
+  <data name="FileTransferSourceError" xml:space="preserve"><value>Исходный файл недоступен, не читается или был изменён. Проверьте исходные файлы и повторите попытку.</value></data>
+  <data name="FileTransferFailed" xml:space="preserve"><value>Передача не завершилась. Проверьте исходные файлы и результат получения на другом устройстве перед повторной попыткой.</value></data>
+  <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} из {1}</value></data>
+  <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>Отменить передачу {0} на {1}</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Передача отправлена</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>Доверенное устройство приняло передачу и DropSpace проверило содержимое перед фиксацией.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Передача недоступна</value></data>

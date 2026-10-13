@@ -393,6 +393,26 @@
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>发送到设备</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>创建附近链接</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>创建安全互联网链接</value></data>
+  <data name="FileTransfersTitle" xml:space="preserve"><value>文件传输</value></data>
+  <data name="FileTransfersActiveCount" xml:space="preserve"><value>进行中：{0}</value></data>
+  <data name="FileTransfersEmpty" xml:space="preserve"><value>暂无文件传输记录。</value></data>
+  <data name="FileTransfersContinue" xml:space="preserve"><value>关闭此面板不会停止传输。</value></data>
+  <data name="FileTransfersClearCompleted" xml:space="preserve"><value>清除已结束记录</value></data>
+  <data name="FileTransferTarget" xml:space="preserve"><value>发送至 {0}</value></data>
+  <data name="FileTransferPreparing" xml:space="preserve"><value>正在准备文件…</value></data>
+  <data name="FileTransferWaitingForApproval" xml:space="preserve"><value>正在等待对方设备接受传输…</value></data>
+  <data name="FileTransferSending" xml:space="preserve"><value>正在发送文件…</value></data>
+  <data name="FileTransferFinalizing" xml:space="preserve"><value>正在等待对方设备校验并保存文件…</value></data>
+  <data name="FileTransferCanceling" xml:space="preserve"><value>正在取消传输…</value></data>
+  <data name="FileTransferCanceled" xml:space="preserve"><value>传输已取消</value></data>
+  <data name="FileTransferCanceledOutcomeUnknown" xml:space="preserve"><value>已在本机取消发送。对方设备可能已收到部分或全部文件，请确认后再重新发送。</value></data>
+  <data name="FileTransferRejected" xml:space="preserve"><value>对方设备拒绝了此次传输。</value></data>
+  <data name="FileTransferApprovalTimeout" xml:space="preserve"><value>对方设备未及时响应。请在对方准备好后重试。</value></data>
+  <data name="FileTransferNetworkError" xml:space="preserve"><value>与对方设备的连接失败。请先确认对方的接收情况，再重试。</value></data>
+  <data name="FileTransferSourceError" xml:space="preserve"><value>源文件不存在、无法读取或已发生变化。请检查源文件后重试。</value></data>
+  <data name="FileTransferFailed" xml:space="preserve"><value>传输未完成。请检查源文件和对方设备的接收情况后再重试。</value></data>
+  <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>取消向 {1} 传输 {0}</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>已发送传输</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>可信设备已接受传输，DropSpace 在提交前完成了内容校验。</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>传输不可用</value></data>

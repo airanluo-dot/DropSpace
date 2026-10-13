@@ -391,6 +391,26 @@ Aucun contenu ne sera ouvert automatiquement.</value></data>
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>Envoyer à l'appareil</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>Créer un lien à proximité</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>Créer un lien Internet sécurisé</value></data>
+  <data name="FileTransfersTitle" xml:space="preserve"><value>Transferts de fichiers</value></data>
+  <data name="FileTransfersActiveCount" xml:space="preserve"><value>En cours : {0}</value></data>
+  <data name="FileTransfersEmpty" xml:space="preserve"><value>Aucun transfert de fichiers dans la liste.</value></data>
+  <data name="FileTransfersContinue" xml:space="preserve"><value>Fermer ce panneau n’arrête pas les transferts.</value></data>
+  <data name="FileTransfersClearCompleted" xml:space="preserve"><value>Retirer les transferts terminés de la liste</value></data>
+  <data name="FileTransferTarget" xml:space="preserve"><value>Vers {0}</value></data>
+  <data name="FileTransferPreparing" xml:space="preserve"><value>Préparation des fichiers…</value></data>
+  <data name="FileTransferWaitingForApproval" xml:space="preserve"><value>En attente de l’acceptation par l’autre appareil…</value></data>
+  <data name="FileTransferSending" xml:space="preserve"><value>Envoi des fichiers…</value></data>
+  <data name="FileTransferFinalizing" xml:space="preserve"><value>En attente de la vérification et de l’enregistrement des fichiers sur l’autre appareil…</value></data>
+  <data name="FileTransferCanceling" xml:space="preserve"><value>Annulation du transfert…</value></data>
+  <data name="FileTransferCanceled" xml:space="preserve"><value>Transfert annulé</value></data>
+  <data name="FileTransferCanceledOutcomeUnknown" xml:space="preserve"><value>L’envoi a été annulé sur cet appareil. L’autre appareil a peut-être déjà reçu une partie ou la totalité des fichiers. Vérifiez avant de les renvoyer.</value></data>
+  <data name="FileTransferRejected" xml:space="preserve"><value>L’autre appareil a refusé ce transfert.</value></data>
+  <data name="FileTransferApprovalTimeout" xml:space="preserve"><value>L’autre appareil n’a pas répondu à temps. Réessayez lorsqu’il sera prêt.</value></data>
+  <data name="FileTransferNetworkError" xml:space="preserve"><value>La connexion à l’autre appareil a échoué. Vérifiez l’état du transfert sur cet appareil avant de réessayer.</value></data>
+  <data name="FileTransferSourceError" xml:space="preserve"><value>Un fichier source est indisponible, illisible ou a été modifié. Vérifiez les fichiers sources et réessayez.</value></data>
+  <data name="FileTransferFailed" xml:space="preserve"><value>Le transfert ne s’est pas terminé. Vérifiez les fichiers sources et la réception sur l’autre appareil avant de réessayer.</value></data>
+  <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} sur {1}</value></data>
+  <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>Annuler le transfert de {0} vers {1}</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Transfert envoyé</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>L'appareil de confiance a accepté le transfert et DropSpace a vérifié le contenu avant la validation.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Transfert indisponible</value></data>

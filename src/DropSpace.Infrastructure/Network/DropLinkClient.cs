@@ -9,7 +9,18 @@ using System.Net.Http.Json;
 
 namespace DropSpace.Infrastructure.Network;
 
-public sealed record TransferProgress(Guid SessionId, Guid ItemId, long TransferredBytes, long TotalBytes);
+public enum TransferProgressStage
+{
+    Preparing,
+    WaitingForApproval,
+    Sending,
+    Finalizing,
+}
+
+public sealed record TransferProgress(Guid SessionId, Guid ItemId, long TransferredBytes, long TotalBytes)
+{
+    public TransferProgressStage Stage { get; init; } = TransferProgressStage.Sending;
+}
 
 [SupportedOSPlatform("windows")]
 public sealed class DropLinkClient(
@@ -169,8 +180,10 @@ public sealed class DropLinkClient(
         limits ??= new TransferLimits();
         limits.Validate();
         if (sourcePaths.Count == 0) throw new ArgumentException("At least one source path is required.", nameof(sourcePaths));
-        var files = await EnumerateFilesAsync(sourcePaths, limits, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         var sessionId = Guid.NewGuid();
+        progress?.Report(new TransferProgress(sessionId, Guid.Empty, 0, 0) { Stage = TransferProgressStage.Preparing });
+        var files = await EnumerateFilesAsync(sourcePaths, limits, cancellationToken).ConfigureAwait(false);
         var items = new List<TransferItemManifest>(files.Count);
         var totalBytes = 0L;
         foreach (var file in files)
@@ -188,27 +201,50 @@ public sealed class DropLinkClient(
 
         var manifest = TransferManifestPolicy.Create(sessionId, items, limits);
         using var authenticated = await CreateAuthenticatedClientAsync(peer, endpoint, cancellationToken).ConfigureAwait(false);
-        var offer = await SendAuthenticatedJsonAsync<TransferOfferRequest, TransferOfferResponse>(authenticated, DropLinkProtocolRoutes.TransferOffers, new TransferOfferRequest(authenticated.LocalDeviceId, manifest), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
-
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            var accepted = await WaitForAcceptanceAsync(authenticated, offer.SessionId, cancellationToken).ConfigureAwait(false);
-            if (accepted.State != TransferSessionState.Accepted) return new TransferCompleteResponse(offer.SessionId, accepted.State, [], accepted.ErrorCategory);
+            // From this report onward the peer may have received the offer, even
+            // when the caller is cancelled before its response reaches us.
+            progress?.Report(new TransferProgress(sessionId, Guid.Empty, 0, manifest.TotalBytes)
+                { Stage = TransferProgressStage.WaitingForApproval });
+            var offer = await SendAuthenticatedJsonAsync<TransferOfferRequest, TransferOfferResponse>(authenticated, DropLinkProtocolRoutes.TransferOffers, new TransferOfferRequest(authenticated.LocalDeviceId, manifest), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
+            if (offer.SessionId != sessionId)
+            {
+                await NotifyBestEffortAsync(token => CancelTransferAsync(authenticated, sessionId, token)).ConfigureAwait(false);
+                throw new InvalidDataException("The remote offer response did not match the transfer session.");
+            }
+
+            var accepted = await WaitForAcceptanceAsync(authenticated, sessionId, cancellationToken).ConfigureAwait(false);
+            if (accepted.State != TransferSessionState.Accepted) return new TransferCompleteResponse(sessionId, accepted.State, [], accepted.ErrorCategory);
+
+            progress?.Report(new TransferProgress(sessionId, Guid.Empty, 0, manifest.TotalBytes));
 
             var transferred = 0L;
             foreach (var pair in files.Zip(items))
             {
                 var item = pair.Second;
                 accepted.ReceivedChunks.TryGetValue(item.Id, out var receivedChunks);
-                await SendFileChunksAsync(authenticated, offer.SessionId, item, pair.First.Path, limits, receivedChunks, progress, transferred, manifest.TotalBytes, cancellationToken).ConfigureAwait(false);
+                await SendFileChunksAsync(authenticated, sessionId, item, pair.First.Path, limits, receivedChunks, progress, transferred, manifest.TotalBytes, cancellationToken).ConfigureAwait(false);
                 transferred += item.Size;
             }
 
-            return await SendAuthenticatedJsonAsync<object, TransferCompleteResponse>(authenticated, DropLinkProtocolRoutes.TransferComplete(offer.SessionId), new { }, HttpMethod.Post, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            // The receiver can no longer cancel once it begins verifying/committing.
+            // Report synchronously before requesting that transition; UI owners must
+            // gate cancellation when consuming Report, before dispatching rendering.
+            progress?.Report(new TransferProgress(sessionId, Guid.Empty, manifest.TotalBytes, manifest.TotalBytes)
+                { Stage = TransferProgressStage.Finalizing });
+            // A synchronous progress consumer may have cancelled at this boundary.
+            cancellationToken.ThrowIfCancellationRequested();
+            return await SendAuthenticatedJsonAsync<object, TransferCompleteResponse>(authenticated, DropLinkProtocolRoutes.TransferComplete(sessionId), new { }, HttpMethod.Post, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await NotifyBestEffortAsync(token => CancelTransferAsync(authenticated, offer.SessionId, token)).ConfigureAwait(false);
+            // The local manifest ID is known even if the offer response was lost.
+            // This is best effort: cancellation can reach the peer before its offer
+            // is registered, and it cannot undo a transfer already finalizing.
+            await NotifyBestEffortAsync(token => CancelTransferAsync(authenticated, sessionId, token)).ConfigureAwait(false);
 
             throw;
         }
@@ -268,7 +304,7 @@ public sealed class DropLinkClient(
         {
             await notification(deadline.Token).ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or
+        catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidDataException or
             UnauthorizedAccessException or JsonException or OperationCanceledException)
         {
             // A missing, invalid or slow peer cannot replace the local decision.

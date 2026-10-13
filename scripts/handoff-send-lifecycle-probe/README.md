@@ -18,3 +18,14 @@ This project does not instantiate the actual DropLink client or host, perform ne
 filesystem transfers, or reproduce Main/WinUI. Service settings/disposal and SendFiles/Text
 wiring are separate static-review boundaries. Earlier probes and localization checks are not
 selected by this project.
+
+The optional `tracked` selector runs only the separate tracker lifecycle scenario:
+
+```sh
+dotnet run --project scripts/handoff-send-lifecycle-probe/HandoffSendLifecycleProbe.csproj --no-restore -- tracked
+```
+
+It links the actual tracker and send lifetime. Its controlled delegates separate caller
+completion from actual ownership retirement; client transport, service wiring and WinUI
+remain static-review boundaries. The default scenario is not executed when this selector
+is present.

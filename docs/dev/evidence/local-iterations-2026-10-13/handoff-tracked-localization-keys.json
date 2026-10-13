@@ -1,0 +1,22 @@
+[
+  "FileTransfersTitle",
+  "FileTransfersActiveCount",
+  "FileTransfersEmpty",
+  "FileTransfersContinue",
+  "FileTransfersClearCompleted",
+  "FileTransferTarget",
+  "FileTransferPreparing",
+  "FileTransferWaitingForApproval",
+  "FileTransferSending",
+  "FileTransferFinalizing",
+  "FileTransferCanceling",
+  "FileTransferCanceled",
+  "FileTransferCanceledOutcomeUnknown",
+  "FileTransferRejected",
+  "FileTransferApprovalTimeout",
+  "FileTransferNetworkError",
+  "FileTransferSourceError",
+  "FileTransferFailed",
+  "FileTransferByteProgress",
+  "FileTransferCancelAutomationName"
+]

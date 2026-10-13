@@ -9,5 +9,6 @@
     <ProjectReference Include="../../src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj" />
     <Compile Include="../../src/DropSpace.App/Services/DeviceHandoffSendLifetime.cs" Link="Production/DeviceHandoffSendLifetime.cs" />
     <Compile Include="../../src/DropSpace.App/Services/HandoffSendUnavailableException.cs" Link="Production/HandoffSendUnavailableException.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/DeviceHandoffSendTracker.cs" Link="Production/DeviceHandoffSendTracker.cs" />
   </ItemGroup>
 </Project>

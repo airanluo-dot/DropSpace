@@ -391,6 +391,26 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>An Gerät senden</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>Erstellen Sie einen Link in der Nähe</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>Erstellen Sie eine sichere Internetverbindung</value></data>
+  <data name="FileTransfersTitle" xml:space="preserve"><value>Dateiübertragungen</value></data>
+  <data name="FileTransfersActiveCount" xml:space="preserve"><value>In Bearbeitung: {0}</value></data>
+  <data name="FileTransfersEmpty" xml:space="preserve"><value>Keine Dateiübertragungen in der Liste.</value></data>
+  <data name="FileTransfersContinue" xml:space="preserve"><value>Das Schließen dieses Bereichs beendet keine Übertragungen.</value></data>
+  <data name="FileTransfersClearCompleted" xml:space="preserve"><value>Beendete Übertragungen aus der Liste entfernen</value></data>
+  <data name="FileTransferTarget" xml:space="preserve"><value>An {0}</value></data>
+  <data name="FileTransferPreparing" xml:space="preserve"><value>Dateien werden vorbereitet…</value></data>
+  <data name="FileTransferWaitingForApproval" xml:space="preserve"><value>Warten auf die Annahme durch das andere Gerät…</value></data>
+  <data name="FileTransferSending" xml:space="preserve"><value>Dateien werden gesendet…</value></data>
+  <data name="FileTransferFinalizing" xml:space="preserve"><value>Warten, bis das andere Gerät die Dateien geprüft und gespeichert hat…</value></data>
+  <data name="FileTransferCanceling" xml:space="preserve"><value>Übertragung wird abgebrochen…</value></data>
+  <data name="FileTransferCanceled" xml:space="preserve"><value>Übertragung abgebrochen</value></data>
+  <data name="FileTransferCanceledOutcomeUnknown" xml:space="preserve"><value>Das Senden wurde auf diesem Gerät abgebrochen. Das andere Gerät hat möglicherweise bereits einige oder alle Dateien empfangen. Prüfen Sie dies, bevor Sie erneut senden.</value></data>
+  <data name="FileTransferRejected" xml:space="preserve"><value>Das andere Gerät hat diese Übertragung abgelehnt.</value></data>
+  <data name="FileTransferApprovalTimeout" xml:space="preserve"><value>Das andere Gerät hat nicht rechtzeitig geantwortet. Versuchen Sie es erneut, wenn es bereit ist.</value></data>
+  <data name="FileTransferNetworkError" xml:space="preserve"><value>Die Verbindung zum anderen Gerät ist fehlgeschlagen. Prüfen Sie dort den Übertragungsstatus, bevor Sie es erneut versuchen.</value></data>
+  <data name="FileTransferSourceError" xml:space="preserve"><value>Eine Quelldatei ist nicht verfügbar, nicht lesbar oder wurde geändert. Prüfen Sie die Quelldateien und versuchen Sie es erneut.</value></data>
+  <data name="FileTransferFailed" xml:space="preserve"><value>Die Übertragung wurde nicht abgeschlossen. Prüfen Sie die Quelldateien und den Empfangsstatus auf dem anderen Gerät, bevor Sie es erneut versuchen.</value></data>
+  <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} von {1}</value></data>
+  <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>Übertragung von {0} an {1} abbrechen</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Übertragung gesendet</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>Das vertrauenswürdige Gerät hat die Übertragung akzeptiert und DropSpace den Inhalt vor dem Übertragen überprüft.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Übertragung nicht verfügbar</value></data>

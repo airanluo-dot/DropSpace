@@ -3,6 +3,14 @@ using DropSpace.App.Services;
 using DropSpace.Infrastructure.Network;
 using Microsoft.Extensions.Logging;
 
+if (args.Length > 0)
+{
+    if (args.Length != 1 || args[0] != "tracked")
+        throw new ArgumentException("Only the optional 'tracked' scenario is supported.");
+    await TrackedScenario.RunAsync();
+    return;
+}
+
 var deadline = TimeSpan.FromSeconds(5);
 var logger = new LifecycleLog();
 var lifetime = new DeviceHandoffSendLifetime(logger);

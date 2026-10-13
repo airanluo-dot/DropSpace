@@ -87,8 +87,9 @@ dispatcher factory; startup/recovery were not rerun without new changes.
 
 An initial probe shim namespace error was corrected before execution. Three later
 probe compilations were scoped to those fixes/new checks. One production C# subset
-compile against actual Windows SDK/WinUI references passed with zero warnings or
-errors. This is not an App/XAML build. Verifier late-source readiness received
+compile against actual Windows SDK and Windows App SDK dispatcher references
+passed with zero warnings or errors. It did not use the Microsoft.WinUI XAML
+reference assembly and is not an App/XAML build. Verifier late-source readiness received
 compile/static review, not its own runtime test. No MSTest/full suite, Windows,
 NetEase or InfLink execution occurred. See the exact
 [validation record](evidence/local-iterations-2026-10-13/media-validation.md) and
@@ -548,6 +549,58 @@ App/XAML compilation. Independent service and UI reviews passed. See the
 The feature catalogue's stale claim that historical Beta 28 is the current
 release was also replaced with a pointer to RELEASE_VERSION; no version changed.
 
+## 18. Give file sends a persistent progress and cancellation surface
+
+The existing file action waits for the entire transfer and then opens a result
+dialog. It exposes neither progress nor cancellation, despite the client already
+reporting acknowledged chunk bytes. MainPage is replaced when the interface
+language changes, so keeping this operation in page/dialog lifetime would lose
+observation or cancel the transfer for a presentation change.
+
+The selected implementation keeps bounded in-session file-send snapshots in the
+existing singleton use-case boundary, with a native nonmodal Flyout in Main's
+navigation footer. Preparation, approval, sending and finalization come from
+actual client boundaries. Only a Completed response means success. A narrow
+actual-retirement notification joins caller outcome with real work/cancellation
+completion; cancellation stays visible until both facts are known. Finalization
+stops accepting the cancel action, and cancellation after network admission must
+state that the remote result can be uncertain. No persisted history, automatic
+retry, new protocol or new setting is planned.
+
+Source review also confirmed that the offer POST sits outside the client's
+existing cancellation cleanup block. If the receiver registers an offer before
+the sender observes its canceled response, no cleanup request is attempted. The
+manifest session ID is already known locally; moving this request inside the
+existing block allows one bounded best-effort cancel without waiting for its
+response to reveal that ID. Cross-request ordering can still let cancellation
+arrive first, so this cannot guarantee remote rollback.
+
+Cancellation and finalization also require synchronous arbitration. The tracker
+marks its own cancellation token while deciding the phase under one lock; the
+send owner propagates that decision when a progress callback returns, including
+the branch that suppresses an obsolete scope's report. The client rechecks its
+work token after the finalization report and before the commit request. This
+closes a window in which queued cancellation callbacks had not marked the actual
+work token yet. Already-retired progress callbacks stay ignored.
+
+Result: the new tracker/lifetime composite passed on its first actual execution.
+There were two compilation attempts: the first stopped on a probe lambda
+parameter named `scoped`, which conflicts with C# syntax; only that parameter was
+renamed, and the necessary retry compiled and ran successfully. No production
+code or assertions were weakened. Existing restore assets and default analyzers
+were used; the unchanged round-17 scenario did not rerun.
+
+Fourteen actual controlled sends and one disabled admission exercised the two
+outcome/retirement orders, exactly-once retirement notifications, phase snapshots,
+observer reattachment, both cancel/finalization decisions, late progress, the
+two-active/ten-finished bounds and clearing history without losing active work.
+This is a controlled sender boundary, not actual HTTP submission. Independent
+production/UI review passed; nine explicit reviews of the twenty new resource
+IDs and one App integrity check passed (ten languages, 908 IDs). See the
+[tracked-send evidence](evidence/local-iterations-2026-10-13/handoff-tracked-validation.md).
+Actual Windows UI, keyboard/focus, language replacement and two-device transfer
+remain target-platform verification gaps. No full App/XAML compilation ran.
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -559,9 +612,18 @@ ownership in `783fec7`, and image-export handles in `d03c59d`. Pause failure
 feedback is saved in `c12d283`, and discarded-card asset cancellation in `796f90b`.
 Quick Panel keyboard focus is saved in `5216d4e`. DropLink directory preparation
 budgets and their localized feedback are saved in `b51e307`. Explicit device
-handoff sends now retain their service lifetime and bounded capacity across
-disable/re-enable. The next iteration adds a native progress and cancellation
-surface for file sends, with state owned independently of a MainPage instance.
+handoff sends retain their service lifetime and bounded capacity across
+disable/re-enable in `8553eac`. The active iteration adds a native progress and
+cancellation surface for file sends, with state owned independently of a
+MainPage instance.
+The next confirmed repair is the download publication boundary:
+OutputReservationService awaits its durable beforeCommit callback and then moves
+the file without rechecking cancellation. A cancel requested during that await
+can therefore still publish a completed download. The planned narrow repair is
+one token check before File.Move, with one controlled real-filesystem case and
+no rollback after a successful move. A later product candidate is a persistent
+in-session Nearby-link management surface; the server already supports revoke,
+but the App has neither a revoke call nor a recoverable list of active links.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
