@@ -1,0 +1,53 @@
+Round 17 localization review records and static integrity only; no functional tests or builds.
+Reviewed scope: ten new TransferBusyContent values; corrected TransferSentTitle only in ru-RU.
+Independent semantic/UI review: handoff_bounds approved before these commands.
+
+UTC 2026-10-13T04:46:29.410916+00:00
+$ node scripts/check-localization.mjs --review --scope app --language zh-CN --keys-file /tmp/dropspace-round17-localization/busy-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 1 explicitly reviewed app/zh-CN IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:29.961961+00:00
+$ node scripts/check-localization.mjs --review --scope app --language zh-TW --keys-file /tmp/dropspace-round17-localization/busy-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 1 explicitly reviewed app/zh-TW IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:30.453674+00:00
+$ node scripts/check-localization.mjs --review --scope app --language ja-JP --keys-file /tmp/dropspace-round17-localization/busy-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 1 explicitly reviewed app/ja-JP IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:30.958154+00:00
+$ node scripts/check-localization.mjs --review --scope app --language ko-KR --keys-file /tmp/dropspace-round17-localization/busy-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 1 explicitly reviewed app/ko-KR IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:31.454534+00:00
+$ node scripts/check-localization.mjs --review --scope app --language de-DE --keys-file /tmp/dropspace-round17-localization/busy-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 1 explicitly reviewed app/de-DE IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:31.974710+00:00
+$ node scripts/check-localization.mjs --review --scope app --language fr-FR --keys-file /tmp/dropspace-round17-localization/busy-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 1 explicitly reviewed app/fr-FR IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:32.496389+00:00
+$ node scripts/check-localization.mjs --review --scope app --language es-ES --keys-file /tmp/dropspace-round17-localization/busy-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 1 explicitly reviewed app/es-ES IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:32.991791+00:00
+$ node scripts/check-localization.mjs --review --scope app --language pt-BR --keys-file /tmp/dropspace-round17-localization/busy-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 1 explicitly reviewed app/pt-BR IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:33.482984+00:00
+$ node scripts/check-localization.mjs --review --scope app --language ru-RU --keys-file /tmp/dropspace-round17-localization/busy-success-title-keys.json --reviewer 'Codex native_context; independent handoff_bounds review: busy transfer guidance and ru data-transfer success title'
+Recorded 2 explicitly reviewed app/ru-RU IDs. Review records do not certify semantic quality.
+Exit code: 0
+
+UTC 2026-10-13T04:46:33.944656+00:00
+$ node scripts/check-localization.mjs --scope app
+Localization integrity passed: 10 interface languages; app 888 IDs. Resource records are not functional test cases; semantic quality is not certified.
+Exit code: 0

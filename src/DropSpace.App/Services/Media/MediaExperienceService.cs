@@ -305,6 +305,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
         if (LyricsReloadPolicy.RequiresReload(previous, _main.Settings))
         {
             Interlocked.Increment(ref _generation);
+            // Retain the reload even if queued setting changes return to the same
+            // snapshot: the request cancelled here still needs a fresh owner.
+            Interlocked.Increment(ref _reloadRequest);
             _lyricsWork.CancelCurrent();
             AiLyrics.InvalidateTranslation();
         }

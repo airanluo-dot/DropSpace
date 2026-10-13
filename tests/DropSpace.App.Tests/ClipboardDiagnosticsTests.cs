@@ -125,7 +125,7 @@ public sealed class ClipboardDiagnosticsTests
     public async Task InstrumentedNotificationAdmissionRetainsRealQueueDropAccounting()
     {
         await using var capture = new ClipboardCaptureService(null!, null!, null!, null!, null!, null!, null!, null!,
-            NullLogger<ClipboardCaptureService>.Instance);
+            NullLogger<ClipboardCaptureService>.Instance, null!);
         capture.BeginDiagnosticSession();
         var callback = typeof(ClipboardCaptureService).GetMethod("OnClipboardChanged", BindingFlags.Instance | BindingFlags.NonPublic)!;
         for (uint sequence = 1; sequence <= 200; sequence++)

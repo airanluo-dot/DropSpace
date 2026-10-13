@@ -123,6 +123,9 @@ public sealed partial class OverlayWindow : Window
     private bool _preparingMediaGeometry;
     private readonly long? _compactPanelVisibilityToken;
     private readonly long? _expandedPanelVisibilityToken;
+    private FrameworkElement? _quickPanelFocusRoot;
+    private RoutedEventHandler? _quickPanelFocusLoaded;
+    private EventHandler<object>? _quickPanelFocusLayout;
     private MediaSessionSnapshot? _lastGlowSession;
     private IslandGlowTransfer? _glowTransfer;
 
@@ -322,6 +325,7 @@ public sealed partial class OverlayWindow : Window
     {
         _windowClosed = true;
         _closing = true;
+        CancelQuickPanelFocus();
         StopAnimationFrames();
         Closed -= OnTransparentHostClosed;
         try { _transparentHost?.Dispose(); }
@@ -760,6 +764,7 @@ public sealed partial class OverlayWindow : Window
         // Construction can fail after installing global observers but before every
         // resource exists. Fence callbacks first and retire each initialized owner.
         _closing = true;
+        Cleanup("Quick Panel focus request", CancelQuickPanelFocus);
         _presentationSnapshot = null;
         _rightHoldPointer = null;
         if (_visualPreferences is { } preferences)
@@ -1021,6 +1026,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        CancelQuickPanelFocus();
         var fileRevision = _presentationSnapshot?.Revision;
         var hideGeneration = _experience.HideGeneration;
         var traceHide = _islandTraceEnabled && (_isVisible || _islandTraceDismissalActive);
@@ -1079,6 +1085,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        CancelQuickPanelFocus();
         var fileRevision = _presentationSnapshot?.Revision;
         var hideGeneration = _experience.HideGeneration;
         StopAnimationFrames();
@@ -1835,6 +1842,7 @@ public sealed partial class OverlayWindow : Window
 
     public void BeginPlacementEdit(OverlayCustomPlacement savedOriginal, OverlayCustomPlacement projectedStart)
     {
+        CancelQuickPanelFocus();
         ResetMotionBlur();
         _suppressedForPlacementEdit = false;
         _placementEdit.Arm(savedOriginal, projectedStart);
@@ -1993,6 +2001,130 @@ public sealed partial class OverlayWindow : Window
         PlacementEditSurface.IsHitTestVisible = false;
         PlacementEditSurface.Visibility = Visibility.Collapsed;
         _placementEditActive = false;
+    }
+
+    internal bool TryActivateQuickPanel()
+    {
+        if (!CanActivateQuickPanel()) return false;
+        CancelQuickPanelFocus();
+        try
+        {
+            if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var failure))
+            {
+                LogNativeFailure(failure);
+                return false;
+            }
+            _noActivateApplied = false;
+            var generation = _experience.HideGeneration;
+            var page = _experience.Current.Page;
+            Activate();
+            if (!CanActivateQuickPanel() || generation != _experience.HideGeneration || page != _experience.Current.Page)
+                return false;
+
+            FrameworkElement pageRoot = page switch
+            {
+                IslandPage.Music => MusicExpanded,
+                IslandPage.Widgets => WidgetsExpanded,
+                IslandPage.Clipboard => ClipboardExpanded,
+                _ => FilesExpanded,
+            };
+            if (pageRoot.IsLoaded)
+            {
+                if (!FocusQuickPanelPage(pageRoot, page))
+                    QueueQuickPanelLayoutFocus(pageRoot, page, generation);
+            }
+            else
+            {
+                // The first native show can precede WinUI Loaded. Complete only
+                // this explicit request when its current page joins the visual tree.
+                RoutedEventHandler loaded = null!;
+                loaded = (_, _) =>
+                {
+                    if (!ReferenceEquals(_quickPanelFocusLoaded, loaded)) return;
+                    CancelQuickPanelFocus();
+                    if (CanActivateQuickPanel() && generation == _experience.HideGeneration && page == _experience.Current.Page &&
+                        !FocusQuickPanelPage(pageRoot, page))
+                        QueueQuickPanelLayoutFocus(pageRoot, page, generation);
+                };
+                _quickPanelFocusRoot = pageRoot;
+                _quickPanelFocusLoaded = loaded;
+                pageRoot.Loaded += loaded;
+                Activated += OnPendingQuickPanelActivationChanged;
+            }
+            return true;
+        }
+        catch (Exception exception)
+        {
+            CancelQuickPanelFocus();
+            _logger.LogWarning(exception, "Quick Panel keyboard activation failed.");
+            return false;
+        }
+    }
+
+    private bool CanActivateQuickPanel() =>
+        !_closing && !_placementEditActive && !_suppressedForPlacementEdit && !_suppressedForFullscreen &&
+        _isActiveWindow && _isVisible && _nativeWindowShown && _nativeWindowSafeToShow &&
+        _presentedState == OverlayState.Expanded && _experience.IsManuallyOpen &&
+        _experience.Current.State == OverlayState.Expanded && ExpandedPanel.Visibility == Visibility.Visible &&
+        FullscreenOverlayPolicy.Resolve(OverlayState.Expanded,
+            _mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen,
+            _monitorLayout.IsForegroundFullscreen(_monitor)).AllowActivation;
+
+    private bool FocusQuickPanelPage(FrameworkElement pageRoot, IslandPage page)
+    {
+        try
+        {
+            // An outgoing animated page can remain visible. Search only the page
+            // selected for this request, never the whole expanded visual tree.
+            if (FocusManager.FindFirstFocusableElement(pageRoot) is Control first && first.Focus(FocusState.Keyboard)) return true;
+            if (page != IslandPage.Files && OtherPageCollapse.Visibility == Visibility.Visible &&
+                OtherPageCollapse.IsEnabled && OtherPageCollapse.Focus(FocusState.Keyboard)) return true;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Quick Panel initial keyboard focus failed.");
+        }
+        return false;
+    }
+
+    private void QueueQuickPanelLayoutFocus(FrameworkElement pageRoot, IslandPage page, long generation)
+    {
+        // A loaded page can still be waiting for its first layout after becoming
+        // visible. Allow one layout notification, without retrying every frame.
+        CancelQuickPanelFocus();
+        if (!CanActivateQuickPanel() || generation != _experience.HideGeneration || page != _experience.Current.Page) return;
+        EventHandler<object> layout = null!;
+        layout = (_, _) =>
+        {
+            if (!ReferenceEquals(_quickPanelFocusLayout, layout)) return;
+            CancelQuickPanelFocus();
+            if (CanActivateQuickPanel() && pageRoot.IsLoaded && generation == _experience.HideGeneration &&
+                page == _experience.Current.Page && !FocusQuickPanelPage(pageRoot, page))
+                _logger.LogInformation("Quick Panel opened but its initial keyboard focus was unavailable after layout.");
+        };
+        _quickPanelFocusRoot = pageRoot;
+        _quickPanelFocusLayout = layout;
+        pageRoot.LayoutUpdated += layout;
+        Activated += OnPendingQuickPanelActivationChanged;
+    }
+
+    private void OnPendingQuickPanelActivationChanged(object sender, WindowActivatedEventArgs args)
+    {
+        if (args.WindowActivationState == WindowActivationState.Deactivated) CancelQuickPanelFocus();
+    }
+
+    private void CancelQuickPanelFocus()
+    {
+        var root = _quickPanelFocusRoot;
+        var loaded = _quickPanelFocusLoaded;
+        var layout = _quickPanelFocusLayout;
+        _quickPanelFocusRoot = null;
+        _quickPanelFocusLoaded = null;
+        _quickPanelFocusLayout = null;
+        if (root is null) return;
+        if (loaded is not null) root.Loaded -= loaded;
+        if (layout is not null) root.LayoutUpdated -= layout;
+        Activated -= OnPendingQuickPanelActivationChanged;
     }
 
     private async void OnCompactClicked(object sender, RoutedEventArgs args)

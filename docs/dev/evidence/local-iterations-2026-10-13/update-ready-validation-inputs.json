@@ -1,0 +1,116 @@
+{
+  "round": 21,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "existing assets reused with --no-restore",
+  "build": "one normal Infrastructure.Tests build; default analyzers and existing test warning configuration retained",
+  "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj --no-restore --nologo --filter FullyQualifiedName=DropSpace.Infrastructure.Tests.UpdateReadyRecoveryTests.RecoveredPayloadSurvivesChecksWithoutReuseAcrossPayloadOrChannelChanges --logger 'trx;LogFileName=update-ready.trx' --results-directory /tmp/dropspace-round21-results",
+  "result": {
+    "exitCode": 0,
+    "testName": "RecoveredPayloadSurvivesChecksWithoutReuseAcrossPayloadOrChannelChanges",
+    "outcome": "Passed",
+    "duration": "00:00:00.1204211",
+    "counters": {
+      "total": "1",
+      "executed": "1",
+      "passed": "1",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "downloaderCalls": 0,
+    "publisherTrustCalls": 0,
+    "installerLaunchCalls": 0,
+    "finalSourceActiveCalls": 0
+  },
+  "platform": "Linux; actual UpdateService, UpdateStateStore, UpdateManifestParser and UpdateFileVerifier; temporary 3-byte cached files and actual SHA256; controlled source performs no network",
+  "measured": [
+    "persisted cached payload recovers through real state loading and integrity verification",
+    "offline startup preserves same ready Download object and emits automatic check failure identity",
+    "canceled actual owned check restores ready state and prior LastCheckedAt; source active calls drain to zero",
+    "full same-version same-payload metadata retains ready object despite AutoDownload/AutoInstall enabled without trust promotion or side effects",
+    "empty release list retains valid ready payload",
+    "new version and same-version changed SHA produce UpdateAvailable with no reused Download when auto-download disabled",
+    "deleting the real cached file after recovery prevents same-metadata readiness reuse; valid metadata remains Available",
+    "recovered higher beta payload is not retained when checking the stable channel"
+  ],
+  "staticOnly": [
+    "portable/packaged compatibility branches",
+    "metadata failures in integrity revalidation",
+    "download/install error recovery after selecting a different candidate"
+  ],
+  "unexecuted": [
+    "historical update tests",
+    "actual update network source or downloader",
+    "real publisher signature verification",
+    "installer execution or deployment",
+    "Windows update UI",
+    "round22 MediaExperienceService App-only change at cfeb744",
+    "full App/XAML compilation"
+  ],
+  "frozenBeforeExecution": {
+    "capturedBeforeExecutionAtUtc": "2026-10-13T05:50:37.183459+00:00",
+    "inputs": [
+      {
+        "path": "src/DropSpace.Infrastructure/Updates/UpdateService.cs",
+        "sha256": "6f1982955a2473a33f7b4b955b4a2a1e985a0f04eeb6616cf7d1a600e07ccba8"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Updates/UpdateStateStore.cs",
+        "sha256": "16b64d23f80983d72aa2981375cd8f50e41f749d549aa58b419c4a985e537b20"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Updates/UpdateManifestParser.cs",
+        "sha256": "e3d330d2d3baa2af330d9ca483a578e2918043b98d77e922cc17548ffae939a1"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Updates/UpdateFileVerifier.cs",
+        "sha256": "908c7b61762b9ab47d3b02fd7232cdbb596124249e9740ba665dfa6bd9c7cce6"
+      },
+      {
+        "path": "src/DropSpace.Core/Updates/UpdateModels.cs",
+        "sha256": "f6503e465b397ccf88ffc152f5bcf9e1507e6c092026f8627f8910ea6cb8c278"
+      },
+      {
+        "path": "src/DropSpace.Core/Updates/UpdateReleaseSelector.cs",
+        "sha256": "a6bd000f9f01dceacb104df51eb02ff2be02df1363a25db446c7b50e3b4cf09e"
+      },
+      {
+        "path": "src/DropSpace.Core/Updates/ReleaseVersion.cs",
+        "sha256": "0b40d84ade296f759192cbdc775ef8b5487e37e47569960161ee76d7dd29f1db"
+      },
+      {
+        "path": "tests/DropSpace.Infrastructure.Tests/UpdateReadyRecoveryTests.cs",
+        "sha256": "1ff92c5516d7f2358c2f083c0cedabbb49ab9742f934c40771649283ca74eb2e"
+      },
+      {
+        "path": "tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj",
+        "sha256": "3456e89a0f3cc87621a574e5316cab277c6cba8af04791ee3e73f7956eb05618"
+      },
+      {
+        "path": "Directory.Build.props",
+        "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+      },
+      {
+        "path": "Directory.Packages.props",
+        "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+      }
+    ]
+  },
+  "frozenInputsUnchangedAfterExecution": true,
+  "builtAssembly": {
+    "path": "tests/DropSpace.Infrastructure.Tests/bin/Debug/net10.0/DropSpace.Infrastructure.Tests.dll",
+    "sha256": "3c10e144ce0c2c14aec4cca7932a0fc4c0be9988550ade3cfc3e32dd1a68dc80"
+  }
+}

@@ -62,6 +62,54 @@ public sealed class ZipActionServiceTests
     }
 
     [TestMethod]
+    public async Task RegistryRejectsSelectedDirectoryLinksWithoutPartialOutputAndStillSkipsNestedLinks()
+    {
+        WindowsReparseFixture.RequireSymbolicLinks(directory: true);
+        var source = Path.Combine(_root, "source");
+        var target = Path.Combine(_root, "target");
+        Directory.CreateDirectory(source);
+        Directory.CreateDirectory(target);
+        var original = Path.Combine(source, "file.txt");
+        var targetFile = Path.Combine(target, "target.txt");
+        await File.WriteAllTextAsync(original, "original");
+        await File.WriteAllTextAsync(targetFile, "linked target");
+        var rootLink = Path.Combine(_root, "selected-link");
+        Directory.CreateSymbolicLink(rootLink, target);
+        Directory.CreateSymbolicLink(Path.Combine(source, "nested-link"), target);
+
+        var paths = new AppStoragePaths(_root);
+        var registry = new ItemActionRegistry([new ZipActionService(paths)]);
+        var ordinary = Folder(source, "Source");
+        var linked = Folder(rootLink, "Selected link");
+        foreach (var selected in new[] { new[] { linked }, new[] { ordinary, linked } })
+        {
+            var selection = new ItemSelectionSnapshot(selected);
+            Assert.AreEqual(ItemActionId.CompressZip, registry.Evaluate(selection).Single().Descriptor.Id);
+            var result = await registry.ExecuteAsync(ItemActionId.CompressZip, new ItemActionContext(selection));
+            Assert.IsFalse(result.Succeeded);
+            Assert.AreEqual("invalid-data", result.ErrorCategory);
+            Assert.AreEqual("ActionInvalidData", result.MessageResourceKey);
+            Assert.AreEqual(0, result.OutputPaths.Count);
+            Assert.AreEqual(0, Directory.GetFiles(paths.Exports).Length);
+            Assert.AreEqual("original", await File.ReadAllTextAsync(original));
+            Assert.AreEqual("linked target", await File.ReadAllTextAsync(targetFile));
+        }
+
+        var success = await registry.ExecuteAsync(
+            ItemActionId.CompressZip, new ItemActionContext(new ItemSelectionSnapshot([ordinary])));
+        Assert.IsTrue(success.Succeeded);
+        Assert.AreEqual("ActionCompleted", success.MessageResourceKey);
+        using var archive = ZipFile.OpenRead(success.OutputPaths.Single());
+        CollectionAssert.AreEquivalent(
+            new[] { "Source/", "Source/file.txt" }, archive.Entries.Select(entry => entry.FullName).ToArray());
+        using var reader = new StreamReader(archive.GetEntry("Source/file.txt")!.Open());
+        Assert.AreEqual("original", await reader.ReadToEndAsync());
+        Assert.AreEqual("original", await File.ReadAllTextAsync(original));
+        Assert.AreEqual("linked target", await File.ReadAllTextAsync(targetFile));
+        Assert.AreEqual(1, Directory.GetFiles(paths.Exports).Length);
+    }
+
+    [TestMethod]
     public async Task EmptyDirectoryTreeConsumesEntryBudgetAndFailedArchiveIsRemoved()
     {
         var source = Path.Combine(_root, "source");

@@ -1,0 +1,40 @@
+cwd: /workspace/DropSpace
+$ node scripts/check-localization.mjs --review --scope app --language zh-CN --keys-file /tmp/dropspace-round20-localization/nearby-links-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 12 explicitly reviewed app/zh-CN IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --review --scope app --language zh-TW --keys-file /tmp/dropspace-round20-localization/nearby-links-zh-TW-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 13 explicitly reviewed app/zh-TW IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --review --scope app --language ja-JP --keys-file /tmp/dropspace-round20-localization/nearby-links-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 12 explicitly reviewed app/ja-JP IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --review --scope app --language ko-KR --keys-file /tmp/dropspace-round20-localization/nearby-links-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 12 explicitly reviewed app/ko-KR IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --review --scope app --language de-DE --keys-file /tmp/dropspace-round20-localization/nearby-links-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 12 explicitly reviewed app/de-DE IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --review --scope app --language fr-FR --keys-file /tmp/dropspace-round20-localization/nearby-links-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 12 explicitly reviewed app/fr-FR IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --review --scope app --language es-ES --keys-file /tmp/dropspace-round20-localization/nearby-links-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 12 explicitly reviewed app/es-ES IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --review --scope app --language pt-BR --keys-file /tmp/dropspace-round20-localization/nearby-links-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 12 explicitly reviewed app/pt-BR IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --review --scope app --language ru-RU --keys-file /tmp/dropspace-round20-localization/nearby-links-keys.json --reviewer 'codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction'
+Recorded 12 explicitly reviewed app/ru-RU IDs. Review records do not certify semantic quality.
+exit_code: 0
+
+$ node scripts/check-localization.mjs --scope app
+Localization integrity passed: 10 interface languages; app 920 IDs. Resource records are not functional test cases; semantic quality is not certified.
+exit_code: 0

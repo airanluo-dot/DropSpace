@@ -1,0 +1,91 @@
+{
+  "capturedBeforeExecutionAtUtc": "2026-10-13T06:04:15.716670+00:00",
+  "compiledInputs": [
+    {
+      "path": "scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj",
+      "sha256": "90140e1aea05150227ae087f7373e1f2614d29ef4e966e24e77f70d564395ae3"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/Program.cs",
+      "sha256": "34cb5ee5bbe8f8f2656db3813171be3e1ef2267277d437948ff9e82c3c16fb22"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/PdfNativeScenario.cs",
+      "sha256": "65211621173743d26458b592753ab22923aaf890e7b4c0344fe2dad8dab24554"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/PlatformShims.cs",
+      "sha256": "411def206b0f4c424e75577f3af9071d4f608afd37ca81c3c049cb3a0e0a5a04"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
+      "sha256": "ba52dc248a47b093c6f2b1d7cec7953ab7c611d95ef49d8fc99723b64ee5c224"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/BoundedMediaOperation.cs",
+      "sha256": "4c107c099a8b243f7677365b3d078babcd9faf432cb43d2b725dfe302da348cd"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaNativeContext.cs",
+      "sha256": "aaaa4885d80c08c63c9ed9e4fb607500c439e4a1456fa43efb76954d2bb9f18b"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaEventSubscription.cs",
+      "sha256": "98258ed14141279e453081ca5bbc431d580632c266725133041a2a04e03c5cef"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs",
+      "sha256": "a2111b56685634a48925d953615e3efbfb32e86a345624892cae0d4b1aa25a4e"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaSessionOwner.cs",
+      "sha256": "685d876f8bc5b0770bee0a2c8c14d3baccfb974a89919c6e0e1649fe2b2aab93"
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+      "sha256": "4c62f00a4f72c10780a1a147cd761096bbd23fd3daaefbf36ecc4fb861c3cd02"
+    },
+    {
+      "path": "src/DropSpace.App/Services/PdfPreviewLifetime.cs",
+      "sha256": "b99e718ebe5b453334d5b745ae4b7f032ec0baffd98fca0be81ffd4d77e7a235"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardImageReadLifetime.cs",
+      "sha256": "62bc199832891a2ab97f0a2af31f5745d33940f2cdfa7c995670b02c6234ba81"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ItemAssetWorkLifetime.cs",
+      "sha256": "7b930bb4d5fbff9e0e5ce63480c9738b71de95fdbb6f26c8706c51e863ab8d32"
+    },
+    {
+      "path": "src/DropSpace.App/Services/DragStorageItemService.cs",
+      "sha256": "2250b7e6b889254abf78a05e720c800bff462a257bfaaf160fbe09051cfc38d9"
+    },
+    {
+      "path": "src/DropSpace.App/Services/DispatcherQueueExtensions.cs",
+      "sha256": "59a3eb20b38fcc7a0ec0474e78e63c4345341f09c0fcfe5f2e9d78f9c4fed4c2"
+    },
+    {
+      "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+      "sha256": "5d697fd66f1e7c34f815eafd02bdc2fde9b3669a83877e38c55a03c318b6a274"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+    }
+  ],
+  "staticOnlyInputs": [
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+      "sha256": "52def99d524196ff664d9c9baef5273c6b7a2edd0d514c7fceccdf432bc703b9"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/README.md",
+      "sha256": "932f19bb0b047056ace8fd66ad5c3293da5adbe5c80cf937195f7691da641bfa"
+    }
+  ]
+}

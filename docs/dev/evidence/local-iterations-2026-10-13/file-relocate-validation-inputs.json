@@ -1,0 +1,86 @@
+{
+  "round": "conditional-locate-replacement-and-undo-lifetime",
+  "newFunctionalScenarios": 1,
+  "functionalExecutions": 1,
+  "failedFunctionalExecutions": 0,
+  "restore": "reused prior locked restore; no additional restore",
+  "build": "normal Core/Infrastructure/test build succeeded once",
+  "test": {
+    "name": "LateRelinkCannotReplaceNewReferenceOrRevivedItem",
+    "outcome": "Passed",
+    "duration": "00:00:00.1103525",
+    "counters": {
+      "total": "1",
+      "executed": "1",
+      "passed": "1",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "inputs": [
+    {
+      "path": "src/DropSpace.Core/Abstractions/IItemRepository.cs",
+      "scope": "compiled interface",
+      "sha256": "143a96e163ca7926d0c80d77464919dfdacbae1164b679516d1a851ea88ba0d1"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteItemRepository.cs",
+      "scope": "compiled production repository",
+      "sha256": "bac2832b9dc0d41d9e2d5df25072022ca2537b82a2b63c9f2dd7206442490b5f"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/RepositoryRelinkAuditTests.cs",
+      "scope": "new precise test executed; other methods not executed",
+      "sha256": "54cb863ec93aa587ab1c4292e73673812f140d57e92ab4afefecfe53f9bce4d8"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+      "scope": "final Locate and same-generation optional-asset callers statically reviewed only",
+      "sha256": "3d11172af10bcbebf689ec00de448f61472cef3d51d05c02afeb71a48787e83d"
+    }
+  ],
+  "reusedPriorProbeInputs": [
+    {
+      "path": "src/DropSpace.App/ViewModels/ItemCardViewModel.cs",
+      "sha256": "cc60b87aeed325ae9666087b33d4fbdeab7dc5d7d2d96f0cd6043352d9cb9786",
+      "unchangedFromPriorPassedProbe": true
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs",
+      "sha256": "f0fc94b2cdee2ee5af9aa29aa6b74ed7c8d98979501d601a9845dda1067776c8",
+      "unchangedFromPriorPassedProbe": true
+    },
+    {
+      "path": "scripts/item-card-lifecycle-probe/ItemCardLifecycleProbe.csproj",
+      "sha256": "453dcf1e9079953b5b160c9710ae0a26d4d7de49d4fdf09bb74ae1387717902f",
+      "unchangedFromPriorPassedProbe": true
+    },
+    {
+      "path": "scripts/item-card-lifecycle-probe/PlatformShims.cs",
+      "sha256": "8f67d034c0b44e485ad153baecab526886279807770dbbf21b61754feaee7a2e",
+      "unchangedFromPriorPassedProbe": true
+    },
+    {
+      "path": "scripts/item-card-lifecycle-probe/Program.cs",
+      "sha256": "440bebbacbfcdc9d34e06d4f30f6929986ff00c1df6da716550a3d46c740144a",
+      "unchangedFromPriorPassedProbe": true
+    },
+    {
+      "path": "scripts/item-card-lifecycle-probe/README.md",
+      "sha256": "8d77f413e1efb79c79283778725e80c686c856f4179688d30416f4ef4bd1fe6b",
+      "unchangedFromPriorPassedProbe": true
+    }
+  ],
+  "previousResultsReused": "file-race-validation.md; no prior CAS/card test rerun"
+}

@@ -1,0 +1,1 @@
+PASS one receiver lifecycle scenario: copied callbacks retire across disable/re-enable; accepted event retries stay idempotent; failed imports can retry; two temporary SQLite imports, no server or system clipboard.

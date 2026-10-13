@@ -23,6 +23,20 @@ public sealed class ItemSharingService(
 
     public bool CanRevokeInternet(Guid shareId) => internet.CanRevoke(shareId);
 
+    // Disabling creation does not revoke existing links. Management therefore
+    // remains available independently of EnableNearbySharing.
+    public event EventHandler? NearbySharesChanged
+    {
+        add => nearby.SharesChanged += value;
+        remove => nearby.SharesChanged -= value;
+    }
+
+    public NearbyShareListSnapshot GetNearbyShares() => nearby.GetSnapshot();
+
+    public ShareDescriptor? GetNearbyShareDescriptor(Guid shareId) => nearby.GetDescriptor(shareId);
+
+    public bool RevokeNearby(Guid shareId) => nearby.Revoke(shareId);
+
     public async Task<ShareDescriptor> CreateNearbyAsync(
         IReadOnlyList<DropItem> items,
         AppSettings settings,

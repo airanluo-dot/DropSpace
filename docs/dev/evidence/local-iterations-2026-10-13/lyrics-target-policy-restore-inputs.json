@@ -1,0 +1,31 @@
+{
+  "recordedAtUtc": "2026-10-13T05:56:19.679060+00:00",
+  "failedAssets": {
+    "libraries": 0,
+    "packageFolders": {
+      "/workspace/.cache/nuget": {}
+    },
+    "logs": [
+      {
+        "code": "NU1301",
+        "level": "Error",
+        "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.\n  The proxy tunnel request to proxy 'http://proxy:8080/' failed with status code '403'.\""
+      }
+    ]
+  },
+  "restoreInputs": [
+    {
+      "path": "tests/DropSpace.Core.Tests/packages.lock.json",
+      "sha256": "378b30830aa4a21ff85229e3dd55b49593b02485899e25905148514a4f59d87a"
+    },
+    {
+      "path": "src/DropSpace.Core/packages.lock.json",
+      "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/obj/project.assets.json",
+      "sha256": "1718058eb2d7fe342152a73cc0b3bf1ea64686097c6eee65d352dcad5f321bb4"
+    }
+  ],
+  "cachedLockedPackagesComplete": 13
+}

@@ -1,0 +1,2 @@
+PASS pdf-native: two global sessions; busy/retired render rejection without queue; parent cancellation and idempotent retirement; native Completed, blocked native Cancel, owner callbacks and resource cleanup retain slots; fresh and synchronous-failure recovery.
+PASS 1 selected production-source scenarios (controlled platform shims; no Windows/NetEase execution).

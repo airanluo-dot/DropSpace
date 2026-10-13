@@ -78,14 +78,22 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
         CancellationToken cancellationToken)
     {
         var pending = new Queue<(string Path, string Name)>();
-        if (File.GetAttributes(root).HasFlag(FileAttributes.ReparsePoint)) return;
+        if (File.GetAttributes(root).HasFlag(FileAttributes.ReparsePoint))
+            throw new InvalidDataException("Selected ZIP source directories must not be reparse points.");
         pending.Enqueue((root, AddDirectoryEntry(archive, prefix, budget)));
         while (pending.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var current = pending.Dequeue();
             var attributes = File.GetAttributes(current.Path);
-            if (attributes.HasFlag(FileAttributes.ReparsePoint)) continue;
+            if (attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                // Nested links remain excluded, but silently omitting an explicitly
+                // selected root would report an incomplete export as successful.
+                if (PathsEqual(current.Path, root))
+                    throw new InvalidDataException("Selected ZIP source directories must not be reparse points.");
+                continue;
+            }
             foreach (var child in Directory.EnumerateFileSystemEntries(current.Path))
             {
                 cancellationToken.ThrowIfCancellationRequested();

@@ -35,6 +35,32 @@
     <NavigationView.FooterMenuItems>
       <NavigationViewItem x:Name="SettingsNavigationItem" services:XamlResourceOverride.Uid="NavSettings" Icon="Setting" Tag="Settings" />
     </NavigationView.FooterMenuItems>
+    <NavigationView.PaneFooter>
+      <Button x:Name="FileTransfersButton" MinWidth="40" MinHeight="40" Margin="4" HorizontalAlignment="Left">
+        <Button.Content>
+          <Grid Width="24" Height="24">
+            <SymbolIcon Symbol="Upload" />
+            <InfoBadge x:Name="FileTransfersActivityBadge" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-8,0" Visibility="Collapsed" />
+          </Grid>
+        </Button.Content>
+        <Button.Flyout>
+          <Flyout x:Name="FileTransfersFlyout" Placement="Right" Opening="OnFileTransfersOpening">
+            <ScrollViewer x:Name="FileTransfersScroll" MaxHeight="520" IsTabStop="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <StackPanel x:Name="FileTransfersBody" Width="360" Spacing="12">
+                <TextBlock x:Name="FileTransfersTitleText" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" />
+                <TextBlock x:Name="FileTransfersActiveText" TextWrapping="Wrap" />
+                <TextBlock x:Name="FileTransfersEmptyText" TextWrapping="Wrap" />
+                <StackPanel x:Name="FileTransfersList" Spacing="12" />
+                <Button x:Name="ClearCompletedTransfersButton" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnClearCompletedTransfersClicked">
+                  <TextBlock x:Name="ClearCompletedTransfersText" TextWrapping="Wrap" />
+                </Button>
+                <TextBlock x:Name="FileTransfersContinueText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              </StackPanel>
+            </ScrollViewer>
+          </Flyout>
+        </Button.Flyout>
+      </Button>
+    </NavigationView.PaneFooter>
 
     <Grid>
     <Grid x:Name="BuiltInSurfaces">
@@ -532,6 +558,9 @@
               </StackPanel>
               <ToggleSwitch x:Name="NearbySharingToggle" services:XamlResourceOverride.Uid="NearbySharingToggle" Grid.Column="1" Toggled="OnNearbySharingToggled" />
             </Grid>
+            <Button x:Name="ManageNearbyLinksButton" HorizontalAlignment="Left" Click="OnManageNearbyLinksClicked">
+              <TextBlock services:XamlResourceOverride.Uid="ManageNearbyLinksLabel" TextWrapping="Wrap" />
+            </Button>
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />

@@ -1,0 +1,2 @@
+PASS drag-native: actual asset owners cancel eight callers and one queued request; old native lookups retain all slots until Completed; queued old work never starts; fresh lookup recovers and all eight slots return.
+PASS 1 selected production-source scenarios (controlled platform shims; no Windows/NetEase execution).

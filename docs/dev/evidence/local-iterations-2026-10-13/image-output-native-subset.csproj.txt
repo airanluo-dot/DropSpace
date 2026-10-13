@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>10.0</AnalysisLevel>
+    <DropSpaceRoot Condition="'$(DropSpaceRoot)' == ''">/workspace/DropSpace</DropSpaceRoot>
+    <NativeRefsRoot Condition="'$(NativeRefsRoot)' == ''">../media-native-refs</NativeRefsRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Compile the actual Windows implementation with the production minimum OS,
+         without executing WinRT activation or suppressing platform analyzers. -->
+    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
+      <_Parameter1>windows10.0.20348</_Parameter1>
+    </AssemblyAttribute>
+    <ProjectReference Include="$(DropSpaceRoot)/src/DropSpace.Core/DropSpace.Core.csproj" />
+    <ProjectReference Include="$(DropSpaceRoot)/src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj" />
+    <Reference Include="Microsoft.Windows.SDK.NET">
+      <HintPath>$(NativeRefsRoot)/microsoft.windows.sdk.net.ref/lib/net8.0/Microsoft.Windows.SDK.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="WinRT.Runtime">
+      <HintPath>$(NativeRefsRoot)/microsoft.windows.sdk.net.ref/lib/net8.0/WinRT.Runtime.dll</HintPath>
+    </Reference>
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/WindowsImageTransformService.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/WindowsImageCodecPreflight.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/ImageDecoderPreflight.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/NativeAsyncLifetime.cs" />
+  </ItemGroup>
+</Project>

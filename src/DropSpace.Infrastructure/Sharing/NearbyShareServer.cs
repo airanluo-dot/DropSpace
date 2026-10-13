@@ -21,29 +21,47 @@ public sealed record NearbyShareItem(
     long Length,
     Func<CancellationToken, Task<Stream>> OpenReadAsync);
 
+public sealed record NearbyShareSummary(
+    Guid ShareId,
+    string DisplayName,
+    int ItemCount,
+    long TotalBytes,
+    DateTimeOffset ExpiresAtUtc);
+
+public sealed record NearbyShareListSnapshot(long Revision, IReadOnlyList<NearbyShareSummary> Items);
+
 public sealed class NearbyShareServer : IAsyncDisposable
 {
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(10);
     private readonly ShareLimits _limits;
     private readonly Func<IPAddress> _resolveAddress;
+    private readonly TimeProvider _timeProvider;
+    private readonly ILogger<NearbyShareServer> _logger;
     private long _networkRevision, _boundRevision;
-    public NearbyShareServer(ShareLimits? limits = null)
-        : this(limits, DropSpace.Infrastructure.Network.LocalNetworkInterfaceResolver.Resolve) { }
+    public NearbyShareServer(ShareLimits? limits = null, ILogger<NearbyShareServer>? logger = null)
+        : this(limits, DropSpace.Infrastructure.Network.LocalNetworkInterfaceResolver.Resolve, logger: logger) { }
 
-    internal NearbyShareServer(ShareLimits? limits, Func<IPAddress> resolveAddress)
+    internal NearbyShareServer(ShareLimits? limits, Func<IPAddress> resolveAddress,
+        TimeProvider? timeProvider = null, ILogger<NearbyShareServer>? logger = null)
     {
         _limits = (limits ?? new ShareLimits()).Validate();
         _resolveAddress = resolveAddress ?? throw new ArgumentNullException(nameof(resolveAddress));
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<NearbyShareServer>.Instance;
         NetworkChange.NetworkAddressChanged += NetworkChanged;
     }
     private void NetworkChanged(object? sender, EventArgs args)
     {
+        bool changed;
         lock (_shareGate)
         {
+            if (_disposed != 0) return;
             Interlocked.Increment(ref _networkRevision);
             _baseUri = null;
-            _shares.Clear();
+            changed = ClearSharesLocked();
+            ScheduleExpiryLocked();
         }
+        if (changed) PublishSharesChanged();
     }
     private readonly ConcurrentDictionary<Guid, NearbyShare> _shares = new();
     private readonly object _shareGate = new();
@@ -54,8 +72,47 @@ public sealed class NearbyShareServer : IAsyncDisposable
     private readonly object _disposeGate = new();
     private Task? _disposeTask;
     private Task? _lateAppCleanupTask;
+    private long _shareRevision;
+    private ITimer? _expiryTimer;
+
+    public event EventHandler? SharesChanged;
 
     public Uri? BaseUri => _baseUri;
+
+    // Management reads neither start a listener nor reveal bearer tokens. URLs
+    // are resolved separately when the user explicitly selects/copies a share.
+    public NearbyShareListSnapshot GetSnapshot()
+    {
+        bool changed;
+        NearbyShareListSnapshot snapshot;
+        lock (_shareGate)
+        {
+            changed = PruneExpiredSharesLocked(_timeProvider.GetUtcNow());
+            if (changed) ScheduleExpiryLocked();
+            snapshot = new NearbyShareListSnapshot(_shareRevision,
+                _shares.Values.OrderBy(share => share.ExpiresAtUtc).ThenBy(share => share.Id)
+                    .Select(share => new NearbyShareSummary(share.Id, share.Items[0].DisplayName,
+                        share.Descriptor.ItemCount, share.Descriptor.TotalBytes, share.ExpiresAtUtc)).ToArray());
+        }
+        if (changed) PublishSharesChanged();
+        return snapshot;
+    }
+
+    public ShareDescriptor? GetDescriptor(Guid shareId)
+    {
+        bool changed;
+        ShareDescriptor? descriptor = null;
+        lock (_shareGate)
+        {
+            changed = PruneExpiredSharesLocked(_timeProvider.GetUtcNow());
+            if (changed) ScheduleExpiryLocked();
+            if (_disposed == 0 && _baseUri is not null && _boundRevision == Interlocked.Read(ref _networkRevision) &&
+                _shares.TryGetValue(shareId, out var share))
+                descriptor = share.Descriptor;
+        }
+        if (changed) PublishSharesChanged();
+        return descriptor;
+    }
 
     public async Task<ShareDescriptor> CreateShareAsync(
         IReadOnlyList<NearbyShareItem> items,
@@ -77,6 +134,8 @@ public sealed class NearbyShareServer : IAsyncDisposable
         }
 
         await _startGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        long previousRevision;
+        lock (_shareGate) previousRevision = _shareRevision;
         try
         {
         await EnsureStartedCoreAsync(cancellationToken).ConfigureAwait(false);
@@ -85,27 +144,51 @@ public sealed class NearbyShareServer : IAsyncDisposable
         var token = Base64Url(System.Security.Cryptography.RandomNumberGenerator.GetBytes(_limits.NearbyTokenBytes));
         var requestedLifetime = lifetime ?? TimeSpan.FromMinutes(_limits.NearbyTtlMinutes);
         if (requestedLifetime <= TimeSpan.Zero || requestedLifetime > TimeSpan.FromMinutes(_limits.NearbyTtlMinutes)) throw new ArgumentOutOfRangeException(nameof(lifetime));
-        var expires = DateTimeOffset.UtcNow.Add(requestedLifetime);
+        var expires = _timeProvider.GetUtcNow().Add(requestedLifetime);
+        var url = new Uri(string.Concat(endpoint, "s/", shareId.ToString("N"), "/", token));
+        var descriptor = new ShareDescriptor(shareId, url, expires, items.Count, total, false, null);
         lock (_shareGate)
         {
             ObjectDisposedException.ThrowIf(_disposed != 0, this);
             if (_boundRevision != Interlocked.Read(ref _networkRevision))
                 throw new InvalidOperationException("Nearby network changed before publication.");
-            PruneExpiredSharesLocked(DateTimeOffset.UtcNow);
+            PruneExpiredSharesLocked(_timeProvider.GetUtcNow());
             if (_shares.Count >= _limits.MaxNearbyShares)
             {
                 throw new InvalidOperationException("The nearby share capacity is full.");
             }
 
-            _shares[shareId] = new NearbyShare(shareId, token, expires, items.ToArray(), _limits.MaxNearbyReceivers);
+            _shares[shareId] = new NearbyShare(descriptor, token, items.ToArray(), _limits.MaxNearbyReceivers);
+            ++_shareRevision;
+            ScheduleExpiryLocked();
         }
-        var url = new Uri(string.Concat(endpoint, "s/", shareId.ToString("N"), "/", token));
-        return new ShareDescriptor(shareId, url, expires, items.Count, total, false, null);
+        return descriptor;
         }
-        finally { _startGate.Release(); }
+        finally
+        {
+            bool changed;
+            lock (_shareGate) changed = previousRevision != _shareRevision;
+            _startGate.Release();
+            if (changed) PublishSharesChanged();
+        }
     }
 
-    public bool Revoke(Guid shareId) => _shares.TryRemove(shareId, out _);
+    public bool Revoke(Guid shareId)
+    {
+        bool changed;
+        bool revoked;
+        lock (_shareGate)
+        {
+            changed = PruneExpiredSharesLocked(_timeProvider.GetUtcNow());
+            revoked = _shares.TryRemove(shareId, out _);
+            if (revoked) ++_shareRevision;
+            if (changed || revoked) ScheduleExpiryLocked();
+        }
+        if (changed || revoked) PublishSharesChanged();
+        // Requests already admitted retain their stream; revocation prevents
+        // later admissions and does not claim to retract an existing download.
+        return revoked;
+    }
 
     private async Task EnsureStartedCoreAsync(CancellationToken cancellationToken)
     {
@@ -116,7 +199,7 @@ public sealed class NearbyShareServer : IAsyncDisposable
         catch (Exception error) when (error is InvalidOperationException or NetworkInformationException)
         {
             _baseUri = null;
-            lock (_shareGate) _shares.Clear();
+            lock (_shareGate) { ClearSharesLocked(); ScheduleExpiryLocked(); }
             if (_app is { } offline && _lateAppCleanupTask is not { IsCompleted: false }) await BeginFailedStartCleanupAsync(offline).ConfigureAwait(false);
             throw;
         }
@@ -126,7 +209,7 @@ public sealed class NearbyShareServer : IAsyncDisposable
             _baseUri = null;
             // Old links are explicitly revoked on rebind. Kestrel settles/aborts
             // existing streams before another listener is published.
-            lock (_shareGate) _shares.Clear();
+            lock (_shareGate) { ClearSharesLocked(); ScheduleExpiryLocked(); }
             if (_lateAppCleanupTask is { IsCompleted: false })
                 throw new InvalidOperationException("Nearby share is completing its network transition.");
             await BeginFailedStartCleanupAsync(previous).ConfigureAwait(false);
@@ -253,27 +336,32 @@ public sealed class NearbyShareServer : IAsyncDisposable
             return false;
         }
 
-        if (!_shares.TryGetValue(shareId, out var candidate) ||
-            candidate is null ||
-            !CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(candidate.Token),
-                Encoding.UTF8.GetBytes(token)))
+        var expired = false;
+        lock (_shareGate)
         {
-            share = null!;
-            return false;
+            if (_disposed != 0 || _baseUri is null || _boundRevision != Interlocked.Read(ref _networkRevision) ||
+                !_shares.TryGetValue(shareId, out var candidate) ||
+                !CryptographicOperations.FixedTimeEquals(
+                    Encoding.UTF8.GetBytes(candidate.Token),
+                    Encoding.UTF8.GetBytes(token))) return false;
+
+            if (candidate.ExpiresAtUtc <= _timeProvider.GetUtcNow())
+            {
+                _shares.TryRemove(shareId, out _);
+                ++_shareRevision;
+                ScheduleExpiryLocked();
+                error = StatusCodes.Status410Gone;
+                expired = true;
+            }
+            else
+            {
+                // Admission is serialized with revocation. Once admitted, the
+                // request keeps this source even if its link is later revoked.
+                share = candidate;
+            }
         }
-
-        share = candidate;
-
-        if (share.ExpiresAtUtc <= DateTimeOffset.UtcNow)
-        {
-            _shares.TryRemove(shareId, out _);
-            error = StatusCodes.Status410Gone;
-            share = null!;
-            return false;
-        }
-
-        return true;
+        if (expired) PublishSharesChanged();
+        return !expired;
     }
 
     private static async Task CopyExactlyAsync(Stream input, Stream output, long bytes, CancellationToken cancellationToken)
@@ -344,27 +432,61 @@ public sealed class NearbyShareServer : IAsyncDisposable
         string.Concat("attachment; filename=\"", EscapeHeader(displayName),
             "\"; filename*=UTF-8''", Uri.EscapeDataString(displayName));
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
+        TaskCompletionSource? completion = null;
+        Task disposal;
         lock (_disposeGate)
         {
-            _disposeTask ??= DisposeCoreAsync();
+            if (_disposeTask is null)
+            {
+                completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                _disposeTask = completion.Task;
+            }
+            disposal = _disposeTask;
         }
+        // Establish the shared owner before invoking any observer: a Changed
+        // subscriber may reenter DisposeAsync while invalidation is published.
+        if (completion is not null) _ = CompleteDisposalAsync(completion);
+        return new ValueTask(disposal);
+    }
 
-        await _disposeTask!.ConfigureAwait(false);
+    private async Task CompleteDisposalAsync(TaskCompletionSource completion)
+    {
+        try
+        {
+            await DisposeCoreAsync().ConfigureAwait(false);
+            completion.TrySetResult();
+        }
+        catch (Exception exception)
+        {
+            completion.TrySetException(exception);
+        }
     }
 
     private async Task DisposeCoreAsync()
     {
-        Interlocked.Exchange(ref _disposed, 1);
         NetworkChange.NetworkAddressChanged -= NetworkChanged;
+        ITimer? timer;
+        bool changed;
+        lock (_shareGate)
+        {
+            Interlocked.Exchange(ref _disposed, 1);
+            timer = _expiryTimer;
+            _expiryTimer = null;
+            _baseUri = null;
+            changed = ClearSharesLocked();
+        }
+        if (changed) PublishSharesChanged();
+        // A queued callback may be waiting for _shareGate. Never wait for it
+        // while holding that gate or the listener's startup owner.
+        if (timer is not null) await timer.DisposeAsync().ConfigureAwait(false);
 
         // Waiting for startup is part of ownership transfer. A caller deadline must
         // not make the only WebApplication reference unreachable.
         await _startGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         try
         {
-            lock (_shareGate) _shares.Clear();
             var app = _app;
             if (app is not null)
             {
@@ -474,24 +596,82 @@ public sealed class NearbyShareServer : IAsyncDisposable
         }
     }
 
-    private void PruneExpiredSharesLocked(DateTimeOffset nowUtc)
+    private bool PruneExpiredSharesLocked(DateTimeOffset nowUtc)
     {
+        var changed = false;
         foreach (var pair in _shares)
         {
             if (pair.Value.ExpiresAtUtc <= nowUtc)
             {
-                _shares.TryRemove(pair.Key, out _);
+                changed |= _shares.TryRemove(pair.Key, out _);
+            }
+        }
+        if (changed) ++_shareRevision;
+        return changed;
+    }
+
+    private bool ClearSharesLocked()
+    {
+        if (_shares.IsEmpty) return false;
+        _shares.Clear();
+        ++_shareRevision;
+        return true;
+    }
+
+    private void ScheduleExpiryLocked()
+    {
+        if (_disposed != 0 || _shares.IsEmpty)
+        {
+            _expiryTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            return;
+        }
+
+        // Create inactive, then publish the owner before arming even a due-now
+        // callback. There is one deadline, never a periodic expiry poll.
+        _expiryTimer ??= _timeProvider.CreateTimer(static state => ((NearbyShareServer)state!).ExpireShares(),
+            this, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        var due = _shares.Values.Min(share => share.ExpiresAtUtc) - _timeProvider.GetUtcNow();
+        _expiryTimer.Change(due > TimeSpan.Zero ? due : TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+    }
+
+    private void ExpireShares()
+    {
+        bool changed;
+        lock (_shareGate)
+        {
+            if (_disposed != 0) return;
+            // A previously queued callback only inspects the current registry;
+            // it cannot expire a new link whose own deadline has not arrived.
+            changed = PruneExpiredSharesLocked(_timeProvider.GetUtcNow());
+            ScheduleExpiryLocked();
+        }
+        if (changed) PublishSharesChanged();
+    }
+
+    private void PublishSharesChanged()
+    {
+        var handlers = SharesChanged;
+        if (handlers is null) return;
+        foreach (EventHandler handler in handlers.GetInvocationList())
+        {
+            try { handler(this, EventArgs.Empty); }
+            catch (Exception exception)
+            {
+                // Observer errors must not break expiry or revocation. Avoid
+                // logging exception content that could contain a selected URL.
+                _logger.LogWarning("Nearby share observer failed ({ExceptionType}).", exception.GetType().Name);
             }
         }
     }
 
-    private sealed class NearbyShare(Guid id, string token, DateTimeOffset expiresAtUtc, IReadOnlyList<NearbyShareItem> items, int maxReceivers)
+    private sealed class NearbyShare(ShareDescriptor descriptor, string token, IReadOnlyList<NearbyShareItem> items, int maxReceivers)
     {
         private readonly object _receiverGate = new();
         private readonly ConcurrentDictionary<string, byte> _receivers = new(StringComparer.Ordinal);
-        public Guid Id { get; } = id;
+        public ShareDescriptor Descriptor { get; } = descriptor;
+        public Guid Id => Descriptor.ShareId;
         public string Token { get; } = token;
-        public DateTimeOffset ExpiresAtUtc { get; } = expiresAtUtc;
+        public DateTimeOffset ExpiresAtUtc => Descriptor.ExpiresAtUtc;
         public IReadOnlyList<NearbyShareItem> Items { get; } = items;
         public bool TryRegisterReceiver(IPAddress? address)
         {

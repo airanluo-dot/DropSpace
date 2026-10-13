@@ -230,6 +230,9 @@ public sealed class MusicPage : UserControl
         try
         {
             await _experience.RestartAsync(token);
+            // External component changes must not remain cached for the whole app
+            // lifetime. This reads local installation state without starting deployment.
+            if (!_enhancement.IsBusy) await _enhancement.InspectAsync().WaitAsync(token);
             if (IsCurrentPage(generation)) _restartStatus.Text = _strings.Get("MusicReconnected");
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }

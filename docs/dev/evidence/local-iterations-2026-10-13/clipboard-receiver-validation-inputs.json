@@ -1,0 +1,74 @@
+{
+  "round": 6,
+  "uniqueFunctionalScenarios": 1,
+  "functionalExecutions": 1,
+  "failedExecutions": 0,
+  "restore": "one offline local-cache restore",
+  "buildRun": "one Release dotnet run --no-restore; exit 0",
+  "compilerPolicy": "default analyzers and warnings-as-errors; only fixture CA1416 suppressed",
+  "observedAssertions": {
+    "realTemporaryClipboardRows": 2,
+    "successfulImports": 2,
+    "importAttemptsIncludingInjectedFailure": 3,
+    "hostRunning": false,
+    "hostEndpoint": null
+  },
+  "unexecuted": [
+    "outbound stale capture delivery",
+    "HTTP/TLS request route and JSON error mapping",
+    "real system clipboard",
+    "identity persistence/authentication",
+    "in-flight import versus disable overlap"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/Services/CrossDeviceClipboardService.cs",
+      "scope": "linked and compiled; receive lifecycle exercised; outbound owner reviewed only",
+      "sha256": "91d3dc478f9ef5ed4bd4944b6432b4089ac5dd72a2d8149a70590fcd71a04668"
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/ClipboardReceiverUnavailableException.cs",
+      "scope": "compiled; unavailable exception exercised",
+      "sha256": "654c740c254af508bc31766931e288493097588cd9b4172a953efe656875788c"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkHost.cs",
+      "scope": "compiled; event delegate exercised without starting host; HTTP mapping reviewed only",
+      "sha256": "8361f9fd5d696df9f0028dcebc1c0c04f4074c363414d683c21571c35aa2555d"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteItemRepository.cs",
+      "scope": "compiled real repository; temporary imports exercised",
+      "sha256": "bac2832b9dc0d41d9e2d5df25072022ca2537b82a2b63c9f2dd7206442490b5f"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs",
+      "scope": "compiled real settings store; temporary toggles exercised",
+      "sha256": "eb58b1390db4ea6cc3cc84c3ec1cc35c46754da17ac4b7e4bf60663b3226f5df"
+    },
+    {
+      "path": "scripts/clipboard-receiver-probe/ClipboardReceiverProbe.csproj",
+      "scope": "probe fixture definition",
+      "sha256": "1e853c4173732fac7a0a7501ac34a35dcf0a6a8b9e533ed8316715b6d019bb73"
+    },
+    {
+      "path": "scripts/clipboard-receiver-probe/PlatformShims.cs",
+      "scope": "probe fixture definition",
+      "sha256": "ca04d0a6eb3025a312e39a809c8c4c7c5fa7a14bd91594af4721b9a14efe2b24"
+    },
+    {
+      "path": "scripts/clipboard-receiver-probe/Program.cs",
+      "scope": "probe fixture definition",
+      "sha256": "33899f0b478ad30f5d6ad326c8247dad165b9becb5c3bd6803efc64f1fb317bc"
+    },
+    {
+      "path": "scripts/clipboard-receiver-probe/README.md",
+      "scope": "probe fixture definition",
+      "sha256": "24277797a1085eae17d8f3728a849dab14122261e14a9f6361e81cdcb6912a85"
+    }
+  ],
+  "assembly": {
+    "path": "scripts/clipboard-receiver-probe/bin/Release/net10.0/ClipboardReceiverProbe.dll",
+    "sha256": "6ee11f82199352b62788d2fa53d4820e86d951250bb269f4d77b68e7a53256b2"
+  }
+}

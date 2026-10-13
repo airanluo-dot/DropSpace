@@ -1,0 +1,62 @@
+Round 18: explicit new file-transfer IDs only. Static resource integrity; no functional tests or App build.
+Keys: ["FileTransfersTitle", "FileTransfersActiveCount", "FileTransfersEmpty", "FileTransfersContinue", "FileTransfersClearCompleted", "FileTransferTarget", "FileTransferPreparing", "FileTransferWaitingForApproval", "FileTransferSending", "FileTransferFinalizing", "FileTransferCanceling", "FileTransferCanceled", "FileTransferCanceledOutcomeUnknown", "FileTransferRejected", "FileTransferApprovalTimeout", "FileTransferNetworkError", "FileTransferSourceError", "FileTransferFailed", "FileTransferByteProgress", "FileTransferCancelAutomationName"]
+
+UTC 2026-10-13T05:10:58.752570+00:00
+$ node scripts/check-localization.mjs --review --scope app --language zh-CN --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/zh-CN IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:10:59.295888+00:00
+$ node scripts/check-localization.mjs --review --scope app --language zh-TW --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/zh-TW IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:10:59.783090+00:00
+$ node scripts/check-localization.mjs --review --scope app --language ja-JP --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/ja-JP IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:11:00.297010+00:00
+$ node scripts/check-localization.mjs --review --scope app --language ko-KR --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/ko-KR IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:11:00.859601+00:00
+$ node scripts/check-localization.mjs --review --scope app --language de-DE --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/de-DE IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:11:01.317117+00:00
+$ node scripts/check-localization.mjs --review --scope app --language fr-FR --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/fr-FR IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:11:01.804897+00:00
+$ node scripts/check-localization.mjs --review --scope app --language es-ES --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/es-ES IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:11:02.294980+00:00
+$ node scripts/check-localization.mjs --review --scope app --language pt-BR --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/pt-BR IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:11:02.766713+00:00
+$ node scripts/check-localization.mjs --review --scope app --language ru-RU --keys-file /tmp/dropspace-round18-localization/file-transfer-keys.json --reviewer 'Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history'
+Recorded 20 explicitly reviewed app/ru-RU IDs. Review records do not certify semantic quality.
+
+exit=0
+
+UTC 2026-10-13T05:11:03.238246+00:00
+$ node scripts/check-localization.mjs --scope app
+Localization integrity passed: 10 interface languages; app 908 IDs. Resource records are not functional test cases; semantic quality is not certified.
+
+exit=0

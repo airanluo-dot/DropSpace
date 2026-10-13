@@ -1,0 +1,1 @@
+PASS one pin/Undo scenario: real pin commit blocked at return; Remove cannot enter; postcommit cancellation preserves Pin then Remove publication; current removal token undoes B while A remains pinned; two real SQLite rows.

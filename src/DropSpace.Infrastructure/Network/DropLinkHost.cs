@@ -316,7 +316,7 @@ public sealed class DropLinkHost(
                 var handlers = ClipboardReceived?.GetInvocationList();
                 if (handlers is null || handlers.Length == 0)
                 {
-                    return Results.Json(new ClipboardSyncResponse(false, "clipboard-receiver-unavailable"));
+                    return Results.Json(new ClipboardSyncResponse(false, ClipboardReceiverUnavailableException.ErrorCategory));
                 }
 
                 foreach (var handler in handlers.Cast<Func<ClipboardEnvelope, CancellationToken, Task>>())
@@ -325,6 +325,10 @@ public sealed class DropLinkHost(
                 }
 
                 return Results.Json(new ClipboardSyncResponse(true, null));
+            }
+            catch (ClipboardReceiverUnavailableException)
+            {
+                return Results.Json(new ClipboardSyncResponse(false, ClipboardReceiverUnavailableException.ErrorCategory));
             }
             catch (ClipboardPausedException)
             {

@@ -1,0 +1,65 @@
+{
+  "round": 8,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "reused existing assets with --no-restore",
+  "build": "one normal Infrastructure.Tests build, default analyzers and warnings-as-errors",
+  "preciseFilter": "FullyQualifiedName=DropSpace.Infrastructure.Tests.PreviewRegistryConcurrencyTests.QueuedLoadCannotRecreateClearedCacheButNewRequestsCanCache",
+  "result": {
+    "testName": "QueuedLoadCannotRecreateClearedCacheButNewRequestsCanCache",
+    "outcome": "Passed",
+    "duration": "00:00:00.0706615",
+    "counters": {
+      "total": "1",
+      "executed": "1",
+      "passed": "1",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "platform": "Linux; actual temporary filesystem, real PreviewProviderRegistry, FilePreviewCache and TextPreviewProvider with controlled async provider gate",
+  "unexecuted": [
+    "historical preview/cache-clear tests",
+    "existing bounded cancellation/concurrency case",
+    "Windows preview rendering",
+    "Windows UI interaction"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/PreviewProviderRegistry.cs",
+      "sha256": "6c197e66cf891d2b2969076c04a31456d4e40673446c911cfb9846254eb28948"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/FilePreviewCache.cs",
+      "sha256": "a89ffcda4844c1fb8b1bff40693e7755bccfa61c0fd38c5ab79ee7d2530d8e94"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/TextPreviewProvider.cs",
+      "sha256": "18c3e0f2bc165ceca25c46cdc6eaf0f32cfff0f330730ac008edb3058f79cf1b"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Content/ItemContentResolver.cs",
+      "sha256": "7d8d7b0b1ffe2631092c44dfaed32e2a60c50e7f913dcc145661264208854d30"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/PreviewRegistryConcurrencyTests.cs",
+      "sha256": "57de552719ef2e2c9fc78479f2c0a12d0d650993a205816484b0c778972e56a9"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj",
+      "sha256": "3456e89a0f3cc87621a574e5316cab277c6cba8af04791ee3e73f7956eb05618"
+    }
+  ]
+}

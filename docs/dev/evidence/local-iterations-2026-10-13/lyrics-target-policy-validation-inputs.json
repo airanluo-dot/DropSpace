@@ -1,0 +1,115 @@
+{
+  "round": 23,
+  "testCommandAttempts": 2,
+  "normalBuildsCompleted": 1,
+  "functionalExecutions": 1,
+  "failedFunctionalExecutions": 0,
+  "restores": 1,
+  "commands": [
+    {
+      "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj --no-restore --nologo --filter FullyQualifiedName=DropSpace.Core.Tests.LyricsReloadPolicyTests.InterfaceLanguagePreservesLyricsWhileTranslationSettingsRetireThem --logger 'trx;LogFileName=lyrics-target-policy.trx' --results-directory /tmp/dropspace-round23-results",
+      "exitCode": 1,
+      "compiled": false,
+      "functionalTestsExecuted": 0,
+      "raw": "lyrics-target-policy-build-attempt1.log.txt",
+      "reason": "pre-existing failed Core.Tests project.assets.json had zero package libraries and contained NU1301 proxy403 error; --no-restore replayed the stored restore error before compilation"
+    },
+    {
+      "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet restore tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj --locked-mode --source /tmp/dropspace-round23-empty-feed --packages /home/agent/.nuget/packages --nologo -p:NuGetAudit=false",
+      "exitCode": 0,
+      "raw": "lyrics-target-policy-restore.log.txt",
+      "network": "only explicitly empty local feed; all 13 locked packages already present in global cache; audit disabled only for this invocation"
+    },
+    {
+      "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj --no-restore --nologo --filter FullyQualifiedName=DropSpace.Core.Tests.LyricsReloadPolicyTests.InterfaceLanguagePreservesLyricsWhileTranslationSettingsRetireThem --logger 'trx;LogFileName=lyrics-target-policy.trx' --results-directory /tmp/dropspace-round23-results",
+      "exitCode": 0,
+      "compiled": true,
+      "functionalTestsExecuted": 1,
+      "raw": "lyrics-target-policy-test-attempt2.log.txt"
+    }
+  ],
+  "result": {
+    "testName": "InterfaceLanguagePreservesLyricsWhileTranslationSettingsRetireThem",
+    "outcome": "Passed",
+    "duration": "00:00:00.0195017",
+    "counters": {
+      "total": "1",
+      "executed": "1",
+      "passed": "1",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "scope": "One existing Core policy method corrected; policy and AppSettings production files unchanged. Default analyzers retained. No App compilation or runtime.",
+  "measured": [
+    "interface Language English does not reload lyrics",
+    "explicit translation target English to SimplifiedChinese reloads",
+    "four existing assertions for AI model, GPU acceleration, translation enablement and lyrics provider remain and execute"
+  ],
+  "unexecuted": [
+    "round22 App MediaExperienceService signal merging/cancellation",
+    "other Core methods or suites",
+    "Windows App/XAML compilation",
+    "actual playback, translation provider or network"
+  ],
+  "frozenBeforeFirstAttempt": {
+    "capturedBeforeExecutionAtUtc": "2026-10-13T05:52:41.518799+00:00",
+    "inputs": [
+      {
+        "path": "tests/DropSpace.Core.Tests/LyricsReloadPolicyTests.cs",
+        "sha256": "ad5ecbcbba3d0b64196d504d349404757ae895aaa11afd8d569f71881a9202ad"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsReloadPolicy.cs",
+        "sha256": "df46245d7a4cf8707aede63aeebe81eb7537061f7364a1da0073230fbe00f2ae"
+      },
+      {
+        "path": "src/DropSpace.Core/Models/AppSettings.cs",
+        "sha256": "21dcec7e3f182fca63e5459ee0e14ff0cf2d3ada8066b7f42004294af1d2a8ab"
+      },
+      {
+        "path": "tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj",
+        "sha256": "7a15ed252032f8011fdf6723fc4ef6fa1f5c8dc011bc64dca95e6a6029d15a60"
+      },
+      {
+        "path": "Directory.Build.props",
+        "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+      },
+      {
+        "path": "Directory.Packages.props",
+        "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+      }
+    ]
+  },
+  "frozenInputsUnchangedAfterExecution": true,
+  "restoreInputsUnchangedAfterExecution": true,
+  "restoreInputs": [
+    {
+      "path": "tests/DropSpace.Core.Tests/packages.lock.json",
+      "sha256": "378b30830aa4a21ff85229e3dd55b49593b02485899e25905148514a4f59d87a"
+    },
+    {
+      "path": "src/DropSpace.Core/packages.lock.json",
+      "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/obj/project.assets.json",
+      "sha256": "1718058eb2d7fe342152a73cc0b3bf1ea64686097c6eee65d352dcad5f321bb4"
+    }
+  ],
+  "builtAssembly": {
+    "path": "tests/DropSpace.Core.Tests/bin/Debug/net10.0/DropSpace.Core.Tests.dll",
+    "sha256": "3ab28b70ff0f3a9298762c3d259c13c5e6d65fefb1a74dbe0d1b09ec4a3a3e09"
+  }
+}

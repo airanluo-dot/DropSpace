@@ -106,10 +106,13 @@ public sealed class OutputReservationService : IOutputReservationService
                 continue;
             }
 
+            // Checkpoint failures are not output collisions. Cancellation received while
+            // awaiting the checkpoint must still stop publication of the staged file.
+            if (!currentTracked) await beforeCommit(current).ConfigureAwait(false);
+            currentTracked = true;
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                if (!currentTracked) await beforeCommit(current).ConfigureAwait(false);
-                currentTracked = true;
                 File.Move(stagingPath, current.OutputPath, overwrite: false);
                 return current with { CleanupPending = !TryDeleteMarker(current.MarkerPath) };
             }

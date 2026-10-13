@@ -32,10 +32,12 @@ public sealed class RemoteClipboardImageFormatTests
         var queue = controller.DispatcherQueue;
         var payloads = new FilePayloadStore(paths);
         var repository = new SqliteItemRepository(new SqliteDatabase(paths, NullLogger<SqliteDatabase>.Instance), NullLogger<SqliteItemRepository>.Instance);
+        var previews = new FilePreviewCache(paths);
+        var undo = new UndoCoordinator(repository, payloads, previews, NullLogger<UndoCoordinator>.Instance);
         var notifications = new ClipboardNotificationService(NullLogger<ClipboardNotificationService>.Instance);
         var capture = new ClipboardCaptureService(repository, new JsonSettingsService(paths), payloads,
-            new FilePreviewCache(paths), new LocalFileReferenceService(), notifications, queue,
-            IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance);
+            previews, new LocalFileReferenceService(), notifications, queue,
+            IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance, undo);
         var oleInitialized = false;
         try
         {
@@ -63,7 +65,9 @@ public sealed class RemoteClipboardImageFormatTests
         }
         finally
         {
-            await capture.DisposeAsync(); notifications.Dispose();
+            await capture.DisposeAsync();
+            await undo.DisposeAsync();
+            notifications.Dispose();
             try
             {
                 await queue.EnqueueAsync(() =>

@@ -14,6 +14,18 @@ public sealed class SharingUseCase(ItemSharingService service)
 
     public bool CanRevokeInternet(Guid shareId) => service.CanRevokeInternet(shareId);
 
+    public event EventHandler? NearbySharesChanged
+    {
+        add => service.NearbySharesChanged += value;
+        remove => service.NearbySharesChanged -= value;
+    }
+
+    public NearbyShareListSnapshot GetNearbyShares() => service.GetNearbyShares();
+
+    public ShareDescriptor? GetNearbyShareDescriptor(Guid shareId) => service.GetNearbyShareDescriptor(shareId);
+
+    public bool RevokeNearby(Guid shareId) => service.RevokeNearby(shareId);
+
     public Task<ShareDescriptor> CreateNearbyAsync(
         IReadOnlyList<DropItem> items,
         AppSettings settings,

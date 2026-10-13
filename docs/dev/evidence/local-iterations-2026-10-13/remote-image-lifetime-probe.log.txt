@@ -1,0 +1,2 @@
+PASS image-native: canceled caller exits; input and one slot survive native completion and blocked Cancel; excess work rejected; late result stays canceled; fresh work recovers.
+PASS 1 selected production-source scenarios (controlled platform shims; no Windows/NetEase execution).

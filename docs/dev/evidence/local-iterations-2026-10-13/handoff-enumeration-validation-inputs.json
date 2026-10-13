@@ -1,0 +1,130 @@
+{
+  "round": 16,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "reused existing assets with --no-restore",
+  "build": "one normal Infrastructure.Tests build, default analyzers and warnings-as-errors",
+  "preciseFilter": "FullyQualifiedName=DropSpace.Infrastructure.Tests.ReparseSafeDirectoryEnumeratorTests.SharesTraversalBudgetAcrossRootsAndHonorsConfiguredDirectoryPaths",
+  "result": {
+    "testName": "SharesTraversalBudgetAcrossRootsAndHonorsConfiguredDirectoryPaths",
+    "outcome": "Passed",
+    "duration": "00:00:00.0295716",
+    "counters": {
+      "total": "1",
+      "executed": "1",
+      "passed": "1",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "platform": "Linux temporary real filesystem trees; production EnumerateSources and actual shared budget; no test-only directory overload",
+  "measured": [
+    "each root + empty child + regular file fits exactly three nodes",
+    "two individually acceptable roots exceed one shared four-node allowance",
+    "empty child path exceeds configured 64 limit and returns typed reason/limit",
+    "actual 40-level tree with 26-character segments exceeds 1024 yet succeeds under 2048 configuration",
+    "same deep tree fails with default 1024 and typed reason/limit",
+    "pre-canceled admission rejects"
+  ],
+  "staticOnly": [
+    "production factory computes MaxItems+4096 with long arithmetic including 10000 configured files",
+    "client uses one budget for all roots",
+    "MainPage typed-error mapping and ten-language UI integration"
+  ],
+  "localization": {
+    "source": "native_context execution and root-copied raw log",
+    "scopeAppExecutions": 1,
+    "explicitReviewExecutions": 9,
+    "functionCaseCount": 0,
+    "rawLog": "handoff-enumeration-localization.log.txt"
+  },
+  "unexecuted": [
+    "historical enumerator item/byte/reparse tests",
+    "large 10000-file fixture",
+    "real peer/server/network transfer",
+    "Windows long-path filesystem behavior",
+    "full MainPage/WinUI/XAML execution"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.Core/Transfer/TransferPreparationLimitException.cs",
+      "sha256": "22765eb5254d8982d427666604cf69777997839fac99793449ce49cd55557119"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/TransferTraversalBudget.cs",
+      "sha256": "da1a6d0f0c954872381b74c5c51e383f1f3dee202fc1c452c412395dbdfb5327"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/ReparseSafeDirectoryEnumerator.cs",
+      "sha256": "655aba907371bb70a19fc6a430bdb9ff033e263b47c586e2fff205a502287225"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkClient.cs",
+      "sha256": "8ad84e9ad167a7547570d587add9abc2877825b3fdea4a9ccc09024b31d0e623"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+      "sha256": "d53a54af7a7b969ef3d52e43e955a35b57958b2986311f38ea3d72f354e8879b"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/ReparseSafeDirectoryEnumeratorTests.cs",
+      "sha256": "809827b87eb15a9e3d04e0c9aa01707dd2b8ab7bdb10e36bb023eef79a6335b0"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj",
+      "sha256": "3456e89a0f3cc87621a574e5316cab277c6cba8af04791ee3e73f7956eb05618"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
+      "sha256": "78c0556f032ee9c195e7c7d079561cc68f5deb0cf1c7175cfe4c6106a74e026f"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+      "sha256": "4a52fefca3089464f62dcd81cd20aeb26af2a7f6fd0edbbca9c86451458adedc"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
+      "sha256": "70a5a1b4123ead2cf18ad2d08600aeda96f9ff8745cf2b595bc259e6618e1d8b"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
+      "sha256": "b431d4375e0b7781121a5c331120c7b80a61786b2e2f98287c3acf6737458e38"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
+      "sha256": "71f6eaba3556f63279d7557fcdae7e95c9b986788c5fa2ff471871f9fc3fc14e"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
+      "sha256": "f14485fa922bf417e444a79e6264352e69cd2080e0402fffd7cc6aa83ae42ec2"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
+      "sha256": "f6ce8b592938eef0835255372ba2e0880ee1492ec5929b0ab596fdbdb7967753"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
+      "sha256": "47c5f3026ad9625dc28f043de2dc60a0f8d862b16b6e673e42b9c6e368a20e17"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+      "sha256": "f8e6aca267d84f8596cc339da26a54a6f969212fcf940beda98af7b985eb1bff"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
+      "sha256": "06609e22410e81f06a94285a8e67f6dcd9612285b81679e17befbf04c5e0f8ce"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "round": 14,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "reused existing assets; --no-restore",
+  "build": "one necessary source-linked console probe build; existing EnableNETAnalyzers=false retained",
+  "command": "dotnet run --project scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj --no-restore --no-launch-profile -- drag-native",
+  "result": {
+    "exitCode": 0,
+    "selectedScenarios": [
+      "drag-native"
+    ],
+    "passed": 1
+  },
+  "measured": [
+    "nine actual ItemAssetWorkLifetime owners retire eight active native callers plus one queued caller",
+    "old queued request never starts native lookup",
+    "native cancellation requests do not release eight slots before actual Completed",
+    "fresh lookup waits for old completion then succeeds",
+    "all eight native slots drain and return; old callers remain canceled"
+  ],
+  "staticOnly": [
+    "Main per-card owner dictionary and replacement/navigation/clear/trim/disposal call sites",
+    "external temporary card isolation and Locate ownership split",
+    "folder and image-payload lookup branches"
+  ],
+  "unexecuted": [
+    "existing media/image probe scenarios",
+    "full MainViewModel or WinUI execution",
+    "real Windows Storage/OLE lookups",
+    "thumbnail decoder and IO behavior"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/Services/ItemAssetWorkLifetime.cs",
+      "sha256": "7b930bb4d5fbff9e0e5ce63480c9738b71de95fdbb6f26c8706c51e863ab8d32"
+    },
+    {
+      "path": "src/DropSpace.App/Services/DragStorageItemService.cs",
+      "sha256": "2250b7e6b889254abf78a05e720c800bff462a257bfaaf160fbe09051cfc38d9"
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+      "sha256": "4c62f00a4f72c10780a1a147cd761096bbd23fd3daaefbf36ecc4fb861c3cd02"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+      "sha256": "03781f7bb8159738d70279beab2bd178a2518780da73dd115c2b20d3f0a4f51e"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj",
+      "sha256": "f2d81f17572c6e185da636e354cae5207b9c33cc9d497afea27416f9c013dfba"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/Program.cs",
+      "sha256": "1f02e3a27bc1a5e4416189108701972afe2d2ddade7ad8124495e09f2afe15d8"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/PlatformShims.cs",
+      "sha256": "411def206b0f4c424e75577f3af9071d4f608afd37ca81c3c049cb3a0e0a5a04"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/DragNativeScenario.cs",
+      "sha256": "0e7a5e0c8fac25699276336d4ad9a2b649c92caaf4b46f9850a44ea4e4bb0aa9"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/README.md",
+      "sha256": "f8cd42ab60a695f268f25ebf096d52a2076ea51da0ac88ea551da5a1faad0cda"
+    }
+  ],
+  "builtAssembly": {
+    "path": "scripts/media-lifecycle-probe/bin/Debug/net10.0/MediaLifecycleProbe.dll",
+    "sha256": "fb7e0f719ea8a15f5dc8ff93518e2b52857fb94709af93be36debe0eb78b9597"
+  }
+}

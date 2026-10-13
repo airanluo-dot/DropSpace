@@ -391,12 +391,46 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>Enviar al dispositivo</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>Crear enlace cercano</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>Crear enlace de Internet seguro</value></data>
+  <data name="FileTransfersTitle" xml:space="preserve"><value>Transferencias de archivos</value></data>
+  <data name="FileTransfersActiveCount" xml:space="preserve"><value>En curso: {0}</value></data>
+  <data name="FileTransfersEmpty" xml:space="preserve"><value>No hay transferencias de archivos en la lista.</value></data>
+  <data name="FileTransfersContinue" xml:space="preserve"><value>Cerrar este panel no detiene las transferencias.</value></data>
+  <data name="FileTransfersClearCompleted" xml:space="preserve"><value>Quitar de la lista las transferencias finalizadas</value></data>
+  <data name="FileTransferTarget" xml:space="preserve"><value>A {0}</value></data>
+  <data name="FileTransferPreparing" xml:space="preserve"><value>Preparando archivos…</value></data>
+  <data name="FileTransferWaitingForApproval" xml:space="preserve"><value>Esperando a que el otro dispositivo acepte…</value></data>
+  <data name="FileTransferSending" xml:space="preserve"><value>Enviando archivos…</value></data>
+  <data name="FileTransferFinalizing" xml:space="preserve"><value>Esperando a que el otro dispositivo verifique y guarde los archivos…</value></data>
+  <data name="FileTransferCanceling" xml:space="preserve"><value>Cancelando la transferencia…</value></data>
+  <data name="FileTransferCanceled" xml:space="preserve"><value>Transferencia cancelada</value></data>
+  <data name="FileTransferCanceledOutcomeUnknown" xml:space="preserve"><value>El envío se ha cancelado en este dispositivo. Es posible que el otro dispositivo ya haya recibido algunos o todos los archivos. Compruébelo antes de volver a enviarlos.</value></data>
+  <data name="FileTransferRejected" xml:space="preserve"><value>El otro dispositivo ha rechazado esta transferencia.</value></data>
+  <data name="FileTransferApprovalTimeout" xml:space="preserve"><value>El otro dispositivo no ha respondido a tiempo. Vuelva a intentarlo cuando esté listo.</value></data>
+  <data name="FileTransferNetworkError" xml:space="preserve"><value>Ha fallado la conexión con el otro dispositivo. Compruebe el estado de la transferencia en él antes de volver a intentarlo.</value></data>
+  <data name="FileTransferSourceError" xml:space="preserve"><value>Un archivo de origen no está disponible, no se puede leer o ha cambiado. Compruebe los archivos de origen y vuelva a intentarlo.</value></data>
+  <data name="FileTransferFailed" xml:space="preserve"><value>La transferencia no se ha completado. Compruebe los archivos de origen y la recepción en el otro dispositivo antes de volver a intentarlo.</value></data>
+  <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} de {1}</value></data>
+  <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>Cancelar la transferencia de {0} a {1}</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Transferencia enviada</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>El dispositivo confiable aceptó la transferencia y DropSpace verificó el contenido antes de la confirmación.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Transferencia no disponible</value></data>
+  <data name="TransferBusyContent" xml:space="preserve"><value>Hay otras transferencias en curso o finalizando. Vuelva a intentarlo cuando termine una de ellas.</value></data>
+  <data name="TransferPreparationLimitContent" xml:space="preserve"><value>La selección contiene demasiadas entradas de carpetas o rutas demasiado largas. Seleccione menos elementos o una subcarpeta más pequeña e inténtelo de nuevo.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>No hay dispositivos emparejados</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Busque y vincule primero un dispositivo Windows confiable en Configuración → Dispositivos y uso compartido.</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>¿Enviar a qué dispositivo?</value></data>
+  <data name="ManageNearbyLinksLabel.Text" xml:space="preserve"><value>Gestionar enlaces de uso compartido cercano</value></data>
+  <data name="NearbyLinksTitle" xml:space="preserve"><value>Enlaces de uso compartido cercano</value></data>
+  <data name="NearbyLinksEmpty" xml:space="preserve"><value>No hay enlaces activos de uso compartido cercano.</value></data>
+  <data name="NearbyLinksSummary" xml:space="preserve"><value>Elementos: {0} · {1}</value></data>
+  <data name="NearbyLinksLifetime" xml:space="preserve"><value>Los enlaces siguen activos al cerrar este diálogo u ocultar DropSpace en la bandeja del sistema. Dejan de ser válidos al salir de DropSpace o cambiar de red.</value></data>
+  <data name="NearbyLinksDisabled" xml:space="preserve"><value>El uso compartido cercano por navegador está desactivado. No se pueden crear nuevos enlaces. Los enlaces existentes siguen siendo válidos hasta que caduquen o se revoquen.</value></data>
+  <data name="NearbyLinkUnavailable" xml:space="preserve"><value>Este enlace ya no está activo. Puede haber caducado, haberse revocado o haber dejado de funcionar tras un cambio de red.</value></data>
+  <data name="NearbyLinkLabel" xml:space="preserve"><value>Enlace de uso compartido cercano</value></data>
+  <data name="RevokeNearbyLinkTitle" xml:space="preserve"><value>Revocar enlace de uso compartido cercano</value></data>
+  <data name="RevokeNearbyLinkContent" xml:space="preserve"><value>¿Revocar el enlace de «{0}»? Las descargas que ya están en curso pueden continuar. Los archivos ya recibidos no se eliminarán.</value></data>
+  <data name="RevokeNearbyLinkCompleted" xml:space="preserve"><value>El enlace se ha revocado. Las descargas que ya están en curso pueden continuar.</value></data>
+  <data name="NearbyLinkQrAutomationName" xml:space="preserve"><value>Código QR del enlace de uso compartido cercano seleccionado</value></data>
   <data name="ShareReadyTitle" xml:space="preserve"><value>Enlace listo para compartir</value></data>
   <data name="NearbyShareReady" xml:space="preserve"><value>Este enlace cercano es HTTP y de red privada únicamente. Caduca automáticamente; no lo utilice como enlace seguro de Internet.</value></data>
   <data name="EncryptedShareReady" xml:space="preserve"><value>Los fragmentos de archivos y manifiestos están cifrados en este dispositivo. La clave de descifrado se guarda en el fragmento URL.</value></data>

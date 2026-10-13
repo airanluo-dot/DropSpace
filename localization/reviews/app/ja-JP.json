@@ -3546,29 +3546,163 @@
     "ModuleHostRequired": [
       "7a79f63ce25778474891a4c84d84ea2e48d7dccc599209372096fe27cb51f5c0",
       "76aa66662cfe9883ac3e1b697a45b660ea74298bdb53a552831b8c6190cca2d9"
+    ],
+    "TransferPreparationLimitContent": [
+      "fe0530b2c95d65b4b819c0668cca8d06a332dc1badcdddb3bf908ac59e265424",
+      "c8100a4ae9913027313fd6ce543dcba656e048c0f994d16f92b76cd742cf640d"
+    ],
+    "TransferBusyContent": [
+      "9da805fd8d489cf7730c4fa8dcb89234111eb2ad1e7f0d3a4c0ffb37ca74c061",
+      "baba8a5c6ffdfd79190d1c42d9b762a610f2e937f9b7e2b51eeefd1e9bed822c"
+    ],
+    "FileTransfersTitle": [
+      "d65ed3bdc8d0f9a97341297d50417cbd35ea02a5353d91280c0936b7768fcd0c",
+      "c446b244e94d2ccbc2244dec04f67e24b139e66e6dbbf8b1616eeb1546270033"
+    ],
+    "FileTransfersActiveCount": [
+      "74397ea32a24ef4868400576926c2d60f9712a53dd81000adb81b6508b60bd7f",
+      "d9abfbfbad07beacbaf20a4b5fd9dfc4f623d1b6fa5e8dec595a8230d13d3d4f"
+    ],
+    "FileTransfersEmpty": [
+      "0adffce0eaae76e0eddb20e13f13416a16cfe9050aeac216967d7f41a0092496",
+      "5c51f331243a7c18268505d9451463e8a3c4b8ed5a9d0adf9cf9017cc9e7b2d8"
+    ],
+    "FileTransfersContinue": [
+      "fdb59cb3cbe4601db21963c75c55fb9bf7aeb960aa309fde2f4845081362951c",
+      "724cb0f69cdebfd7a025cd6fd147e616265b728a3b04c6de03230e70be8adcaa"
+    ],
+    "FileTransfersClearCompleted": [
+      "101d80445a6e56641fef59017bc106b5d52bcc4a6667548a87dbaf29cb8a467c",
+      "608b689f1dc885e9df28cdc802e84529a95ca6e6691a31ec9f5b8931f6b5353a"
+    ],
+    "FileTransferTarget": [
+      "e7bc111d7406a4062cc9ca932ea01e499811bbc986d3155ea7adc048e5f929bf",
+      "5501da97fc791f02771fcce696d28da926007205d6d7f2ef9f3ff4f09136730b"
+    ],
+    "FileTransferPreparing": [
+      "7e49ef7b55f182661c8c0a0cbc0b2a0c22981d0d1ce08d005e55d4d930d6d0f2",
+      "7cc9f933a6d0f2b7a9b39c854900258f204209f7af3860762137f80ae6f21e0d"
+    ],
+    "FileTransferWaitingForApproval": [
+      "fd690b3b34237d00ce6dfcf3e71ce81a00449545f976e707d4cbb4edccacbaec",
+      "91f23841d04705c542cfeb53b44275937e5bafa0eebe4d233994a6d1194f3e40"
+    ],
+    "FileTransferSending": [
+      "ce555a98a2e0bf4e9676f15ca6618ee3ab179609e31f7c58f678c9cd8d2cbcd4",
+      "29fe0c41e3a434cbd10f9baef0fd0ccc94f0b1f4744df7be4751f29f2342248a"
+    ],
+    "FileTransferFinalizing": [
+      "d06c94b14bec863546107a02e7d266cecfe58df5378c1c622672c5e2ed318f1a",
+      "4dcf4b815249f4158a3e86109be164707125873b20fa6d4532970adcd21317b6"
+    ],
+    "FileTransferCanceling": [
+      "430e38ccf73d04668ad07ab6d216566fc9a7e467e60659ba6b8bf7e03776a63c",
+      "aaf154274b05e9e75ac86fe6f61110fdb40f0bbe6e11f836d5fce812d0955401"
+    ],
+    "FileTransferCanceled": [
+      "a3a6f30a901356fe0c05b903bc61d575587fc9f3894e3f1238b6671a95a127b7",
+      "0f257d6100491e5985e8d6936d423ec30d3e5eca0aeebd6d7bda80cd3f379a19"
+    ],
+    "FileTransferCanceledOutcomeUnknown": [
+      "708adb10095fc1a1c2fcc7c8a23329bcf1b08f0735eca86ebccebe20e48dfe01",
+      "5c690b981cbec52f2d6b4def4cfa2eabb41d40c55bd8a45b5934ce68c6f242c1"
+    ],
+    "FileTransferRejected": [
+      "5b00162cc32507075ffa14b3e7d0dd2f6d7a5385de9580c79ac7649cfb41a29e",
+      "1aed81b2fbc30126237b4f72c1443479f7e99bcbde1fc109efcee5acfbe78191"
+    ],
+    "FileTransferApprovalTimeout": [
+      "deb72ff794414e6d01858931565a62de692352250cb99ad2808c69a12c60945d",
+      "73a431d1a660bfc094b66a403cf18a46186b48ea58a5a772bfe37d4aa7061655"
+    ],
+    "FileTransferNetworkError": [
+      "5f54916d8cc5a48ebf55206fac87055fb19d3525778e47e2c141b434f09ec542",
+      "490286155de02b9e5e1423b5111de9d7fd70b680cdf969611806d22443aeb7e2"
+    ],
+    "FileTransferSourceError": [
+      "024c5f950f3a59152d0ceeb875ecc85b1875bdd6aa49cdbb11ae2b09ab1f10b2",
+      "4fdca49c218d7237367cfce577b5cef9e42e3f113efc30f846e1ae3f6558e1b7"
+    ],
+    "FileTransferFailed": [
+      "d1be650e157756dfc7b92478b3cdad4eda1623bffe3fe186535c063ffd5e7182",
+      "bb357f801256cde57f6686d57db3a8506e15886ddbac7b9b4f301c620f18ca8f"
+    ],
+    "FileTransferByteProgress": [
+      "9fea8201753aa74d07526b957c3b193baf893f3246074b750a113588c55dedc7",
+      "a2c93f0fb85bc3dcc44dfd296cf812b9d8d260600bbad460d9367a3cd5d0436f"
+    ],
+    "FileTransferCancelAutomationName": [
+      "13aaae7363cbc4189131cd104aabd76151a2a82abb7f69fe653fbce6bd844776",
+      "ddae9580cd8ff796145851f3f53c7405d127f6719cd48c3a3a462b3b716acc9c"
+    ],
+    "ManageNearbyLinksLabel.Text": [
+      "287a896e7bb6b24495d381d3a8c118b3e8b7712c71469dcb7d7910ecb22b1476",
+      "53d27b0c417ae588922021d7236927ec2b7594f7273dfe164e11cfa1dbee65d6"
+    ],
+    "NearbyLinksTitle": [
+      "57e5e177976dbf725a196f28ff360bbe3890bd44bf82bb7df4552615641e76c7",
+      "1b1ac4eadc0025096cf6f511e1478a6b5cdd6bd70b55d1ca3285570411c53180"
+    ],
+    "NearbyLinksEmpty": [
+      "d91b23afa10dd155a68f27d7270558bdb6ffb6f787d0f868d7ce4a2b800f4c34",
+      "6cb8f8d8841fc331a3ff4e4a30d3fb6b0804f8ee3711ae0a37126627edbbcfed"
+    ],
+    "NearbyLinksSummary": [
+      "4120d0c68c4e4a6903c4ef984d6341b0b5d6c9fb671ab76171e34e622068badd",
+      "3d1b1f30462aea377d08a121aa70284aed177ab192ef97856bc4028ed90bfd3c"
+    ],
+    "NearbyLinksLifetime": [
+      "c4587b1a208bc8def53fccc798725c7280998f2dcc2f0c006b9a87ac5cea0846",
+      "374ae31e085d117ba53fd1879eab4b69ebf642c9c72c11365ab7e7425e24b1ca"
+    ],
+    "NearbyLinksDisabled": [
+      "89420cbce54ab77b768aa354114a7c3383bd4fac0a47afe8e7e93401edc399af",
+      "2c9b83a909f55575a1a06e81896237544ec58566b346da161244bdddc43bbf80"
+    ],
+    "NearbyLinkUnavailable": [
+      "e46b128ad04fad5bf60aa0f606ffb6c6f3b546715c44f34882dd7ff75a32034f",
+      "6c79afc68ab36304a1185038ca8f8a1f9dcbfced7cd76f831b3295f3c43352e9"
+    ],
+    "NearbyLinkLabel": [
+      "7fed6814b917734599c270f05c2c3360889da4245dba697b3350422260707075",
+      "1b1ac4eadc0025096cf6f511e1478a6b5cdd6bd70b55d1ca3285570411c53180"
+    ],
+    "RevokeNearbyLinkTitle": [
+      "df173ab11de941df77eb01eb8a0f9d2b2717331ef540c577a968573b8edd5ea6",
+      "1b6ebdfdd926ee6ea3215e7b489cd8ed131f64e27373c8899ea69a757fb377c3"
+    ],
+    "RevokeNearbyLinkContent": [
+      "ac43bd0d9f4a0f093504f7bd7f958757fc03fcb9db1292f6a0997e611f784e76",
+      "ddbd465c408039f290d296f482b749f32c0dc0a25ff6c2eba985afa9b62a9f54"
+    ],
+    "RevokeNearbyLinkCompleted": [
+      "2805a72fd18669f088e507b9332a1cc251c13cc59e6e758a622afd3650c989e7",
+      "8ae473b517b8cb59f4e9ae1a306f78df0bd6cc9d276e050f2f9cf4ed64f3a296"
+    ],
+    "NearbyLinkQrAutomationName": [
+      "31bd53d7075e5bfb6044058866451f3d12543b771d203137c5df124ec8efdcdc",
+      "499dd3ced384ed78099b855791eadd3494d484bdf31050d6d5e83f7407e623fb"
     ]
   },
-  "reviewedBy": "Codex: reviewed fourteen new feature-module lifecycle labels",
-  "reviewedAt": "2026-10-08T04:54:16.615Z",
+  "reviewedBy": "codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction",
+  "reviewedAt": "2026-10-13T05:35:23.634Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "ModuleEnabled",
-      "ModuleDisabled",
-      "ModuleEnable",
-      "ModuleDisable",
-      "ModuleRunning",
-      "ModuleStopped",
-      "ModuleStarting",
-      "ModuleStopping",
-      "ModulePendingCleanup",
-      "ModuleSave",
-      "ModuleClearData",
-      "ModuleClearDataConfirm",
-      "ModuleRetryCleanup",
-      "ModuleHostRequired"
+      "ManageNearbyLinksLabel.Text",
+      "NearbyLinksTitle",
+      "NearbyLinksEmpty",
+      "NearbyLinksSummary",
+      "NearbyLinksLifetime",
+      "NearbyLinksDisabled",
+      "NearbyLinkUnavailable",
+      "NearbyLinkLabel",
+      "RevokeNearbyLinkTitle",
+      "RevokeNearbyLinkContent",
+      "RevokeNearbyLinkCompleted",
+      "NearbyLinkQrAutomationName"
     ],
-    "reviewedBy": "Codex: reviewed fourteen new feature-module lifecycle labels",
-    "reviewedAt": "2026-10-08T04:54:16.615Z"
+    "reviewedBy": "codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction",
+    "reviewedAt": "2026-10-13T05:35:23.634Z"
   }
 }

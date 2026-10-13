@@ -1,11 +1,18 @@
 namespace DropSpace.App.Services.Media;
 
+/// <summary>Runs the complete operation on the native object's owning context.</summary>
+internal interface IMediaOperationExecutor
+{
+    Task<T> RunAsync<T>(Func<Task<T>> operation);
+}
+
 /// <summary>
 /// Bounds both a caller's wait and the native work left behind when a publisher ignores
 /// cancellation. A timed-out operation retains its slot, token and resource-owning async
 /// state until it actually completes. One broken session cannot consume every slot.
 /// </summary>
-internal sealed class BoundedMediaOperation(int maximumOutstanding = 16, int maximumPerOwner = 2)
+internal sealed class BoundedMediaOperation(int maximumOutstanding = 16, int maximumPerOwner = 2,
+    IMediaOperationExecutor? executor = null)
 {
     private readonly object _gate = new();
     private readonly Dictionary<object, int> _owners = new(ReferenceEqualityComparer.Instance);
@@ -33,16 +40,18 @@ internal sealed class BoundedMediaOperation(int maximumOutstanding = 16, int max
         // instead of running provider callbacks inside the caller's Cancel()/StopAsync().
         var stop = new CancellationTokenSource();
         Task<T> pending;
-        // Invoke on a worker too: a COM property getter or even the call returning a
-        // WinRT IAsyncOperation can block synchronously before a Task exists.
+        // Native owners can supply an apartment-preserving executor. The default remains
+        // a worker: a COM getter can block synchronously before a Task even exists.
         try
         {
-            pending = Task.Run(() =>
+            pending = executor is null ? Task.Run(InvokeAsync, stop.Token) : executor.RunAsync(InvokeAsync);
+
+            Task<T> InvokeAsync()
             {
                 token.ThrowIfCancellationRequested();
                 stop.Token.ThrowIfCancellationRequested();
                 return operation(stop.Token);
-            }, stop.Token);
+            }
         }
         catch
         {

@@ -175,19 +175,16 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         string? outputPath = null;
         try
         {
-            // Reserve the final path atomically before encoding, then let the WinRT encoder write
-            // directly to that file. This avoids a second full-size encoded byte buffer and keeps
-            // an incomplete export inside the shared cleanup policy.
-            using (ActionOutputPolicy.CreateNewFile(
+            // Keep the original exclusive reservation through encoding. Reopening its path
+            // after closing the handle could write to a file replaced during that async gap.
+            // The WinRT adapter still streams directly without a second encoded byte buffer.
+            using var output = ActionOutputPolicy.CreateNewFile(
                 destinationDirectory,
                 string.Concat(Path.GetFileNameWithoutExtension(item.Title), "-", outputSuffix),
                 encoder.Extension,
-                out outputPath))
-            {
-            }
-
-            var outputFile = await StorageFile.GetFileFromPathAsync(outputPath!);
-            using var destination = await outputFile.OpenAsync(FileAccessMode.ReadWrite);
+                FileAccess.ReadWrite,
+                out outputPath);
+            using var destination = output.AsRandomAccessStream();
             using var bitmap = await decoder.GetSoftwareBitmapAsync(
                 BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
                 new BitmapTransform(), ExifOrientationMode.RespectExifOrientation,

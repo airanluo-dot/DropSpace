@@ -51,8 +51,8 @@ results remain in `docs/dev/netease-enhancement.md`; this catalogue does not est
 - Beta 26 bounds clipboard, manual file drops, virtual OLE materialization, batch persistence, native-window recovery, updater cancellation and integrity failures without changing the local-first or source-file-safe boundary. Virtual-file batches reserve distinct names, payload operations reject linked-directory escapes, and failed cleanup obligations cannot starve later work.
 - ZIP exports retain hierarchy and empty folders. Installer/update artifacts must match RELEASE_VERSION; cancellation before installer launch restores a retryable state or exposes a rollback failure.
 
-Beta 28 is the current Beta release; its validation evidence is recorded in
-`docs/dev/beta28-media-ui-audit.md`. Beta 27 evidence remains in
+The repository's current Beta target is recorded in `RELEASE_VERSION`. Historical
+Beta 28 validation evidence is recorded in `docs/dev/beta28-media-ui-audit.md`. Beta 27 evidence remains in
 `docs/dev/beta27-lyrics-netease-audit.md`. Beta 26 publication and native acceptance remain
 in `docs/dev/beta26-rc-audit.md`. Feature contracts do not imply that
 every physical display, music player, source application or network is verified.
@@ -278,7 +278,10 @@ Settings save immediately after validation. Failed saves revert the control and 
 - Quick Preview probes image, PDF, bounded text/code/JSON/Markdown, media metadata, URL metadata, and unknown fallback providers with cancellation and cache keys.
 - Quick Actions expose at most three available commands and keep hash, ZIP, QR, resize, conversion, and metadata handling source-safe.
 - DropLink provides opt-in Windows-only pairing, device handoff, resumable 4 MiB chunks, explicit receive approval, and cross-device clipboard modes.
-- Nearby Share uses a private address, 192-bit token, TTL, receiver cap, range reads, and revoke. Internet Share encrypts the manifest and chunks in the client; a missing Worker configuration is a hard unavailable state.
+- DropLink source preparation limits visited entries across the complete selection to the configured file limit plus 4096, including empty folders. File and folder relative paths respect the configured path limit. Excessive selections stop before sending with localized guidance; they are never silently truncated.
+- Explicit file sends have a native progress panel that remains observable after navigation or an interface-language change. It reports preparation, receiver approval, acknowledged bytes and final saving; only the receiver's completed response indicates success.
+- File sends can be canceled before final saving. Cancellation remains visible while the operation closes, and the sender explains when the remote result may be uncertain. Closing the panel does not stop a transfer; finished results are bounded to ten records for the current app session and can be cleared without deleting files.
+- Nearby Share uses a private address, 192-bit token, TTL, receiver cap, range reads, and revoke. Devices settings retain access to active links for copying, QR display and revocation, including while creation is disabled. Expiry, revocation and network changes withdraw links; downloads already started may continue. Internet Share encrypts the manifest and chunks in the client; a missing Worker configuration is a hard unavailable state.
 
 ## v0.3.0-preview.9 additions
 

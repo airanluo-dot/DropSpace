@@ -9,7 +9,18 @@ using System.Net.Http.Json;
 
 namespace DropSpace.Infrastructure.Network;
 
-public sealed record TransferProgress(Guid SessionId, Guid ItemId, long TransferredBytes, long TotalBytes);
+public enum TransferProgressStage
+{
+    Preparing,
+    WaitingForApproval,
+    Sending,
+    Finalizing,
+}
+
+public sealed record TransferProgress(Guid SessionId, Guid ItemId, long TransferredBytes, long TotalBytes)
+{
+    public TransferProgressStage Stage { get; init; } = TransferProgressStage.Sending;
+}
 
 [SupportedOSPlatform("windows")]
 public sealed class DropLinkClient(
@@ -169,8 +180,10 @@ public sealed class DropLinkClient(
         limits ??= new TransferLimits();
         limits.Validate();
         if (sourcePaths.Count == 0) throw new ArgumentException("At least one source path is required.", nameof(sourcePaths));
-        var files = await EnumerateFilesAsync(sourcePaths, limits, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         var sessionId = Guid.NewGuid();
+        progress?.Report(new TransferProgress(sessionId, Guid.Empty, 0, 0) { Stage = TransferProgressStage.Preparing });
+        var files = await EnumerateFilesAsync(sourcePaths, limits, cancellationToken).ConfigureAwait(false);
         var items = new List<TransferItemManifest>(files.Count);
         var totalBytes = 0L;
         foreach (var file in files)
@@ -188,27 +201,50 @@ public sealed class DropLinkClient(
 
         var manifest = TransferManifestPolicy.Create(sessionId, items, limits);
         using var authenticated = await CreateAuthenticatedClientAsync(peer, endpoint, cancellationToken).ConfigureAwait(false);
-        var offer = await SendAuthenticatedJsonAsync<TransferOfferRequest, TransferOfferResponse>(authenticated, DropLinkProtocolRoutes.TransferOffers, new TransferOfferRequest(authenticated.LocalDeviceId, manifest), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
-
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            var accepted = await WaitForAcceptanceAsync(authenticated, offer.SessionId, cancellationToken).ConfigureAwait(false);
-            if (accepted.State != TransferSessionState.Accepted) return new TransferCompleteResponse(offer.SessionId, accepted.State, [], accepted.ErrorCategory);
+            // From this report onward the peer may have received the offer, even
+            // when the caller is cancelled before its response reaches us.
+            progress?.Report(new TransferProgress(sessionId, Guid.Empty, 0, manifest.TotalBytes)
+                { Stage = TransferProgressStage.WaitingForApproval });
+            var offer = await SendAuthenticatedJsonAsync<TransferOfferRequest, TransferOfferResponse>(authenticated, DropLinkProtocolRoutes.TransferOffers, new TransferOfferRequest(authenticated.LocalDeviceId, manifest), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
+            if (offer.SessionId != sessionId)
+            {
+                await NotifyBestEffortAsync(token => CancelTransferAsync(authenticated, sessionId, token)).ConfigureAwait(false);
+                throw new InvalidDataException("The remote offer response did not match the transfer session.");
+            }
+
+            var accepted = await WaitForAcceptanceAsync(authenticated, sessionId, cancellationToken).ConfigureAwait(false);
+            if (accepted.State != TransferSessionState.Accepted) return new TransferCompleteResponse(sessionId, accepted.State, [], accepted.ErrorCategory);
+
+            progress?.Report(new TransferProgress(sessionId, Guid.Empty, 0, manifest.TotalBytes));
 
             var transferred = 0L;
             foreach (var pair in files.Zip(items))
             {
                 var item = pair.Second;
                 accepted.ReceivedChunks.TryGetValue(item.Id, out var receivedChunks);
-                await SendFileChunksAsync(authenticated, offer.SessionId, item, pair.First.Path, limits, receivedChunks, progress, transferred, manifest.TotalBytes, cancellationToken).ConfigureAwait(false);
+                await SendFileChunksAsync(authenticated, sessionId, item, pair.First.Path, limits, receivedChunks, progress, transferred, manifest.TotalBytes, cancellationToken).ConfigureAwait(false);
                 transferred += item.Size;
             }
 
-            return await SendAuthenticatedJsonAsync<object, TransferCompleteResponse>(authenticated, DropLinkProtocolRoutes.TransferComplete(offer.SessionId), new { }, HttpMethod.Post, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            // The receiver can no longer cancel once it begins verifying/committing.
+            // Report synchronously before requesting that transition; UI owners must
+            // gate cancellation when consuming Report, before dispatching rendering.
+            progress?.Report(new TransferProgress(sessionId, Guid.Empty, manifest.TotalBytes, manifest.TotalBytes)
+                { Stage = TransferProgressStage.Finalizing });
+            // A synchronous progress consumer may have cancelled at this boundary.
+            cancellationToken.ThrowIfCancellationRequested();
+            return await SendAuthenticatedJsonAsync<object, TransferCompleteResponse>(authenticated, DropLinkProtocolRoutes.TransferComplete(sessionId), new { }, HttpMethod.Post, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await NotifyBestEffortAsync(token => CancelTransferAsync(authenticated, offer.SessionId, token)).ConfigureAwait(false);
+            // The local manifest ID is known even if the offer response was lost.
+            // This is best effort: cancellation can reach the peer before its offer
+            // is registered, and it cannot undo a transfer already finalizing.
+            await NotifyBestEffortAsync(token => CancelTransferAsync(authenticated, sessionId, token)).ConfigureAwait(false);
 
             throw;
         }
@@ -268,7 +304,7 @@ public sealed class DropLinkClient(
         {
             await notification(deadline.Token).ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or
+        catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidDataException or
             UnauthorizedAccessException or JsonException or OperationCanceledException)
         {
             // A missing, invalid or slow peer cannot replace the local decision.
@@ -434,57 +470,10 @@ public sealed class DropLinkClient(
 
     private static List<SourceFile> EnumerateFilesCore(IReadOnlyList<string> sourcePaths, TransferLimits limits, CancellationToken cancellationToken)
     {
-        var result = new List<SourceFile>();
-        long totalBytes = 0;
-        foreach (var source in sourcePaths)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var full = Path.GetFullPath(source);
-            if (File.Exists(full))
-            {
-                var attributes = File.GetAttributes(full);
-                if (attributes.HasFlag(FileAttributes.ReparsePoint))
-                {
-                    throw new InvalidDataException("Transfer source files must not be reparse points.");
-                }
-
-                var length = new FileInfo(full).Length;
-                if (result.Count >= limits.MaxItems || length > limits.MaxTotalBytes - totalBytes)
-                {
-                    throw new InvalidDataException("The transfer enumeration limit was exceeded.");
-                }
-
-                result.Add(new SourceFile(full, TransferManifestPolicy.SafeDisplayName(Path.GetFileName(full)), GuessMime(full), length));
-                totalBytes += length;
-                continue;
-            }
-            if (!Directory.Exists(full)) throw new FileNotFoundException("Transfer source is unavailable.");
-            if (File.GetAttributes(full).HasFlag(FileAttributes.ReparsePoint))
-            {
-                throw new InvalidDataException("Transfer source directories must not be reparse points.");
-            }
-
-            if (result.Count >= limits.MaxItems || totalBytes >= limits.MaxTotalBytes)
-            {
-                throw new InvalidDataException("The transfer enumeration limit was exceeded.");
-            }
-
-            var rootName = TransferManifestPolicy.SafeDisplayName(Path.GetFileName(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
-            var entries = ReparseSafeDirectoryEnumerator.Enumerate(
-                full,
-                rootName,
-                limits.MaxItems - result.Count,
-                limits.MaxTotalBytes - totalBytes,
-                cancellationToken);
-            foreach (var entry in entries)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                result.Add(new SourceFile(entry.FullPath, entry.RelativePath, GuessMime(entry.FullPath), entry.Length));
-                totalBytes += entry.Length;
-            }
-        }
-        if (result.Count == 0) throw new InvalidDataException("The transfer contains no regular files.");
-        return result;
+        var budget = TransferTraversalBudget.CreateForItemLimit(limits.MaxItems);
+        return ReparseSafeDirectoryEnumerator.EnumerateSources(sourcePaths, limits, budget, cancellationToken)
+            .Select(entry => new SourceFile(entry.FullPath, entry.RelativePath, GuessMime(entry.FullPath), entry.Length))
+            .ToList();
     }
 
     private static async Task<FileSnapshot> HashFileAsync(string path, CancellationToken cancellationToken)

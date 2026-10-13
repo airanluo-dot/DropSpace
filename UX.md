@@ -287,7 +287,7 @@ The Smart verification ring is never a visible product surface: it must not flas
 
 ## 3.0 Preview consent surfaces
 
-Quick Preview opens from the item More menu and shows bounded text/metadata or a safe fallback. Quick Actions are visible only as real commands and report their output path. Device Handoff/clipboard settings explain Windows-only scope, pairing/SAS, per-peer modes, receive approval, and firewall degraded mode. Nearby links show token/expiry/revoke state. Internet Share shows an unavailable state until an HTTPS Worker is configured; the URL fragment key is never displayed in logs or notifications.
+Quick Preview opens from the item More menu and shows bounded text/metadata or a safe fallback. Quick Actions are visible only as real commands and report their output path. Device Handoff/clipboard settings explain Windows-only scope, pairing/SAS, per-peer modes, receive approval, and firewall degraded mode. Devices settings can reopen the active Nearby links list; selecting a link shows its expiry and offers copy, QR and confirmed revocation. Closing the list preserves active links. Disabling new link creation leaves management available; revocation prevents later requests but does not retract downloads already started. Expired or invalidated links leave the list and their QR view closes. Internet Share shows an unavailable state until an HTTPS Worker is configured; the URL fragment key is never displayed in logs or notifications.
 
 ## Preview.9 intake, Quick Actions, and Undo
 

@@ -1,0 +1,1 @@
+PASS retention: real unpin commit and retention serialize; two Undo-protected images survive age/count cleanup without displacing eligible text; one expired payload is deleted through the outbox; Undo restores both pins; explicit finalization restores normal age/count deletion and leaves only the newest payload.

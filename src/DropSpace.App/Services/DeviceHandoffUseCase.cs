@@ -1,6 +1,7 @@
 using DropSpace.Core.Transfer;
 using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Network;
+using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
 
@@ -8,8 +9,25 @@ namespace DropSpace.App.Services;
 /// UI-facing device handoff boundary. Lifecycle ownership remains in
 /// <see cref="DeviceHandoffService"/>; this class owns user-intent operations.
 /// </summary>
-public sealed class DeviceHandoffUseCase(DeviceHandoffService service)
+public sealed class DeviceHandoffUseCase(DeviceHandoffService service, ILogger<DeviceHandoffUseCase> logger)
 {
+    private readonly DeviceHandoffSendTracker _sends = new(service.SendFilesTrackedAsync, logger);
+
+    public event EventHandler? SendsChanged
+    {
+        add => _sends.Changed += value;
+        remove => _sends.Changed -= value;
+    }
+
+    public Guid StartFileTransfer(PeerDevice peer, Uri endpoint, IReadOnlyList<string> sourcePaths, string displayName) =>
+        _sends.Start(peer, endpoint, sourcePaths, displayName);
+
+    public IReadOnlyList<HandoffSendSnapshot> GetSendSnapshots() => _sends.GetSnapshots();
+
+    public bool CancelSend(Guid id) => _sends.Cancel(id);
+
+    public void ClearCompletedSends() => _sends.ClearCompleted();
+
     public bool IsEnabled => service.IsEnabled;
 
     public FirewallCapability? FirewallStatus => service.FirewallStatus;

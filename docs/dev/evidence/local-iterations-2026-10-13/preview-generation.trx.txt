@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="9e603bc9-ae44-46f6-bedb-c2abb0d8aa6c" name="@db02077afb37 2026-10-13 03:40:18" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-13T03:40:18.8568982+00:00" queuing="2026-10-13T03:40:18.8568983+00:00" start="2026-10-13T03:40:18.2199832+00:00" finish="2026-10-13T03:40:18.8618923+00:00" />
+  <TestSettings name="default" id="5801dfe2-1aea-4390-828f-81cdef4a7e43">
+    <Deployment runDeploymentRoot="_db02077afb37_2026-10-13_03_40_18" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="30612c37-ccab-4fed-bc18-52dd39159ebc" testId="19ababec-f3ce-88fe-b66b-8ff2486ba2c8" testName="QueuedLoadCannotRecreateClearedCacheButNewRequestsCanCache" computerName="db02077afb37" duration="00:00:00.0706615" startTime="2026-10-13T03:40:18.6647778+00:00" endTime="2026-10-13T03:40:18.7588702+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="30612c37-ccab-4fed-bc18-52dd39159ebc" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="QueuedLoadCannotRecreateClearedCacheButNewRequestsCanCache" storage="/workspace/dropspace/tests/dropspace.infrastructure.tests/bin/debug/net10.0/dropspace.infrastructure.tests.dll" id="19ababec-f3ce-88fe-b66b-8ff2486ba2c8">
+      <Execution id="30612c37-ccab-4fed-bc18-52dd39159ebc" />
+      <TestMethod codeBase="/workspace/DropSpace/tests/DropSpace.Infrastructure.Tests/bin/Debug/net10.0/DropSpace.Infrastructure.Tests.dll" adapterTypeName="executor://mstestadapter/v4" className="DropSpace.Infrastructure.Tests.PreviewRegistryConcurrencyTests" name="QueuedLoadCannotRecreateClearedCacheButNewRequestsCanCache" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="19ababec-f3ce-88fe-b66b-8ff2486ba2c8" executionId="30612c37-ccab-4fed-bc18-52dd39159ebc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

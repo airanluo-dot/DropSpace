@@ -1,0 +1,1 @@
+PASS one handoff-send scenario: two actual owners survive caller cancellation; blocked Cancel keeps capacity after actual completion; disabled/busy reject admission; stale and settled progress stop; late fault is logged; fresh success, original failure and provider-timeout failure recover with zero outstanding sends.

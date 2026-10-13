@@ -182,7 +182,7 @@ public sealed class ClipboardTextSupersessionTests
     public async Task EightRetiredOperationsKeepTheirSlotsUntilNativeTeardownCompletes()
     {
         await using var capture = new ClipboardCaptureService(null!, null!, null!, null!, null!, null!, null!, null!,
-            NullLogger<ClipboardCaptureService>.Instance);
+            NullLogger<ClipboardCaptureService>.Instance, null!);
         var flags = BindingFlags.Instance | BindingFlags.NonPublic;
         var slots = (SemaphoreSlim)typeof(ClipboardCaptureService).GetField("_textReadSlots", flags)!.GetValue(capture)!;
         var retired = (ConcurrentDictionary<long, Task>)typeof(ClipboardCaptureService).GetField("_retiredTextReads", flags)!.GetValue(capture)!;

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Supply absolute roots with -p:DropSpaceRoot=... -p:MediaReferenceRoot=... -->
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <NoWarn>$(NoWarn);NETSDK1138</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="$(DropSpaceRoot)/src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Reference Include="Microsoft.Windows.SDK.NET"><HintPath>$(MediaReferenceRoot)/microsoft.windows.sdk.net.ref/lib/net8.0/Microsoft.Windows.SDK.NET.dll</HintPath></Reference>
+    <Reference Include="WinRT.Runtime"><HintPath>$(MediaReferenceRoot)/microsoft.windows.sdk.net.ref/lib/net8.0/WinRT.Runtime.dll</HintPath></Reference>
+    <Reference Include="Microsoft.InteractiveExperiences.Projection"><HintPath>$(MediaReferenceRoot)/microsoft.windowsappsdk.interactiveexperiences/lib/net6.0-windows10.0.18362.0/Microsoft.InteractiveExperiences.Projection.dll</HintPath></Reference>
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/Media/BoundedMediaOperation.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/Media/MediaNativeContext.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/Media/MediaEventSubscription.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/Media/MediaSessionOwner.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/NativeAsyncLifetime.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/DispatcherQueueExtensions.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/NeteaseEnhancement/NeteaseSmtcVerifier.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/Media/RetirableMediaWork.cs" />
+    <Compile Include="$(DropSpaceRoot)/src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs" />
+  </ItemGroup>
+</Project>

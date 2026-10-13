@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
@@ -657,7 +658,7 @@ public sealed class SqliteItemRepository(
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await Task.Run(() => UpdateFileStatusCoreAsync(id, status, reason, cancellationToken), CancellationToken.None).ConfigureAwait(false);
+            await Task.Run(() => UpdateFileStatusCoreAsync(id, status, reason, null, null, null, cancellationToken), CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
@@ -665,10 +666,35 @@ public sealed class SqliteItemRepository(
         }
     }
 
-    private async Task UpdateFileStatusCoreAsync(
+    public async Task<bool> TryUpdateFileStatusAsync(
+        Guid id,
+        int expectedRevision,
+        string expectedNormalizedPath,
+        FileEntryKind expectedEntryKind,
+        ItemStatus status,
+        string? reason,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedNormalizedPath);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await Task.Run(() => UpdateFileStatusCoreAsync(id, status, reason,
+                expectedRevision, expectedNormalizedPath, expectedEntryKind, cancellationToken), CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            database.WriteGate.Release();
+        }
+    }
+
+    private async Task<bool> UpdateFileStatusCoreAsync(
         Guid id,
         ItemStatus status,
         string? reason,
+        int? expectedRevision,
+        string? expectedNormalizedPath,
+        FileEntryKind? expectedEntryKind,
         CancellationToken cancellationToken)
     {
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -677,9 +703,27 @@ public sealed class SqliteItemRepository(
         {
             itemCommand.Transaction = (SqliteTransaction)transaction;
             itemCommand.CommandText = "UPDATE items SET status = @status, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;";
+            if (expectedRevision is not null)
+            {
+                itemCommand.CommandText = """
+                    UPDATE items SET status = @status, revision = revision + 1
+                    WHERE id = @id AND revision = @expected_revision AND pending_delete_token IS NULL
+                      AND EXISTS (
+                        SELECT 1 FROM file_references
+                        WHERE item_id = @id AND normalized_path = @expected_path AND entry_kind = @expected_kind);
+                    """;
+                itemCommand.Parameters.AddWithValue("@expected_revision", expectedRevision.Value);
+                itemCommand.Parameters.AddWithValue("@expected_path", expectedNormalizedPath!);
+                itemCommand.Parameters.AddWithValue("@expected_kind", (int)expectedEntryKind!.Value);
+            }
             itemCommand.Parameters.AddWithValue("@status", (int)status);
             itemCommand.Parameters.AddWithValue("@id", ToBytes(id));
-            await itemCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            // A stale observation, removed row or pending removal must not touch the
+            // reference detail either. Disposal rolls back this uncommitted transaction.
+            if (await itemCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 0)
+            {
+                return false;
+            }
         }
 
         await using (var referenceCommand = connection.CreateCommand())
@@ -697,12 +741,37 @@ public sealed class SqliteItemRepository(
         }
 
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return true;
     }
 
     public async Task ReplaceFileReferenceAsync(
         Guid id,
         FileCandidate replacement,
         CancellationToken cancellationToken = default)
+    {
+        await ReplaceFileReferenceCoreAsync(id, replacement, null, null, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<bool> TryReplaceFileReferenceAsync(
+        Guid id,
+        int expectedRevision,
+        string expectedNormalizedPath,
+        FileEntryKind expectedEntryKind,
+        FileCandidate replacement,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedNormalizedPath);
+        return ReplaceFileReferenceCoreAsync(id, replacement,
+            expectedRevision, expectedNormalizedPath, expectedEntryKind, cancellationToken);
+    }
+
+    private async Task<bool> ReplaceFileReferenceCoreAsync(
+        Guid id,
+        FileCandidate replacement,
+        int? expectedRevision,
+        string? expectedNormalizedPath,
+        FileEntryKind? expectedEntryKind,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(replacement);
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -721,11 +790,26 @@ public sealed class SqliteItemRepository(
                     LEFT JOIN payloads p ON p.id = i.payload_id
                     WHERE i.id = @id AND i.pending_delete_token IS NULL;
                     """;
+                if (expectedRevision is not null)
+                {
+                    select.CommandText = """
+                        SELECT p.id, p.relative_path
+                        FROM items i
+                        JOIN file_references f ON f.item_id = i.id
+                        LEFT JOIN payloads p ON p.id = i.payload_id
+                        WHERE i.id = @id AND i.pending_delete_token IS NULL
+                          AND i.revision = @expected_revision
+                          AND f.normalized_path = @expected_path AND f.entry_kind = @expected_kind;
+                        """;
+                    select.Parameters.AddWithValue("@expected_revision", expectedRevision.Value);
+                    select.Parameters.AddWithValue("@expected_path", expectedNormalizedPath!);
+                    select.Parameters.AddWithValue("@expected_kind", (int)expectedEntryKind!.Value);
+                }
                 select.Parameters.AddWithValue("@id", ToBytes(id));
                 await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    return;
+                    return false;
                 }
 
                 if (!reader.IsDBNull(0))
@@ -803,6 +887,7 @@ public sealed class SqliteItemRepository(
             }
 
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return true;
         }
         finally
         {
@@ -868,7 +953,9 @@ public sealed class SqliteItemRepository(
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
             await using var command = connection.CreateCommand();
             command.Transaction = (SqliteTransaction)transaction;
-            var sql = new StringBuilder("UPDATE items SET pending_delete_token = @token, pending_delete_expires_at_utc = @expires WHERE source = @source AND pending_delete_token IS NULL");
+            // Entering removal retires in-flight observations even if Undo restores
+            // the same ID and path before their native/file work returns.
+            var sql = new StringBuilder("UPDATE items SET pending_delete_token = @token, pending_delete_expires_at_utc = @expires, revision = revision + 1 WHERE source = @source AND pending_delete_token IS NULL");
             command.Parameters.AddWithValue("@token", token);
             command.Parameters.AddWithValue("@expires", ToTimestamp(expiresAtUtc));
             command.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
@@ -1040,12 +1127,24 @@ public sealed class SqliteItemRepository(
         }
     }
 
+    public Task<RetentionResult> ApplyRetentionAsync(
+        DateTimeOffset ageCutoffUtc,
+        int countLimit,
+        CancellationToken cancellationToken = default) =>
+        ApplyRetentionAsync(ageCutoffUtc, countLimit, Array.Empty<Guid>(), cancellationToken);
+
     public async Task<RetentionResult> ApplyRetentionAsync(
         DateTimeOffset ageCutoffUtc,
         int countLimit,
+        IReadOnlyCollection<Guid> protectedIds,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(countLimit);
+        ArgumentNullException.ThrowIfNull(protectedIds);
+        // One JSON parameter avoids a parameter-count limit for large pin batches.
+        // Match SQLite's hex(BLOB) using the same byte order as persisted item IDs.
+        var protectedIdJson = JsonSerializer.Serialize(protectedIds
+            .Where(id => id != Guid.Empty).Distinct().Select(id => Convert.ToHexString(ToBytes(id))));
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -1053,6 +1152,8 @@ public sealed class SqliteItemRepository(
             var ids = new List<Guid>();
             await using (var command = connection.CreateCommand())
             {
+                // Exclude Undo-protected rows before ranking so an unpin cannot
+                // push unrelated history past the count limit during its Undo window.
                 command.CommandText = """
                     WITH ranked AS (
                         SELECT id, created_at_utc,
@@ -1061,6 +1162,7 @@ public sealed class SqliteItemRepository(
                         WHERE source = @source
                           AND is_pinned = 0
                           AND pending_delete_token IS NULL
+                          AND hex(id) NOT IN (SELECT value FROM json_each(@protected_ids))
                     )
                     SELECT id
                     FROM ranked
@@ -1069,6 +1171,7 @@ public sealed class SqliteItemRepository(
                 command.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
                 command.Parameters.AddWithValue("@cutoff", ToTimestamp(ageCutoffUtc));
                 command.Parameters.AddWithValue("@count_limit", countLimit);
+                command.Parameters.AddWithValue("@protected_ids", protectedIdJson);
                 await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                 {
@@ -1480,7 +1583,7 @@ public sealed class SqliteItemRepository(
         {
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
-            command.CommandText = "UPDATE items SET pending_delete_token = @token, pending_delete_expires_at_utc = @expires WHERE id = @id AND pending_delete_token IS NULL;";
+            command.CommandText = "UPDATE items SET pending_delete_token = @token, pending_delete_expires_at_utc = @expires, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;";
             command.Parameters.AddWithValue("@token", token);
             command.Parameters.AddWithValue("@expires", ToTimestamp(expiresAtUtc));
             command.Parameters.AddWithValue("@id", ToBytes(id));

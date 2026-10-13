@@ -1,0 +1,89 @@
+{
+  "result": "succeeded",
+  "warnings": 0,
+  "errors": 0,
+  "elapsedSeconds": 3.12,
+  "scope": "C# production subset with actual WinRT/WinUI projections; no XAML or Windows execution",
+  "sources": [
+    {
+      "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
+      "sha256": "ba52dc248a47b093c6f2b1d7cec7953ab7c611d95ef49d8fc99723b64ee5c224"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/BoundedMediaOperation.cs",
+      "sha256": "4c107c099a8b243f7677365b3d078babcd9faf432cb43d2b725dfe302da348cd"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaNativeContext.cs",
+      "sha256": "aaaa4885d80c08c63c9ed9e4fb607500c439e4a1456fa43efb76954d2bb9f18b"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaEventSubscription.cs",
+      "sha256": "98258ed14141279e453081ca5bbc431d580632c266725133041a2a04e03c5cef"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs",
+      "sha256": "a2111b56685634a48925d953615e3efbfb32e86a345624892cae0d4b1aa25a4e"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaSessionOwner.cs",
+      "sha256": "685d876f8bc5b0770bee0a2c8c14d3baccfb974a89919c6e0e1649fe2b2aab93"
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+      "sha256": "4c62f00a4f72c10780a1a147cd761096bbd23fd3daaefbf36ecc4fb861c3cd02"
+    },
+    {
+      "path": "src/DropSpace.App/Services/DispatcherQueueExtensions.cs",
+      "sha256": "59a3eb20b38fcc7a0ec0474e78e63c4345341f09c0fcfe5f2e9d78f9c4fed4c2"
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/NeteaseSmtcVerifier.cs",
+      "sha256": "6527de8b313afe8988affecb8014cff6bb906f62dac9d021b710e27123d91dcc"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/RetirableMediaWork.cs",
+      "sha256": "c7e13f6c993744e7018b1fe9610b1d5fc1cddf0504a86840d3d1ccdb03a89022"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs",
+      "sha256": "1d31d215b06d8eda111539e4f12eecf3cfa0d719aca024623eaa320a459a4992"
+    }
+  ],
+  "references": [
+    {
+      "path": "microsoft.windows.sdk.net.ref/lib/net8.0/Microsoft.Windows.SDK.NET.dll",
+      "sha256": "8cbe983887b84ee0f85cfcb14fbd759e487dc7b96f6ce9c93aa09baf129a5f72"
+    },
+    {
+      "path": "microsoft.windows.sdk.net.ref/lib/net8.0/WinRT.Runtime.dll",
+      "sha256": "bcf3a14e8712a90837fc5c0d8c8a24696af2bd7f74e9767597ec81ededfb23db"
+    },
+    {
+      "path": "microsoft.windowsappsdk.interactiveexperiences/lib/net6.0-windows10.0.18362.0/Microsoft.InteractiveExperiences.Projection.dll",
+      "sha256": "588f22ec752374bc7fbc8c4dd53a1eee36850eaaad94d175da09d3caeda1395a"
+    }
+  ],
+  "referencePackages": {
+    "Microsoft.Windows.SDK.NET.Ref": "10.0.20348.57",
+    "Microsoft.WindowsAppSDK.InteractiveExperiences": "2.1.9 (dependency of application Microsoft.WindowsAppSDK 2.5.1)"
+  },
+  "probeFiles": [
+    {
+      "path": "scripts/media-lifecycle-probe/MediaLifecycleProbe.csproj",
+      "sha256": "37a8d7789557ba5e779eeed2f2b945aaa96c340b59d96799d3d821f77dbc4987"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/PlatformShims.cs",
+      "sha256": "411def206b0f4c424e75577f3af9071d4f608afd37ca81c3c049cb3a0e0a5a04"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/Program.cs",
+      "sha256": "1e4f7f55ca44bd548d69047063446f508b328bf15b34fbf0521b2df3e2af5226"
+    },
+    {
+      "path": "scripts/media-lifecycle-probe/README.md",
+      "sha256": "308f093633a714617124e2fc6709e5aadb77a0faae83484f1c5f9fceefcc0ce0"
+    }
+  ]
+}

@@ -437,13 +437,29 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         CancellationToken cancellationToken)
     {
         var operationId = OperationCorrelation.New();
+        var pendingReady = GetReadyUpdateForChannel(settings.UpdateChannel);
+        UpdateStatusSnapshot? ready = null;
         Publish(new UpdateStatusSnapshot(UpdateState.Checking, string.Empty, _deploymentMode.Current,
             MessageIdentity: AppUiMessage.Resource("UpdateChecking")));
+        UpdateStatusSnapshot available;
         try
         {
+            // Reuse skips the downloader's cache validation, so first confirm that
+            // a previously verified file still exists and matches its payload.
+            if (pendingReady is not null &&
+                await _verifier.VerifyIntegrityAsync(pendingReady.Download!, cancellationToken).ConfigureAwait(false))
+            {
+                ready = pendingReady;
+            }
+            pendingReady = null;
             var releases = await _source.GetReleasesAsync(cancellationToken).ConfigureAwait(false);
             var release = UpdateReleaseSelector.SelectHighest(CurrentVersion, settings.UpdateChannel, releases);
             var checkedAt = DateTimeOffset.UtcNow;
+            if (ready is not null && (release is null ||
+                ReleaseVersion.Parse(release.TagName) < ready.Download!.Candidate.Manifest.Version))
+            {
+                return PublishCheckedReady(ready, checkedAt);
+            }
             if (release is null)
             {
                 var stable = UpdateReleaseSelector.HighestStable(releases);
@@ -457,7 +473,13 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             var descriptor = _deploymentMode.Current == DeploymentMode.Portable ? manifest.Portable : manifest.Installer;
             var asset = release.Assets.Single(item => string.Equals(item.Name, descriptor.AssetName, StringComparison.Ordinal));
             var candidate = new UpdateCandidate(release, manifest, asset, _deploymentMode.Current);
-            var available = Publish(new UpdateStatusSnapshot(
+            if (ready is not null && HasSamePayload(ready.Download!, candidate))
+            {
+                // Recovery verified this payload, but does not establish publisher trust.
+                // Keep its original trust and installation state without starting it implicitly.
+                return PublishCheckedReady(ready, checkedAt);
+            }
+            available = Publish(new UpdateStatusSnapshot(
                 UpdateState.UpdateAvailable,
                 string.Empty,
                 _deploymentMode.Current,
@@ -465,23 +487,15 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
                 candidate,
                 MessageIdentity: AppUiMessage.Resource(_deploymentMode.Current == DeploymentMode.Packaged
                     ? "UpdateFoundManaged" : "UpdateFound", manifest.Version)));
-
-            if (_deploymentMode.Current != DeploymentMode.Packaged && settings.AutoDownloadUpdates)
-            {
-                var downloaded = await DownloadCoreAsync(cancellationToken).ConfigureAwait(false);
-                if (downloaded.State == UpdateState.ReadyToInstall && settings.AutoInstallUpdates && downloaded.TrustedAutoInstallAvailable)
-                {
-                    return await InstallCoreAsync(unattended: true, cancellationToken).ConfigureAwait(false);
-                }
-
-                return downloaded;
-            }
-
-            return available;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return Publish(Status with { State = UpdateState.Idle, MessageIdentity = AppUiMessage.Resource("UpdateCheckCancelled") });
+            // An interrupted recheck has not invalidated the earlier verification.
+            // A completed rejection or verifier failure can never restore this backup.
+            var cancelledReady = ready ?? pendingReady;
+            return Publish(cancelledReady is not null
+                ? cancelledReady with { MessageIdentity = AppUiMessage.Resource("UpdateCheckCancelled") }
+                : Status with { State = UpdateState.Idle, MessageIdentity = AppUiMessage.Resource("UpdateCheckCancelled") });
         }
         catch (Exception exception) when (IsHandledUpdateException(exception))
         {
@@ -492,13 +506,64 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
                 TaskCanceledException => "UpdateServiceTimedOut",
                 _ => "UpdateServiceUnavailable",
             });
-            return Publish(new UpdateStatusSnapshot(
-                UpdateState.Failed,
-                string.Empty,
-                _deploymentMode.Current,
-                DateTimeOffset.UtcNow,
-                MessageIdentity: automatic ? AppUiMessage.Resource("UpdateAutomaticCheckFailed", reason) : reason));
+            var message = automatic ? AppUiMessage.Resource("UpdateAutomaticCheckFailed", reason) : reason;
+            return Publish(ready is not null
+                ? ready with { LastCheckedAtUtc = DateTimeOffset.UtcNow, MessageIdentity = message }
+                : new UpdateStatusSnapshot(UpdateState.Failed, string.Empty, _deploymentMode.Current,
+                    DateTimeOffset.UtcNow, MessageIdentity: message));
         }
+
+        // A different candidate now owns subsequent file and installer side effects.
+        // Their cancellation/recovery must never restore the earlier ready payload.
+        if (_deploymentMode.Current != DeploymentMode.Packaged && settings.AutoDownloadUpdates)
+        {
+            var downloaded = await DownloadCoreAsync(cancellationToken).ConfigureAwait(false);
+            if (downloaded.State == UpdateState.ReadyToInstall && settings.AutoInstallUpdates && downloaded.TrustedAutoInstallAvailable)
+            {
+                return await InstallCoreAsync(unattended: true, cancellationToken).ConfigureAwait(false);
+            }
+
+            return downloaded;
+        }
+
+        return available;
+    }
+
+    private UpdateStatusSnapshot? GetReadyUpdateForChannel(UpdateChannel channel)
+    {
+        var status = Status;
+        if (status.State != UpdateState.ReadyToInstall || status.Download is not { } download ||
+            status.DeploymentMode != _deploymentMode.Current || _deploymentMode.Current == DeploymentMode.Packaged ||
+            download.Candidate.DeploymentMode != _deploymentMode.Current ||
+            download.Candidate.Manifest.Version <= CurrentVersion ||
+            (channel != UpdateChannel.Beta && download.Candidate.Manifest.Version.IsPrerelease))
+        {
+            return null;
+        }
+
+        return status;
+    }
+
+    private UpdateStatusSnapshot PublishCheckedReady(UpdateStatusSnapshot ready, DateTimeOffset checkedAt) =>
+        Publish(ready with
+        {
+            LastCheckedAtUtc = checkedAt,
+            MessageIdentity = AppUiMessage.Resource(ready.PreviousInstallIncomplete
+                ? "UpdateLastInstallIncomplete" : "UpdateDownloadedReadyToInstall"),
+        });
+
+    private static bool HasSamePayload(DownloadedUpdate download, UpdateCandidate candidate)
+    {
+        var previous = download.Candidate;
+        var descriptor = candidate.DeploymentMode == DeploymentMode.Portable
+            ? candidate.Manifest.Portable : candidate.Manifest.Installer;
+        var previousDescriptor = previous.DeploymentMode == DeploymentMode.Portable
+            ? previous.Manifest.Portable : previous.Manifest.Installer;
+        return previous.DeploymentMode == candidate.DeploymentMode &&
+            previous.Manifest.Version == candidate.Manifest.Version &&
+            previous.SelectedAsset == candidate.SelectedAsset && previousDescriptor == descriptor &&
+            download.Size == descriptor.Size &&
+            string.Equals(download.Sha256, descriptor.Sha256, StringComparison.OrdinalIgnoreCase);
     }
 
     private Task<UpdateStatusSnapshot> RunExclusiveAsync(

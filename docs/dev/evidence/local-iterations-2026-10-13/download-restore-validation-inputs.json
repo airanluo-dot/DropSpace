@@ -1,0 +1,76 @@
+{
+  "round": 11,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "reused existing assets with --no-restore",
+  "build": "one normal Infrastructure.Tests build, default analyzers and warnings-as-errors",
+  "preciseFilter": "FullyQualifiedName=DropSpace.Infrastructure.Tests.DownloadManagerLifetimeTests.LateRestorePreservesAdmittedRunOwnershipAndStillRecoversNewTasks",
+  "result": {
+    "testName": "LateRestorePreservesAdmittedRunOwnershipAndStillRecoversNewTasks",
+    "outcome": "Passed",
+    "duration": "00:00:00.3139088",
+    "counters": {
+      "total": "1",
+      "executed": "1",
+      "passed": "1",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "platform": "Linux; actual manager, downloader queue, task journal and output reservation files; no server/listener started, sole transfer slot held until original run settles",
+  "measured": [
+    "Work/Run/CTS/Reservation identity survives late Restore",
+    "no duplicate visible live row",
+    "new journal ID restores Paused with no run/source",
+    "Cancel settles original run and disposes CTS",
+    "reservation marker removed without output",
+    "HTTP connection count zero; sole transfer belongs to fixture"
+  ],
+  "staticOnly": [
+    "hidden failed-admission cleanup owner is preserved by state-independent ContainsKey guard"
+  ],
+  "unexecuted": [
+    "other download lifetime tests",
+    "real HTTP transfer",
+    "Windows download UI",
+    "restore cancellation retry semantics"
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+      "sha256": "7950b5ae512720ca09f2e74c2b6aa4c9a674f347ed4ff974e6f5dd5fcc75f136"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/HttpRangeDownloader.cs",
+      "sha256": "9e0795593c858f678c2cdd03ef0d28a8924bd7251ae9768ee499de8d66745495"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadTaskRepository.cs",
+      "sha256": "713efdccbba7dee5ef1639514441ef052668286c25076bb259aa029fb5462e5e"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadTransferBudget.cs",
+      "sha256": "23e5ce7577661068818d17f2e3e913b2e2e8b2e8a86b5e72db355c3f668d3e43"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DownloadManagerLifetimeTests.cs",
+      "sha256": "dff1729d7d349abb5b50a65aa131681808745262b85c1d45644ed707336155f6"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj",
+      "sha256": "3456e89a0f3cc87621a574e5316cab277c6cba8af04791ee3e73f7956eb05618"
+    }
+  ]
+}

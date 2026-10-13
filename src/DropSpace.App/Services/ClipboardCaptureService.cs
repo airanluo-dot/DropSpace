@@ -39,8 +39,10 @@ public sealed record ClipboardCaptureStatus(
 public sealed class ClipboardCaptureService : IAsyncDisposable
 {
     private const int MaximumClipboardCopyItems = 512;
+    private static readonly TimeSpan RemoteImageReadTimeout = TimeSpan.FromSeconds(5);
 
     private readonly IItemRepository _repository;
+    private readonly UndoCoordinator _undo;
     private readonly ISettingsService _settingsService;
     private readonly IPayloadStore _payloadStore;
     private readonly IPreviewCache _previews;
@@ -50,6 +52,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly DispatcherQueue _dispatcher;
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<ClipboardCaptureService> _logger;
+    private readonly ClipboardImageReadLifetime _remoteImageReads;
     private readonly Channel<CaptureSignal> _signals;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SemaphoreSlim _stateGate = new(1, 1);
@@ -103,9 +106,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         DispatcherQueue dispatcher,
         IAppStringLocalizer strings,
         ILogger<ClipboardCaptureService> logger,
+        UndoCoordinator undo,
         IPayloadCleanupCoordinator? payloadCleanup = null)
     {
         _repository = repository;
+        _undo = undo;
         _settingsService = settingsService;
         _payloadStore = payloadStore;
         _previews = previews;
@@ -115,6 +120,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _dispatcher = dispatcher;
         _strings = strings;
         _logger = logger;
+        _remoteImageReads = new ClipboardImageReadLifetime(logger);
         _signals = Channel.CreateBounded<CaptureSignal>(new BoundedChannelOptions(128)
         {
             SingleReader = true,
@@ -382,6 +388,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         ThrowIfDisposing();
         if (_paused) throw new ClipboardPausedException();
         ClipboardEnvelopePolicy.Validate(envelope);
+        // Shutdown cancels the logical import too. The image owner below receives
+        // its own token and never reaches back into a disposed shutdown source.
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdown.Token);
+        cancellationToken = lifetime.Token;
         DropItem item;
         await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -398,11 +408,16 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             else
             {
                 var image = envelope.ImageBytes!;
-                if (image.LongLength > _settings.MaxImageBytes) throw new InvalidDataException("Image encoded byte budget exceeded.");
-                var dimensions = await ReadImageDimensionsAsync(image, cancellationToken).ConfigureAwait(false);
+                var settings = _settings;
+                if (image.LongLength > settings.MaxImageBytes) throw new InvalidDataException("Image encoded byte budget exceeded.");
+                var dimensions = await _remoteImageReads.RunAsync(
+                    token => ReadImageDimensionsAsync(image, settings.MaxImageBytes, settings.MaxImagePixels, token),
+                    RemoteImageReadTimeout, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                ThrowIfDisposing();
                 await using var stream = new MemoryStream(image, writable: false);
                 var payload = await _payloadStore.WriteFileAsync("images", dimensions.Extension, stream,
-                    _settings.MaxImageBytes, cancellationToken).ConfigureAwait(false);
+                    settings.MaxImageBytes, cancellationToken).ConfigureAwait(false);
                 try
                 {
                     item = await _repository.AddImageAsync(
@@ -470,7 +485,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
     }
 
-    private Task<(int Width, int Height, bool HasAlpha, string Extension, string MimeType)> ReadImageDimensionsAsync(byte[] bytes, CancellationToken cancellationToken) =>
+    private Task<(int Width, int Height, bool HasAlpha, string Extension, string MimeType)> ReadImageDimensionsAsync(
+        byte[] bytes, long maximumBytes, long maximumPixels, CancellationToken cancellationToken) =>
         _dispatcher.EnqueueAsync(async () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -484,7 +500,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             }
 
             stream.Seek(0);
-            var decoder = await ImageDecoderPreflight.ValidateAsync(stream, _settings.MaxImageBytes, _settings.MaxImagePixels, cancellationToken);
+            var decoder = await ImageDecoderPreflight.ValidateAsync(stream, maximumBytes, maximumPixels, cancellationToken);
             // The peer's MIME label is not a file-format authority. Keep the original
             // validated bytes and derive both their extension and MIME from the decoder.
             var codec = decoder.DecoderInformation;
@@ -1718,7 +1734,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 return;
             }
 
-            var result = await _repository.ApplyRetentionAsync(
+            var result = await _undo.ApplyRetentionAsync(
                     now.AddDays(-_settings.RetentionDays),
                     _settings.RetentionItemCount,
                     cancellationToken)

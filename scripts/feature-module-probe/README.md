@@ -38,6 +38,20 @@ Each invocation requires `--case` plus the fresh root/evidence arguments:
 
 Cases 1/2/3 plus every mode of 4/5 total **10 actual scenario invocations**, not five. Execute
 only the necessary chosen subset; this README does not enable a broad suite automatically.
+Case **6** is a separate, cross-platform **managed inventory-only** scenario. It creates fresh
+local inert package/archive/receipt fixtures, binds the dependent/dependency relationship to
+the actual store enumeration order, then verifies dependency discovery, interrupted uninstall
+cleanup, retained data and missing-dependency rejection. A controlled temporary-store gate
+also verifies public mutation waiting for startup. All fixtures are disabled; no executable,
+worker, downloader, installation action or network request is invoked. Their explicit
+`MinimumWindowsBuild=0` is a legal fixture parameter for managed validation on Linux; the
+production compatibility rules and Windows guards for cases 1–5 remain unchanged. This does
+not prove Windows compatibility or process behavior. Run only this opt-in case with:
+
+```sh
+dotnet run --project scripts/feature-module-probe/FeatureModuleProbe.csproj -- --case 6 --root <fresh artifacts inventory directory> --evidence <fresh artifacts JSON file>
+```
+
 Native WinUI layout/navigation/island priority, actual installer upgrades, existing lyrics/model
 behavior and public-release publication remain separate verification boundaries.
 
