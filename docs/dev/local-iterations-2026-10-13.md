@@ -245,12 +245,34 @@ the real action registry and real Linux symbolic links. The existing restore was
 reused, and no other ZIP case or broad suite ran. See the
 [ZIP evidence](evidence/local-iterations-2026-10-13/zip-selection-validation.md).
 
+## 8. Preview requests queued across cache clear
+
+Adding bounded preview admission moved cache-generation capture from the public
+LoadAsync entry into the eventual worker. An old text snapshot queued before Clear
+could therefore acquire the post-clear generation and recreate cached old content.
+Existing clear and concurrency tests exercised those concerns separately.
+
+The narrow repair captures generation before admission and passes it through the
+existing worker path. The slot count, cancellation/late-owner lifetime and provider
+fallback behavior remain in scope for review. Planned check: one controlled
+Infrastructure case holds both provider slots, queues an old request, clears the
+real temporary cache, then confirms no old request repopulates it while a fresh
+request can cache normally. No timing delay or broad preview suite is planned.
+
+Result: the one new exact-name test passed once (94 ms runner summary; no failure
+or skip), using the real text provider and file cache. Normal compilation reused
+existing restore assets. The existing global Clear contract invalidates persistence;
+it does not revoke a preview already requested by a caller. That return behavior
+is retained, and Windows rendering/UI interaction remain unverified. See the
+[preview evidence](evidence/local-iterations-2026-10-13/preview-generation-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
 changes in `845649f`, module recovery in `d9ba41c`, and clipboard ownership in
-`0e32575`. ZIP result correctness is ready for its local checkpoint. Investigation
-continues into read-only quick actions and preview cancellation/cache ownership.
+`0e32575`. ZIP result correctness is saved in `907ff86`. Preview cache-generation
+ownership is ready for its local checkpoint. Investigation continues into remote
+clipboard import cancellation and resource ownership.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the

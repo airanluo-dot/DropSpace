@@ -65,14 +65,17 @@ public sealed class PreviewProviderRegistry(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return RunBoundedAsync(() => LoadCoreAsync(request, cancellationToken), cancellationToken);
+        // Own the cache generation before waiting for worker capacity. A request
+        // queued before ClearAsync must not recreate cleared content when it starts.
+        var generation = cache.Generation;
+        return RunBoundedAsync(() => LoadCoreAsync(request, generation, cancellationToken), cancellationToken);
     }
 
     private async Task<PreviewDescriptor> LoadCoreAsync(
         PreviewRequest request,
+        long generation,
         CancellationToken cancellationToken)
     {
-        var generation = cache.Generation;
         var capability = await ProbeCoreAsync(request.Item, cancellationToken).ConfigureAwait(false);
         if (!capability.CanPreview)
         {
