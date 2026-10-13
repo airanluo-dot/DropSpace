@@ -434,57 +434,10 @@ public sealed class DropLinkClient(
 
     private static List<SourceFile> EnumerateFilesCore(IReadOnlyList<string> sourcePaths, TransferLimits limits, CancellationToken cancellationToken)
     {
-        var result = new List<SourceFile>();
-        long totalBytes = 0;
-        foreach (var source in sourcePaths)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var full = Path.GetFullPath(source);
-            if (File.Exists(full))
-            {
-                var attributes = File.GetAttributes(full);
-                if (attributes.HasFlag(FileAttributes.ReparsePoint))
-                {
-                    throw new InvalidDataException("Transfer source files must not be reparse points.");
-                }
-
-                var length = new FileInfo(full).Length;
-                if (result.Count >= limits.MaxItems || length > limits.MaxTotalBytes - totalBytes)
-                {
-                    throw new InvalidDataException("The transfer enumeration limit was exceeded.");
-                }
-
-                result.Add(new SourceFile(full, TransferManifestPolicy.SafeDisplayName(Path.GetFileName(full)), GuessMime(full), length));
-                totalBytes += length;
-                continue;
-            }
-            if (!Directory.Exists(full)) throw new FileNotFoundException("Transfer source is unavailable.");
-            if (File.GetAttributes(full).HasFlag(FileAttributes.ReparsePoint))
-            {
-                throw new InvalidDataException("Transfer source directories must not be reparse points.");
-            }
-
-            if (result.Count >= limits.MaxItems || totalBytes >= limits.MaxTotalBytes)
-            {
-                throw new InvalidDataException("The transfer enumeration limit was exceeded.");
-            }
-
-            var rootName = TransferManifestPolicy.SafeDisplayName(Path.GetFileName(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
-            var entries = ReparseSafeDirectoryEnumerator.Enumerate(
-                full,
-                rootName,
-                limits.MaxItems - result.Count,
-                limits.MaxTotalBytes - totalBytes,
-                cancellationToken);
-            foreach (var entry in entries)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                result.Add(new SourceFile(entry.FullPath, entry.RelativePath, GuessMime(entry.FullPath), entry.Length));
-                totalBytes += entry.Length;
-            }
-        }
-        if (result.Count == 0) throw new InvalidDataException("The transfer contains no regular files.");
-        return result;
+        var budget = TransferTraversalBudget.CreateForItemLimit(limits.MaxItems);
+        return ReparseSafeDirectoryEnumerator.EnumerateSources(sourcePaths, limits, budget, cancellationToken)
+            .Select(entry => new SourceFile(entry.FullPath, entry.RelativePath, GuessMime(entry.FullPath), entry.Length))
+            .ToList();
     }
 
     private static async Task<FileSnapshot> HashFileAsync(string path, CancellationToken cancellationToken)

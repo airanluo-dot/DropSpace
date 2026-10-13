@@ -394,6 +394,7 @@ Nenhum conteúdo será aberto automaticamente.</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Transferência enviada</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>O dispositivo confiável aceitou a transferência e DropSpace verificou o conteúdo antes de confirmar.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Transferência indisponível</value></data>
+  <data name="TransferPreparationLimitContent" xml:space="preserve"><value>A seleção contém entradas demais nas pastas ou caminhos muito longos. Selecione menos itens ou uma subpasta menor e tente novamente.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>Nenhum dispositivo pareado</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Encontre e emparelhe um dispositivo Windows confiável em Configurações → Dispositivos e compartilhamento primeiro.</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>Enviar para qual dispositivo?</value></data>

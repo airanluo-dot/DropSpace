@@ -463,6 +463,45 @@ not establish native foreground or keyboard behavior. First-show focus, Tab/Esca
 multiple displays and fullscreen policy still need Windows interaction; the source
 repair is not represented as target-platform acceptance.
 
+## 16. Bound DropLink source traversal before sending
+
+DropLink counted regular files and their bytes, but directories entered its work
+stack and visited set without a traversal budget. Many empty directories could
+therefore consume preparation work without approaching either existing limit.
+The separate Nearby/Internet sharing enumerator already has its own entry/depth
+limits and is unchanged. No measured UI stall or guaranteed immediate cancellation
+of synchronous filesystem IO is claimed.
+
+The selected repair adds one shared node budget across the entire selection:
+`MaxItems + 4096`, including roots, directories, files and skipped links. This is
+a new local preparation policy, not an existing DropLink requirement or a strict
+process-memory limit. It preserves the configurable 10000-file ceiling. Ordinary
+directories, including empty ones, use the configured manifest-relative path limit
+before enqueueing; no new fixed depth limit is introduced. File path normalization
+also needs that configuration, which the old enumerator omitted. Exceeding either
+new preparation check aborts the whole selection before hashing or offering it.
+
+One typed error maps to a translated corrective message in all ten UI languages.
+Independent wording review also found transportation-specific Korean/Russian
+translations in the reused failure title; only those two existing title entries
+are included in this round's explicit translation review.
+
+Planned verification is one real-filesystem composite in the existing enumerator
+test class, focused on shared selection ownership, empty-directory paths and
+valid deep/configured-length paths, plus one scoped localization integrity check.
+No network transfer, existing enumeration suite or Windows GUI run is planned.
+Outbound transfer cancellation, progress and disable/shutdown ownership remain a
+separate, confirmed follow-up; this node budget does not solve those lifetimes.
+
+Result: the single Infrastructure composite passed once (56 ms runner summary),
+with one normal targeted compilation and no restore or repeated scenarios. The
+small shared budget, empty-directory path rejection, real 40-level path accepted
+at 2048/rejected at the default 1024, and pre-canceled admission all executed.
+The nine explicit translation-review commands and one App integrity check also
+succeeded (10 languages, 887 IDs); these are not functional test cases. Windows
+long paths, MainPage's real dialog and network transmission remain unexecuted.
+See the [handoff preparation evidence](evidence/local-iterations-2026-10-13/handoff-enumeration-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -472,9 +511,10 @@ ownership is saved in `2d89b32` and remote image ownership in `8e3901a`.
 The pin/removal Undo ordering fix is saved in `d510192`, and download-startup
 ownership in `783fec7`, and image-export handles in `d03c59d`. Pause failure
 feedback is saved in `c12d283`, and discarded-card asset cancellation in `796f90b`.
-Quick Panel keyboard focus has passed independent static review and is ready for
-its checkpoint. DropLink directory preparation budgets are the next selected
-improvement: file-count/byte limits do not bound traversal through empty folders.
+Quick Panel keyboard focus is saved in `5216d4e`. DropLink directory preparation
+budgets and their localized feedback have passed focused verification and are
+ready for their checkpoint. The next repair gives explicit device handoff sends
+their own service lifetime and bounded capacity across disable/re-enable.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.

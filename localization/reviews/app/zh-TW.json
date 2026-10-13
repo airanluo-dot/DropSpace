@@ -3546,29 +3546,20 @@
     "ModuleHostRequired": [
       "7a79f63ce25778474891a4c84d84ea2e48d7dccc599209372096fe27cb51f5c0",
       "93005202e2cad7eda5663ee65e41d9da0983e9180d48599c6e48a1d578bcb5da"
+    ],
+    "TransferPreparationLimitContent": [
+      "fe0530b2c95d65b4b819c0668cca8d06a332dc1badcdddb3bf908ac59e265424",
+      "c38e1b0094d731094f8f19fa39f01263b9fe0de803687056438f9d7ec440fbfe"
     ]
   },
-  "reviewedBy": "Codex: reviewed fourteen new feature-module lifecycle labels",
-  "reviewedAt": "2026-10-08T04:54:15.864Z",
+  "reviewedBy": "Codex native_context; independent enhancement_lifecycle review: transfer preparation guidance and ko/ru data-transfer titles",
+  "reviewedAt": "2026-10-13T04:39:04.928Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "ModuleEnabled",
-      "ModuleDisabled",
-      "ModuleEnable",
-      "ModuleDisable",
-      "ModuleRunning",
-      "ModuleStopped",
-      "ModuleStarting",
-      "ModuleStopping",
-      "ModulePendingCleanup",
-      "ModuleSave",
-      "ModuleClearData",
-      "ModuleClearDataConfirm",
-      "ModuleRetryCleanup",
-      "ModuleHostRequired"
+      "TransferPreparationLimitContent"
     ],
-    "reviewedBy": "Codex: reviewed fourteen new feature-module lifecycle labels",
-    "reviewedAt": "2026-10-08T04:54:15.864Z"
+    "reviewedBy": "Codex native_context; independent enhancement_lifecycle review: transfer preparation guidance and ko/ru data-transfer titles",
+    "reviewedAt": "2026-10-13T04:39:04.928Z"
   }
 }

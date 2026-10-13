@@ -393,7 +393,8 @@
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>보안 인터넷 링크 생성</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>전송됨</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>신뢰할 수 있는 장치가 전송을 수락하고 DropSpace이 커밋하기 전에 콘텐츠를 확인했습니다.</value></data>
-  <data name="TransferUnavailableTitle" xml:space="preserve"><value>환승 불가</value></data>
+  <data name="TransferUnavailableTitle" xml:space="preserve"><value>전송할 수 없음</value></data>
+  <data name="TransferPreparationLimitContent" xml:space="preserve"><value>선택한 대상에 포함된 폴더 내 항목이 너무 많거나 경로가 너무 깁니다. 더 적은 항목이나 더 작은 하위 폴더를 선택한 후 다시 시도하세요.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>페어링된 기기 없음</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>먼저 설정 → 장치 및 공유에서 신뢰할 수 있는 Windows 장치를 찾아 페어링하세요.</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>어떤 기기로 보내시겠어요?</value></data>

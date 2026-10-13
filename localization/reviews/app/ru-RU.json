@@ -1557,7 +1557,7 @@
     ],
     "TransferUnavailableTitle": [
       "59a362959398911763417d8690deab34b43f1b0bd2f5084e10bc382d643c43ec",
-      "6d0dee6dc8b9b593955224349c977b55561911edb4a46a652c2eefe55f00f8e0"
+      "5665af127d8245d43df881ed9def747fade3bcedb1b91cf08e335c7c8c4ef319"
     ],
     "NoPairedDevicesTitle": [
       "b2680ed17eca69c038d27f910d0c174980d620c82db4b35d88bde978b9068a12",
@@ -3546,29 +3546,21 @@
     "ModuleHostRequired": [
       "7a79f63ce25778474891a4c84d84ea2e48d7dccc599209372096fe27cb51f5c0",
       "e6417a34b8743af01dbdf9b83d8103c43d849f517ca6b2e1c1403ae84665fb77"
+    ],
+    "TransferPreparationLimitContent": [
+      "fe0530b2c95d65b4b819c0668cca8d06a332dc1badcdddb3bf908ac59e265424",
+      "8ac4f5f193f01ef653df160f1597f24ac847dcce0a2431ab5657e4d7fc186124"
     ]
   },
-  "reviewedBy": "Codex: reviewed fourteen new feature-module lifecycle labels",
-  "reviewedAt": "2026-10-08T04:54:22.167Z",
+  "reviewedBy": "Codex native_context; independent enhancement_lifecycle review: transfer preparation guidance and ko/ru data-transfer titles",
+  "reviewedAt": "2026-10-13T04:39:08.400Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "ModuleEnabled",
-      "ModuleDisabled",
-      "ModuleEnable",
-      "ModuleDisable",
-      "ModuleRunning",
-      "ModuleStopped",
-      "ModuleStarting",
-      "ModuleStopping",
-      "ModulePendingCleanup",
-      "ModuleSave",
-      "ModuleClearData",
-      "ModuleClearDataConfirm",
-      "ModuleRetryCleanup",
-      "ModuleHostRequired"
+      "TransferPreparationLimitContent",
+      "TransferUnavailableTitle"
     ],
-    "reviewedBy": "Codex: reviewed fourteen new feature-module lifecycle labels",
-    "reviewedAt": "2026-10-08T04:54:22.167Z"
+    "reviewedBy": "Codex native_context; independent enhancement_lifecycle review: transfer preparation guidance and ko/ru data-transfer titles",
+    "reviewedAt": "2026-10-13T04:39:08.400Z"
   }
 }

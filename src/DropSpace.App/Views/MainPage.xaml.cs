@@ -2407,6 +2407,12 @@ public sealed partial class MainPage : Page
         {
             _logger.LogWarning(exception, "A main-page operation failed.");
             if (_dialogLifetime.IsCancellationRequested || XamlRoot is null) return;
+            if (exception is TransferPreparationLimitException)
+            {
+                await ShowMessageAsync(_strings.Get("TransferUnavailableTitle"),
+                    _strings.Get("TransferPreparationLimitContent"));
+                return;
+            }
             if (exception is SettingsUpdateException settingsFailure)
             {
                 SyncSettingsControls();

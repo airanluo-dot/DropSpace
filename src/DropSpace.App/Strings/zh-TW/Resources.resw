@@ -394,6 +394,7 @@
   <data name="TransferSentTitle" xml:space="preserve"><value>傳送完成</value></data>
   <data name="TransferSentContent" xml:space="preserve"><value>受信任的裝置接受了傳輸，並在提交之前 DropSpace 驗證了內容。</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>無法傳送</value></data>
+  <data name="TransferPreparationLimitContent" xml:space="preserve"><value>所選內容中的檔案或資料夾過多，或路徑過長。請選取較少的項目或較小的子資料夾，然後再試一次。</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>沒有配對的裝置</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>首先在「設定」→「裝置和共用」中尋找並配對受信任的 Windows 裝置。</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>傳送到哪個裝置？</value></data>
