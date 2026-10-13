@@ -11,23 +11,23 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the Stable baseline**. **v0.3.1-beta.19** is the immediate public upgrade baseline for **v0.3.2-beta.1**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, Windows release automation, and the product/engineering specifications.
+DropSpace **v0.2.1 is the Stable baseline**. **v0.3.2-beta.1** is the immediate public upgrade baseline for **v0.3.2-beta.2**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, Windows release automation, and the product/engineering specifications.
 
-The current Beta target is `v0.3.2-beta.1` (Beta 1).
+The current Beta target is `v0.3.2-beta.2` (Beta 2).
 
-This Beta adds a separate official optional feature-module layer while preserving built-in features and existing model/CUDA components. Signed packages, compatible process handshakes, declarative host pages/settings, expiring low-priority Island content and retained module data share recoverable lifecycle contracts. It also fixes language-storage recovery, stable retained UI message identity and installer localization checks. See the [release notes](.github/release-notes/v0.3.2-beta.1.md), [module standard](docs/dev/feature-modules.md) and [current validation ledger](docs/dev/beta32-test-ledger.md).
+This Beta repairs media discovery and native session ownership, adds device-send progress and active Nearby-link management, and improves clipboard Undo, file/preview lifetimes, downloads and ready-update recovery. It preserves built-in features, the official module contract and existing model/CUDA components. See the [release notes](.github/release-notes/v0.3.2-beta.2.md), [local implementation and verification record](docs/dev/local-iterations-2026-10-13.md) and [publication record](docs/dev/beta2-release-2026-10-13.md).
 
-Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Public upgrade baseline: [v0.3.1-beta.19](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.19); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Public upgrade baseline: [v0.3.2-beta.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.1); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
 Beta1 adds optional official feature modules around the existing host. The host owns navigation, settings and Island presentation; a module supplies an independent worker, declarations and its own data. Existing built-in behavior, independent CUDA component delivery and optional AI translation off by default remain.
 
-The [module guide](docs/dev/feature-modules.md), [release notes](.github/release-notes/v0.3.2-beta.1.md) and [execution ledger](docs/dev/beta32-test-ledger.md) describe actual capabilities and validation boundaries. Actual publication is established by the exact integrated-main Windows producer and final Release/website readback.
+The [module guide](docs/dev/feature-modules.md), [release notes](.github/release-notes/v0.3.2-beta.2.md) and [execution ledger](docs/dev/local-iterations-2026-10-13.md) describe actual capabilities and validation boundaries. Actual publication is established by the exact integrated-main Windows producer and final Release/website readback.
 
 The unchanged optional CUDA archive is reused from its [independent component release](https://github.com/airanluo-dot/DropSpace/releases/tag/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1). Trust, hashes, interface compatibility, App-source metadata and installed-component reuse remain enforced. Prior App release assets and download addresses remain available.
 
 Beta16 bundled fastText `lid.176.bin` for one offline whole-track prediction. Originals already in the independently selected Chinese/English target language skip AI; any valid target-language provider translation disables AI for the entire track, including gaps. Only Unknown originals without valid target translations enter the existing optional Hy-MT2 progressive flow. Its historical validation remains in the [Beta16 audit](docs/dev/beta16-lyrics-audit.md); it does not establish Beta17 Windows acceptance.
 
-v0.3.1-beta.19 is the immediate upgrade baseline for this release.
+v0.3.2-beta.1 is the immediate upgrade baseline for this release.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables
@@ -128,7 +128,7 @@ The implemented vertical slice includes:
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
 - Process-lifetime in-app update checks, repeatable manual checks, Stable/Beta channels, resilient official website/GitHub metadata sources, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
 
-Current Beta validation uses the existing isolated candidate route: focused source/resource checks, full App/XAML compilation, and packaging from the exact integrated main tree. There is no fixed test ceiling; choose necessary checks and record actual executions, failures, retries and Actions. See `docs/dev/beta32-test-ledger.md` for this release's executions and boundaries; historical broad smoke coverage does not establish a new pass. Production installer, portable, updater and independent component contracts remain unchanged.
+Current Beta validation uses the existing isolated candidate route: focused source/resource checks, full App/XAML compilation, and packaging from the exact integrated main tree. There is no fixed test ceiling; choose necessary checks and record actual executions, failures, retries and Actions. See `docs/dev/local-iterations-2026-10-13.md` and `docs/dev/beta2-release-2026-10-13.md` for this release's executions and boundaries; historical broad smoke coverage does not establish a new pass. Production installer, portable, updater and independent component contracts remain unchanged.
 
 ## Download and run
 

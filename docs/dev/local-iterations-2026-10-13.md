@@ -855,11 +855,12 @@ unique targeted check are saved in `fa5673a`. The independent
 lyric settings-coalescing repair is saved in `cfeb744` after static review. Next,
 the outdated interface/lyric language assertion and its one targeted Core result
 are saved in `767ddfe`. Native PDF preview operation ownership is saved in
-`7f80aca`. The final local task, retention protection for unpin Undo, has passed
-its one focused validation and is ready to save.
+`7f80aca`. The final local task, retention protection for unpin Undo, is saved in
+`6b39136` after its one focused validation.
 Per the owner’s latest instruction, no new development iteration will start after
 that task; the next phase prepares and publishes the next Beta through existing
-release gates with minimal testing. Target-platform gaps remain explicit.
+release gates with minimal testing. The [publication record](beta2-release-2026-10-13.md)
+continues the execution ledger for that phase. Target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.
 The original user failures remain unverified on the target platform until the

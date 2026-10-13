@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.2-beta.1
+## Release target: v0.3.2-beta.2
 
-The current Beta target is `v0.3.2-beta.1` (Beta 1).
-v0.3.1-beta.19 is the immediate upgrade baseline for this release.
+The current Beta target is `v0.3.2-beta.2` (Beta 2).
+v0.3.2-beta.1 is the immediate upgrade baseline for this release.
 
-Deliver the official optional feature-module v1 contract incrementally around the existing host: official-source packages/catalog with integrity checks, compatible worker IPC, recoverable install/activation/disable/uninstall, host-rendered pages/settings and constrained expiring Island content. Keep built-in features, default settings, existing data and independent component bytes. Include the six focused language/installer/evidence corrections and rewrite the canonical skill as the implemented development standard.
+Publish the completed local media and lifecycle repairs, device-send progress that survives page changes, and active Nearby-link management. Preserve existing data/settings, built-in features, the official module contract and independent model/CUDA bytes. Other open PRs remain outside this candidate.
 
-Preserve lyric/AI business behavior and the ten-language/unified-URL interface contract. Select necessary checks without a fixed ceiling and record every actual execution, failure and retry; compilation is not runtime acceptance. Publication remains gated by the [release notes](.github/release-notes/v0.3.2-beta.1.md), [actual baseline](docs/dev/beta32-baseline.md) and [execution ledger](docs/dev/beta32-test-ledger.md).
+Reuse the recorded focused results and perform only required App/XAML compilation, exact-main packaging, one isolated installer payload check and production integrity/public readback. Actual Windows/NetEase and the recorded UI-only interactions remain unverified; builds do not establish those outcomes. See the [release notes](.github/release-notes/v0.3.2-beta.2.md), [local iteration record](docs/dev/local-iterations-2026-10-13.md) and [publication record](docs/dev/beta2-release-2026-10-13.md).
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.1
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.2
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
