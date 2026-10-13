@@ -1,0 +1,7 @@
+  DropSpace.Core -> /workspace/DropSpace/src/DropSpace.Core/bin/Debug/net10.0/DropSpace.Core.dll
+  DropSpace.Core.Tests -> /workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Debug/net10.0/DropSpace.Core.Tests.dll
+Test run for /workspace/DropSpace/tests/DropSpace.Core.Tests/bin/Debug/net10.0/DropSpace.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /tmp/dropspace-round23-results/lyrics-target-policy.trx
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 40 ms - DropSpace.Core.Tests.dll (net10.0)

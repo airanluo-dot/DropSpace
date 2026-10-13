@@ -1,0 +1,3 @@
+  Determining projects to restore...
+  Restored /workspace/DropSpace/src/DropSpace.Core/DropSpace.Core.csproj (in 93 ms).
+  Restored /workspace/DropSpace/tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj (in 132 ms).

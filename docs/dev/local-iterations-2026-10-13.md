@@ -735,6 +735,31 @@ also found an older Core test still coupling interface language to lyric reload;
 that assertion predates the explicit Chinese/English target policy and is recorded
 for a separate correction, not treated as passing evidence for this repair.
 
+## 23. Align the existing lyric-policy assertion with explicit targets
+
+The Core policy test still expected an interface-language change to reload lyric
+translations. Production uses the independent Chinese/English translation target,
+as required by the current product contract. The existing test now explicitly
+starts with English as its lyric target, requires interface-only changes to
+preserve the lyrics, and requires switching the lyric target to Simplified Chinese
+to reload. Its model, GPU, AI-enable and provider assertions remain intact. No
+production policy, frozen test selection or source pins changed.
+
+The first exact-method `--no-restore` command failed before compilation or test
+execution: the existing Core test assets retained a NU1301 restore error from a
+403 response through the configured NuGet proxy. No functional case ran and no
+automatic network retry occurred. Read-only inspection found all thirteen exact
+locked packages in the existing global cache. One locked restore using an empty
+local feed and that cache repaired only the assets; NuGet audit was disabled for
+this offline command, with no repository dependency or lock-file change.
+
+The second exact-method command passed (40 ms runner summary, 19.5017 ms TRX):
+this was the first functional execution, one passed and none failed/skipped. The first command's
+pre-compilation failure and the offline restore are retained in the receipt.
+No other Core method or round 21 test was run. This policy check is separate from
+round 22's App notification-lifecycle repair and does not validate WinUI events.
+See the [policy-check evidence](evidence/local-iterations-2026-10-13/lyrics-target-policy-validation.md).
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -751,11 +776,12 @@ disable/re-enable in `8553eac`. A native progress and cancellation surface for
 file sends, with state owned independently of a MainPage instance, is saved in
 `8734660`. Download publication cancellation and checkpoint errors are repaired
 in `c5b5622`. In-session Nearby-link management and its verified local server
-lifecycle are saved in `b1a2e77`. The downloaded-update recovery repair has passed
-its unique targeted check and is ready for a local checkpoint. The independent
+lifecycle are saved in `b1a2e77`. The downloaded-update recovery repair and its
+unique targeted check are saved in `fa5673a`. The independent
 lyric settings-coalescing repair is saved in `cfeb744` after static review. Next,
-the outdated interface/lyric language assertion is being corrected, and native
-PDF preview operation ownership is under investigation.
+the outdated interface/lyric language assertion is corrected and its one targeted
+Core check passed after a local assets repair. Native PDF preview operation
+ownership is selected for the next local implementation.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.

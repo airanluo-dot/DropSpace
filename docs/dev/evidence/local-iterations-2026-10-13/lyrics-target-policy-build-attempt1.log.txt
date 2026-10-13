@@ -1,0 +1,2 @@
+/workspace/DropSpace/tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj : error NU1301: Unable to load the service index for source https://api.nuget.org/v3/index.json.
+/workspace/DropSpace/tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj : error NU1301:   The proxy tunnel request to proxy 'http://proxy:8080/' failed with status code '403'."

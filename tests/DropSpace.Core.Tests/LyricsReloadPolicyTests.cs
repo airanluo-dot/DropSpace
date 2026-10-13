@@ -15,10 +15,11 @@ public sealed class LyricsReloadPolicyTests
     }
 
     [TestMethod]
-    public void LanguageModelAndProviderChangesRetireOldTranslations()
+    public void InterfaceLanguagePreservesLyricsWhileTranslationSettingsRetireThem()
     {
-        var before = new AppSettings();
-        Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Language = AppLanguagePreference.English }));
+        var before = new AppSettings { LyricsTranslationTarget = LyricsTranslationTarget.English };
+        Assert.IsFalse(LyricsReloadPolicy.RequiresReload(before, before with { Language = AppLanguagePreference.English }));
+        Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { LyricsTranslationTarget = LyricsTranslationTarget.SimplifiedChinese }));
         Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Lyrics = before.Lyrics with { AiModelId = "lightweight" } }));
         Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Lyrics = before.Lyrics with { AiLyricsGpuAccelerationEnabled = false } }));
         Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Lyrics = before.Lyrics with { AiTranslationEnabled = true } }));

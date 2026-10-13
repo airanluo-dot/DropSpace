@@ -1,0 +1,29 @@
+{
+  "capturedBeforeExecutionAtUtc": "2026-10-13T05:52:41.518799+00:00",
+  "inputs": [
+    {
+      "path": "tests/DropSpace.Core.Tests/LyricsReloadPolicyTests.cs",
+      "sha256": "ad5ecbcbba3d0b64196d504d349404757ae895aaa11afd8d569f71881a9202ad"
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsReloadPolicy.cs",
+      "sha256": "df46245d7a4cf8707aede63aeebe81eb7537061f7364a1da0073230fbe00f2ae"
+    },
+    {
+      "path": "src/DropSpace.Core/Models/AppSettings.cs",
+      "sha256": "21dcec7e3f182fca63e5459ee0e14ff0cf2d3ada8066b7f42004294af1d2a8ab"
+    },
+    {
+      "path": "tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj",
+      "sha256": "7a15ed252032f8011fdf6723fc4ef6fa1f5c8dc011bc64dca95e6a6029d15a60"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+    }
+  ]
+}
