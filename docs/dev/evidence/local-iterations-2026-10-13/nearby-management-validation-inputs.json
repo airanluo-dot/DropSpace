@@ -1,0 +1,220 @@
+{
+  "round": 20,
+  "uniqueNewFunctionalScenarios": 1,
+  "executions": 1,
+  "failedExecutions": 0,
+  "restore": "existing assets reused with --no-restore",
+  "build": "one normal Infrastructure.Tests build; default analyzers and existing test warning configuration retained",
+  "command": "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj --no-restore --nologo --filter FullyQualifiedName=DropSpace.Infrastructure.Tests.NearbyShareManagementTests.MetadataRevokeAndExpiryFollowTheRealShareRegistryWithoutReadSideStartup --logger 'trx;LogFileName=nearby-management.trx' --results-directory /tmp/dropspace-round20-results",
+  "result": {
+    "exitCode": 0,
+    "testName": "MetadataRevokeAndExpiryFollowTheRealShareRegistryWithoutReadSideStartup",
+    "outcome": "Passed",
+    "duration": "00:00:00.2461806",
+    "counters": {
+      "total": "1",
+      "executed": "1",
+      "passed": "1",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "sharesCreated": 4,
+    "localHttpRequests": 2,
+    "firstFileGetBytes": 3,
+    "postRevokeHttpStatus": 404,
+    "expiryTimersCreated": 1,
+    "finalActiveTimers": 0
+  },
+  "platform": "Linux; actual NearbyShareServer/Kestrel and private local IPv4 admission; proxy disabled; manual TimeProvider drives real expiry callback",
+  "measured": [
+    "management reads do not call address resolver, advertise a base URI or arm a timer",
+    "metadata lists accurate share identity/name/count/bytes/expiry without URL or bearer token",
+    "explicit fresh descriptor exists while active and disappears after revoke",
+    "actual private local file GET returns three bytes before revoke and 404 afterward",
+    "single one-shot timer expires earliest share and notifies before any snapshot read, then rearms to later deadline",
+    "final expiry empties registry and disarms timer",
+    "reflection invocation of actual network-change handler invalidates last share, descriptor and base URI and publishes change",
+    "normal disposal completes and owned timer reports disposed; socket closure not independently probed"
+  ],
+  "staticOnly": [
+    "App ItemSharingService/SharingUseCase forwarding",
+    "already-admitted streaming request semantics",
+    "queued stale timer callbacks",
+    "disposal reentrancy",
+    "final MainPage nearby management UI and resource integration"
+  ],
+  "unexecuted": [
+    "historical tests",
+    "actual OS adapter transition",
+    "external receiver/cross-device connection",
+    "Windows firewall behavior",
+    "system timer thread scheduling",
+    "WinUI management flow, keyboard and accessibility",
+    "full App/XAML compilation"
+  ],
+  "uiAndLocalizationEvidence": "final independent UI review passed; static localization passed; UI hashes captured afterward without App/XAML compilation or repeating the frozen server test",
+  "inputs": [
+    {
+      "path": "src/DropSpace.Infrastructure/Sharing/NearbyShareServer.cs",
+      "sha256": "28998fc50b98f5a0d63dbba32a5cd84b8f71ddb9ec7da5c426fce7a5e6a4ec1a"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/LocalNetworkInterfaceResolver.cs",
+      "sha256": "8e9de958fb70e31b0581942dd7f7ae4d1498ff801d177d499f520ebe7aca208a"
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/TransferModels.cs",
+      "sha256": "4b8dd5d5e8d085d7531b64e7b7061a392facfa12cb4a2744772485f86b99fb6d"
+    },
+    {
+      "path": "src/DropSpace.App/Services/ItemSharingService.cs",
+      "sha256": "8b7e84402cab5ef1c24f4fc76366c2d271eac3de2583e46306cdaf7eba4667cd"
+    },
+    {
+      "path": "src/DropSpace.App/Services/SharingUseCase.cs",
+      "sha256": "4e4817560cb731bc90d78ac95e0082361f9b40033800110918d2e32b1fe0553a"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/NearbyShareManagementTests.cs",
+      "sha256": "cb49f50f796ca1ffed1cb86fab4a62c6d14ad4c30f9888d0a6415fa7a4218147"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj",
+      "sha256": "3456e89a0f3cc87621a574e5316cab277c6cba8af04791ee3e73f7956eb05618"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+    }
+  ],
+  "builtAssembly": {
+    "path": "tests/DropSpace.Infrastructure.Tests/bin/Debug/net10.0/DropSpace.Infrastructure.Tests.dll",
+    "sha256": "49d7ae0bc9e697cf1a59b3301fcabe16494e3c5f97711374d5a42890408dd759"
+  },
+  "freezeOrder": {
+    "serverAndTest": "production/test frozen and hashed for the single successful run before UI final review; original input hashes retained unchanged",
+    "testStartedAtUtc": "2026-10-13T05:31:01.9897757+00:00",
+    "testEndedAtUtc": "2026-10-13T05:31:02.2576125+00:00",
+    "uiAndLocalization": "independent final review and existing one app gate completed afterward; this addition is read-only evidence capture, no rebuild/retest",
+    "uiHashesCapturedAtUtc": "2026-10-13T05:37:02.557615+00:00"
+  },
+  "uiInputs": [
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml",
+      "sha256": "6e18fa5d984689c7eaec2d1ece5dd1980044e99c481f557f9c357f05a4384fa8"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+      "sha256": "700448ef9bff50466a47f4a047523a0a58c882935c5323dd965f52345a54fa3d"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.Shares.cs",
+      "sha256": "0006609022a225a542377fe0a879895e66221f452de6223b55d862bf03c717bc"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
+      "sha256": "c8cb74c1814911f7a9a8d209b3d336d289095e44076dae15e6f1c4d76043c3f8"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+      "sha256": "45b328549cc4f8a05c428576be172469081b5ee7656b30c01c91a9afb3b98641"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
+      "sha256": "c7a9986bc13f2c581107742c0c85c1a376a7f2b2dd8eab646919ce66ac4a8a22"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
+      "sha256": "2e945e57ff164a37a002807bd73af5a5208b41ee9d39a8193fa9b971adb19999"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
+      "sha256": "dcde2cf4ed9de56cdaa1014974de509aefb586117c28a028748cc4e2788cfcf7"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
+      "sha256": "156d4636a0b0f6de9d1add7d2f535183bcde2a0c0c416019166d0be4ea5e29d3"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
+      "sha256": "5e0aebd494ce695f371f47a72b5e768d8295b6a9bd502318dc7f9d804d661515"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
+      "sha256": "e87f1f87b5fca63d318d40cb68cd3e88590ae079caa7c6b7e30b613a440f2f14"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+      "sha256": "d70702cce5d6aca9386dc87901a76ad28de6a1c8c3d82c79f30b7faaeecdcfdc"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
+      "sha256": "ded4be1d39ebaef799cfeb371352cc9387c6f0802c0a4f8c47c1a8876babd14b"
+    },
+    {
+      "path": "localization/reviews/app/de-DE.json",
+      "sha256": "4958d05512bcaf0a0d09c432477f9e9a953195b4aaf8d6b5f50d3dff0839af89"
+    },
+    {
+      "path": "localization/reviews/app/es-ES.json",
+      "sha256": "a99143b4b56648311733c0fca320fa2fabf1f99a2d4df8190d0ff2d3ea32dd15"
+    },
+    {
+      "path": "localization/reviews/app/fr-FR.json",
+      "sha256": "9ec0d4a403277e80726122ca47ba0e8b75ef194317375a40bed15497c96330bf"
+    },
+    {
+      "path": "localization/reviews/app/ja-JP.json",
+      "sha256": "7b91904a86013e0f41578956bddd6b4530fdc3f7af828d575d0fb4c24d0c71d1"
+    },
+    {
+      "path": "localization/reviews/app/ko-KR.json",
+      "sha256": "4c47faeb949797aba7f734b5f36361b832f4de90b5cbcb8d1eb4373ab9ca2322"
+    },
+    {
+      "path": "localization/reviews/app/pt-BR.json",
+      "sha256": "03750acbff7a5369677cac2e442fb67638eb339490820eee072b4ef38e275368"
+    },
+    {
+      "path": "localization/reviews/app/ru-RU.json",
+      "sha256": "5934fdbfa3c3121cbfe1b1821146513e4cb7966a855584402604baecc67df996"
+    },
+    {
+      "path": "localization/reviews/app/zh-CN.json",
+      "sha256": "9b1c7cc8b52f1054993e68cfef056e3156c0f0fed36e96337cd07e0ae347707b"
+    },
+    {
+      "path": "localization/reviews/app/zh-TW.json",
+      "sha256": "33e76759313fbdbf730450159add22991968b6cd5775596be2980c1adb024c45"
+    }
+  ],
+  "localization": {
+    "source": "native_context existing execution copied from /tmp/dropspace-round20-localization",
+    "explicitReviewExecutions": 9,
+    "scopeAppExecutions": 1,
+    "functionCaseCount": 0,
+    "languages": 10,
+    "appIds": 920,
+    "newIds": 12,
+    "additionalCorrectedExistingId": "zh-TW RevokeShareButton",
+    "rawLog": "nearby-management-localization.log.txt",
+    "commands": "nearby-management-localization-commands.json",
+    "keys": "nearby-management-localization-keys.json",
+    "zhTwKeys": "nearby-management-localization-zh-TW-keys.json"
+  }
+}

@@ -558,6 +558,9 @@
               </StackPanel>
               <ToggleSwitch x:Name="NearbySharingToggle" services:XamlResourceOverride.Uid="NearbySharingToggle" Grid.Column="1" Toggled="OnNearbySharingToggled" />
             </Grid>
+            <Button x:Name="ManageNearbyLinksButton" HorizontalAlignment="Left" Click="OnManageNearbyLinksClicked">
+              <TextBlock services:XamlResourceOverride.Uid="ManageNearbyLinksLabel" TextWrapping="Wrap" />
+            </Button>
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />

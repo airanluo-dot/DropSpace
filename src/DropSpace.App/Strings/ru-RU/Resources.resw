@@ -419,6 +419,18 @@
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>Нет сопряженных устройств</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Сначала найдите и подключите доверенное устройство Windows в «Настройки» → «Устройства и общий доступ».</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>Отправить на какое устройство?</value></data>
+  <data name="ManageNearbyLinksLabel.Text" xml:space="preserve"><value>Управление ссылками для обмена в локальной сети</value></data>
+  <data name="NearbyLinksTitle" xml:space="preserve"><value>Ссылки для обмена в локальной сети</value></data>
+  <data name="NearbyLinksEmpty" xml:space="preserve"><value>Нет действующих ссылок для обмена в локальной сети.</value></data>
+  <data name="NearbyLinksSummary" xml:space="preserve"><value>Объектов: {0} · {1}</value></data>
+  <data name="NearbyLinksLifetime" xml:space="preserve"><value>Ссылки остаются действующими, если закрыть это окно или свернуть DropSpace в область уведомлений. Выход из DropSpace или смена сети делает их недействительными.</value></data>
+  <data name="NearbyLinksDisabled" xml:space="preserve"><value>Обмен через браузер в локальной сети отключён. Новые ссылки создавать нельзя. Существующие ссылки действуют до истечения срока или отзыва.</value></data>
+  <data name="NearbyLinkUnavailable" xml:space="preserve"><value>Эта ссылка больше не действует. Её срок мог истечь, она могла быть отозвана или стать недоступной после смены сети.</value></data>
+  <data name="NearbyLinkLabel" xml:space="preserve"><value>Ссылка для обмена в локальной сети</value></data>
+  <data name="RevokeNearbyLinkTitle" xml:space="preserve"><value>Отозвать ссылку для обмена в локальной сети</value></data>
+  <data name="RevokeNearbyLinkContent" xml:space="preserve"><value>Отозвать ссылку для «{0}»? Уже начавшиеся загрузки могут продолжиться. Уже полученные файлы не будут удалены.</value></data>
+  <data name="RevokeNearbyLinkCompleted" xml:space="preserve"><value>Ссылка отозвана. Уже начавшиеся загрузки могут продолжиться.</value></data>
+  <data name="NearbyLinkQrAutomationName" xml:space="preserve"><value>QR-код выбранной ссылки для обмена в локальной сети</value></data>
   <data name="ShareReadyTitle" xml:space="preserve"><value>Поделиться готово</value></data>
   <data name="NearbyShareReady" xml:space="preserve"><value>Эта ссылка «Рядом» предназначена только для HTTP и частной сети. Срок его действия истекает автоматически; не используйте его в качестве защищенного Интернет-соединения.</value></data>
   <data name="EncryptedShareReady" xml:space="preserve"><value>Фрагменты манифеста и файла зашифрованы на этом устройстве. Ключ дешифрования хранится во фрагменте URL.</value></data>

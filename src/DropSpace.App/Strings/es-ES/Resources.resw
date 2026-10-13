@@ -419,6 +419,18 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>No hay dispositivos emparejados</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Busque y vincule primero un dispositivo Windows confiable en Configuración → Dispositivos y uso compartido.</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>¿Enviar a qué dispositivo?</value></data>
+  <data name="ManageNearbyLinksLabel.Text" xml:space="preserve"><value>Gestionar enlaces de uso compartido cercano</value></data>
+  <data name="NearbyLinksTitle" xml:space="preserve"><value>Enlaces de uso compartido cercano</value></data>
+  <data name="NearbyLinksEmpty" xml:space="preserve"><value>No hay enlaces activos de uso compartido cercano.</value></data>
+  <data name="NearbyLinksSummary" xml:space="preserve"><value>Elementos: {0} · {1}</value></data>
+  <data name="NearbyLinksLifetime" xml:space="preserve"><value>Los enlaces siguen activos al cerrar este diálogo u ocultar DropSpace en la bandeja del sistema. Dejan de ser válidos al salir de DropSpace o cambiar de red.</value></data>
+  <data name="NearbyLinksDisabled" xml:space="preserve"><value>El uso compartido cercano por navegador está desactivado. No se pueden crear nuevos enlaces. Los enlaces existentes siguen siendo válidos hasta que caduquen o se revoquen.</value></data>
+  <data name="NearbyLinkUnavailable" xml:space="preserve"><value>Este enlace ya no está activo. Puede haber caducado, haberse revocado o haber dejado de funcionar tras un cambio de red.</value></data>
+  <data name="NearbyLinkLabel" xml:space="preserve"><value>Enlace de uso compartido cercano</value></data>
+  <data name="RevokeNearbyLinkTitle" xml:space="preserve"><value>Revocar enlace de uso compartido cercano</value></data>
+  <data name="RevokeNearbyLinkContent" xml:space="preserve"><value>¿Revocar el enlace de «{0}»? Las descargas que ya están en curso pueden continuar. Los archivos ya recibidos no se eliminarán.</value></data>
+  <data name="RevokeNearbyLinkCompleted" xml:space="preserve"><value>El enlace se ha revocado. Las descargas que ya están en curso pueden continuar.</value></data>
+  <data name="NearbyLinkQrAutomationName" xml:space="preserve"><value>Código QR del enlace de uso compartido cercano seleccionado</value></data>
   <data name="ShareReadyTitle" xml:space="preserve"><value>Enlace listo para compartir</value></data>
   <data name="NearbyShareReady" xml:space="preserve"><value>Este enlace cercano es HTTP y de red privada únicamente. Caduca automáticamente; no lo utilice como enlace seguro de Internet.</value></data>
   <data name="EncryptedShareReady" xml:space="preserve"><value>Los fragmentos de archivos y manifiestos están cifrados en este dispositivo. La clave de descifrado se guarda en el fragmento URL.</value></data>

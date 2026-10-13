@@ -3634,35 +3634,75 @@
     "FileTransferCancelAutomationName": [
       "13aaae7363cbc4189131cd104aabd76151a2a82abb7f69fe653fbce6bd844776",
       "6f44c6aa0d1df7968344a26b18e50c2332d061527847c79d21a2661e36d604e9"
+    ],
+    "ManageNearbyLinksLabel.Text": [
+      "287a896e7bb6b24495d381d3a8c118b3e8b7712c71469dcb7d7910ecb22b1476",
+      "ec8810e9562e75051c322dcce3cc81cd447f6c0eadfa7d31b978b708da02d3c9"
+    ],
+    "NearbyLinksTitle": [
+      "57e5e177976dbf725a196f28ff360bbe3890bd44bf82bb7df4552615641e76c7",
+      "6fea8edaa7ad69e54457c14ee2daebdde3b43310e8eb311a93a48e9b13855c4b"
+    ],
+    "NearbyLinksEmpty": [
+      "d91b23afa10dd155a68f27d7270558bdb6ffb6f787d0f868d7ce4a2b800f4c34",
+      "bc829d642a2682e31e20a0d7293615b4bdf8deec4e7a468290f6acd094b8a89c"
+    ],
+    "NearbyLinksSummary": [
+      "4120d0c68c4e4a6903c4ef984d6341b0b5d6c9fb671ab76171e34e622068badd",
+      "53b7061482178710d4b790df1d76bcae9bdafe0c2118f4bb459f0132ad5ede75"
+    ],
+    "NearbyLinksLifetime": [
+      "c4587b1a208bc8def53fccc798725c7280998f2dcc2f0c006b9a87ac5cea0846",
+      "ee10019b9099468dc2d9c2c0d3b8456a016ef24fde61c6981741a9463d36e73a"
+    ],
+    "NearbyLinksDisabled": [
+      "89420cbce54ab77b768aa354114a7c3383bd4fac0a47afe8e7e93401edc399af",
+      "de3588fe90d67bb224d4e2da95132f4cf1fbc22de5ba3121598b7531d3e331cd"
+    ],
+    "NearbyLinkUnavailable": [
+      "e46b128ad04fad5bf60aa0f606ffb6c6f3b546715c44f34882dd7ff75a32034f",
+      "ee8aea9dabcf199b37e2e9e6e4f9a7889c530e63fa5548587b2cb917ede6ba5a"
+    ],
+    "NearbyLinkLabel": [
+      "7fed6814b917734599c270f05c2c3360889da4245dba697b3350422260707075",
+      "10a428549ff83e3658bdfd1631a8a759235ee2038c87cb0e87ba243bf70b51d8"
+    ],
+    "RevokeNearbyLinkTitle": [
+      "df173ab11de941df77eb01eb8a0f9d2b2717331ef540c577a968573b8edd5ea6",
+      "e42c7165da4396ad4471dc7dca3ddbde94c6be423cf06542b744ec537c65e08d"
+    ],
+    "RevokeNearbyLinkContent": [
+      "ac43bd0d9f4a0f093504f7bd7f958757fc03fcb9db1292f6a0997e611f784e76",
+      "a95f62d7bdbbeb85d1915b199cab3d0ed10b348a926d115459f4f85d2e2752ba"
+    ],
+    "RevokeNearbyLinkCompleted": [
+      "2805a72fd18669f088e507b9332a1cc251c13cc59e6e758a622afd3650c989e7",
+      "9cd1b22bee139a574f54f4177b5217f570ea5c99aab04a22fe07c010f89f3f90"
+    ],
+    "NearbyLinkQrAutomationName": [
+      "31bd53d7075e5bfb6044058866451f3d12543b771d203137c5df124ec8efdcdc",
+      "6aa2114e16dc948d00c46b04484fa6d3a1c185126c62947e86e894aae86815bc"
     ]
   },
-  "reviewedBy": "Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history",
-  "reviewedAt": "2026-10-13T05:11:02.751Z",
+  "reviewedBy": "codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction",
+  "reviewedAt": "2026-10-13T05:35:25.891Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "FileTransfersTitle",
-      "FileTransfersActiveCount",
-      "FileTransfersEmpty",
-      "FileTransfersContinue",
-      "FileTransfersClearCompleted",
-      "FileTransferTarget",
-      "FileTransferPreparing",
-      "FileTransferWaitingForApproval",
-      "FileTransferSending",
-      "FileTransferFinalizing",
-      "FileTransferCanceling",
-      "FileTransferCanceled",
-      "FileTransferCanceledOutcomeUnknown",
-      "FileTransferRejected",
-      "FileTransferApprovalTimeout",
-      "FileTransferNetworkError",
-      "FileTransferSourceError",
-      "FileTransferFailed",
-      "FileTransferByteProgress",
-      "FileTransferCancelAutomationName"
+      "ManageNearbyLinksLabel.Text",
+      "NearbyLinksTitle",
+      "NearbyLinksEmpty",
+      "NearbyLinksSummary",
+      "NearbyLinksLifetime",
+      "NearbyLinksDisabled",
+      "NearbyLinkUnavailable",
+      "NearbyLinkLabel",
+      "RevokeNearbyLinkTitle",
+      "RevokeNearbyLinkContent",
+      "RevokeNearbyLinkCompleted",
+      "NearbyLinkQrAutomationName"
     ],
-    "reviewedBy": "Codex native_context; independent media_control_review: file transfer stages, local cancellation uncertainty, accessibility, and bounded history",
-    "reviewedAt": "2026-10-13T05:11:02.751Z"
+    "reviewedBy": "codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction",
+    "reviewedAt": "2026-10-13T05:35:25.891Z"
   }
 }

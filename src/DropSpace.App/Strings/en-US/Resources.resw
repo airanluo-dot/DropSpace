@@ -421,6 +421,18 @@ Nothing will be opened automatically.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>No paired devices</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Find and pair a trusted Windows device in Settings → Devices &amp; Sharing first.</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>Send to which device?</value></data>
+  <data name="ManageNearbyLinksLabel.Text" xml:space="preserve"><value>Manage nearby links</value></data>
+  <data name="NearbyLinksTitle" xml:space="preserve"><value>Nearby links</value></data>
+  <data name="NearbyLinksEmpty" xml:space="preserve"><value>No active nearby links.</value></data>
+  <data name="NearbyLinksSummary" xml:space="preserve"><value>Items: {0} · {1}</value></data>
+  <data name="NearbyLinksLifetime" xml:space="preserve"><value>Closing this dialog or hiding DropSpace to the tray keeps these links active. Quitting DropSpace or changing networks invalidates them.</value></data>
+  <data name="NearbyLinksDisabled" xml:space="preserve"><value>Nearby Browser Share is off. Existing links still work until they expire or you revoke them; new sharing requests are disabled.</value></data>
+  <data name="NearbyLinkUnavailable" xml:space="preserve"><value>This link is no longer active. It may have expired, been revoked, or become unavailable after a network change.</value></data>
+  <data name="NearbyLinkLabel" xml:space="preserve"><value>Nearby link</value></data>
+  <data name="RevokeNearbyLinkTitle" xml:space="preserve"><value>Revoke nearby link</value></data>
+  <data name="RevokeNearbyLinkContent" xml:space="preserve"><value>Revoke the link for “{0}”? Downloads already in progress may continue. Files already received will not be removed.</value></data>
+  <data name="RevokeNearbyLinkCompleted" xml:space="preserve"><value>The link was revoked. Downloads already in progress may continue.</value></data>
+  <data name="NearbyLinkQrAutomationName" xml:space="preserve"><value>QR code for the selected nearby link</value></data>
   <data name="ShareReadyTitle" xml:space="preserve"><value>Share ready</value></data>
   <data name="NearbyShareReady" xml:space="preserve"><value>This Nearby link is HTTP and private-network only. It expires automatically; do not use it as an Internet-secure link.</value></data>
   <data name="EncryptedShareReady" xml:space="preserve"><value>The manifest and file chunks are encrypted on this device. The decryption key is kept in the URL fragment.</value></data>

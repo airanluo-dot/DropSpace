@@ -419,13 +419,25 @@
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>沒有配對的裝置</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>首先在「設定」→「裝置和共用」中尋找並配對受信任的 Windows 裝置。</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>傳送到哪個裝置？</value></data>
+  <data name="ManageNearbyLinksLabel.Text" xml:space="preserve"><value>管理鄰近分享連結</value></data>
+  <data name="NearbyLinksTitle" xml:space="preserve"><value>鄰近分享連結</value></data>
+  <data name="NearbyLinksEmpty" xml:space="preserve"><value>目前沒有有效的鄰近分享連結。</value></data>
+  <data name="NearbyLinksSummary" xml:space="preserve"><value>{0} 個項目 · {1}</value></data>
+  <data name="NearbyLinksLifetime" xml:space="preserve"><value>關閉此對話方塊或將 DropSpace 隱藏到系統匣後，連結仍然有效。結束 DropSpace 或切換網路會使連結失效。</value></data>
+  <data name="NearbyLinksDisabled" xml:space="preserve"><value>鄰近瀏覽器分享已關閉，無法開始新的分享。現有連結仍然有效，直到到期或手動撤銷。</value></data>
+  <data name="NearbyLinkUnavailable" xml:space="preserve"><value>此連結已失效。它可能已到期、遭撤銷，或因網路變更而無法使用。</value></data>
+  <data name="NearbyLinkLabel" xml:space="preserve"><value>鄰近分享連結</value></data>
+  <data name="RevokeNearbyLinkTitle" xml:space="preserve"><value>撤銷鄰近分享連結</value></data>
+  <data name="RevokeNearbyLinkContent" xml:space="preserve"><value>要撤銷「{0}」的連結嗎？已開始的下載可能會繼續，已接收的檔案不會被刪除。</value></data>
+  <data name="RevokeNearbyLinkCompleted" xml:space="preserve"><value>連結已撤銷。已開始的下載可能會繼續。</value></data>
+  <data name="NearbyLinkQrAutomationName" xml:space="preserve"><value>所選鄰近分享連結的 QR 碼</value></data>
   <data name="ShareReadyTitle" xml:space="preserve"><value>分享準備就緒</value></data>
   <data name="NearbyShareReady" xml:space="preserve"><value>此「附近」連結僅限 HTTP 和專用網路。自動失效；不要將其用作網路安全連結。</value></data>
   <data name="EncryptedShareReady" xml:space="preserve"><value>清單和檔案區塊在此裝置上加密。解密金鑰儲存在 URL 片段中。</value></data>
   <data name="ShareExpires" xml:space="preserve"><value>過期：{0}</value></data>
   <data name="CopyShareLink" xml:space="preserve"><value>複製連結</value></data>
   <data name="OpenShareQr" xml:space="preserve"><value>開啟QR 碼圖片</value></data>
-  <data name="RevokeShareButton" xml:space="preserve"><value>復原連結</value></data>
+  <data name="RevokeShareButton" xml:space="preserve"><value>撤銷連結</value></data>
   <data name="RevokeShareTitle" xml:space="preserve"><value>復原安全共享</value></data>
   <data name="RevokeShareContent" xml:space="preserve"><value>這會使連結無效並從設定的後端刪除其加密物件。繼續？</value></data>
   <data name="RevokeShareCompleted" xml:space="preserve"><value>安全共享已被復原。</value></data>

@@ -421,6 +421,18 @@
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>没有已配对设备</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>请先在“设置 → 设备与分享”中查找并配对可信 Windows 设备。</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>发送到哪台设备？</value></data>
+  <data name="ManageNearbyLinksLabel.Text" xml:space="preserve"><value>管理附近分享链接</value></data>
+  <data name="NearbyLinksTitle" xml:space="preserve"><value>附近分享链接</value></data>
+  <data name="NearbyLinksEmpty" xml:space="preserve"><value>暂无有效的附近分享链接。</value></data>
+  <data name="NearbyLinksSummary" xml:space="preserve"><value>{0} 项 · {1}</value></data>
+  <data name="NearbyLinksLifetime" xml:space="preserve"><value>关闭此对话框或将 DropSpace 隐藏到托盘后，链接仍然有效。退出 DropSpace 或切换网络会使链接失效。</value></data>
+  <data name="NearbyLinksDisabled" xml:space="preserve"><value>附近浏览器分享已关闭，无法发起新的分享。现有链接仍会有效，直到到期或手动撤销。</value></data>
+  <data name="NearbyLinkUnavailable" xml:space="preserve"><value>此链接已失效。它可能已到期、被撤销，或因网络变化而不可用。</value></data>
+  <data name="NearbyLinkLabel" xml:space="preserve"><value>附近分享链接</value></data>
+  <data name="RevokeNearbyLinkTitle" xml:space="preserve"><value>撤销附近分享链接</value></data>
+  <data name="RevokeNearbyLinkContent" xml:space="preserve"><value>撤销“{0}”的链接？已经开始的下载可能继续，已接收的文件不会被删除。</value></data>
+  <data name="RevokeNearbyLinkCompleted" xml:space="preserve"><value>链接已撤销。已经开始的下载可能继续。</value></data>
+  <data name="NearbyLinkQrAutomationName" xml:space="preserve"><value>所选附近分享链接的二维码</value></data>
   <data name="ShareReadyTitle" xml:space="preserve"><value>分享已就绪</value></data>
   <data name="NearbyShareReady" xml:space="preserve"><value>附近链接使用 HTTP 且仅限私有网络。链接会自动过期；请勿把它当作互联网安全链接。</value></data>
   <data name="EncryptedShareReady" xml:space="preserve"><value>清单和文件分块已在本机加密。解密密钥保存在 URL 片段中。</value></data>

@@ -635,6 +635,44 @@ Windows sharing/locking and the actual DownloadManager UI/control path remain
 outside runtime coverage. See the
 [publication evidence](evidence/local-iterations-2026-10-13/output-checkpoint-validation.md).
 
+## 20. Manage active Nearby links after their creation dialog closes
+
+NearbyShareServer already supports revocation, but the App never called it and
+retained descriptors only in a creation dialog. Once that dialog closed, users
+could not return to an active link to view, copy or revoke it. The selected native
+management surface is reachable from the existing Devices settings and after
+creating a link. The server's bounded dictionary remains the sole authority;
+metadata lists contain no link token, and each action resolves its descriptor
+again. Network changes, revocation, expiry and disposal withdraw stale entries.
+
+One timer targets the next actual expiry, instead of polling. It also releases
+expired source closures when no management view is open. Notifications carry a
+change signal, are invoked outside ownership locks, and the view rereads current
+snapshots. Dialog transitions must finish the current owned dialog before opening
+confirmation or QR views; page retirement removes observations.
+
+The existing switch only prevents creating new links. That behavior is retained
+and explained, with management still available while the switch is off. Revoking
+a link prevents subsequent requests; an already admitted download can continue.
+No persistent history, new listener on a read, remote service, or source-file
+mutation is introduced. The native list, selection details, copy, QR and revoke
+flow are implemented. QR/list observations retire with their owned dialogs, and
+each next dialog waits for the previous native ShowAsync to finish. Ten languages
+have twelve new resources; the reused Traditional Chinese revoke label was also
+corrected from the opposite meaning.
+
+Result: independent server/UI/resource review passed. One targeted Infrastructure
+composite ran once and passed (267 ms runner summary, 246.1806 ms TRX). It used the
+real local Kestrel listener and a three-byte source: GET succeeded before revoke
+and returned 404 afterward. A controlled clock covered both successive expiry
+deadlines with a single one-shot timer; metadata reads did not start the server.
+The existing network-change handler withdrew active links. No polling or real
+expiry wait was needed. Nine precise translation reviews and one App resource
+check passed (ten languages, 920 IDs). See the
+[nearby-management evidence](evidence/local-iterations-2026-10-13/nearby-management-validation.md).
+Actual WinUI rendering, focus/keyboard, clipboard and QR display, OS network
+changes, and cross-device behavior remain unverified. No full App/XAML build ran.
+
 ## Continuation
 
 The integrated media changes are saved in local commit `0e01f77`, and file lifetime
@@ -649,10 +687,11 @@ budgets and their localized feedback are saved in `b51e307`. Explicit device
 handoff sends retain their service lifetime and bounded capacity across
 disable/re-enable in `8553eac`. A native progress and cancellation surface for
 file sends, with state owned independently of a MainPage instance, is saved in
-`8734660`. The active repair tightens cancellation and checkpoint errors at the
-download publication boundary. A later product candidate is a persistent
-in-session Nearby-link management surface; the server already supports revoke,
-but the App has neither a revoke call nor a recoverable list of active links.
+`8734660`. Download publication cancellation and checkpoint errors are repaired
+in `c5b5622`. In-session Nearby-link management is implemented and its server
+lifecycle has passed the targeted local check, using the existing server's
+bounded registry and revocation contract. The next iteration investigates
+remaining user-visible failure and recovery paths against current source.
 Further local workflow investigation continues; target-platform gaps remain explicit.
 Previously fixed outbox batch rotation
 was confirmed in current source and existing tests, so it was not changed or retested.

@@ -419,6 +419,18 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="NoPairedDevicesTitle" xml:space="preserve"><value>Keine gekoppelten Geräte</value></data>
   <data name="NoPairedDevicesContent" xml:space="preserve"><value>Suchen und koppeln Sie zunächst ein vertrauenswürdiges Windows-Gerät unter Einstellungen → Geräte &amp; Freigabe.</value></data>
   <data name="SelectDeviceTitle" xml:space="preserve"><value>An welches Gerät senden?</value></data>
+  <data name="ManageNearbyLinksLabel.Text" xml:space="preserve"><value>Links für die Freigabe im lokalen Netzwerk verwalten</value></data>
+  <data name="NearbyLinksTitle" xml:space="preserve"><value>Links im lokalen Netzwerk</value></data>
+  <data name="NearbyLinksEmpty" xml:space="preserve"><value>Keine aktiven Links für die Freigabe im lokalen Netzwerk.</value></data>
+  <data name="NearbyLinksSummary" xml:space="preserve"><value>Elemente: {0} · {1}</value></data>
+  <data name="NearbyLinksLifetime" xml:space="preserve"><value>Die Links bleiben aktiv, wenn Sie diesen Dialog schließen oder DropSpace in den Infobereich ausblenden. Beim Beenden von DropSpace oder Wechseln des Netzwerks werden sie ungültig.</value></data>
+  <data name="NearbyLinksDisabled" xml:space="preserve"><value>Die Browserfreigabe im lokalen Netzwerk ist ausgeschaltet. Neue Freigaben können nicht gestartet werden. Vorhandene Links bleiben gültig, bis sie ablaufen oder widerrufen werden.</value></data>
+  <data name="NearbyLinkUnavailable" xml:space="preserve"><value>Dieser Link ist nicht mehr aktiv. Er ist möglicherweise abgelaufen, wurde widerrufen oder ist nach einem Netzwerkwechsel nicht mehr verfügbar.</value></data>
+  <data name="NearbyLinkLabel" xml:space="preserve"><value>Link im lokalen Netzwerk</value></data>
+  <data name="RevokeNearbyLinkTitle" xml:space="preserve"><value>Link im lokalen Netzwerk widerrufen</value></data>
+  <data name="RevokeNearbyLinkContent" xml:space="preserve"><value>Den Link für „{0}“ widerrufen? Bereits laufende Downloads können fortgesetzt werden. Bereits empfangene Dateien werden nicht entfernt.</value></data>
+  <data name="RevokeNearbyLinkCompleted" xml:space="preserve"><value>Der Link wurde widerrufen. Bereits laufende Downloads können fortgesetzt werden.</value></data>
+  <data name="NearbyLinkQrAutomationName" xml:space="preserve"><value>QR-Code für den ausgewählten Link im lokalen Netzwerk</value></data>
   <data name="ShareReadyTitle" xml:space="preserve"><value>Freigabe bereit</value></data>
   <data name="NearbyShareReady" xml:space="preserve"><value>Dieser Nearby-Link ist nur über HTTP und ein privates Netzwerk verfügbar. Es läuft automatisch ab; Verwenden Sie es nicht als internetsicheren Link.</value></data>
   <data name="EncryptedShareReady" xml:space="preserve"><value>Die Manifest- und Dateiblöcke werden auf diesem Gerät verschlüsselt. Der Entschlüsselungsschlüssel wird im Fragment URL gespeichert.</value></data>
