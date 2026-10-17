@@ -1,0 +1,69 @@
+{
+  "version": "v0.3.2-beta.4",
+  "releaseUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.4",
+  "sourceCommit": "053b6c29c476e9403176d6abb5df1be1da0011a4",
+  "pr": 127,
+  "prBuild": {
+    "runId": 39068390323,
+    "status": "success",
+    "warnings": 0,
+    "errors": 0,
+    "functionalCases": 0
+  },
+  "packageProducer": {
+    "runId": 39068618278,
+    "status": "success",
+    "isolatedInstallerPayloadCases": 1,
+    "warnings": [
+      "MSIX toolchain could not find mspdbcmf.exe; no symbols package generated. Existing symbol-policy check passed."
+    ],
+    "errors": 0
+  },
+  "publication": {
+    "runId": 39069162484,
+    "status": "success",
+    "publicAssets": 8,
+    "prerelease": true,
+    "draft": false,
+    "signing": "existing unsigned Beta policy"
+  },
+  "website": {
+    "runId": 39069337299,
+    "status": "success",
+    "releaseApiLatestChangeAndHomepage": "verified by publication job"
+  },
+  "publicInstaller": {
+    "kind": "actual-public-installer-download",
+    "url": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/DropSpaceSetup.exe",
+    "expectedBytes": 203918329,
+    "startedAt": 1792271096.378318,
+    "httpStatus": 200,
+    "bytes": 203918329,
+    "sha256": "f87591d7c641ad8f08eafbcd1ea21ed840841f67998d3632b7b7f3c59e830d7e",
+    "status": "verified",
+    "manifestAndChecksumsMatch": true
+  },
+  "moduleCatalog": {
+    "httpStatus": 200,
+    "matchesCurrentSource": true,
+    "sha256": "2a8fc541c1c676af1b8e33476195a8172f79730372fd0d0b786eae162291b839"
+  },
+  "retainedFailures": [
+    {
+      "runId": 39068303116,
+      "reason": "Ten exact file-digest false positives, verified against bytes and narrowly excluded; follow-up scans passed."
+    },
+    {
+      "runId": 39068303264,
+      "reason": "Superseded PR build cancelled when exact-fingerprint correction changed the PR tree."
+    }
+  ],
+  "developmentEvidence": "docs/dev/local-iterations-2026-10-17.md; earlier RTB failures and unknown attempts remain unchanged. No full visual, physical-input or DPI approval.",
+  "sourceIntegrityChecks": "Release metadata, owner/source binding and whitespace each passed once before PR. No broad functional/model/stress suite manually requested.",
+  "logs": {
+    "artifacts/beta4-release/pr-build.log": "bdaea902483a92631330f95042ba3e9e44ebc0df4c3770165d78a0a1825db712",
+    "artifacts/beta4-release/package-build.log": "08cba701a4b921354b5156f31ba9b8ecff2909ae94af74a43c0bee31701b26b1",
+    "artifacts/beta4-release/publication.log": "3b67c5117b81cb061c808bd04a353c1f6bebf9f889ae06b820fe9e6a111af06b",
+    "artifacts/beta4-release/secret-scan-pr.log": "504acc31f907f2d4c28fd748fd55cd1c81ad7d76d7bf822b308784d92ea35f5e"
+  }
+}
