@@ -254,6 +254,7 @@ internal static partial class BetaUiDiagnostics
         Require(widgets.Layout.Expanded.All(placement => placement.ColumnSpan == 2 && placement.RowSpan == 1),
             "The diagnostic timers did not use the explicit 2 x 1 fixture layout.");
         await CaptureAsync(overlay.DiagnosticSurface, "timers-initial", receipt, token);
+        await CaptureDesktopAsync(overlay, null, "timers-initial", receipt, token);
 
         foreach (var id in new[] { NativeWidgetId.FocusTimer, NativeWidgetId.Countdown })
         {
@@ -316,6 +317,7 @@ internal static partial class BetaUiDiagnostics
             startButton.Click += OnStartClick;
             try
             {
+                var selectionMenuClosedBaseline = closed;
                 ActionStep("open-duration-menu", () => Invoke(durationButton));
                 await WaitStep("duration-menu-open", () => menu.IsOpen);
                 var submenu = menu.Items.OfType<MenuFlyoutSubItem>().Single();
@@ -336,6 +338,7 @@ internal static partial class BetaUiDiagnostics
                     choice = Bounds(choice, popup), menuOpen = menu.IsOpen,
                 });
                 await CaptureAsync(popup, "timer-menu-" + id, receipt, token);
+                await CaptureDesktopAsync(overlay, popup, "timer-menu-" + id, receipt, token);
                 Stage(receipt, "timer-" + id + "-choice-automation-pattern");
                 var choicePeer = FrameworkElementAutomationPeer.CreatePeerForElement(choice)
                     ?? throw new InvalidOperationException("Duration choice has no real automation peer.");
@@ -354,7 +357,10 @@ internal static partial class BetaUiDiagnostics
                 });
                 await WaitStep("duration-ten-minutes", () => timer.Duration == TimeSpan.FromMinutes(10));
                 ActionStep("close-after-selection", menu.Hide);
-                await WaitStep("menu-closed-after-selection", () => !menu.IsOpen);
+                // IsOpen becomes false before the native close animation completes.
+                // Wait for this opening cycle's Closed event before invoking the button again.
+                // Capture the baseline before opening: Toggle may close synchronously.
+                await WaitStep("menu-closed-after-selection", () => !menu.IsOpen && closed > selectionMenuClosedBaseline);
                 ActionStep("start", () => Invoke(startButton));
                 await WaitStep("running", () => timer.IsRunning);
                 ActionStep("pause", () => Invoke(startButton));
@@ -368,6 +374,7 @@ internal static partial class BetaUiDiagnostics
                 ActionStep("reopen-overlay", () => Present(true));
                 await WaitStep("overlay-reopened", () => overlay.ObserveModuleOverlay() is { Visible: true, WidgetsActive: true });
                 Require(!menu.IsOpen, "A retired timer menu reopened with the retained overlay.");
+                var reopenedMenuClosedBaseline = closed;
                 ActionStep("open-menu-after-reopen", () => Invoke(durationButton));
                 await WaitStep("menu-open-after-reopen", () => menu.IsOpen);
                 Stage(receipt, "timer-" + id + "-selected-duration-retained");
@@ -379,7 +386,7 @@ internal static partial class BetaUiDiagnostics
                     scale = view.XamlRoot.RasterizationScale,
                 });
                 ActionStep("close-after-reopen", menu.Hide);
-                await WaitStep("menu-closed-after-reopen", () => !menu.IsOpen);
+                await WaitStep("menu-closed-after-reopen", () => !menu.IsOpen && closed > reopenedMenuClosedBaseline);
             }
             finally
             {
@@ -391,6 +398,7 @@ internal static partial class BetaUiDiagnostics
             }
         }
         await CaptureAsync(overlay.DiagnosticSurface, "timers-reopened", receipt, token);
+        await CaptureDesktopAsync(overlay, null, "timers-reopened", receipt, token);
         Stage(receipt, "timer-overlay-final-hide");
         Present(false);
     }

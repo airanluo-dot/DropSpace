@@ -17,7 +17,7 @@
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" MaxLines="1"/><TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis" MaxLines="1" FontSize="11" Opacity="0.65"/></StackPanel>
       <Button Grid.Column="1" services:XamlResourceOverride.Uid="ClipboardIslandCopy" Click="OnCopy" Tag="{Binding}" Padding="8,4"/>
-      <ToggleButton Grid.Column="2" IsChecked="{Binding IsPinned, Mode=OneWay}" AutomationProperties.Name="{Binding PinActionLabel}" ToolTipService.ToolTip="{Binding PinActionLabel}" Click="OnPin" Tag="{Binding}" Padding="8,4"><FontIcon Glyph="&#xE718;" FontSize="13"/></ToggleButton>
+      <ToggleButton Grid.Column="2" IsChecked="{Binding IsPinned, Mode=OneWay}" IsEnabled="{Binding IsPinActionEnabled, Mode=OneWay}" AutomationProperties.Name="{Binding PinActionLabel}" ToolTipService.ToolTip="{Binding PinActionLabel}" Click="OnPin" Tag="{Binding}" Padding="8,4"><FontIcon Glyph="&#xE718;" FontSize="13"/></ToggleButton>
       <Button Grid.Column="3" services:XamlResourceOverride.Uid="ClipboardIslandRemove" Click="OnRemove" Tag="{Binding}" Padding="8,4"><FontIcon Glyph="&#xE711;" FontSize="13"/></Button>
      </Grid>
     </DataTemplate></ListView.ItemTemplate>

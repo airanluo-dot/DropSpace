@@ -4,7 +4,8 @@ param(
     [string]$BuildReceiptPath = 'artifacts/beta-ui-diagnostics/build/build-receipt.json',
     [string]$OutputDirectory = 'artifacts/beta-ui-diagnostics/run',
     [ValidateSet('all', 'timers', 'batch-selection')][string]$Scenario = 'all',
-    [ValidateRange(30, 600)][int]$TimeoutSeconds = 240
+    [ValidateRange(30, 600)][int]$TimeoutSeconds = 240,
+    [switch]$IncludeSupplementalImagesInLog
 )
 
 Set-StrictMode -Version Latest
@@ -15,6 +16,7 @@ $timerScenarios = @('timer-menu-retirement')
 $batchScenarios = @('batch-collapse-selection')
 $timerCaptures = @('timers-initial.png', 'timer-menu-FocusTimer.png', 'timer-menu-Countdown.png', 'timers-reopened.png')
 $batchCaptures = @('batch-expanded-selected.png', 'batch-collapsed-selection.png')
+$supplementalCaptureNames = @('timers-initial-desktop.png', 'timer-menu-FocusTimer-desktop.png', 'timer-menu-Countdown-desktop.png', 'timers-reopened-desktop.png')
 $selectionContracts = @{
     'all' = @{ scenarios = $timerScenarios + $batchScenarios; captures = $timerCaptures + $batchCaptures }
     'timers' = @{ scenarios = $timerScenarios; captures = $timerCaptures }
@@ -39,6 +41,8 @@ $launch = [ordered]@{
     exitCode = $null; timedOut = $false; processExited = $false; actualCaseCount = 0; passedCaseCount = 0
     requestedScenario = $Scenario; selectedScenario = $null; plannedCaseCount = $expectedScenarios.Count; reportedPlannedCaseCount = $null
     visualStatus = 'not-run'; scenarios = @(); captures = @(); captureFailures = @(); observations = @(); exceptions = @(); environment = $null; failure = $null
+    supplementalCaptures = @(); supplementalCaptureFailures = @(); supplementalEvidenceFailure = $null
+    supplementalImageLog = @(); supplementalImageLogRequested = [bool]$IncludeSupplementalImagesInLog
     releasePromotionEligible = $false; physicalPointerValidated = $false; appReceiptSha256 = $null
 }
 function Copy-AppEvidenceSummary([System.Collections.IDictionary]$AppReceipt) {
@@ -62,6 +66,26 @@ function Copy-AppEvidenceSummary([System.Collections.IDictionary]$AppReceipt) {
         }
         $metadata
     })
+    # Supplemental desktop evidence cannot replace the RTB captures or alter their gate.
+    try {
+        $launch.supplementalCaptures = @(
+            if ($AppReceipt.Contains('supplementalCaptures')) {
+                foreach ($file in $supplementalCaptureNames) {
+                    $matchingCaptures = @($AppReceipt.supplementalCaptures | Where-Object { $_.file -ceq $file })
+                    if ($matchingCaptures.Count -eq 0) { continue }
+                    $metadata = [ordered]@{ file = $file; receiptEntryCount = $matchingCaptures.Count }
+                    foreach ($key in @('sha256', 'pixelWidth', 'pixelHeight', 'status', 'captureKind', 'sourceApi', 'sourcePixelSha256', 'sourcePixelFormat', 'synthesizedOpaqueAlpha', 'bounds', 'boundsAfter', 'overlayHwnd', 'ownedHwnd', 'ownershipBefore', 'ownershipAfter', 'environment', 'limitations', 'stage', 'reason', 'details')) {
+                        if ($matchingCaptures[0].ContainsKey($key)) { $metadata[$key] = $matchingCaptures[0][$key] }
+                    }
+                    $metadata
+                }
+            }
+        )
+        if ($AppReceipt.Contains('supplementalCaptureFailures')) {
+            $launch.supplementalCaptureFailures = @($AppReceipt.supplementalCaptureFailures | Select-Object -First 4 | ForEach-Object { Limit-Observation $_ })
+        }
+    }
+    catch { $launch.supplementalEvidenceFailure = Limit-SummaryText $_.Exception.Message }
 }
 function Limit-SummaryText([object]$Value) {
     if ($null -eq $Value) { return $null }
@@ -76,6 +100,64 @@ function Limit-Observation([object]$Value) {
         return [ordered]@{ truncated = $true; jsonPrefix = $json.Substring(0, 2000); completeEvidence = 'launcher.json and app/receipt.json' }
     }
     return $Value
+}
+function Export-SupplementalImageLog {
+    $totalBytes = 0
+    $launch.supplementalImageLog = @(
+        foreach ($capture in $launch.supplementalCaptures) {
+            $entry = [ordered]@{ file = $capture.file; status = 'skipped'; reason = $null; bytes = $null; sha256 = $null; chunkCount = 0 }
+            try {
+                if (-not $IncludeSupplementalImagesInLog) { $entry.reason = 'log-transfer-not-requested'; continue }
+                if ($Scenario -ceq 'batch-selection') { $entry.reason = 'timer-scenario-not-selected'; continue }
+                if ($capture.receiptEntryCount -ne 1) { $entry.reason = 'repeated-receipt-entry'; continue }
+                if (-not $capture.Contains('status') -or $capture.status -cne 'captured-for-manual-review') {
+                    $entry.reason = 'supplemental-capture-not-completed'; continue
+                }
+                if ($null -eq $child -or -not $launch.processExited -or $launch.processId -ne $child.Id -or
+                    $null -eq $launch.environment -or $launch.environment.processId -ne $launch.processId -or
+                    -not $capture.Contains('environment') -or $capture.environment.processId -ne $launch.processId) {
+                    $entry.reason = 'owned-child-identity-not-confirmed'; continue
+                }
+                if (-not $capture.Contains('sha256') -or $capture.sha256 -cnotmatch '^[a-f0-9]{64}$') {
+                    $entry.reason = 'missing-or-invalid-receipt-hash'; continue
+                }
+                # The allowlist is exact, and only this process's fresh App directory is read.
+                if ($capture.file -cnotin $supplementalCaptureNames) { $entry.reason = 'filename-not-allowed'; continue }
+                $image = Join-Path $appOutput $capture.file
+                if (-not (Test-Path -LiteralPath $image -PathType Leaf)) { $entry.reason = 'file-not-created'; continue }
+                $item = Get-Item -LiteralPath $image
+                if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+                    ((Get-Item -LiteralPath $appOutput).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    $entry.reason = 'linked-path-refused'; continue
+                }
+                $entry.bytes = $item.Length
+                if ($item.Length -lt 8 -or $item.Length -gt 128KB) { $entry.reason = 'per-image-byte-limit'; continue }
+                if ($totalBytes + $item.Length -gt 256KB) { $entry.reason = 'total-image-byte-limit'; continue }
+                $bytes = [IO.File]::ReadAllBytes($image)
+                if ($bytes.Length -ne $item.Length) { $entry.reason = 'file-size-changed'; continue }
+                $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+                $entry.sha256 = $hash
+                if ($hash -cne $capture.sha256) { $entry.reason = 'receipt-hash-mismatch'; continue }
+                if ([Convert]::ToHexString([byte[]]$bytes[0..7]) -cne '89504E470D0A1A0A') { $entry.reason = 'invalid-png-signature'; continue }
+                $base64 = [Convert]::ToBase64String($bytes)
+                $chunkCount = [int][Math]::Ceiling($base64.Length / 4096.0)
+                for ($index = 0; $index -lt $chunkCount; $index++) {
+                    $offset = $index * 4096
+                    $chunk = [ordered]@{
+                        file = $capture.file; bytes = $bytes.Length; sha256 = $hash
+                        chunkIndex = $index; chunkCount = $chunkCount
+                        base64 = $base64.Substring($offset, [Math]::Min(4096, $base64.Length - $offset))
+                    }
+                    # Original PNG bytes only; no resizing, re-encoding, or visual-pass claim.
+                    Write-Host ('DROPSPACE_BETA_UI_SUPPLEMENTAL_PNG=' + ($chunk | ConvertTo-Json -Compress))
+                }
+                $totalBytes += $bytes.Length
+                $entry.status = 'transferred'; $entry.reason = $null; $entry.chunkCount = $chunkCount
+            }
+            catch { $entry.reason = 'transfer-error: ' + (Limit-SummaryText $_.Exception.Message) }
+            finally { $entry }
+        }
+    )
 }
 $child = $null; $stdout = $null; $stderr = $null
 Push-Location $repo
@@ -195,9 +277,13 @@ finally {
             catch { $launch.failure += ' The last stage receipt could not be read.' }
         }
     }
+    # Both passed and failed runs may retain useful attachments. Transport never changes
+    # the scenario result, original failure, expected RTB captures, or visual status.
+    try { Export-SupplementalImageLog }
+    catch { $launch.supplementalImageLog = @(@{ status = 'skipped'; reason = 'supplemental-export-error: ' + (Limit-SummaryText $_.Exception.Message) }) }
     $launch.finishedAtUtc = [DateTimeOffset]::UtcNow.ToString('O')
     $launch | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $output 'launcher.json') -Encoding utf8
-    # Small metadata only: PNG bytes and large visual-tree observations remain artifacts.
+    # Small metadata summary; optional bounded PNG chunks have their own explicit marker.
     $summary = [ordered]@{}
     foreach ($key in $launch.Keys) {
         if ($key -ne 'scenarios') { $summary[$key] = $launch[$key] }
@@ -210,6 +296,7 @@ finally {
     $summary.exceptions = @($launch.exceptions | Select-Object -First 8 | ForEach-Object { Limit-SummaryText $_ })
     $summary.captures = @($launch.captures | Select-Object -First 16)
     $summary.observations = @($launch.observations | Select-Object -Last 6 | ForEach-Object { Limit-Observation $_ })
+    $summary.supplementalCaptures = @($launch.supplementalCaptures | ForEach-Object { Limit-Observation $_ })
     Write-Output ('DROPSPACE_BETA_UI_RECEIPT=' + ($summary | ConvertTo-Json -Depth 6 -Compress))
     if ($null -ne $child) { $child.Dispose() }
     Pop-Location

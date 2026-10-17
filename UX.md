@@ -137,6 +137,12 @@ navigation feedback and search-focus requests, including requests waiting for a
 settings save. Returning to the same destination still counts as a newer request.
 Pinned and Clipboard actions also recheck their originating Island view before
 opening the main window; hiding or position-editing that view retires the request.
+The Clipboard island retains its last accepted cards while refreshing. After all
+of its windows hide, reopening ignores results and errors from the old view.
+A successful refresh clears a previous refresh error; a failed Copy, Pin or Remove
+remains visible until the next user action, since refreshing does not retry it.
+A pending Pin action disables that card's Pin control. When the operation ends, its
+checked state follows the last known card value again, including after an error.
 
 ## Updates
 
@@ -336,7 +342,7 @@ Smart Drag has a strict invisible-candidate phase. The Dynamic Island does not c
 
 ## Preview.14 motion behavior
 
-The Dynamic Island uses one visual target per state and can reverse immediately when drag, drop, dismissal, expansion, or fullscreen suppression changes. Geometry morphs are independent from content opacity and elevation. Incoming content appears after a short 35–60 ms handoff and fades in over 120–167 ms with only a small 4 DIP visual offset; outgoing content leaves in about 83–100 ms. Hover adds a restrained translucent overlay over the existing material, and press briefly compresses content to 0.985. A valid accepted drop may compress the island inward to 0.97 and return to 1.0; it never grows outward to communicate acceptance.
+The Dynamic Island uses one visual target per state and can reverse immediately when drag, drop, dismissal, expansion, or fullscreen suppression changes. Geometry morphs are independent from content opacity and elevation. Incoming content appears after a short 35–60 ms handoff and fades in over 120–167 ms with only a small 4 DIP visual offset; outgoing content leaves in about 83–100 ms. Hover adds a restrained translucent overlay over the existing material, and press briefly compresses content to 0.985 around its current center. A valid accepted drop may compress the island inward to 0.97 and return to 1.0; it never grows outward to communicate acceptance.
 
 Reduced motion follows the Windows preference or the explicit Overlay setting. It removes bounce, overshoot, noticeable scale, and unnecessary translation while preserving state clarity with an immediate/short geometry change, short opacity fades, and a brief border/highlight drop cue. Changing theme, advanced effects, animation preference, or high contrast updates the material without changing Smart Drag authorization, native hit testing, focus, taskbar, or Alt+Tab ownership.
 

@@ -558,3 +558,158 @@ original navigation probe or already-passing batch scenario. Final OverlayWindow
 visibility/placement changes received independent source review. The complete
 attempt history and final reviewed source identities are retained in
 `evidence/local-iterations-2026-10-17/island-navigation-consumers.json`.
+
+
+### Continuation: precise timer reopening failure
+
+The timers-only run [39063598625](https://github.com/airanluo-dot/DropSpace/actions/runs/39063598625)
+built exact commit `ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f` with zero warnings/errors.
+Source/tree, apphost, PRI and all three managed assembly identities matched across
+the build and launcher receipts. The old music/Release job was skipped. It executed
+**one timer scenario, which failed**; the previously passing batch case did not run.
+
+The finer observations confirm the FocusTimer's real Toggle peer raised Click,
+changed duration to 10 minutes, and its real start/pause button raised two Clicks
+and returned to paused. The failure is now localized to reopening the duration
+menu before hiding the Overlay: the second button Click occurred after IsOpen had
+become false but before the first Closed event. Waiting for the second open timed
+out; the first Closed event arrived during that wait. This supports investigating
+the diagnostic's close-animation boundary rather than changing working duration
+or start/pause behavior. The remaining Countdown/hide/reopen checks did not run.
+
+The initial Overlay readback contained 190400 transparent pixels and no nonzero
+alpha; ExpandedPanel still had XAML opacity 0 with Composition opacity 1. The submenu
+readback contained 1888 nonzero-alpha pixels and 33 colors, but no opaque pixels.
+Both still fail the unchanged opaque-fixture predicate. These results do not prove
+that the desktop-composited Overlay is blank. PNGs remain remote artifacts without
+local visual inspection. The child exited 1 without launcher timeout or unhandled
+UI exceptions. Exact receipts and evidence hashes are appended to
+`evidence/local-iterations-2026-10-17/beta-native-ui.json`.
+
+
+### Continuation: Clipboard island refresh recovery
+
+The Clipboard island previously left a refresh error visible even after the next
+read succeeded. Its worker also accepted callbacks from a previous visibility
+period if every owner had hidden and one reopened while a read was pending.
+The shared view model now tracks aggregate visibility transitions and rechecks
+that identity at both success and failure publication. Hiding only one of several
+visible owners does not retire their shared work, and accepted cached cards remain.
+Successful refreshes clear only refresh errors; a failed user action still needs
+a new user action and is not concealed by a later successful read.
+
+A small probe links the complete production ClipboardIslandViewModel, actual
+dispatcher extension, item-card models and Core code. Against fixed old commit
+`ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f`, only the recovery scenario ran: **0/1**,
+with the stale-refresh-error assertion failing and all six assertions reached.
+Preserving action failures already passed on that baseline; no before result is
+claimed for the visibility cases. The final source then ran the four selected
+scenarios once: **4/4**, all 13 assertions passed. Total: five scenario executions,
+four passed and one expected baseline failure, zero retries. Both independent
+builds emitted zero warnings/errors. Source hashes remained fixed during execution.
+
+The controlled boundaries replace MainViewModel reads/actions, capture events and
+the WinUI dispatcher. These checks do not execute the real QueryAsync/thumbnail
+pipeline, SQLite, clipboard capture, native dispatch or rendering. Neither the old
+navigation cases nor native scenarios were rerun. Independent source review found
+no blocker. Original inputs, per-attempt counts and artifact hashes are retained in
+`evidence/local-iterations-2026-10-17/clipboard-island-refresh.json`.
+
+
+### Continuation: wait for the timer menu's actual close completion
+
+The diagnostic now captures each relevant menu cycle's Closed count before opening
+and waits for both IsOpen=false and a newer Closed event before reusing the button.
+Capturing before opening also handles synchronous closure during selection. Real
+button/Toggle invocation, production timer behavior and the existing pixel predicate
+remain unchanged. The actual failed-run event sequence and WinUI's documented/source
+close lifecycle support this fixture correction; upstream source is corroboration,
+not proof of the exact locked runtime binary.
+
+Independent review found no blocker. One additional narrow C# compile passed with
+zero warnings/errors; it executed no functional/native cases. These inputs were
+frozen before the later supplemental desktop-capture work. The receipt is in
+`evidence/local-iterations-2026-10-17/timer-menu-close-barrier.json`.
+
+
+### Continuation: center the Island's press feedback
+
+Press feedback scaled the separate SurfaceContent Composition visual without
+setting its center, leaving the default top-left pivot. The outer Surface's XAML
+RenderTransformOrigin applies to a different transform. The content now sets its
+center from its current size before applying the original scale, both on pointer
+feedback and motion frames. Reduced-motion resets, disposed-input guards and the
+independent top-anchored content transition pose remain intact.
+
+Independent source review supported this small visual correction. No functional
+scenario, local compile or physical press check was added; the planned Windows
+Debug build will compile it, while actual press appearance remains unverified.
+No previously passing pointer scenarios were repeated. Source identities and the
+verification boundary are in `evidence/local-iterations-2026-10-17/overlay-press-center.json`.
+
+
+### Continuation: bounded supplemental image transport
+
+Because the artifact download redirect is unavailable in this workspace, the
+explicit manual Debug route can additionally transmit the original supplemental
+PNGs as bounded chunks in its job log. The script defaults to no image transmission.
+It permits only four fixed timer filenames from the owned child's fresh diagnostic
+directory, checks process identity, file type, recorded SHA-256 and PNG signature,
+and rejects linked paths. Limits are 128 KiB per image and 256 KiB total; oversized
+images are marked skipped, never resized or re-encoded. Transfer success or failure
+does not change any scenario count, RTB capture requirement, original failure or
+visual status. Hash verification is required before local reconstruction/viewing.
+
+One PowerShell parse, one workflow source audit, one YAML/unchanged old-route and
+primary-gate check, and one changed-file whitespace check passed. These static
+checks ran no launcher/helper, App scenario or Actions workflow. The original
+inputs and transport limits are in `evidence/local-iterations-2026-10-17/beta-ui-desktop-log.json`.
+
+
+### Continuation: Clipboard Pin pending state and failed-toggle recovery
+
+The native ToggleButton changes checked state before its async persistence finishes.
+Its OneWay source binding previously received no notification if persistence failed
+without changing the card, leaving the visual state and action label inconsistent.
+Pin now disables the card's control and rejects another pending Pin request for that
+same card instance. In finally it republishes the card's known pin value/action label
+and reenables the control. The original binding remains; no async callback writes
+a potentially recycled control. This does not serialize different card instances.
+
+The displayed value is the last known card snapshot, not proof that a failed action
+rolled back storage. A write may succeed before its follow-up read fails; the action
+error remains and a later accepted refresh can recover the stored state.
+
+Only the new `pin_action_recovery` source-linked scenario ran once: **1/1**, all
+nine assertions passed, zero retries. It covers pending/repeated request, failure
+notification, restored availability and a successful explicit retry. The prior four
+refresh cases and baseline were not rerun; their frozen evidence is unchanged. One
+additional official WinUI/Windows-reference C# compile passed with zero warnings/errors.
+It did not compile XAML or run binding, ToggleButton/UIA, real persistence or native
+rendering. Independent source review found no blocker. Exact inputs and boundaries
+are in `evidence/local-iterations-2026-10-17/clipboard-island-pin-feedback.json`.
+
+
+### Continuation: separate desktop-composited timer attachments
+
+The focused timer diagnostic now additionally reads four bounded screen regions
+through DwmFlush, desktop BitBlt and GdiFlush. Surface bounds come from the owned
+Overlay HWND client area; popup bounds require the real automation peer's screen
+rectangle. It validates window visibility, process identity, uncloaked state, screen
+bounds and sampled HWND owner chains before and after readback. Unsupported peer
+bounds/ownership remain explicitly blocked; there is no guessed fallback crop.
+The helper owns and releases all native resources and records both primary read
+and cleanup failures. A synchronous OS call cannot be forcibly interrupted in
+process; the worker keeps resource ownership after the bounded await, and the
+launcher's process deadline remains the ultimate bound.
+
+The raw BGRX hash is recorded before setting the unused alpha byte to 255 for PNG
+encoding. That alpha is explicitly synthetic and is never fed to the old RTB gate.
+Supplemental images/failures are independent of required captures and status.
+Sampled HWND ownership cannot prove every pixel is unobscured or visually correct;
+the original RTB failures remain, and these images require actual inspection.
+
+One narrow C# compile passed with zero warnings/errors and stable source/reference
+hashes, plus independent source review. No functional/native execution was added
+at this checkpoint. Full inputs and limits are in
+`evidence/local-iterations-2026-10-17/beta-ui-desktop-capture.json`.

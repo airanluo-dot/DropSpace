@@ -18,6 +18,7 @@ public sealed class ItemCardViewModel : ObservableObject
     private bool _isBatchHeader;
     private bool _isBatchMemberVisible = true;
     private bool _isBatchExpanded = true;
+    private bool _isPinActionEnabled = true;
     private long _presentationGeneration;
     private bool _presentationRetired;
 
@@ -105,6 +106,18 @@ public sealed class ItemCardViewModel : ObservableObject
     };
 
     public bool IsPinned => Item.IsPinned;
+
+    public bool IsPinActionEnabled
+    {
+        get => _isPinActionEnabled;
+        internal set => SetProperty(ref _isPinActionEnabled, value);
+    }
+
+    internal void RefreshPinState()
+    {
+        OnPropertyChanged(nameof(IsPinned));
+        OnPropertyChanged(nameof(PinActionLabel));
+    }
 
     public DropBatchMetadata? BatchMetadata => TryReadBatchMetadata(Item.MetadataJson);
 

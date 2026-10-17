@@ -68,8 +68,16 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         ApplyContentPose(_compact, values.CompactContent);
         ApplyContentPose(_drag, values.DragContent);
         ApplyContentPose(_expanded, values.ExpandedContent);
-        _content.Scale = new Vector3(_pressScale, _pressScale, 1);
+        ApplyContentScale();
         _interactionTint.Opacity = _hoverOpacity;
+    }
+
+    private void ApplyContentScale()
+    {
+        // Press feedback contracts around the current content center, including
+        // while its layout changes during a transition.
+        _content.CenterPoint = new Vector3(_content.Size.X / 2, _content.Size.Y / 2, 0);
+        _content.Scale = new Vector3(_pressScale, _pressScale, 1);
     }
 
     private void ApplyContentPose(Visual visual, double progress)
@@ -100,7 +108,7 @@ internal sealed class OverlayCompositionAnimator : IDisposable
     {
         if (_disposed) return;
         _pressScale = pressed && !reducedMotion ? (float)OverlayMotionTokens.PressScale : 1;
-        _content.Scale = new Vector3(_pressScale, _pressScale, 1);
+        ApplyContentScale();
     }
 
     public void Dispose()

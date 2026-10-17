@@ -1,0 +1,54 @@
+{
+  "kind": "static-only-supplemental-desktop-png-log-review",
+  "functionalScenarioExecutions": 0,
+  "actionsDispatches": 0,
+  "checks": [
+    {
+      "check": "PowerShell Parser.ParseFile for changed launcher",
+      "result": "passed",
+      "executions": 1
+    },
+    {
+      "check": "focused workflow source audit",
+      "result": "passed",
+      "executions": 1
+    },
+    {
+      "check": "YAML parse and unchanged old music route / manual inputs / primary native RTB pass gate",
+      "result": "passed",
+      "executions": 1
+    },
+    {
+      "check": "changed-file whitespace check",
+      "result": "passed",
+      "executions": 1
+    }
+  ],
+  "sourceSha256": {
+    "scripts/Test-BetaUiDiagnostics.ps1": "6fd2fc7d629226cc73108d1527d002362d23d7b34c32eeda671372b4a622cb0c",
+    ".github/workflows/music-visual-qa.yml": "72172bf9f790a6f2f68a2919326c429ba4a6fde8f22d72e552acda7f5731d4d3",
+    "scripts/passive-test-budget.mjs": "b8c94b8ba508fd3984057cb924d8f4820e1a11cef7140eb8d07527872510f339"
+  },
+  "transport": {
+    "defaultEnabled": false,
+    "manualDebugWorkflowEnabled": true,
+    "maximumPngBytes": 131072,
+    "maximumTotalPngBytes": 262144,
+    "chunkBase64Characters": 4096,
+    "chunkIndexBase": 0,
+    "filenameAllowlist": [
+      "timers-initial-desktop.png",
+      "timer-menu-FocusTimer-desktop.png",
+      "timer-menu-Countdown-desktop.png",
+      "timers-reopened-desktop.png"
+    ],
+    "requiresOwnedChildProcessId": true,
+    "requiresRecordedSha256": true,
+    "noResamplingOrReencoding": true
+  },
+  "boundary": "Source/parser integrity only. No launcher/helper runtime, native capture, App scenario or workflow was executed. Supplemental attachments and transfer failure do not modify original functional/RTB gates, counts, visual status or primary failure.",
+  "receipt": {
+    "path": "artifacts/local-iterations-2026-10-17/beta-ui-desktop-log-preflight/validation-inputs.json",
+    "sha256": "14101a9e8e25c5c1040d528afcb20d336fadcc65e802ec8d25b437bad8675306"
+  }
+}

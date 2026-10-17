@@ -90,6 +90,13 @@ if(cmd==='preflight'){
   assert.match(betaLaunch,/\$app.passedCaseCount -ne \$expectedScenarios.Count/);
   assert.match(betaLaunch,/\$app.visualStatus -cne 'passed'/);
   assert.match(betaLaunch,/DROPSPACE_BETA_UI_RECEIPT=/);
+  assert.match(betaUi,/Test-BetaUiDiagnostics.ps1 -Scenario \$env:BETA_UI_SCENARIO -IncludeSupplementalImagesInLog/);
+  assert.match(betaLaunch,/\[switch\]\$IncludeSupplementalImagesInLog/,'Original-image log transport must be explicit opt-in');
+  assert.match(betaLaunch,/\$supplementalCaptureNames = @\('timers-initial-desktop.png', 'timer-menu-FocusTimer-desktop.png', 'timer-menu-Countdown-desktop.png', 'timers-reopened-desktop.png'\)/);
+  assert.match(betaLaunch,/\$item.Length -gt 128KB/);
+  assert.match(betaLaunch,/\$totalBytes \+ \$item.Length -gt 256KB/);
+  assert.match(betaLaunch,/\$hash -cne \$capture.sha256/);
+  assert.match(betaLaunch,/DROPSPACE_BETA_UI_SUPPLEMENTAL_PNG=/);
   assert.match(betaLaunch,/releasePromotionEligible = \$false/);
   const ci=read(path.join(root,'ci.yml'));
   const job=name=>ci.split(`\n  ${name}:\n`)[1]?.split(/\n  [a-z][a-z-]+:\n/)[0]??'';

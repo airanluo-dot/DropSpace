@@ -96,7 +96,7 @@ jobs:
         shell: pwsh
         env:
           BETA_UI_SCENARIO: ${{ inputs.beta_ui_scenario }}
-        run: ./scripts/Test-BetaUiDiagnostics.ps1 -Scenario $env:BETA_UI_SCENARIO
+        run: ./scripts/Test-BetaUiDiagnostics.ps1 -Scenario $env:BETA_UI_SCENARIO -IncludeSupplementalImagesInLog
       - name: Retain native diagnostics including failed or blocked attempts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

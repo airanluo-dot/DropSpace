@@ -152,6 +152,647 @@
         "Overlay/menu readback failures do not establish blank on-screen rendering: Composition opacity/Acrylic and an opaque-fixture pixel predicate require separate investigation.",
         "The process exited normally without launcher timeout; no general Release or physical-input qualification."
       ]
+    },
+    {
+      "runId": 39063598625,
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39063598625",
+      "sourceCommit": "ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f",
+      "sourceTree": "571674b612581eeff9bb47cbc62040a0b4429a76",
+      "workflowConclusion": "failure",
+      "build": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-build",
+        "status": "passed",
+        "stage": "build-ready",
+        "sourceCommit": "ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f",
+        "sourceTree": "571674b612581eeff9bb47cbc62040a0b4429a76",
+        "executablePath": "D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.App\\bin\\x64\\Debug\\net10.0-windows10.0.20348.0\\win-x64\\DropSpace.exe",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.Infrastructure.dll": "c3fabebb3300543453072140367fd2a90397ae019f743bd60e3819d75f6d7e03",
+          "DropSpace.dll": "612a54703e9ba50df60be847e2514330c97d353e631f69602b2d9c256d66de8a",
+          "DropSpace.Core.dll": "57c74a7187972c6c4a3f12c662d5f24b0f74908dd032394ddb8216480e915a87"
+        },
+        "startedAtUtc": "2026-10-17T19:42:39.5499970+00:00",
+        "finishedAtUtc": "2026-10-17T19:44:27.2810291+00:00",
+        "configuration": "Debug",
+        "deployment": "unpackaged-framework-dependent",
+        "releasePromotionEligible": false,
+        "functionalScenarioExecutions": 0,
+        "failure": null
+      },
+      "buildWarnings": 0,
+      "buildErrors": 0,
+      "launch": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-launch",
+        "status": "failed",
+        "stage": "complete",
+        "failureStage": null,
+        "sourceCommit": "ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f",
+        "sourceTree": "571674b612581eeff9bb47cbc62040a0b4429a76",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.Infrastructure.dll": "c3fabebb3300543453072140367fd2a90397ae019f743bd60e3819d75f6d7e03",
+          "DropSpace.dll": "612a54703e9ba50df60be847e2514330c97d353e631f69602b2d9c256d66de8a",
+          "DropSpace.Core.dll": "57c74a7187972c6c4a3f12c662d5f24b0f74908dd032394ddb8216480e915a87"
+        },
+        "startedAtUtc": "2026-10-17T19:44:27.8493322+00:00",
+        "finishedAtUtc": "2026-10-17T19:44:49.2500744+00:00",
+        "processId": 7912,
+        "exitCode": 1,
+        "timedOut": false,
+        "processExited": true,
+        "actualCaseCount": 1,
+        "passedCaseCount": 0,
+        "requestedScenario": "timers",
+        "selectedScenario": "timers",
+        "plannedCaseCount": 1,
+        "reportedPlannedCaseCount": 1,
+        "visualStatus": "blocked",
+        "captures": [
+          {
+            "file": "timers-initial.png",
+            "sha256": "c48f54280f2dcb64808c1aa7b554d33a757e085e661835f878c28ad0b65e4f6b",
+            "width": 560,
+            "height": 340,
+            "pixelReadbackPassed": false,
+            "rasterizationScale": 1,
+            "targetKind": "live-overlay-surface",
+            "opaquePixelCount": 0,
+            "transparentPixelCount": 190400,
+            "nonzeroAlphaPixelCount": 0,
+            "distinctColorCountUpTo64": 1,
+            "xamlOpacity": 1,
+            "compositionOpacity": 1
+          },
+          {
+            "file": "timer-menu-FocusTimer.png",
+            "sha256": "54c515d8f8472210016f299dafc1c732bb85d830168ba7a94a86a9153fd0e21a",
+            "width": 103,
+            "height": 286,
+            "pixelReadbackPassed": false,
+            "rasterizationScale": 1,
+            "targetKind": "live-menu-popup-subtree",
+            "opaquePixelCount": 0,
+            "transparentPixelCount": 27570,
+            "nonzeroAlphaPixelCount": 1888,
+            "distinctColorCountUpTo64": 33,
+            "xamlOpacity": 1,
+            "compositionOpacity": 1
+          }
+        ],
+        "captureFailures": [
+          "timers-initial: empty, uniform or insufficiently opaque pixel readback.",
+          "timer-menu-FocusTimer: empty, uniform or insufficiently opaque pixel readback."
+        ],
+        "observations": [
+          {
+            "stage": "timer-FocusTimer-wait-paused",
+            "outcome": "waiting",
+            "state": {
+              "timer": "FocusTimer",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 1,
+              "startClicks": 2,
+              "menuClosedEvents": 0,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 560,
+                  "height": 340,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=2,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": false,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "stage": "timer-FocusTimer-wait-paused",
+            "outcome": "satisfied",
+            "state": {
+              "timer": "FocusTimer",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 1,
+              "startClicks": 2,
+              "menuClosedEvents": 0,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 560,
+                  "height": 340,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=2,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": false,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "stage": "timer-FocusTimer-action-open-before-hide",
+            "outcome": "before",
+            "state": {
+              "timer": "FocusTimer",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 1,
+              "startClicks": 2,
+              "menuClosedEvents": 0,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 560,
+                  "height": 340,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=2,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": false,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "stage": "timer-FocusTimer-action-open-before-hide",
+            "outcome": "after",
+            "state": {
+              "timer": "FocusTimer",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 2,
+              "startClicks": 2,
+              "menuClosedEvents": 0,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 560,
+                  "height": 340,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=2,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": false,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "stage": "timer-FocusTimer-wait-menu-open-before-hide",
+            "outcome": "waiting",
+            "state": {
+              "timer": "FocusTimer",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 2,
+              "startClicks": 2,
+              "menuClosedEvents": 0,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 560,
+                  "height": 340,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=2,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": false,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "stage": "timer-FocusTimer-wait-menu-open-before-hide",
+            "outcome": "failed",
+            "state": {
+              "timer": "FocusTimer",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 2,
+              "startClicks": 2,
+              "menuClosedEvents": 1,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 560,
+                  "height": 340,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=2,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": false,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "exceptions": [],
+        "environment": {
+          "os": "Microsoft Windows NT 10.0.26100.0",
+          "processId": 7912,
+          "sessionId": 2,
+          "userInteractive": true,
+          "inputDesktopAccessible": true,
+          "screenWidth": 1024,
+          "screenHeight": 768,
+          "textScaleFactor": 1
+        },
+        "failure": "Native UI diagnostics did not completely pass: status=failed, visual=blocked, exit=1.",
+        "releasePromotionEligible": false,
+        "physicalPointerValidated": false,
+        "appReceiptSha256": "af4e06809c59abf0375f9592d46656fe3666f6b39453f2030aba0ad73bd417e9",
+        "scenarios": [
+          {
+            "name": "timer-menu-retirement",
+            "status": "failed",
+            "failureStage": "timer-FocusTimer-wait-menu-open-before-hide",
+            "failure": "TimeoutException (0x80131505): The named UI condition did not complete within 15 seconds."
+          }
+        ]
+      },
+      "originalMusicReleaseJobSkipped": true,
+      "actualUniqueScenarios": 1,
+      "scenarioExecutions": 1,
+      "functionalPassed": 0,
+      "functionalFailed": 1,
+      "visualApproved": false,
+      "artifactsDownloaded": false,
+      "receiptSource": "Completed GitHub job log; runner-reported assembly and PNG hashes were not independently recomputed locally.",
+      "evidence": [
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39063598625/job.log",
+          "sha256": "f0feb25469d47f5c5ca48cb5f53b03e953a059ae25a59a556dd6f56a10ba52e2"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39063598625/run.json",
+          "sha256": "6963df23243e950bac4b4313a37791ec1a8b6137d8b5112b4358b47da0875012"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39063598625/build-receipt.json",
+          "sha256": "44540c8dfa9c37eb37c46d71fcb01f2daff1a75a9d50cee74920cebbbe4ab2fb"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39063598625/launcher-receipt.json",
+          "sha256": "824280c8554f4386996db5b16ac8bc828f9ab3cdc5fb40c4228cd4330e0f1e33"
+        }
+      ],
+      "interpretation": [
+        "Only the failed timer scenario was selected. The previously passing batch scenario did not run.",
+        "FocusTimer duration changed to 10 minutes through the real Toggle peer and Click handler; the real start/pause buttons completed two Clicks and returned to paused.",
+        "The second duration-button Click occurred while MenuFlyout.IsOpen was false but before its first Closed event. Waiting for the second open timed out; the first Closed event arrived during that wait. This narrows the failure to reopening, not duration mutation or start/pause.",
+        "The initial Overlay RenderTargetBitmap contained only transparent pixels while ExpandedPanel XAML opacity was 0 and Composition opacity was 1. The submenu had 1888 nonzero-alpha pixels and 33 distinct colors but no opaque pixels. These metrics expose the current readback/predicate limits and do not establish blank on-screen rendering.",
+        "No unhandled UI exceptions or launcher timeout. No complete timer, visual, physical-input or release qualification."
+      ]
     }
   ]
 }

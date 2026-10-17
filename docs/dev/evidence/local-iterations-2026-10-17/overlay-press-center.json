@@ -1,0 +1,19 @@
+{
+  "kind": "overlay-press-pivot-source-review",
+  "baselineCommit": "ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f",
+  "change": "Set the SurfaceContent Composition visual center from its current Size before applying the existing press scale in both press input and motion frames.",
+  "finding": "SurfaceContent had the default Composition CenterPoint (0,0,0); the outer Surface XAML RenderTransformOrigin does not set the child visual pivot.",
+  "review": "Independent read-only source review confirmed the separate visual ownership and the centered pivot correction.",
+  "functionalScenarioExecutions": 0,
+  "nativeScenarioExecutions": 0,
+  "compileInvocations": 0,
+  "boundaries": [
+    "Source review only for the pivot change at this checkpoint; it awaits the planned full Windows Debug build.",
+    "Existing scale, reduced-motion reset, disposed-input guards and content transition pose are preserved.",
+    "No physical press, DPI or visual validation claimed, and no old pointer scenarios rerun."
+  ],
+  "inputs": {
+    "src/DropSpace.App/Services/OverlayCompositionAnimator.cs": "f8a9b254c14a6cc07d1d22e0c94f41d34b0fb4c2be07296688bc33ec62bd4bb4",
+    "src/DropSpace.App/OverlayWindow.xaml": "29b8ff0bd465d1d8b6e8e8a998f3b8afa8f42a0f0a6939dbee0d4aa0105513bb"
+  }
+}

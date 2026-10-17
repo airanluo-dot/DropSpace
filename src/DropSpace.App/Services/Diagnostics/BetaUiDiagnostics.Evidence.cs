@@ -199,6 +199,8 @@ internal sealed class BetaUiDiagnosticReceipt(string output, BetaUiDiagnosticSel
     public List<object> Observations { get; } = [];
     public List<BetaUiDiagnosticCapture> Captures { get; } = [];
     public List<string> CaptureFailures { get; } = [];
+    public List<BetaUiSupplementalCapture> SupplementalCaptures { get; } = [];
+    public List<BetaUiSupplementalFailure> SupplementalCaptureFailures { get; } = [];
     public List<string> Exceptions { get; } = [];
     public string[] Limitations { get; } = [
         "Only the explicitly selected synthetic scenarios run on the recorded desktop, DPI, text scale and en-US language; unselected cases are not rerun or counted.",
@@ -206,6 +208,7 @@ internal sealed class BetaUiDiagnosticReceipt(string output, BetaUiDiagnosticSel
         "AutomationPeer Invoke/Toggle/ExpandCollapse and ListView.SelectedItems are programmatic control input, not physical pointer or keyboard coverage.",
         "RenderTargetBitmap PNGs are real control readbacks, not desktop compositor captures; no Acrylic/native-region/occlusion/physical multi-monitor claim.",
         "Overlay composition opacity and Acrylic are not necessarily represented by XAML RenderTargetBitmap; invalid readbacks neither pass visual validation nor prove the on-screen HWND is empty.",
+        "Supplemental desktop BitBlt ROI PNGs are separate manual-review evidence. They never alter the RenderTargetBitmap gate, case counts or final status, and their alpha is synthesized for PNG encoding.",
         "Nonblank pixels and geometry require human PNG review; no screenshot comparison or complete visual correctness claim.",
         "The fixture owns a fresh data directory and 2 x 1 timer layout. It does not initialize clipboard capture, startup registration, media discovery, AI, updates or module workers.",
     ];

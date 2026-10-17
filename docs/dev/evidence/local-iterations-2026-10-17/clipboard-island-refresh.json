@@ -1,0 +1,102 @@
+{
+  "kind": "source-linked-clipboard-island-refresh",
+  "status": "after-passed",
+  "baselineCommit": "ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f",
+  "baselineSourceSha256": "e67931245635e5207327c5378fda7a9f8fab3e07d6c12097874bc876f1b72270",
+  "currentHead": "ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f",
+  "inputs": {
+    "src/DropSpace.App/ViewModels/ClipboardIslandViewModel.cs": "2e09214a58ceeebe8701d251a9fc79b41647c3b0193bfd42a871f2d9fb2fc4f9",
+    "src/DropSpace.App/Services/DispatcherQueueExtensions.cs": "59a3eb20b38fcc7a0ec0474e78e63c4345341f09c0fcfe5f2e9d78f9c4fed4c2",
+    "src/DropSpace.App/ViewModels/ItemCardViewModel.cs": "cc60b87aeed325ae9666087b33d4fbdeab7dc5d7d2d96f0cd6043352d9cb9786",
+    "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs": "f0fc94b2cdee2ee5af9aa29aa6b74ed7c8d98979501d601a9845dda1067776c8",
+    "scripts/navigation-projection-probe/ProbeDispatcher.cs": "b6d5aa1abc711a5c86ee57a3fb00f18e50a30b867f78c6862752ee17fd6ea0d7",
+    "scripts/clipboard-island-refresh-probe/ClipboardIslandRefreshProbe.csproj": "f8c761c7b5a2906ee57ff22c700d126dd0a99a3da6d41000ab1775c53f6826c6",
+    "scripts/clipboard-island-refresh-probe/Program.cs": "437c2746430708944b8e4ddc274b6e7f8f39304067df4f37c04fbf90b793be03",
+    "scripts/clipboard-island-refresh-probe/Fixture.cs": "968d0d205020c1cc62a71d06ac87e478a8c0938a9506c0e55ac1f8d8785e5e5c",
+    "scripts/clipboard-island-refresh-probe/PlatformShims.cs": "36077c589a19f41ae08c1463aa910967c00ea162ba47e4a6e7edfaa335243a9d",
+    "scripts/clipboard-island-refresh-probe/README.md": "dfee22b17e8c4be1c3128d61a2f04176dac796fc337d00a2cdd011ab2dec0df7"
+  },
+  "plannedExecutions": [
+    {
+      "source": "baseline",
+      "selected": "refresh_error_recovery",
+      "scenarios": 1
+    },
+    {
+      "source": "current",
+      "selected": "all",
+      "scenarios": 4
+    }
+  ],
+  "executions": [
+    {
+      "phase": "before",
+      "attempt": 1,
+      "exitCode": 1,
+      "scenarioCount": 1,
+      "passed": 0,
+      "failed": 1,
+      "assertionsReached": 6,
+      "log": "before.log",
+      "results": "before-results.json",
+      "emittedCompilerWarnings": 0,
+      "emittedCompilerErrors": 0,
+      "assemblyPath": "artifacts/local-iterations-2026-10-17/clipboard-island-refresh/build-before/bin/ClipboardIslandRefreshProbe/debug/ClipboardIslandRefreshProbe.dll",
+      "assemblySha256": "1861867918b6198e0562b68b2d5d948829d87e5cac5960940ea2d6e51b06300d",
+      "coreAssemblySha256": "002f7d927997e1dce85867abb99eaaba7769e0316734976466c3ea498c226043"
+    },
+    {
+      "phase": "after",
+      "attempt": 1,
+      "exitCode": 0,
+      "scenarioCount": 4,
+      "passed": 4,
+      "failed": 0,
+      "assertionsReached": 13,
+      "log": "after.log",
+      "results": "after-results.json",
+      "emittedCompilerWarnings": 0,
+      "emittedCompilerErrors": 0,
+      "assemblyPath": "artifacts/local-iterations-2026-10-17/clipboard-island-refresh/build-after/bin/ClipboardIslandRefreshProbe/debug/ClipboardIslandRefreshProbe.dll",
+      "assemblySha256": "330985a500159d92346757b35e1c39dee00ba535e80b9262e4c8d1c0bd689fae",
+      "coreAssemblySha256": "b91489c7a6ea9e5f6793d4b92f35945f85408bc18d69604904444775a78029fa"
+    }
+  ],
+  "boundaries": [
+    "Full actual ClipboardIslandViewModel linked; no lifecycle algorithm copied",
+    "MainViewModel recent-item/action provider, capture events and DispatcherQueue are controlled boundaries",
+    "Real ItemCardViewModel, QuickActionButtonViewModel, DispatcherQueueExtensions and Core localizer linked",
+    "No actual MainViewModel query/thumbnail pipeline, SQLite, system clipboard, WinUI/COM or rendering executed",
+    "No prior navigation scenarios or native diagnostics executed"
+  ],
+  "inputChangesDuringExecution": [],
+  "distinctBeforeAfterAssemblies": true,
+  "totalScenarioExecutions": 5,
+  "passedScenarioExecutions": 4,
+  "failedScenarioExecutions": 1,
+  "retries": 0,
+  "baselineFinding": "Only refresh_error_recovery was run. Its prior-refresh-error clearing assertion failed; all six assertions were reached, and preserving action failure already passed. No before claim for visibility scenarios.",
+  "review": "Independent source review found no blocker in aggregate visibility ownership, success/failure publication guards, retained cached cards or refresh/action error precedence.",
+  "evidence": [
+    {
+      "path": "artifacts/local-iterations-2026-10-17/clipboard-island-refresh/validation-inputs.json",
+      "sha256": "644a9c8808eaf93ef921a82f8f4ea36ec4b4acfe5ab58b10c5ddbcf2f110d975"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/clipboard-island-refresh/before.log",
+      "sha256": "57db7d6a259d737853aba0104a1e20c809a424fc62be965fec15b2e1375592e0"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/clipboard-island-refresh/before-results.json",
+      "sha256": "80204254ed6ec7108ced43fe16994fce5e2c639e57a10d624f738ad14cd2458f"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/clipboard-island-refresh/after.log",
+      "sha256": "989f490bde5ebd4efc3ad84a3df21d150750500d5095659495fc15325f9ac539"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/clipboard-island-refresh/after-results.json",
+      "sha256": "6a501005c5d5c66bbc28c79d2a5d8f889f1c1ac455026c0dff396aa54af1fd15"
+    }
+  ]
+}
