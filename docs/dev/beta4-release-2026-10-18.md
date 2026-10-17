@@ -9,3 +9,5 @@ Publication scope: full Release App/XAML PR compilation, exact merged-main packa
 Preparation binds twenty changed host source/resource fingerprint inputs to the unchanged model scope with a fresh owner decision and review. Existing incomplete model validation remains explicit. Release metadata/source-binding integrity checks and subsequent run IDs are recorded below as they execute.
 
 Preparation integrity: release metadata consistency and exact experimental source/owner binding passed once. Git whitespace check passed once. These are integrity checks, not functional scenarios. No development scenarios were rerun.
+
+PR #127 first history secret scan (39068303116) failed with ten generic-key findings. All ten were checked against original commit lines and actual file bytes: seven SDK OAuth projection DLL digests and three unchanged secret-scan workflow digests. Added only their exact commit/path/rule/line fingerprints to .gitleaksignore; no scanner, rule or path exclusion. This is a release-blocking false-positive correction, not application development. The subsequent PR tree must be built again for exact-tree qualification; no functional test is repeated.
