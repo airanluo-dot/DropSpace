@@ -242,6 +242,7 @@ public sealed partial class MediaCompactView : UserControl
             // same font/fallback, accessibility and rasterization context as rendering.
             BaseLine.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             _textWidth = BaseLine.DesiredSize.Width;
+            LyricTranslation.TranslateX = 0;
             LyricCanvas.Width = _textWidth;
             _primaryHeight = Math.Max(28, BaseLine.DesiredSize.Height);
             LyricViewport.Height = _primaryHeight;
@@ -262,6 +263,8 @@ public sealed partial class MediaCompactView : UserControl
             SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
             SecondaryViewport.Visibility = SecondaryLine.Visibility;
             SecondaryLine.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            SecondaryTranslation.TranslateX = 0;
+            _secondaryMarquee.Reset();
             _secondaryFontSize = SecondaryLine.FontSize;
             _secondaryTextWidth = SecondaryLine.DesiredSize.Width;
             _secondaryHeight = SecondaryLine.DesiredSize.Height;
@@ -316,6 +319,7 @@ public sealed partial class MediaCompactView : UserControl
         _measuredFontFamily = null;
         _secondaryMeasureInvalid = true;
         _prefixWidths.Clear();
+        ResetScroll();
         DeferScrollUntilLayout();
         RequestRefresh();
     }
@@ -324,7 +328,6 @@ public sealed partial class MediaCompactView : UserControl
     {
         if (_geometrySettled == settled) return;
         _geometrySettled = settled;
-        ResetScroll();
         if (settled) DeferScrollUntilLayout();
     }
     private void ResetScroll()
@@ -336,7 +339,6 @@ public sealed partial class MediaCompactView : UserControl
     private void DeferScrollUntilLayout()
     {
         _layoutPending = true;
-        ResetScroll();
         Layout.InvalidateArrange();
     }
     private double ScrollViewport(double textWidth, double actualWidth)
@@ -366,9 +368,20 @@ public sealed partial class MediaCompactView : UserControl
             }
         }
         HighlightClip.Rect = new Rect(0, 0, Math.Max(0, highlight), Math.Max(28, BaseLine.ActualHeight));
-        if (_layoutPending || !_geometrySettled || !CanRender)
+        if (!CanRender || !_view.Settings.Lyrics.Enabled || !_view.Settings.IslandActivity.ShowLyricsInCompact ||
+            !_view.Settings.Lyrics.Scrolling || _view.IsReducedMotion)
         {
             ResetScroll();
+            return;
+        }
+        // Keep an unchanged overflowing row still while its host resizes. A new
+        // row has already reset only its own offset; translated updates cannot
+        // send the original row back to its beginning.
+        if (_layoutPending) return;
+        if (!_geometrySettled)
+        {
+            if (_textWidth <= ScrollViewport(_textWidth, LyricViewport.ActualWidth)) LyricTranslation.TranslateX = 0;
+            if (_secondaryTextWidth <= ScrollViewport(_secondaryTextWidth, SecondaryViewport.ActualWidth)) SecondaryTranslation.TranslateX = 0;
             return;
         }
         var scroll = 0d;
