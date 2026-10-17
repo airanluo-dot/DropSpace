@@ -28,6 +28,7 @@ public sealed partial class WidgetsExpandedView : UserControl
     private bool _subscribed;
     private bool _structureDirty = true;
     private bool _dataDirty = true;
+    private CancellationTokenSource? _nativeActionRequests;
     private FeatureModuleRuntime? _modules;
     private IAppStringLocalizer? _moduleStrings;
     private CancellationTokenSource? _moduleRequests;
@@ -50,6 +51,7 @@ public sealed partial class WidgetsExpandedView : UserControl
         set
         {
             if (ReferenceEquals(_view, value)) return;
+            RetireNativeActions();
             CloseTimerMenus();
             Unsubscribe();
             _view?.SetVisible(this, false);
@@ -70,7 +72,7 @@ public sealed partial class WidgetsExpandedView : UserControl
     public void SetActive(bool active)
     {
         _active = active;
-        if (!active) { CloseTimerMenus(); RetireModuleContent(); }
+        if (!active) { RetireNativeActions(); CloseTimerMenus(); RetireModuleContent(); }
         _view?.SetVisible(this, active && IsLoaded);
         RenderPending();
     }
@@ -84,6 +86,7 @@ public sealed partial class WidgetsExpandedView : UserControl
     }
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
+        RetireNativeActions();
         Unsubscribe();
         CloseTimerMenus();
         _view?.SetVisible(this, false);
@@ -198,6 +201,7 @@ public sealed partial class WidgetsExpandedView : UserControl
     }
     private void Rebuild()
     {
+        RetireNativeActions();
         CloseTimerMenus();
         _timerFlyouts.Clear(); _timerValueButtons.Clear();
         Tiles.Children.Clear(); _timerButtons.Clear(); _values.Clear(); _placements.Clear(); _stopwatchButton = null; _clipboardButton = null;
@@ -215,8 +219,10 @@ public sealed partial class WidgetsExpandedView : UserControl
             FrameworkElement tile;
             if (placement.Id is NativeWidgetId.Calculator or NativeWidgetId.PinnedItems)
             {
+                var view = _view;
+                var busy = false;
                 var button = new Button { Content = content, MinWidth = 0, MinHeight = 0, Padding = new(4), HorizontalContentAlignment = HorizontalAlignment.Stretch, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-                AutomationProperties.SetName(button, _view.Text("Widget" + placement.Id + ".Text"));
+                AutomationProperties.SetName(button, view.Text("Widget" + placement.Id + ".Text"));
                 var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id), FontSize = 18 };
                 AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
                 value.TextWrapping = TextWrapping.NoWrap;
@@ -227,22 +233,42 @@ public sealed partial class WidgetsExpandedView : UserControl
                 content.Children.Add(artwork);
                 void ShowLaunchFailure()
                 {
-                    value.Text = _view.Text("WidgetLaunchFailed");
+                    value.Text = view.Text("WidgetLaunchFailed");
                     artwork.Child = value;
                     AutomationProperties.SetHelpText(button, value.Text);
                 }
+                bool OwnsTile() => IsLoaded && ReferenceEquals(_view, view) && Tiles.Children.Contains(button);
                 button.Click += async (_, _) =>
                 {
+                    if (busy || !_active || !OwnsTile()) return;
+                    var token = (_nativeActionRequests ??= new()).Token;
+                    bool IsCurrent() => !token.IsCancellationRequested && _active && OwnsTile();
+                    busy = true;
+                    button.IsEnabled = false;
                     try
                     {
+                        artwork.Child = icon;
+                        AutomationProperties.SetHelpText(button, string.Empty);
                         if (placement.Id == NativeWidgetId.Calculator)
                         {
-                            if (!await Windows.System.Launcher.LaunchUriAsync(new Uri("calculator:")))
+                            // Windows owns an accepted launch; retirement only suppresses
+                            // this tile's late result and must not claim to cancel that launch.
+                            var launched = await Windows.System.Launcher.LaunchUriAsync(new Uri("calculator:"));
+                            if (IsCurrent() && !launched)
                                 ShowLaunchFailure();
                         }
-                        else { await _view.OpenPinnedAsync(); PinnedRequested?.Invoke(this, EventArgs.Empty); }
+                        else if (await view.OpenPinnedAsync(token) && IsCurrent())
+                            PinnedRequested?.Invoke(this, EventArgs.Empty);
                     }
-                    catch (Exception) { ShowLaunchFailure(); }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+                    catch (Exception) { if (IsCurrent()) ShowLaunchFailure(); }
+                    finally
+                    {
+                        busy = false;
+                        // A hidden host can retain this same tile. Restore its button
+                        // even when the request was retired, without touching a replacement.
+                        if (OwnsTile()) button.IsEnabled = true;
+                    }
                 };
                 tile = button;
             }
@@ -383,6 +409,13 @@ public sealed partial class WidgetsExpandedView : UserControl
     private void CloseTimerMenus()
     {
         foreach (var menu in _timerFlyouts) menu.Hide();
+    }
+    private void RetireNativeActions()
+    {
+        var requests = _nativeActionRequests;
+        _nativeActionRequests = null;
+        try { requests?.Cancel(); }
+        finally { requests?.Dispose(); }
     }
     private string TimerText(WidgetCountdown timer)
     {

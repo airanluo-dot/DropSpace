@@ -240,3 +240,49 @@ accessibility view, and launch failures still show text with accessible help.
 Glyph names/codepoints were checked against Microsoft's Segoe Fluent Icons table.
 No timer behavior or resource IDs changed. XML, source/coverage, whitespace and
 independent icon review passed; no functional icon tests were added or executed.
+
+The second Windows run,
+[39060604585](https://github.com/airanluo-dot/DropSpace/actions/runs/39060604585),
+compiled exact commit `e3cd962ef603150f1f9b20b42eddcba7861df232` successfully:
+**0 warnings, 0 errors**. The former C# and downstream XAML errors disappeared.
+The receipt read from the completed job log matched the actual commit and Git
+source tree, recorded zero executed tests and `releasePromotionEligible=false`.
+Both production jobs were skipped and no protected production check name was
+emitted. The build-log SHA256 is a runner claim retained in that receipt; it was
+not recomputed locally because the diagnostic artifact was not downloaded.
+This establishes full Debug App/XAML compilation, not native interaction, runtime
+launch, accessibility, packaging or Release qualification.
+
+### Continuation: native widget action lifetime
+
+Review after the successful compile found that Pinned Items could finish a slow
+query after Widgets was hidden/rebuilt and still reopen the main window. A late
+Calculator/Pinned failure also read the mutable view-model field; replacement
+with null could throw while handling the original error. Buttons allowed parallel
+activations, and successful retries retained the old error artwork/help text.
+
+The view now lazily owns an action retirement token. Hiding, unloading, view-model
+replacement and rebuilding retire it. Each activation captures its owner and
+requires the same loaded tile, current token and active view before publishing
+results. A per-button busy flag prevents duplicate work. Finally restores a retained
+button even if its request was retired; a replacement tile is never modified.
+Retry restores the icon and clears obsolete accessible help. The host also refuses
+a Pinned window-open event while closing.
+
+The initial draft passed the view token into the shared navigation query. Further
+review caught an inconsistent intermediate-state risk: `NavigateAsync` changes
+the destination/title before replacing the list. Cancelling that query on a
+temporary view retirement could leave a Pinned title with the old collection.
+The final change lets an already-started shared navigation finish, while checking
+the presentation token before/after and requiring its final destination still be
+Pinned. Only its obsolete presentation result is cancelled. No shared navigation
+transaction was rewritten. A Calculator launch already accepted by Windows also
+continues; only the retired view's late feedback is suppressed.
+
+The stopwatch now reads Elapsed once per display update. Previously two reads
+straddling 00:59.999 and 01:00.000 could combine into a transient 00:00. The new
+getter derives minutes and seconds from the same snapshot.
+
+These changes received source/whitespace review; no functional Windows lifecycle
+scenario or additional portable probe was run. The next full Windows compile
+covers the combined new source, with results appended below.

@@ -219,7 +219,7 @@ public sealed partial class OverlayWindow : Window
             MusicExpanded.ViewModel = mediaViewModel;
             WidgetsExpanded.ViewModel = widgetViewModel;
             WidgetsExpanded.SetModuleRuntime(modules, strings);
-            WidgetsExpanded.PinnedRequested += (_, _) => { _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
+            WidgetsExpanded.PinnedRequested += (_, _) => { if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
             ClipboardExpanded.ViewModel = clipboardViewModel;
             ActivityCompact.DataContext = systemActivityViewModel;
             MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;

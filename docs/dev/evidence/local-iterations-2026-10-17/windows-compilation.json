@@ -25,6 +25,44 @@
       },
       "productionJobsSkipped": true,
       "protectedProductionCheckNotEmitted": true
+    },
+    {
+      "runId": 39060604585,
+      "sourceCommit": "e3cd962ef603150f1f9b20b42eddcba7861df232",
+      "sourceTree": "c207b6b87487f728f40142f3c53d52c2ce949c28",
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39060604585",
+      "configuration": "Debug",
+      "result": "success",
+      "workflowConclusion": "success",
+      "functionalTestsExecuted": 0,
+      "warnings": 0,
+      "errors": 0,
+      "receipt": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-app-xaml-compile-only",
+        "repository": "airanluo-dot/DropSpace",
+        "runId": "39060604585",
+        "runAttempt": "1",
+        "sourceCommit": "e3cd962ef603150f1f9b20b42eddcba7861df232",
+        "sourceTree": "c207b6b87487f728f40142f3c53d52c2ce949c28",
+        "configuration": "Debug",
+        "appXamlBuild": true,
+        "tests": {
+          "status": "not-run",
+          "executed": 0
+        },
+        "releasePromotionEligible": false,
+        "buildLogSha256": "4c5054ec7110d2215de23aa0a2a34432bf701a012ef9a67fc0ef276c76de5de8"
+      },
+      "receiptSource": "GitHub completed compilation job log",
+      "diagnostics": {
+        "jobLogPath": "artifacts/local-iterations-2026-10-17/windows-compile/39060604585/job.log",
+        "jobLogSha256": "f278cb5e9303d117efdc3ef7127f799111204656c5741eab1b37bb384f676c2c",
+        "artifactDownloaded": false,
+        "buildLogHashLocallyRecomputed": false
+      },
+      "productionJobsSkipped": true,
+      "protectedProductionCheckNotEmitted": true
     }
   ],
   "nextSourceInputs": [
@@ -54,5 +92,6 @@
     "Add shared native widget glyphs",
     "Print compilation receipt to job log"
   ],
-  "releasePublished": false
+  "releasePublished": false,
+  "nextSourceInputsLabel": "Inputs of successful e3cd962 compilation; initial failed inputs are bound by d624782."
 }

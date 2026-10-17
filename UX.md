@@ -96,7 +96,7 @@ explicitly timed lyrics disappear during gaps after their declared end.
 Translation lines attach to their nearest original once, so opening credits do
 not repeat the first sung line's translation when timestamps coincide.
 
-## Timer controls (local development after v0.3.2-beta.3)
+## Widget controls (local development after v0.3.2-beta.3)
 
 Focus timer and Timer keep their 25-minute and 5-minute defaults. Activate the
 time readout, or open its context menu, to choose Duration: 1, 5, 10, 15, 25,
@@ -106,6 +106,11 @@ and their duration choices last for the current App session and remain independe
 Hiding the island does not pause a running timer. The readout rounds remaining
 time up to whole seconds and shows zero only once the deadline is reached.
 Timer menus close when their view is hidden, rebuilt or replaced.
+
+Native widgets use consistent system icons alongside their localized names.
+Calculator and Pinned Items accept one activation at a time. Retrying a failed
+action restores its icon; closing or replacing the widget view prevents a late
+result from reopening the main window or replacing current feedback.
 
 ## Experience goal
 
