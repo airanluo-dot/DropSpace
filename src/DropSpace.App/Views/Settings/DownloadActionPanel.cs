@@ -1,5 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 
 namespace DropSpace.App.Views.Settings;
@@ -8,13 +11,54 @@ namespace DropSpace.App.Views.Settings;
 public sealed class DownloadActionPanel : Panel
 {
     private const double Gap = 8;
-    public static Button Create(string text) => new()
+    public static Button Create(string text, string? glyph = null, params string[] alternateLabels)
     {
-        Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center },
-        MinHeight = 36, Padding = new Thickness(12, 6, 12, 6), FontSize = 14,
-        VerticalContentAlignment = VerticalAlignment.Center, HorizontalContentAlignment = HorizontalAlignment.Center,
-        VerticalAlignment = VerticalAlignment.Stretch,
+        var content = new Grid { ColumnSpacing = glyph is null ? 0 : Gap };
+        content.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        content.ColumnDefinitions.Add(new());
+        if (glyph is not null)
+        {
+            var icon = new FontIcon
+            {
+                Glyph = glyph, FontFamily = new FontFamily("Segoe Fluent Icons"), FontSize = 16,
+                Width = 16, Height = 16, IsTextScaleFactorEnabled = false,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            };
+            AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
+            content.Children.Add(icon);
+        }
+        // Alternate labels reserve the same native measured slot across task states.
+        // They are noninteractive sizing elements, excluded from the accessible name.
+        foreach (var label in alternateLabels)
+        {
+            var reserve = Label(label);
+            reserve.Opacity = 0; reserve.IsHitTestVisible = false;
+            AutomationProperties.SetAccessibilityView(reserve, AccessibilityView.Raw);
+            Grid.SetColumn(reserve, 1); content.Children.Add(reserve);
+        }
+        var caption = Label(text);
+        Grid.SetColumn(caption, 1); content.Children.Add(caption);
+        return new Button
+        {
+            Content = content, MinWidth = 36, MinHeight = 36,
+            Padding = new Thickness(12, 6, 12, 6), FontSize = 14,
+            VerticalContentAlignment = VerticalAlignment.Center, HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
+    }
+    private static TextBlock Label(string text) => new()
+    {
+        Text = text, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
     };
+    public static void SetContent(Button button, string text, string glyph)
+    {
+        var content = (Grid)button.Content;
+        var caption = (TextBlock)content.Children[^1];
+        if (caption.Text != text) caption.Text = text;
+        var icon = (FontIcon)content.Children[0];
+        if (icon.Glyph != glyph) icon.Glyph = glyph;
+    }
     protected override Size MeasureOverride(Size availableSize)
     {
         foreach (var child in Children) child.Measure(new Size(availableSize.Width, double.PositiveInfinity));

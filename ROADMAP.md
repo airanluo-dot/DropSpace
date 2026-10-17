@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.2-beta.2
+## Release target: v0.3.2-beta.3
 
-The current Beta target is `v0.3.2-beta.2` (Beta 2).
-v0.3.2-beta.1 is the immediate upgrade baseline for this release.
+The current Beta target is `v0.3.2-beta.3` (Beta 3).
+v0.3.2-beta.2 is the immediate upgrade baseline for this release.
 
-Publish the completed local media and lifecycle repairs, device-send progress that survives page changes, and active Nearby-link management. Preserve existing data/settings, built-in features, the official module contract and independent model/CUDA bytes. Other open PRs remain outside this candidate.
+Fix compact lyric measurement, glyph-edge clipping and scroll/layout timing, and unify native download action icons and state layouts. Preserve the existing architecture, interactions, channels and model/CUDA bytes.
 
-Reuse the recorded focused results and perform only required App/XAML compilation, exact-main packaging, one isolated installer payload check and production integrity/public readback. Actual Windows/NetEase and the recorded UI-only interactions remain unverified; builds do not establish those outcomes. See the [release notes](.github/release-notes/v0.3.2-beta.2.md), [local iteration record](docs/dev/local-iterations-2026-10-13.md) and [publication record](docs/dev/beta2-release-2026-10-13.md).
+Use only required Windows App/XAML compilation, exact-main packaging, one isolated installer payload check and release/update integrity verification. Native WinUI observation is unavailable in Linux. See the [release notes](.github/release-notes/v0.3.2-beta.3.md) and [focused execution record](docs/dev/beta3-release-2026-10-17.md).
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.2
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.3
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

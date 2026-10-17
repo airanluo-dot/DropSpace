@@ -263,9 +263,10 @@ public sealed class DownloadPanel : UserControl
     }
     private TextBlock Heading(string key) => new() { Text = _strings.Get(key), FontSize = 18, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
     private void NameControl(DependencyObject control, string key) { AutomationProperties.SetName(control, _strings.Get(key)); AutomationProperties.SetAutomationId(control, key); }
-    private Button Button(string key, Func<Task> action)
+    private Button Button(string key, Func<Task> action, params string[] alternateKeys)
     {
-        var button = DownloadActionPanel.Create(_strings.Get(key)); NameControl(button, key);
+        var button = DownloadActionPanel.Create(_strings.Get(key), ActionGlyph(key),
+            alternateKeys.Select(_strings.Get).ToArray()); NameControl(button, key);
         button.Click += async (_, _) =>
         {
             button.IsEnabled = false; _error.Text = "";
@@ -276,6 +277,12 @@ public sealed class DownloadPanel : UserControl
         };
         return button;
     }
+    private static string ActionGlyph(string key) => key switch
+    {
+        "DownloadStart" => "\uE896", "DownloadOpenFolder" or "DownloadChoose" => "\uE8B7",
+        "DownloadPause" => "\uE769", "DownloadResume" => "\uE768", "DownloadCancel" => "\uE711",
+        "DownloadRetry" => "\uE72C", "DownloadRemoveHistory" => "\uE74D", _ => "\uE81C",
+    };
     private FrameworkElement Row(string key, FrameworkElement control)
     {
         var row = new StackPanel { Spacing = 4 };
@@ -298,7 +305,8 @@ public sealed class DownloadPanel : UserControl
         private readonly TextBlock _name = new() { TextWrapping = TextWrapping.Wrap, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
         private readonly TextBlock _detail = new() { TextWrapping = TextWrapping.Wrap };
         private readonly ProgressBar _progress = new() { Minimum = 0, Maximum = 100 };
-        private readonly Button _pause, _resume, _cancel, _retry, _remove;
+        private readonly Button _primary, _secondary;
+        private DownloadTaskState? _renderedState;
         private TaskRow? _row;
         private DownloadTaskSnapshot _item;
         public TaskCard(DownloadPanel owner, DownloadTaskSnapshot item)
@@ -307,15 +315,25 @@ public sealed class DownloadPanel : UserControl
             var body = new StackPanel { Spacing = 8 }; body.Children.Add(_name); body.Children.Add(_detail); body.Children.Add(_progress);
             // A wrapping panel keeps actions reachable at large text scales and compact widths.
             var actions = new DownloadActionPanel();
-            _pause = owner.Button("DownloadPause", () => owner._editor.Downloads.PauseAsync(_item.Id));
-            _resume = owner.Button("DownloadResume", () => owner._editor.Downloads.ResumeAsync(_item.Id));
-            _cancel = owner.Button("DownloadCancel", () => owner._editor.Downloads.CancelAsync(_item.Id));
-            _retry = owner.Button("DownloadRetry", () => owner._editor.Downloads.ResumeAsync(_item.Id));
-            _remove = owner.Button("DownloadRemoveHistory", () => owner._editor.Downloads.RemoveHistoryAsync(_item.Id));
-            foreach (var button in new[] { _pause, _resume, _cancel, _retry, _remove, owner.Button("DownloadOpenFolder", () =>
-                { owner._editor.OpenDownloadFolder(Path.GetDirectoryName(_item.OutputPath)!); return Task.CompletedTask; }) })
-            { actions.Children.Add(button); }
+            _primary = owner.Button("DownloadPause", () => _item.State switch
+                {
+                    DownloadTaskState.Queued or DownloadTaskState.DownloadingFile => owner._editor.Downloads.PauseAsync(_item.Id),
+                    DownloadTaskState.Paused or DownloadTaskState.Failed => owner._editor.Downloads.ResumeAsync(_item.Id),
+                    _ => Task.CompletedTask,
+                },
+                "DownloadPause", "DownloadResume", "DownloadRetry");
+            _secondary = owner.Button("DownloadCancel", () => _item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled
+                ? owner._editor.Downloads.RemoveHistoryAsync(_item.Id) : owner._editor.Downloads.CancelAsync(_item.Id),
+                "DownloadCancel", "DownloadRemoveHistory");
+            actions.Children.Add(_primary); actions.Children.Add(_secondary);
+            actions.Children.Add(owner.Button("DownloadOpenFolder", () =>
+                { owner._editor.OpenDownloadFolder(Path.GetDirectoryName(_item.OutputPath)!); return Task.CompletedTask; }));
             body.Children.Add(actions); Content = Card(body);
+        }
+        private void SetAction(Button button, string key)
+        {
+            DownloadActionPanel.SetContent(button, _owner._strings.Get(key), ActionGlyph(key));
+            _owner.NameControl(button, key);
         }
         public void Unbind() { if (_row is not null) _row.Changed -= Update; _row = null; }
         public void Bind(TaskRow row) { Unbind(); _row = row; row.Changed += Update; Update(row.Snapshot); }
@@ -328,11 +346,17 @@ public sealed class DownloadPanel : UserControl
                 _owner._strings.Format("DownloadActiveConnections", item.ActiveConnections);
             _progress.IsIndeterminate = item.TotalBytes is null && item.State is DownloadTaskState.Queued or DownloadTaskState.DownloadingFile;
             _progress.Value = item.TotalBytes is > 0 ? Math.Clamp(item.DownloadedBytes * 100d / item.TotalBytes.Value, 0, 100) : 0;
-            _pause.Visibility = item.State is DownloadTaskState.Queued or DownloadTaskState.DownloadingFile ? Visibility.Visible : Visibility.Collapsed;
-            _resume.Visibility = item.State == DownloadTaskState.Paused ? Visibility.Visible : Visibility.Collapsed;
-            _retry.Visibility = item.State == DownloadTaskState.Failed ? Visibility.Visible : Visibility.Collapsed;
-            _cancel.Visibility = item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled ? Visibility.Collapsed : Visibility.Visible;
-            _remove.Visibility = item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled ? Visibility.Visible : Visibility.Collapsed;
+            if (_renderedState != item.State)
+            {
+                _renderedState = item.State;
+                var primaryKey = item.State == DownloadTaskState.Paused ? "DownloadResume" :
+                    item.State == DownloadTaskState.Failed ? "DownloadRetry" : "DownloadPause";
+                var terminal = item.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled;
+                _primary.Visibility = item.State is DownloadTaskState.Queued or DownloadTaskState.DownloadingFile or
+                    DownloadTaskState.Paused or DownloadTaskState.Failed ? Visibility.Visible : Visibility.Collapsed;
+                SetAction(_primary, primaryKey);
+                SetAction(_secondary, terminal ? "DownloadRemoveHistory" : "DownloadCancel");
+            }
             if (item.State == DownloadTaskState.Failed && item.ErrorCode is not null)
                 _detail.Text += " · " + _owner._strings.Get("DownloadError");
             AutomationProperties.SetName(_progress, _name.Text);
