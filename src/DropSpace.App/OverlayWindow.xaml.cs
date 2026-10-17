@@ -209,19 +209,6 @@ public sealed partial class OverlayWindow : Window
                 if (_rightHoldPointer is not null && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove)
                     PlacementEditRequested?.Invoke(this, MonitorId);
             };
-            Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
-            Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
-            Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) =>
-            {
-                _motion.ApplyPress(false, IsReducedMotion());
-                _rightHoldTimer.Stop(); _rightHoldPointer = null;
-            }), true);
-            Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, _) =>
-            {
-                _motion.ApplyPress(false, IsReducedMotion());
-                if (_placementEditActive) return;
-                _rightHoldTimer.Stop(); _rightHoldPointer = null;
-            }), true);
             MusicCompact.SetActive(false);
             _compactPanelVisibilityToken = CompactPanel.RegisterPropertyChangedCallback(
                 UIElement.VisibilityProperty, OnCompactPanelVisibilityChanged);
@@ -248,6 +235,20 @@ public sealed partial class OverlayWindow : Window
                 SurfaceContent,
                 InteractionTintOverlay);
             _motion = new OverlayMotionOrchestrator(OverlayMotionValues.Hidden, _compositionAnimator);
+            // Register pointer feedback only after its animation owner is ready.
+            Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
+            Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
+            Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) =>
+            {
+                _motion.ApplyPress(false, IsReducedMotion());
+                _rightHoldTimer.Stop(); _rightHoldPointer = null;
+            }), true);
+            Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, _) =>
+            {
+                _motion.ApplyPress(false, IsReducedMotion());
+                if (_placementEditActive) return;
+                _rightHoldTimer.Stop(); _rightHoldPointer = null;
+            }), true);
             Root.ActualThemeChanged += OnIslandThemeChanged;
             ApplyTheme(mediaViewModel.Settings.IslandAppearance.Theme);
             _materialController.Apply(_visualPreferences.Resolve(viewModel.MotionPreference));

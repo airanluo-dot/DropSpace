@@ -1,12 +1,15 @@
 using System.ComponentModel;
 using DropSpace.App.Services;
 using DropSpace.App.Services.Dlc;
+using DropSpace.App.Services.Widgets;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Dlc;
 using System.Text.Json;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Widgets;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
@@ -213,12 +216,21 @@ public sealed partial class WidgetsExpandedView : UserControl
             if (placement.Id is NativeWidgetId.Calculator or NativeWidgetId.PinnedItems)
             {
                 var button = new Button { Content = content, MinWidth = 0, MinHeight = 0, Padding = new(4), HorizontalContentAlignment = HorizontalAlignment.Stretch, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-                value.Text = placement.Id == NativeWidgetId.Calculator ? "± × ÷" : "★";
+                AutomationProperties.SetName(button, _view.Text("Widget" + placement.Id + ".Text"));
+                var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id), FontSize = 18 };
+                AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
                 value.TextWrapping = TextWrapping.NoWrap;
                 value.TextAlignment = TextAlignment.Center;
                 title.TextAlignment = TextAlignment.Center;
                 content.Children.Remove(value);
-                content.Children.Add(new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, Child = value, HorizontalAlignment = HorizontalAlignment.Stretch });
+                var artwork = new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, Child = icon, HorizontalAlignment = HorizontalAlignment.Stretch };
+                content.Children.Add(artwork);
+                void ShowLaunchFailure()
+                {
+                    value.Text = _view.Text("WidgetLaunchFailed");
+                    artwork.Child = value;
+                    AutomationProperties.SetHelpText(button, value.Text);
+                }
                 button.Click += async (_, _) =>
                 {
                     try
@@ -226,17 +238,19 @@ public sealed partial class WidgetsExpandedView : UserControl
                         if (placement.Id == NativeWidgetId.Calculator)
                         {
                             if (!await Windows.System.Launcher.LaunchUriAsync(new Uri("calculator:")))
-                                value.Text = _view.Text("WidgetLaunchFailed");
+                                ShowLaunchFailure();
                         }
                         else { await _view.OpenPinnedAsync(); PinnedRequested?.Invoke(this, EventArgs.Empty); }
                     }
-                    catch (Exception) { value.Text = _view.Text("WidgetLaunchFailed"); }
+                    catch (Exception) { ShowLaunchFailure(); }
                 };
                 tile = button;
             }
             else if (placement.Id == NativeWidgetId.Settings)
             {
-                var button = new Button { Content = new FontIcon { Glyph = "\uE713" }, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+                var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id) };
+                AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
+                var button = new Button { Content = icon, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                 XamlResourceOverride.Apply(button, "WidgetSettingsAction");
                 button.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty); tile = button;
             }

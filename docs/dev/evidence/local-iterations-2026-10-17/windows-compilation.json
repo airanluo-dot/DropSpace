@@ -1,0 +1,58 @@
+{
+  "attempts": [
+    {
+      "runId": 39060274785,
+      "sourceCommit": "d624782a6b1388c879b98abc4adb64425c4e09c5",
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39060274785",
+      "configuration": "Debug",
+      "result": "failure",
+      "functionalTestsExecuted": 0,
+      "rootErrors": [
+        "CS8602 OverlayWindow.xaml.cs(216,17)",
+        "CS8602 OverlayWindow.xaml.cs(221,17)"
+      ],
+      "downstreamErrors": [
+        "WMC1509 missing LocalAssembly",
+        "WMC0001 unknown local converter types",
+        "WMC9999 XAML internal error"
+      ],
+      "diagnostics": {
+        "jobLogPath": "artifacts/local-iterations-2026-10-17/windows-compile/39060274785/job.log",
+        "jobLogSha256": "dec99c0612dec2086758aef6b66b128d7236e4eec43ccedcc81f86c5752f9d1a",
+        "artifactId": 12111306527,
+        "artifactDownloaded": false,
+        "artifactFailure": "Proxy returned 403 on redirect; direct networking refused connection."
+      },
+      "productionJobsSkipped": true,
+      "protectedProductionCheckNotEmitted": true
+    }
+  ],
+  "nextSourceInputs": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "bedcf757f9c827e84a5ea3abef740ded8df90dba7b2e4787ffb75ef18f349292"
+    },
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "sha256": "982ab0c90825bdade25fd14af6b2f6ca62a6a73227e786c5badb0e66eefb8de6"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Widgets/NativeWidgetIcons.cs",
+      "sha256": "49651096da85cbdb80cfb02420d9a8afc48766d00bdc3c483aa3c99141634c27"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/WidgetEditorView.cs",
+      "sha256": "14697e0c87ff4f8d592348cac8880fcff0bba1a5c3b71936da65a2901f4b4c27"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+      "sha256": "103c5369747fb3a39f222ab76e8fb384d2f5d3abae5724fd19b25bdf5d398e07"
+    }
+  ],
+  "nextChanges": [
+    "Register pointer feedback after motion initialization",
+    "Add shared native widget glyphs",
+    "Print compilation receipt to job log"
+  ],
+  "releasePublished": false
+}

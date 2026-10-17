@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using DropSpace.App.Services.Widgets;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Widgets;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Input;
@@ -168,7 +170,9 @@ public sealed class WidgetEditorView : UserControl
     private Button CreateDragButton(NativeWidgetId id, string label)
     {
         var content = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-        content.Children.Add(new FontIcon { Glyph = id switch { NativeWidgetId.Clock => "\uE823", NativeWidgetId.Calendar => "\uE787", NativeWidgetId.ResourceUsage => "\uE9D9", NativeWidgetId.Battery => "\uE850", NativeWidgetId.Uptime => "\uE7E8", NativeWidgetId.Stopwatch => "\uE916", NativeWidgetId.ClipboardPause => "\uE77F", _ => "\uE713" }, FontSize = 18 });
+        var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(id), FontSize = 18 };
+        AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
+        content.Children.Add(icon);
         content.Children.Add(new TextBlock { Text = label, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });
         var dragTransform = new TranslateTransform();
         var button = new Button { Content = content, MinWidth = 0, MinHeight = 0, HorizontalContentAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(4), ManipulationMode = ManipulationModes.None, RenderTransform = dragTransform };

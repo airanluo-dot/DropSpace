@@ -207,3 +207,36 @@ not App functional passes.
 The continuation localization scan passed for ten languages and 923 IDs.
 [continuation-summary.json](evidence/local-iterations-2026-10-17/continuation-summary.json)
 binds the changed sources to these checks and preserves the earlier record.
+
+### First Windows compile and follow-up icons
+
+The development branch `codex/beta3-app-evolution-20261017` was pushed at
+`d624782a6b1388c879b98abc4adb64425c4e09c5`. Its manual compile-only run
+[39060274785](https://github.com/airanluo-dot/DropSpace/actions/runs/39060274785)
+restored locked dependencies successfully but failed compilation. Two CS8602
+errors in the new `OverlayWindow` cancellation/capture-loss callbacks preceded
+the LocalAssembly/XAML converter-resolution errors. The callbacks were registered
+before the readonly motion controller was initialized. All four pointer handlers
+now register immediately after that initialization, preserving their order and
+behavior; independent source review confirmed the dependency ordering. No null
+suppression or converter changes were introduced. The native compilation retry
+will confirm whether the downstream XAML errors disappear. Zero tests ran.
+
+The failed run retained its diagnostics artifact. GitHub job logs were retrieved
+locally, while the artifact redirect returned HTTP 403 through the environment
+proxy; a direct-network attempt could not connect. Subsequent compile receipts
+also print a small structured JSON record to the job log, so source-bound compile
+results remain readable independently of artifact transfer. This does not change
+the compile scope, publication eligibility or validation conditions.
+
+The next source checkpoint also gives every native widget an explicit system
+glyph in the App-layer `NativeWidgetIcons` mapping. World clock, focus timer,
+disk, network, calculator, pinned items and week progress no longer share a
+settings gear. Clock uses the actual Clock glyph instead of Recent; Countdown
+shares the verified Stopwatch glyph and retains its descriptive label. Calculator,
+Pinned Items and Settings reuse the same mapping in the expanded Island. Button
+names remain localized, decorative glyphs are excluded from the control-level
+accessibility view, and launch failures still show text with accessible help.
+Glyph names/codepoints were checked against Microsoft's Segoe Fluent Icons table.
+No timer behavior or resource IDs changed. XML, source/coverage, whitespace and
+independent icon review passed; no functional icon tests were added or executed.

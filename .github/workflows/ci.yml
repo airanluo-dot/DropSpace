@@ -1151,6 +1151,7 @@ jobs:
             buildLogSha256 = (Get-FileHash artifacts/windows-compile-only/app-build.txt -Algorithm SHA256).Hash.ToLowerInvariant()
           }
           $receipt | ConvertTo-Json -Depth 4 | Set-Content artifacts/windows-compile-only/compile-receipt.json -Encoding utf8
+          Write-Output ('DROPSPACE_COMPILE_RECEIPT=' + ($receipt | ConvertTo-Json -Depth 4 -Compress))
           'Debug App/XAML compilation only. No App execution, functional tests, AI/CUDA/model staging, packages or publication. This artifact cannot qualify Release promotion.' >> $env:GITHUB_STEP_SUMMARY
       - name: Retain compilation diagnostics only
         if: always()
