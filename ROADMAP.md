@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.2-beta.3
+## Release target: v0.3.2-beta.4
 
-The current Beta target is `v0.3.2-beta.3` (Beta 3).
-v0.3.2-beta.2 is the immediate upgrade baseline for this release.
+The current Beta target is `v0.3.2-beta.4` (Beta 4).
+v0.3.2-beta.3 is the immediate upgrade baseline for this release.
 
-Fix compact lyric measurement, glyph-edge clipping and scroll/layout timing, and unify native download action icons and state layouts. Preserve the existing architecture, interactions, channels and model/CUDA bytes.
+Publish the saved island/widget, navigation, clipboard and download-recovery improvements. Preserve existing architecture, data, channels and model/CUDA bytes; no new development is included in this publication turn.
 
-Use only required Windows App/XAML compilation, exact-main packaging, one isolated installer payload check and release/update integrity verification. Native WinUI observation is unavailable in Linux. See the [release notes](.github/release-notes/v0.3.2-beta.3.md) and [focused execution record](docs/dev/beta3-release-2026-10-17.md).
+Use only required Windows App/XAML compilation, exact-main packaging, one isolated installer payload check and release/update integrity verification. Reuse the recorded focused development evidence; native RTB limitations remain documented. See the [release notes](.github/release-notes/v0.3.2-beta.4.md) and [focused execution record](docs/dev/beta4-release-2026-10-18.md).
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.3
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.4
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
