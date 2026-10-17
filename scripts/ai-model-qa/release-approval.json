@@ -725,7 +725,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
-          "sha256": "d21a8ad5fd4ccc42bc3705241cdd22dcf08e4e9bd95d78a89b6e6edd7bc7cb3d"
+          "sha256": "cfac96bc8c324fc6b1d996219fe55847533dee7c5cd816285ddaaf919153ddd9"
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml",
@@ -1268,7 +1268,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "2554f86af3d9bd072d2243cbaaa1f3bf3c4604ac04c5b081919ed66d37d94eff"
+      "sha256": "beb376e12cf3f5fa7ba018c3c0ccd7a6b5b6b9d148332180b9cfcd0d06db5dde"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2711,7 +2711,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.3-owner-accepted-review.json",
-    "sha256": "1b4efdd3dfd27bdac5fb9587cd43853ae43189185026c05b693049cf7161496e"
+    "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.3-independent-offsets-review.json",
+    "sha256": "749a3d09d6512f4e403c6d2e3713fbe67d1a4c0ef2cfd34fecda0badfd759113"
   }
 }

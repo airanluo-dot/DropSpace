@@ -32,3 +32,11 @@ Execution ledger:
 
 Existing signing policy and native package/updater checks remain mandatory. The historical
 model acceptance is carried forward unchanged under the owner's corrective-release scope.
+
+Follow-up before publication: PR #125 Windows App/XAML compilation passed with zero
+warnings/errors (run 39051574877). The first final-main packaging run 39051820841 was
+cancelled before publication after source review identified cross-row offset resets.
+A translation-only update now clears only the translation offset; an unchanged long
+original holds its position through pending layout/geometry. Fitting rows still reset
+to zero and retired/disabled presentation clears both. Final compilation/packaging
+will bind the follow-up tree; no earlier package is published.
