@@ -99,8 +99,10 @@ internal static partial class BetaUiDiagnostics
     }
 
     private static async Task CaptureAsync(FrameworkElement root, string name,
-        BetaUiDiagnosticReceipt receipt, CancellationToken token)
+        BetaUiDiagnosticReceipt receipt, CancellationToken token, Func<bool>? isAlive = null)
     {
+        void RequireAlive() => Require(isAlive?.Invoke() != false,
+            "The capture surface was retired; further XAML access was skipped.");
         try
         {
             var previousWidth = double.NaN;
@@ -108,18 +110,24 @@ internal static partial class BetaUiDiagnostics
             var stable = 0;
             await WaitAtStageAsync(receipt, "capture-" + name + "-layout", () =>
             {
+                RequireAlive();
                 root.UpdateLayout();
                 stable = root.ActualWidth > 0 && root.ActualHeight > 0 &&
                     Math.Abs(root.ActualWidth - previousWidth) < .1 && Math.Abs(root.ActualHeight - previousHeight) < .1 ? stable + 1 : 0;
                 previousWidth = root.ActualWidth;
                 previousHeight = root.ActualHeight;
                 return stable >= 4;
-            }, token, () => PresentationState(root));
+            }, token, () => isAlive?.Invoke() == false
+                ? new { detached = true, reason = "The capture surface was retired." }
+                : PresentationState(root));
+            RequireAlive();
             var bitmap = new RenderTargetBitmap();
             Stage(receipt, "capture-" + name + "-render");
             await bitmap.RenderAsync(root).AsTask().WaitAsync(TimeSpan.FromSeconds(5), token);
+            RequireAlive();
             Stage(receipt, "capture-" + name + "-read-pixels");
             var buffer = await bitmap.GetPixelsAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5), token);
+            RequireAlive();
             var pixels = new byte[buffer.Length];
             using (var reader = DataReader.FromBuffer(buffer)) reader.ReadBytes(pixels);
             Require(bitmap.PixelWidth > 0 && bitmap.PixelHeight > 0 &&
@@ -139,18 +147,22 @@ internal static partial class BetaUiDiagnostics
             Stage(receipt, "capture-" + name + "-encode");
             using var encoded = new InMemoryRandomAccessStream();
             var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, encoded);
+            RequireAlive();
             var scale = root.XamlRoot.RasterizationScale;
             encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
                 (uint)bitmap.PixelWidth, (uint)bitmap.PixelHeight, 96 * scale, 96 * scale, pixels);
             await encoder.FlushAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5), token);
+            RequireAlive();
             using var pngReader = new DataReader(encoded.GetInputStreamAt(0));
             Stage(receipt, "capture-" + name + "-read-png");
             await pngReader.LoadAsync(checked((uint)encoded.Size)).AsTask().WaitAsync(TimeSpan.FromSeconds(5), token);
+            RequireAlive();
             var png = new byte[checked((int)encoded.Size)];
             pngReader.ReadBytes(png);
             var file = name + ".png";
             Stage(receipt, "capture-" + name + "-write-png");
             await File.WriteAllBytesAsync(Path.Combine(receipt.Output, file), png, token);
+            RequireAlive();
             receipt.Captures.Add(new(file, Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant(),
                 bitmap.PixelWidth, bitmap.PixelHeight, scale, valid,
                 name.StartsWith("timer-menu-", StringComparison.Ordinal) ? "live-menu-popup-subtree" :
@@ -211,6 +223,7 @@ internal sealed class BetaUiDiagnosticReceipt(string output, BetaUiDiagnosticSel
         "Overlay composition opacity and Acrylic are not necessarily represented by XAML RenderTargetBitmap; invalid readbacks neither pass visual validation nor prove the on-screen HWND is empty.",
         "Supplemental desktop BitBlt ROI PNGs are separate manual-review evidence. They never alter the RenderTargetBitmap gate, case counts or final status, and their alpha is synthesized for PNG encoding.",
         "The timer-visual selection observes cold presentation and one FocusTimer submenu hide/reopen only. It does not repeat duration selection, timer start/pause or batch selection cases.",
+        "The overlay-lifecycle selection posts SC_CLOSE to its own HWND and observes actual closing/retention/reopen/shutdown. It is not physical Alt+F4, global-hotkey, placement-edit or multi-monitor routing coverage; its single-window experience bridge does not initialize the production overlay service's global listeners.",
         "Nonblank pixels and geometry require human PNG review; no screenshot comparison or complete visual correctness claim.",
         "The fixture owns a fresh data directory and 2 x 1 timer layout. It does not initialize clipboard capture, startup registration, media discovery, AI, updates or module workers.",
     ];

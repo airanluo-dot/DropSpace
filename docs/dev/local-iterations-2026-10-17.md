@@ -840,3 +840,148 @@ AST once, source audit twice across the before/after boundsAfterProbe revision,
 YAML/old-gate integrity once and changed-file whitespace once. These are compilation
 and static checks, zero functional scenarios. Final frozen inputs and the earlier
 snapshots are in `evidence/local-iterations-2026-10-17/timer-visual-preflight.json`.
+
+
+### Continuation: native popup retirement confirmed; cold content opacity isolated
+
+Run [39065889915](https://github.com/airanluo-dot/DropSpace/actions/runs/39065889915)
+compiled `cfacd50bcb4035c975375e577035225818bfec4d` with zero warnings/errors.
+The build and launch source/tree/apphost/PRI/assembly identities matched. It covers
+the right-hold retirement and Clipboard identity changes, without executing their
+physical interactions. The old music/Release job remained skipped.
+
+The new `timer-visual` scenario ran **once, 1/1 implemented assertions passed**.
+Both actual root and child popups closed, unloaded their children and disappeared
+from the open-popup list. No previous duration/start/pause or batch scenario ran.
+All three RTB images still failed the unchanged pixel predicate; the App correctly
+reported blocked/exit 2 and the workflow failed. No full visual approval is claimed.
+
+Two original desktop PNGs were reconstructed from the log and verified against
+chunk, transfer and capture SHA-256/size metadata. Assistant inspection shows the
+initial rounded background still without contents; the reopened surface displays
+25:00 and 5:00 controls with no residual submenu. The initial PNG is byte-identical
+to the previous run. Initial checkpoint now proves motion settled, phase Visible,
+no active frame, and the render/commit barriers completed, yet ExpandedPanel's
+Composition opacity is 0. Later menu/reopened checkpoints show it as 1; its XAML
+base remains 0 throughout. This isolates a production presentation-state mismatch
+independently of GDI's hardware-plane limitations.
+
+The popup's real peer bounds are now retained and in-screen (155, 98, 103, 286).
+Its desktop capture was blocked because the sampled HWND owner chain could not be
+attributed to the Overlay, despite the process ID matching. That conservative
+failure was preserved. Direct REST job-log redirection was refused with 403;
+the `gh run view --job --log` path succeeded. This is evidence transport, not another
+App execution, and no artifact download was retried. Full results and inspected
+PNGs are retained in `evidence/local-iterations-2026-10-17/beta-native-ui.json` and
+`native-timers-39065889915-{initial,reopened}.png`.
+
+
+### Continuation: discard action errors from retired Clipboard presentations
+
+A pending Copy could fail after its card had been removed or restored at a new
+presentation generation, leaving an irrelevant persistent error on the current
+list. Copy, Pin and Remove now capture their card presentation and aggregate
+visibility generations. Failure feedback is published only while those owners
+remain current and the VM is undisposed. Pause uses only the lifecycle checks.
+The underlying actions are not cancelled, ordinary metadata revision changes do
+not suppress valid errors, successful refresh queueing remains, and Pin's finally
+still restores the card state/notification.
+
+Only the new explicit `action_error_ownership` source-linked scenario ran once:
+**1/1, 10 assertions passed**, zero failures/retries/compiler warnings/errors.
+It covers retirement and same-instance restoration, valid failure after metadata
+progression, hide/reopen and disposal, with controlled upstream completion rather
+than actual clipboard/repository/Undo/WinUI execution. Prior scenarios and the
+default selection were unchanged and not rerun. Independent review found no
+blocker. Frozen inputs are in
+`evidence/local-iterations-2026-10-17/clipboard-island-action-feedback.json`.
+
+
+### Continuation: preserve the reusable island on ordinary system close
+
+The keyboard Quick Panel can activate its HWND, but previously a system close
+could destroy it while OverlayWindowService retained the now-closing instance.
+Future presentation requests would return early. Overlay now handles the real
+AppWindow.Closing event: cancel ordinary destruction, retire a pending hold,
+cancel placement editing through the existing service event, then dismiss the
+shared island experience. The final dismissal follows any synchronous service
+restoration from placement cancellation. It does not create replacement windows.
+
+Explicit shutdown, topology retirement and failed construction detach this handler
+after fencing callbacks, allowing genuine closure. A genuine Closed event also
+runs the same full idempotent resource retirement instead of only stopping the
+animation and transparent-host hook. Forced external HWND destruction still has
+no automatic service recovery guarantee.
+
+Independent source/API-semantic review found no blocker. One whitespace check and
+one existing-production API signature comparison passed; zero functional/native
+gesture/App compile executions were added for this slice. Actual Alt+F4 remains
+unverified. Inputs and the review boundary are in
+`evidence/local-iterations-2026-10-17/overlay-system-close.json`.
+
+
+### Continuation: remove competing first-realization opacity defaults
+
+ExpandedPanel, DragPanel and InteractionTintOverlay no longer declare local XAML
+Opacity 0. Their existing compositor owner initializes the visuals to zero through
+OverlayMotionOrchestrator's synchronous SnapTo(Hidden) before any native show;
+the two content panels also remain initially Collapsed. This follows CompactPanel's
+existing default-XAML-opacity pattern and adds no timer, Loaded rewrite or per-frame
+XAML property updates.
+
+Public WinUI `HWCompNodeWinRT.cpp` documents a previous-opacity cache initialized
+to the visual default 1 to preserve early app writes to the handoff visual. Its
+UpdatePrimaryVisual writes local XAML opacity when that value differs from the
+cache. A static 0 can therefore overwrite the app's first visible motion value,
+then stop doing so after its cache is initialized. This mechanism matches the
+native cold/warm discrepancy, though the public source was not traced inside the
+installed runtime binary. The production fix needs the next native cold-frame
+assertion and picture; it is not yet declared visually verified.
+
+One XML/exact-attribute scope check, one whitespace/line-ending check and independent
+source review passed. The final edit only clarified the source comment. No
+functional probe, App build or native execution ran for this slice. Frozen inputs,
+framework references and remaining limits are in
+`evidence/local-iterations-2026-10-17/overlay-first-realization-opacity.json`.
+
+
+### Continuation: one independent first-presentation and system-close scenario
+
+The explicit `overlay-lifecycle` selection adds only
+`overlay-first-frame-and-system-close`, with initial and reopened captures. It
+uses the existing two-timer fixture without invoking timer or menu actions.
+After production motion/layout/render/commit readiness, it freezes the three
+content layers' loaded/visible/nonzero geometry and ExpandedPanel Composition
+opacity before any desktop readback, RTB or UIA. Its assertions use those immutable
+values even if RTB triggers a later redraw.
+
+A temporary single-window experience observer projects coordinator changes through
+the real Overlay.ApplySnapshot; it does not initialize global service listeners
+or directly hide the window for the close handler. The scenario posts SC_CLOSE
+only to its verified owned HWND, observes the real Closing event without writing
+Cancel, requires Hidden/empty native region while retaining the same HWND, reopens
+that same window, then requires actual Closed and HWND destruction after explicit
+CloseForShutdown. The neutral host remains alive for service/logger retirement.
+It preserves the first failure while attempting later evidence and skips further
+presentation access if the owned window has closed. This is programmatic native
+close coverage, not physical Alt+F4, placement editing, global-hotkey or multi-monitor
+service routing coverage.
+
+Resource review added an optional liveness check throughout the RTB helper's
+asynchronous boundaries and failure snapshots. Only the new lifecycle caller
+supplies it; existing calls keep their prior behavior and pixel predicate. This
+prevents subsequent managed reads of a retired XAML surface; it does not forcibly
+cancel an already-started native rendering operation.
+
+The fixed two-capture requirement, old selections, original RTB/status gates and
+PNG transport remain unchanged. Lifecycle result fields stay intact in logs,
+including the App's event-cap flag; only event detail is bounded. Independent
+behavior and resource reviews found no blocker. Native execution remains pending
+at this checkpoint.
+
+Lifecycle preflight: one narrow compile passed with zero warnings/errors and
+unchanged input hashes. Launcher/workflow checks total five executions: AST once,
+source audit twice across the added eventSequenceTruncated schema flag, YAML/old
+contract integrity once, and whitespace once. No functional scenarios ran during
+preflight. Inputs and original/follow-up snapshots are preserved in
+`evidence/local-iterations-2026-10-17/overlay-lifecycle-preflight.json`.

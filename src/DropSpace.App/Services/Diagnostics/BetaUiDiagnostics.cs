@@ -130,20 +130,30 @@ internal static partial class BetaUiDiagnostics
                     var overlayView = services.GetRequiredService<OverlayViewModel>();
                     var drag = new DragActivationCallbacks(_ => { }, (_, _) => { }, _ => { },
                         (_, _) => Task.FromException(new InvalidOperationException("Drag input is outside this diagnostic.")));
-                    overlay = ActivatorUtilities.CreateInstance<OverlayWindow>(services, monitor, drag, (Action)(() => { }));
+                    var diagnosticOverlay = ActivatorUtilities.CreateInstance<OverlayWindow>(services, monitor, drag, (Action)(() => { }));
+                    overlay = diagnosticOverlay;
                     receipt.Observations.Add(new
                     {
                         stage = "timer-fixture", monitorDpi = monitor.Dpi, settings.Widgets.Layout.Expanded, dataRoot,
                         nativeServices = "Widget sampling and system visual preferences only; other service dependencies remain uninitialized.",
                     });
-                    if (selection.RunTimerVisual)
+                    if (selection.RunOverlayLifecycle)
+                    {
+                        await RunCaseAsync("overlay-first-frame-and-system-close", receipt,
+                            () => CheckOverlayLifecycleAsync(diagnosticOverlay, overlayView, island,
+                                () => overlay = null, receipt, token));
+                    }
+                    else if (selection.RunTimerVisual)
                         await RunCaseAsync("timer-first-frame-and-popup-retirement", receipt,
-                            () => CheckTimerVisualAsync(overlay, overlayView, island, services.GetRequiredService<WidgetViewModel>(), receipt, token));
+                            () => CheckTimerVisualAsync(diagnosticOverlay, overlayView, island, services.GetRequiredService<WidgetViewModel>(), receipt, token));
                     else
                         await RunCaseAsync("timer-menu-retirement", receipt,
-                            () => CheckTimersAsync(overlay, overlayView, island, services.GetRequiredService<WidgetViewModel>(), receipt, token));
-                    overlay.ApplySnapshot(overlayView.Snapshot with { State = OverlayState.Hidden },
-                        true, true, overlayView.FileDragWakeMode, overlayView.GetOverlayPlacement(overlay.MonitorId));
+                            () => CheckTimersAsync(diagnosticOverlay, overlayView, island, services.GetRequiredService<WidgetViewModel>(), receipt, token));
+                    // The lifecycle case owns shutdown; its Closed callback releases
+                    // this reference so normal cleanup cannot reuse a destroyed HWND.
+                    if (!selection.RunOverlayLifecycle)
+                        diagnosticOverlay.ApplySnapshot(overlayView.Snapshot with { State = OverlayState.Hidden },
+                            true, true, overlayView.FileDragWakeMode, overlayView.GetOverlayPlacement(diagnosticOverlay.MonitorId));
                 }
                 if (selection.RunBatch)
                     await RunCaseAsync("batch-collapse-selection", receipt,

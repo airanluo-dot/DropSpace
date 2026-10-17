@@ -28,6 +28,8 @@ if (selected == "pin_action_recovery")
     scenarios = [("pin_action_recovery", PinActionRecovery)];
 if (selected == "projection_identity")
     scenarios = [("projection_identity", ProjectionIdentity)];
+if (selected == "action_error_ownership")
+    scenarios = [("action_error_ownership", ActionErrorOwnership)];
 if (selected is not null && !scenarios.Any(scenario => scenario.Name == selected))
     throw new ArgumentException("Unknown scenario: " + selected);
 var results = new List<ScenarioResult>();
@@ -49,6 +51,71 @@ if (outputPath is not null)
     File.WriteAllText(outputPath, JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine($"RESULT {results.Count(result => result.Passed)}/{results.Count} scenarios passed.");
 Environment.ExitCode = results.All(result => result.Passed) ? 0 : 1;
+
+static async Task ActionErrorOwnership(Checks check)
+{
+    await using var fixture = new Fixture();
+    var card = Fixture.Card("action feedback owner");
+    var originalGeneration = card.PresentationGeneration;
+
+    // Use the actual card lifecycle: Undo-like restoration may reuse the same instance.
+    var retiredAction = fixture.View.CopyAsync(card);
+    var retiredCopy = await fixture.Main.Copies.NextAsync();
+    card.RetirePresentation();
+    var restored = card.TryUpdate(card.Item with { Revision = card.Item.Revision + 1 });
+    check.That(restored && !card.IsPresentationRetired && card.PresentationGeneration != originalGeneration,
+        "The fixture did not restore the same card instance under a new presentation generation.");
+    check.That(!retiredAction.IsCompleted && !retiredCopy.Completion.IsCompleted,
+        "Retiring and restoring a card canceled or completed the outstanding upstream action.");
+    retiredCopy.Fail("controlled failure from the retired presentation");
+    await retiredAction;
+    check.That(fixture.View.Error.Length == 0,
+        "An old action published an error after its card instance was retired and restored.");
+
+    // No visible owner is required for direct calls. Metadata revision is not presentation ownership.
+    var currentAction = fixture.View.CopyAsync(card);
+    var currentCopy = await fixture.Main.Copies.NextAsync();
+    var currentGeneration = card.PresentationGeneration;
+    var metadataApplied = card.TryUpdate(card.Item with
+    {
+        Revision = card.Item.Revision + 1,
+        IsPinned = !card.IsPinned,
+        LastUsedAtUtc = card.Item.CreatedAtUtc.AddMinutes(1),
+    });
+    check.That(metadataApplied && card.PresentationGeneration == currentGeneration,
+        "Metadata progression unexpectedly changed the current presentation generation.");
+    currentCopy.Fail("controlled failure from the current presentation");
+    await currentAction;
+    check.That(fixture.View.Error == "ClipboardIslandActionFailed" && fixture.Main.Reads.CallCount == 0,
+        "A current direct action lost its error after metadata advanced while no surface owner was visible.");
+
+    // Keep the worker read pending so an unrelated successful refresh cannot mask an error.
+    var owner = new object();
+    fixture.View.SetVisible(owner, true);
+    _ = await fixture.Main.Reads.NextAsync();
+    var hiddenAction = fixture.View.CopyAsync(card);
+    var hiddenCopy = await fixture.Main.Copies.NextAsync();
+    fixture.View.SetVisible(owner, false);
+    fixture.View.SetVisible(owner, true);
+    check.That(!hiddenAction.IsCompleted && !hiddenCopy.Completion.IsCompleted,
+        "Hiding and reopening the surface canceled or completed the outstanding upstream action.");
+    hiddenCopy.Fail("controlled failure from the preceding visibility period");
+    await hiddenAction;
+    check.That(fixture.View.Error.Length == 0,
+        "An action from before the hide/reopen cycle published an error on the reopened surface.");
+
+    var disposedAction = fixture.View.CopyAsync(card);
+    var disposedCopy = await fixture.Main.Copies.NextAsync();
+    await fixture.DisposeAsync();
+    check.That(!disposedAction.IsCompleted && !disposedCopy.Completion.IsCompleted,
+        "Disposing the presentation canceled or completed the outstanding upstream action.");
+    disposedCopy.Fail("controlled failure after presentation disposal");
+    await disposedAction;
+    check.That(fixture.View.Error.Length == 0,
+        "An action completing after disposal published a presentation error.");
+    check.That(fixture.Main.Copies.CallCount == 4,
+        "The ownership scenario did not execute exactly its four controlled action phases.");
+}
 
 static async Task ProjectionIdentity(Checks check)
 {

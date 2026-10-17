@@ -22,9 +22,11 @@ namespace DropSpace.App.Services.Diagnostics
                     ["timers-initial.png", "timer-menu-FocusTimer.png", "timer-menu-Countdown.png", "timers-reopened.png"]),
                 "timer-visual" => new(selected, ["timer-first-frame-and-popup-retirement"],
                     ["timers-initial.png", "timer-menu-FocusTimer.png", "timers-reopened.png"]),
+                "overlay-lifecycle" => new(selected, ["overlay-first-frame-and-system-close"],
+                    ["timers-initial.png", "timers-reopened.png"]),
                 "batch-selection" => new(selected, ["batch-collapse-selection"],
                     ["batch-expanded-selected.png", "batch-collapsed-selection.png"]),
-                _ => throw new ArgumentException("--beta-ui-scenario must be all, timers, timer-visual, or batch-selection."),
+                _ => throw new ArgumentException("--beta-ui-scenario must be all, timers, timer-visual, overlay-lifecycle, or batch-selection."),
             };
         }
 
@@ -78,8 +80,9 @@ namespace DropSpace.App.Services.Diagnostics
 
     internal sealed record BetaUiDiagnosticSelection(string Name, string[] Scenarios, string[] Captures)
     {
-        internal bool RunTimers => Name is "all" or "timers" or "timer-visual";
+        internal bool RunTimers => Name is "all" or "timers" or "timer-visual" or "overlay-lifecycle";
         internal bool RunTimerVisual => Name == "timer-visual";
+        internal bool RunOverlayLifecycle => Name == "overlay-lifecycle";
         internal bool RunBatch => Name is "all" or "batch-selection";
     }
 }

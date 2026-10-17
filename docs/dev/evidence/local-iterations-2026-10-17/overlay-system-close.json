@@ -1,0 +1,32 @@
+{
+  "kind": "overlay-system-close-source-review",
+  "baselineCommit": "cfacd50bcb4035c975375e577035225818bfec4d",
+  "sourceSha256": {
+    "src/DropSpace.App/OverlayWindow.xaml.cs": "cfdd8788a11f5a36e341db95f7be0dcb0dcc9df3a42f5d193e578abd486358cb"
+  },
+  "functionalScenarioExecutions": 0,
+  "nativeGestureExecutions": 0,
+  "appCompileExecutions": 0,
+  "actionsDispatches": 0,
+  "checks": [
+    {
+      "check": "changed-file whitespace",
+      "executions": 1,
+      "result": "passed"
+    },
+    {
+      "check": "AppWindow.Closing event signature and namespace match existing production MainWindow use",
+      "executions": 1,
+      "result": "passed"
+    }
+  ],
+  "review": "Final independent source and official API-semantic review found no blocker in ordinary system close cancellation, placement cancellation ordering, partial-construction cleanup, explicit shutdown or idempotent Closed retirement. Physical Alt+F4 was not executed.",
+  "behavior": "System user close cancels destruction, cancels an active placement edit through its existing service event, then dismisses the shared Island experience. Explicit shutdown/topology/failed-construction retirement detaches Closing before genuine Close. Genuine Closed invokes full idempotent retirement. No automatic service window rebuilding added.",
+  "boundary": "Source-level checks only. No source-linked fake-window fixture, old motion/hold scenario, native input, Alt+F4 gesture, or App compilation ran. Root will include this change in a later real Windows App/XAML build.",
+  "originalReceiptReview": "Independent read-only review requested; pending final response.",
+  "receipt": {
+    "path": "artifacts/local-iterations-2026-10-17/overlay-system-close/validation-inputs.json",
+    "sha256": "523a239809d2e1706f0c0e69501b5fa314ee428fc25ea4d82378b8203433b5be"
+  },
+  "forcedDestructionBoundary": "Actual unexpected HWND destruction retires resources; automatic recreation of that window in the service is not provided by this change."
+}

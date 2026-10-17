@@ -1,0 +1,101 @@
+{
+  "kind": "source-linked-clipboard-action-error-ownership",
+  "status": "passed",
+  "head": "cfacd50bcb4035c975375e577035225818bfec4d",
+  "startedAtUtc": "2026-10-17T20:16:50.398557+00:00",
+  "compiledInputs": {
+    "src/DropSpace.App/ViewModels/ClipboardIslandViewModel.cs": "951e5d0aae98dd4a4773338ff47c64261252424c52a866e7cdec797317415544",
+    "src/DropSpace.App/ViewModels/ItemCardViewModel.cs": "7670335ef4023a24bd9fdadd08502cee34c0c7f428636a7c2467ace6666756e4",
+    "src/DropSpace.App/Services/DispatcherQueueExtensions.cs": "59a3eb20b38fcc7a0ec0474e78e63c4345341f09c0fcfe5f2e9d78f9c4fed4c2",
+    "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs": "f0fc94b2cdee2ee5af9aa29aa6b74ed7c8d98979501d601a9845dda1067776c8",
+    "src/DropSpace.Core/Collections/ProjectionCollection.cs": "521bd0baa84f3219f5e7fce70816bf1090a3cb2ca039f30e8435b679f74234ff",
+    "scripts/navigation-projection-probe/ProbeDispatcher.cs": "b6d5aa1abc711a5c86ee57a3fb00f18e50a30b867f78c6862752ee17fd6ea0d7",
+    "scripts/clipboard-island-refresh-probe/ClipboardIslandRefreshProbe.csproj": "f8c761c7b5a2906ee57ff22c700d126dd0a99a3da6d41000ab1775c53f6826c6",
+    "scripts/clipboard-island-refresh-probe/Program.cs": "154abeb6cd4c9b0dddb11c346307b58417016cb4fb1b4a8acfc91da53e76e99f",
+    "scripts/clipboard-island-refresh-probe/Fixture.cs": "e9fe49f3f4fe1f831db5073efd799da71137e0bbebeb9df7bc9d64e3df4f53d7",
+    "scripts/clipboard-island-refresh-probe/PlatformShims.cs": "255c3c019c593b16571cadb3cb2512c317a9fce295e91c86fccb37b44e3c0298"
+  },
+  "coreProject": {
+    "project": "src/DropSpace.Core/DropSpace.Core.csproj",
+    "sha256": "5d697fd66f1e7c34f815eafd02bdc2fde9b3669a83877e38c55a03c318b6a274",
+    "sourceManifest": "core-source-manifest.json",
+    "manifestSha256": "aced72fc9b6f46e79e21be21ae5f5eb7b791b605bb6cd658bc3c66c62cd7fd8b"
+  },
+  "buildConfigurationInputs": {
+    "Directory.Build.props": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e",
+    "Directory.Packages.props": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+  },
+  "associatedSourcesNotCompiled": {
+    "src/DropSpace.App/Views/Island/ClipboardIslandView.xaml": "10c74e9c1ac916628e125542fb098d9e7b4f1277830d6cff44324a3e213a7b47",
+    "src/DropSpace.App/Views/Island/ClipboardIslandView.xaml.cs": "9258a71c0ca5615ef2d121b7e1fbb1cd0be70a29a3a9240a723d2980f4c83de5",
+    "src/DropSpace.App/ViewModels/MainViewModel.cs": "1a8ea53a00299b8a729b91ca5364eda8e1aa0e53a7af3b08d2f03d9e073838d9",
+    "src/DropSpace.App/Services/ClipboardCaptureService.cs": "feff2d55692495d796a2fc4f809e82d48bbfda5f29252eb52271f55e89008d1d"
+  },
+  "selectedScenario": "action_error_ownership",
+  "defaultFourScenariosExecuted": false,
+  "pinScenarioExecuted": false,
+  "projectionIdentityScenarioExecuted": false,
+  "baselineExecuted": false,
+  "nativeExecuted": false,
+  "command": [
+    "dotnet",
+    "run",
+    "--project",
+    "scripts/clipboard-island-refresh-probe/ClipboardIslandRefreshProbe.csproj",
+    "--artifacts-path",
+    "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/clipboard-island-action-feedback/build",
+    "-p:RestoreConfigFile=/workspace/DropSpace/artifacts/local-iterations-2026-10-17/clipboard-island-action-feedback/NuGet.Config",
+    "--",
+    "--scenario",
+    "action_error_ownership",
+    "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/clipboard-island-action-feedback/results.json"
+  ],
+  "boundaries": [
+    "Actual full ClipboardIslandViewModel and ItemCardViewModel execute; no error-ownership or lifecycle algorithm is copied.",
+    "Four controlled copy phases comprise one scenario: same-instance retirement/restoration, current error after metadata revision advances without a visible owner, hide/reopen retirement, and disposal retirement.",
+    "Card retirement and newer-revision restoration call actual ItemCardViewModel methods. Undo persistence is not executed.",
+    "Metadata advancement is supplied through the real card update contract, not through a real pin or MarkUsed transaction.",
+    "Only upstream copy completion/failure and recent-item tasks are controlled; the worker read stays pending during hide/reopen so no successful refresh can mask late errors.",
+    "No native clipboard, MainViewModel mutation pipeline, SQLite, real deletion/Undo, WinUI, XAML/UIA error rendering, focus or IO behavior is executed."
+  ],
+  "priorScenarioIntegrity": "Default four selection and all four + pin + projection_identity method bodies compared byte-for-byte with HEAD before this execution; unchanged.",
+  "finalSourceReview": {
+    "source": "src/DropSpace.App/ViewModels/ClipboardIslandViewModel.cs",
+    "sha256": "951e5d0aae98dd4a4773338ff47c64261252424c52a866e7cdec797317415544",
+    "result": "No deterministic blocking issue found in the scoped change.",
+    "reviewedInvariants": [
+      "Copy, Pin and Remove pass the same card into the owned error boundary; Pause intentionally has no card.",
+      "Catch publishes only while the view model is undisposed, aggregate visibility generation is unchanged, and any card still owns its captured presentation generation.",
+      "No Item.Revision equality, visible-owner or collection-membership requirement was introduced; metadata progression and direct invisible calls remain supported.",
+      "Successful action refresh queueing and Pin finally state/notification restoration remain unconditional.",
+      "No upstream action cancellation or MainViewModel business-operation behavior was added."
+    ]
+  },
+  "executions": [
+    {
+      "attempt": 1,
+      "exitCode": 0,
+      "scenarios": 1,
+      "passed": 1,
+      "failed": 0,
+      "assertionsReached": 10,
+      "assertionsFailed": 0,
+      "compilerWarningsEmitted": 0,
+      "compilerErrorsEmitted": 0,
+      "log": "run.log",
+      "results": "results.json"
+    }
+  ],
+  "retries": 0,
+  "inputChangesDuringExecution": [],
+  "completedAtUtc": "2026-10-17T20:16:57.099718+00:00",
+  "artifactsSha256": {
+    "run.log": "64b8d319d8b63abdbc287ee766d6754c5e7568d819cca01caf3aded045975800",
+    "results.json": "419f4c50e5a6a8b951e0f69aa8debe942379c595e31e4edd80891e6569c5c26a",
+    "NuGet.Config": "968006766c5f1f40b05e9edd4e9a135f71c0a2a3d26071fa0240e4f41bd7c709"
+  },
+  "receipt": {
+    "path": "artifacts/local-iterations-2026-10-17/clipboard-island-action-feedback/validation-inputs.json",
+    "sha256": "e20ca7f4dc79e0dbfc36cff30793a490c1f25315f93eac75bad36589ae234091"
+  }
+}

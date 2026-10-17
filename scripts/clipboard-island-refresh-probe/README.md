@@ -65,3 +65,22 @@ preservation, UIA, XAML bindings, thumbnail IO savings, or the real recent-item 
 The shared helper may remove and insert when items reorder; this scenario does not claim that
 native containers survive reordering. The retired-revision filter uses cards still present in
 the projection; it is not a tombstone cache spanning arbitrary later repository snapshots.
+
+A separate feedback-ownership scenario is selected explicitly:
+
+```sh
+dotnet run --project scripts/clipboard-island-refresh-probe/ClipboardIslandRefreshProbe.csproj -- --scenario action_error_ownership results.json
+```
+
+One scenario has four controlled copy phases: an old failure after the same card instance is
+retired and restored under a newer revision; a current failure that remains visible after pin
+and last-used metadata advance without changing the presentation generation; an old failure
+after every owner hides and the surface reopens; and a failure after disposal. It checks that
+presentation retirement does not cancel the controlled upstream operation. The current-action
+phase also checks direct calls without a visible owner. Card retirement and restoration use the
+real ItemCardViewModel methods; the fixture supplies only upstream task results, with no copied
+error-ownership logic. The default four scenarios and the other opt-in scenarios are not run.
+
+This checks clipboard-VM feedback ownership only. It does not execute native clipboard access,
+MainViewModel mutations, actual deletion/Undo persistence, or native error rendering. Metadata
+advancement is supplied through the real card update contract rather than a real pin transaction.

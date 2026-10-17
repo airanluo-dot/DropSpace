@@ -128,6 +128,9 @@ DropSpace should feel like a compact system utility, not a content dashboard. Th
 
 Pinned is not a store and the Overlay is not a second product or page. Clipboard items never make the Overlay persist.
 
+A system close command on the keyboard-opened island dismisses it so it can be
+opened again. Exiting DropSpace still closes its windows normally.
+
 Switching collections retires the previous collection's selection and paging
 position while the new destination loads. A failed load shows an operation
 message without presenting old items as the new collection. Refreshing the same
@@ -146,6 +149,8 @@ checked state follows the last known card value again, including after an error.
 Refreshing keeps existing cards with the same record ID and their pending action
 state. Removed cards retire their old presentation; older snapshots cannot revive
 a card already retired in the current view.
+An action that finishes after its card or visible session has retired does not
+publish an old failure into the current list. Current operation errors remain visible.
 
 ## Updates
 

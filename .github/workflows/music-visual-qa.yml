@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       beta_ui_diagnostics:
-        description: Run only Debug timer and batch-selection diagnostics without model assets
+        description: Run selected Debug native UI diagnostics without model assets
         default: false
         type: boolean
       beta_ui_scenario:
@@ -15,6 +15,7 @@ on:
           - timers
           - batch-selection
           - timer-visual
+          - overlay-lifecycle
 permissions:
   contents: read
   actions: read
@@ -118,4 +119,4 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          'Only the explicitly selected timer and/or batch-selection scenario runs; actual selection and counts are recorded in the launcher receipt. Debug executable; no release qualification or publication. Missing desktop, empty pixel readback, failed assertions or incomplete execution cannot pass. Actual desktop/DPI only; AutomationPeer invocation does not establish physical pointer behavior. Inspect retained PNGs for visual review.' >> $env:GITHUB_STEP_SUMMARY
+          'Only the explicitly selected native UI scenario runs; actual selection and counts are recorded in the launcher receipt. Debug executable; no release qualification or publication. Missing desktop, empty pixel readback, failed assertions or incomplete execution cannot pass. Actual desktop/DPI only; AutomationPeer invocation does not establish physical pointer behavior. Inspect retained PNGs for visual review.' >> $env:GITHUB_STEP_SUMMARY

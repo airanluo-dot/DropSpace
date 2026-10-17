@@ -52,12 +52,12 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
         }
         if (anyVisible) _refresh.Writer.TryWrite(true);
     }
-    public Task CopyAsync(ItemCardViewModel card) => ExecuteAsync(() => _main.CopyAsync(card));
+    public Task CopyAsync(ItemCardViewModel card) => ExecuteAsync(() => _main.CopyAsync(card), card);
     public async Task PinAsync(ItemCardViewModel card)
     {
         if (!card.IsPinActionEnabled) return;
         card.IsPinActionEnabled = false;
-        try { await ExecuteAsync(() => _main.TogglePinAsync(card)); }
+        try { await ExecuteAsync(() => _main.TogglePinAsync(card), card); }
         finally
         {
             // A ToggleButton changes its target before the async write completes.
@@ -67,7 +67,7 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
             card.IsPinActionEnabled = true;
         }
     }
-    public Task RemoveAsync(ItemCardViewModel card) => ExecuteAsync(() => _main.RemoveAsync(card));
+    public Task RemoveAsync(ItemCardViewModel card) => ExecuteAsync(() => _main.RemoveAsync(card), card);
     public Task TogglePauseAsync() => ExecuteAsync(() => _main.SetClipboardPausedAsync(!_main.IsClipboardPaused));
     internal long ReserveMainNavigation() => _main.ReserveNavigation();
     internal bool IsMainNavigationCurrent(long revision) => !_disposed && _main.IsNavigationCurrent(revision);
@@ -75,10 +75,25 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
     internal Task OpenMainAsync(long navigationRevision) => IsMainNavigationCurrent(navigationRevision)
         ? _main.NavigateAsync("Clipboard", navigationRevision)
         : Task.CompletedTask;
-    private async Task ExecuteAsync(Func<Task> action)
+    private async Task ExecuteAsync(Func<Task> action, ItemCardViewModel? card = null)
     {
-        try { SetError(AppUiMessage.Empty, ClipboardErrorOrigin.None); await action(); _refresh.Writer.TryWrite(true); }
-        catch (Exception exception) { _logger.LogWarning("Clipboard island action failed ({Category}).", exception.GetType().Name); SetError(AppUiMessage.Resource("ClipboardIslandActionFailed"), ClipboardErrorOrigin.Action); }
+        var visibilityGeneration = Volatile.Read(ref _visibilityGeneration);
+        var presentationGeneration = card?.PresentationGeneration ?? 0;
+        try
+        {
+            SetError(AppUiMessage.Empty, ClipboardErrorOrigin.None);
+            await action();
+            _refresh.Writer.TryWrite(true);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning("Clipboard island action failed ({Category}).", exception.GetType().Name);
+            // Presentation retirement does not cancel the operation, but its late
+            // failure no longer owns feedback. Pin/last-used metadata can advance independently.
+            if (!_disposed && visibilityGeneration == Volatile.Read(ref _visibilityGeneration) &&
+                (card is null || card.IsPresentationCurrent(presentationGeneration)))
+                SetError(AppUiMessage.Resource("ClipboardIslandActionFailed"), ClipboardErrorOrigin.Action);
+        }
     }
     private void SetError(AppUiMessage message, ClipboardErrorOrigin origin)
     {

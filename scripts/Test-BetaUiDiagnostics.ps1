@@ -1,9 +1,9 @@
-# Launches only the bounded native timer and batch-selection entry point, never the broad smoke suite.
+# Launches only the selected bounded native UI diagnostic, never the broad smoke suite.
 [CmdletBinding()]
 param(
     [string]$BuildReceiptPath = 'artifacts/beta-ui-diagnostics/build/build-receipt.json',
     [string]$OutputDirectory = 'artifacts/beta-ui-diagnostics/run',
-    [ValidateSet('all', 'timers', 'batch-selection', 'timer-visual')][string]$Scenario = 'all',
+    [ValidateSet('all', 'timers', 'batch-selection', 'timer-visual', 'overlay-lifecycle')][string]$Scenario = 'all',
     [ValidateRange(30, 600)][int]$TimeoutSeconds = 240,
     [switch]$IncludeSupplementalImagesInLog
 )
@@ -14,9 +14,11 @@ if (-not $IsWindows) { throw 'Native Beta UI diagnostics require Windows.' }
 $Scenario = $Scenario.ToLowerInvariant()
 $timerScenarios = @('timer-menu-retirement')
 $timerVisualScenarios = @('timer-first-frame-and-popup-retirement')
+$overlayLifecycleScenarios = @('overlay-first-frame-and-system-close')
 $batchScenarios = @('batch-collapse-selection')
 $timerCaptures = @('timers-initial.png', 'timer-menu-FocusTimer.png', 'timer-menu-Countdown.png', 'timers-reopened.png')
 $timerVisualCaptures = @('timers-initial.png', 'timer-menu-FocusTimer.png', 'timers-reopened.png')
+$overlayLifecycleCaptures = @('timers-initial.png', 'timers-reopened.png')
 $batchCaptures = @('batch-expanded-selected.png', 'batch-collapsed-selection.png')
 $supplementalCaptureNames = @('timers-initial-desktop.png', 'timer-menu-FocusTimer-desktop.png', 'timer-menu-Countdown-desktop.png', 'timers-reopened-desktop.png')
 $selectionContracts = @{
@@ -24,6 +26,7 @@ $selectionContracts = @{
     'timers' = @{ scenarios = $timerScenarios; captures = $timerCaptures }
     'batch-selection' = @{ scenarios = $batchScenarios; captures = $batchCaptures }
     'timer-visual' = @{ scenarios = $timerVisualScenarios; captures = $timerVisualCaptures }
+    'overlay-lifecycle' = @{ scenarios = $overlayLifecycleScenarios; captures = $overlayLifecycleCaptures }
 }
 $expectedScenarios = @($selectionContracts[$Scenario].scenarios)
 $expectedCaptures = @($selectionContracts[$Scenario].captures)
@@ -166,6 +169,10 @@ function Get-VisualCheckpointSummary([System.Collections.IDictionary]$Value) {
     $result = Select-EvidenceFields $Value @('stage', 'captureOrder', 'motionSettled', 'frameActive', 'phase', 'nativeVisibility')
     foreach ($key in @('layers', 'popups')) {
         if ($Value.Contains($key)) { $result[$key] = Limit-Observation $Value[$key] }
+    }
+    if ($Value.Contains('lifecycle') -and $null -ne $Value.lifecycle) {
+        $result.lifecycle = Select-EvidenceFields $Value.lifecycle @('hwnd', 'processId', 'closingEvents', 'closedEvents', 'cancelObserved', 'closeRequestPosted', 'shutdownRequested', 'experienceChangedEvents', 'experienceState', 'native', 'eventSequenceTruncated')
+        if ($Value.lifecycle.Contains('eventSequence')) { $result.lifecycle.eventSequence = Limit-Observation $Value.lifecycle.eventSequence }
     }
     return $result
 }

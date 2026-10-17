@@ -316,6 +316,10 @@ public sealed partial class OverlayWindow : Window
                 LogNativeFailure(hideFailure);
                 _nativeWindowSafeToShow = false;
             }
+            // The keyboard Quick Panel can receive system close commands. Its ordinary
+            // close means dismissing this reusable surface, not destroying its HWND.
+            AppWindow.Closing += OnAppWindowClosing;
+            _appWindowClosingSubscribed = true;
         }
         catch
         {
@@ -331,12 +335,21 @@ public sealed partial class OverlayWindow : Window
     private void OnTransparentHostClosed(object sender, WindowEventArgs args)
     {
         _windowClosed = true;
-        _closing = true;
-        CancelQuickPanelFocus();
-        StopAnimationFrames();
+        // Forced/native closure can bypass the cancellable AppWindow closing event.
+        // It must still retire every owner, even when CloseForShutdown was not used.
+        RetireWindowResources();
         Closed -= OnTransparentHostClosed;
-        try { _transparentHost?.Dispose(); }
-        catch (Win32Exception exception) { _logger.LogError(exception, "Overlay erase-hook cleanup failed; the callback remains retained until HWND destruction."); }
+    }
+
+    private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_shutdownStarted || _closing) return;
+        args.Cancel = true;
+        CancelRightHold();
+        if (_placementEditActive) CancelPlacementEdit();
+        // PlacementCancelled first releases the service's editing state and restores
+        // other monitor surfaces; this final dismissal then owns their presentation.
+        _experience.DismissNow();
     }
 
     public string MonitorId => _monitor.Id;
@@ -758,6 +771,7 @@ public sealed partial class OverlayWindow : Window
     private bool _closing;
     private bool _shutdownStarted;
     private bool _windowClosed;
+    private bool _appWindowClosingSubscribed;
 
     public void CloseForShutdown()
     {
@@ -774,6 +788,11 @@ public sealed partial class OverlayWindow : Window
         // Construction can fail after installing global observers but before every
         // resource exists. Fence callbacks first and retire each initialized owner.
         _closing = true;
+        if (_appWindowClosingSubscribed)
+        {
+            _appWindowClosingSubscribed = false;
+            Cleanup("window closing observer", () => AppWindow.Closing -= OnAppWindowClosing);
+        }
         Cleanup("Quick Panel focus request", CancelQuickPanelFocus);
         _presentationSnapshot = null;
         Cleanup("right-hold gesture", CancelRightHold);
