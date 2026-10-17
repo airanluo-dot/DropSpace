@@ -13,7 +13,7 @@ using Microsoft.UI.Xaml.Input;
 
 namespace DropSpace.App.Views.Settings;
 
-public sealed class WidgetEditorView : UserControl
+public sealed partial class WidgetEditorView : UserControl
 {
     private const double DragThresholdDips = 6;
     private readonly NativeSettingsEditor _editor;
@@ -26,7 +26,7 @@ public sealed class WidgetEditorView : UserControl
     private readonly NumberBox _row = new() { Minimum = 1, Maximum = WidgetLayoutPolicy.Rows, SmallChange = 1, LargeChange = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
     private bool _syncingPosition;
     private int _positionEdits;
-    private long _positionRevision;
+    private long _layoutFeedbackRevision;
     private int _layoutEdits;
     private NativeWidgetId? _positionSelection;
     private readonly HashSet<NativeWidgetId> _suppressClicks = [];
@@ -75,6 +75,7 @@ public sealed class WidgetEditorView : UserControl
         _undo.Click += async (_, _) =>
         {
             if (_layoutEdits > 0 || _undoLayout is not { } previous) return;
+            BeginLayoutIntent();
             ++_layoutEdits; RefreshUndoEnabled();
             try
             {
@@ -85,7 +86,11 @@ public sealed class WidgetEditorView : UserControl
         };
         actions.Children.Add(_undo);
         _expanded.Children.Add(new TextBlock { Text = strings.Get("WidgetLibrary"), FontSize = 18 }); _expanded.Children.Add(_library);
-        var reset = new Button { Content = strings.Get("WidgetsReset") }; reset.Click += async (_, _) => await UpdateLayoutAsync(_ => WidgetLayout.Default); body.Children.Add(reset);
+        var reset = new Button { Content = strings.Get("WidgetsReset") }; reset.Click += async (_, _) =>
+        {
+            BeginLayoutIntent();
+            await UpdateLayoutAsync(_ => WidgetLayout.Default);
+        }; body.Children.Add(reset);
         Loaded += (_, _) =>
         {
             _errorOwnerUnloaded = false;
@@ -354,60 +359,6 @@ public sealed class WidgetEditorView : UserControl
         }
         finally { _syncingPosition = false; }
     }
-    private async Task MoveCoordinateAsync(bool column, double value)
-    {
-        if (_syncingPosition || _selectedId is not { } id) return;
-        if (!double.IsFinite(value) || value != Math.Truncate(value) || value < 1 ||
-            value > (column ? WidgetLayoutPolicy.Columns : WidgetLayoutPolicy.Rows))
-        {
-            RefreshPositionInputs(_editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == _selectedId));
-            return;
-        }
-        SetError(null);
-        var revision = ++_positionRevision;
-        var coordinate = (int)value - 1;
-        var rejected = false;
-        ++_positionEdits;
-        try
-        {
-            var saved = await UpdateLayoutAsync(layout =>
-            {
-                // Resolve the untouched coordinate inside the serialized transaction,
-                // so entering Column then Row cannot undo the preceding column edit.
-                var current = layout.Expanded.FirstOrDefault(item => item.Id == id);
-                if (current is null) return layout;
-                var desired = column ? current with { Column = coordinate } : current with { Row = coordinate };
-                if (desired == current) return layout;
-                if (!WidgetLayoutPolicy.TryMoveOrResize(layout, desired, out var updated))
-                { rejected = true; return layout; }
-                return updated;
-            });
-            if (saved && revision == _positionRevision && _selectedId == id)
-            {
-                SetError(rejected ? _strings.Get("WidgetNoRoom") : null);
-            }
-        }
-        finally
-        {
-            --_positionEdits;
-            RefreshPositionInputs(_editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == _selectedId));
-        }
-    }
-    private async Task ResizeAsync(WidgetPlacement current, WidgetSize size)
-    {
-        var layout = _editor.Settings.Widgets.Layout;
-        var positions = Enumerable.Range(0, WidgetLayoutPolicy.Rows).SelectMany(row =>
-            Enumerable.Range(0, WidgetLayoutPolicy.Columns).Select(column => (Column: column, Row: row)))
-            .OrderBy(p => Math.Abs(p.Column-current.Column)+Math.Abs(p.Row-current.Row));
-        foreach (var position in positions)
-        {
-            var desired = current with { Column = position.Column, Row = position.Row, ColumnSpan = size.Columns, RowSpan = size.Rows };
-            if (!WidgetLayoutPolicy.TryMoveOrResize(layout, desired, out _)) continue;
-            await PlaceAsync(current.Id, desired.Column, desired.Row, size.Columns, size.Rows);
-            return;
-        }
-        SetError(_strings.Get("WidgetNoRoom"));
-    }
     private void UpdateGridSizes()
     {
         var width = _grid.ActualWidth;
@@ -417,67 +368,9 @@ public sealed class WidgetEditorView : UserControl
         if (Math.Abs(_grid.Height-height)>0.5) _grid.Height=height;
         foreach (var row in _library.RowDefinitions) row.Height = new GridLength(cell);
     }
-    private Task<bool> PlaceAsync(NativeWidgetId id, int column, int row, int? width = null, int? height = null)
-    {
-        SetError(null); _selectedId = id;
-        var current = _editor.Settings.Widgets.Layout;
-        if (!current.Expanded.Any(item => item.Id == id) && !WidgetLayoutPolicy.TryAdd(current, id, column, row, out _))
-        { SetError(_strings.Get("WidgetNoRoom")); return Task.FromResult(false); }
-        var existing = current.Expanded.FirstOrDefault(item => item.Id == id);
-        if (existing is not null)
-        {
-            var desired = existing with { Column = column, Row = row, ColumnSpan = width ?? existing.ColumnSpan, RowSpan = height ?? existing.RowSpan };
-            if (desired == existing) return Task.FromResult(true);
-            if (!WidgetLayoutPolicy.TryMoveOrResize(current, desired, out _))
-            { SetError(_strings.Get("WidgetNoRoom")); return Task.FromResult(false); }
-        }
-        return UpdateLayoutAsync(layout =>
-        {
-            var old = layout.Expanded.FirstOrDefault(item => item.Id == id);
-            if (old is null)
-            {
-                if (!WidgetLayoutPolicy.TryAdd(layout, id, column, row, out var added)) throw new InvalidOperationException("No vacant widget slot remains.");
-                return added;
-            }
-            var moved = old with { Column = column, Row = row, ColumnSpan = width ?? old.ColumnSpan, RowSpan = height ?? old.RowSpan };
-            if (!WidgetLayoutPolicy.TryMoveOrResize(layout, moved, out var updated))
-            {
-                SetError(_strings.Get("WidgetNoRoom"));
-                RefreshSelection();
-                return layout;
-            }
-            return updated;
-        });
-    }
-    private async Task<bool> UpdateLayoutAsync(Func<WidgetLayout, WidgetLayout> change)
-    {
-        WidgetLayout? previous = null;
-        ++_layoutEdits; RefreshUndoEnabled();
-        try
-        {
-            var saved = await _editor.UpdateAsync(settings =>
-            {
-                var layout = settings.Widgets.Layout;
-                var updated = change(layout);
-                if (layout.Equals(updated)) return settings;
-                previous = layout;
-                return settings with { Widgets = settings.Widgets with { Layout = updated } };
-            });
-            if (saved && previous is not null) _undoLayout = previous;
-            return saved;
-        }
-        finally { --_layoutEdits; RefreshUndoEnabled(); }
-    }
-    private void RefreshUndoEnabled() => _undo.IsEnabled = _undoLayout is not null && _layoutEdits == 0;
     private async void OnRemove(object sender, RoutedEventArgs args)
     {
         if (_selectedId is { } id) await RemoveAsync(id);
-    }
-    private async Task RemoveAsync(NativeWidgetId id)
-    {
-        if (!_editor.Settings.Widgets.Layout.Expanded.Any(item => item.Id == id)) return;
-        var saved = await UpdateLayoutAsync(layout => new(layout.Expanded.Where(item => item.Id != id).ToArray(), layout.Compact));
-        if (saved && _selectedId == id) { _selectedId = null; RefreshSelection(); }
     }
     private string WidgetName(NativeWidgetId id) => _strings.Get(id == NativeWidgetId.Settings ? "WidgetSettingsName" : "Widget" + id + ".Text");
     private static Style ThemeStyle(string key) => (Style)Application.Current.Resources[key];

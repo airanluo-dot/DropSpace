@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <ProductionLayoutSource Condition="'$(ProductionLayoutSource)' == ''">../../src/DropSpace.App/Views/Settings/WidgetEditorView.Layout.cs</ProductionLayoutSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Compile Include="$(ProductionLayoutSource)" Link="Production/WidgetEditorView.Layout.cs" />
+    <Compile Include="../../src/DropSpace.App/ViewModels/NativeSettingsEditor.cs" Link="Production/NativeSettingsEditor.cs" />
+    <Compile Include="../navigation-projection-probe/ProbeDispatcher.cs" Link="Fixture/ProbeDispatcher.cs" />
+  </ItemGroup>
+</Project>

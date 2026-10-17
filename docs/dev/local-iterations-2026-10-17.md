@@ -1019,3 +1019,51 @@ Run evidence and both original PNGs are retained through beta-native-ui.json;
 local before/after inputs and execution counts are recorded in
 `evidence/local-iterations-2026-10-17/beta-ui-summary-shape-fix.json`. A focused
 lifecycle retry is needed to resolve the missing result and presentation state.
+
+
+### Frozen checkpoint: lifecycle result and next-turn release handoff
+
+The already-dispatched retry 39067718911 completed against e41a703. Full Windows
+Debug compilation passed with zero warnings/errors. The one lifecycle case passed:
+cold/reopened ExpandedPanel opacity was 1, ordinary system close cancelled
+destruction and hid the region, reopening retained the HWND, and explicit shutdown
+destroyed it with exactly one Closed event. No UI exception was recorded.
+
+Both required RTB captures still failed their unchanged opacity predicate, so the
+diagnostic App remained blocked (exit 2) and the workflow failed. This is not full
+visual approval or a release-qualified producer. Both desktop PNGs were recovered
+against complete build/launcher/chunk/header bindings and equal the previously
+inspected run-5 bytes containing both timers. No further retry is requested.
+The checked native evidence retains every previous failure and the unknown run-5
+outcome; the new pass does not retrospectively replace it.
+
+The owner first authorized the next Beta, then explicitly limited this turn to
+saving existing work and handing off to a new Medium turn. New development and
+unstarted checks stopped. No release workflow, release build, new tag or publication
+was initiated. Latest public App Beta is v0.3.2-beta.3, published 2026-10-17
+17:14:33 UTC; the prospective next tag is v0.3.2-beta.4, to be rechecked next turn.
+RELEASE_VERSION remains unchanged. See `beta4-handoff-2026-10-17.md`.
+
+Two newly investigated improvements remain read-only findings, with no source or
+test modifications: ClipboardPause widget errors are logged without visible retry
+feedback, and a failed Cancelled download checkpoint can skip auxiliary cleanup
+until history removal/shutdown. These are deferred existing behavior, not newly
+introduced changes or approved extra scope for the publication turn.
+
+The existing WidgetEditor change was frozen and its already-running verification
+sequence drained. A resize now resolves placement from the serialized transaction's
+current layout; shared layout-intent revisions suppress older local position errors
+after a newer action. Existing transactions still complete. Layout methods moved to
+a source-linked partial; Core was unchanged.
+
+Two concrete race scenarios each ran once before and once after: before 0/2 passed
+(both defects reproduced), after 2/2 passed. The WinUI reference compile first failed
+because an older local fixture omitted the already-existing NativeWidgetIcons source;
+its sole corrected retry passed with zero warnings/errors. A preliminary baseline
+extraction guard also stopped on CRLF versus LF comparison before any edit; that
+processing correction is retained. Independent source/probe review found no blocker.
+No old position/Undo scenario, native UI or full App/XAML check was repeated. All
+input hashes, actual failures and results are retained in
+`evidence/local-iterations-2026-10-17/widget-layout-intent.json`. No process remains
+running for this slice. The next required Release PR build must include this final
+partial; the earlier Debug build did not.

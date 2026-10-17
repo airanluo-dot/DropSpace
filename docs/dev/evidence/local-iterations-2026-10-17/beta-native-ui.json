@@ -2495,6 +2495,1132 @@
         "Full Windows Debug compilation passed with zero warnings/errors and covers cold-opacity, ordinary system-close and late clipboard-error ownership changes. It does not prove their native behavior.",
         "No prior timer, popup or batch scenario was repeated. A focused lifecycle retry is justified after correcting summary serialization."
       ]
+    },
+    {
+      "runId": 39067718911,
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39067718911",
+      "sourceCommit": "e41a703cbfb2b32a40198c42b1f50ddc1159c22f",
+      "sourceTree": "d4315965817c8f94e312121e5195923191a31ca8",
+      "workflowConclusion": "failure",
+      "build": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-build",
+        "status": "passed",
+        "stage": "build-ready",
+        "sourceCommit": "e41a703cbfb2b32a40198c42b1f50ddc1159c22f",
+        "sourceTree": "d4315965817c8f94e312121e5195923191a31ca8",
+        "executablePath": "D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.App\\bin\\x64\\Debug\\net10.0-windows10.0.20348.0\\win-x64\\DropSpace.exe",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.Infrastructure.dll": "a03b27fd5d78cb0556f66a9b233b418a5c99f47dc35359326cbfa105f2cad6ba",
+          "DropSpace.Core.dll": "ca91e0461a3fd1659a4b9727256a77dbf0ccff81cb3da52788afbcf866246f0c",
+          "DropSpace.dll": "0d8ff90a278ec6d29c543e29829dc7a4ed070070fec0772f94a8779b6a67eeaa"
+        },
+        "startedAtUtc": "2026-10-17T20:40:55.3654310+00:00",
+        "finishedAtUtc": "2026-10-17T20:42:51.3022742+00:00",
+        "configuration": "Debug",
+        "deployment": "unpackaged-framework-dependent",
+        "releasePromotionEligible": false,
+        "functionalScenarioExecutions": 0,
+        "failure": null
+      },
+      "buildWarnings": 0,
+      "buildErrors": 0,
+      "launch": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-launch",
+        "status": "blocked",
+        "stage": "complete",
+        "failureStage": null,
+        "sourceCommit": "e41a703cbfb2b32a40198c42b1f50ddc1159c22f",
+        "sourceTree": "d4315965817c8f94e312121e5195923191a31ca8",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.Infrastructure.dll": "a03b27fd5d78cb0556f66a9b233b418a5c99f47dc35359326cbfa105f2cad6ba",
+          "DropSpace.Core.dll": "ca91e0461a3fd1659a4b9727256a77dbf0ccff81cb3da52788afbcf866246f0c",
+          "DropSpace.dll": "0d8ff90a278ec6d29c543e29829dc7a4ed070070fec0772f94a8779b6a67eeaa"
+        },
+        "startedAtUtc": "2026-10-17T20:42:51.9162088+00:00",
+        "finishedAtUtc": "2026-10-17T20:42:58.2723865+00:00",
+        "processId": 9188,
+        "exitCode": 2,
+        "timedOut": false,
+        "processExited": true,
+        "actualCaseCount": 1,
+        "passedCaseCount": 1,
+        "requestedScenario": "overlay-lifecycle",
+        "selectedScenario": "overlay-lifecycle",
+        "plannedCaseCount": 1,
+        "reportedPlannedCaseCount": 1,
+        "visualStatus": "blocked",
+        "captures": [
+          {
+            "file": "timers-initial.png",
+            "sha256": "9207c03ea10b4bff55a0332b48865548dacb1305c962c9e0ac5571c378e82128",
+            "width": 560,
+            "height": 340,
+            "pixelReadbackPassed": false,
+            "rasterizationScale": 1,
+            "targetKind": "live-overlay-surface",
+            "opaquePixelCount": 205,
+            "transparentPixelCount": 175763,
+            "nonzeroAlphaPixelCount": 14637,
+            "distinctColorCountUpTo64": 64,
+            "xamlOpacity": 1,
+            "compositionOpacity": 1
+          },
+          {
+            "file": "timers-reopened.png",
+            "sha256": "9207c03ea10b4bff55a0332b48865548dacb1305c962c9e0ac5571c378e82128",
+            "width": 560,
+            "height": 340,
+            "pixelReadbackPassed": false,
+            "rasterizationScale": 1,
+            "targetKind": "live-overlay-surface",
+            "opaquePixelCount": 205,
+            "transparentPixelCount": 175763,
+            "nonzeroAlphaPixelCount": 14637,
+            "distinctColorCountUpTo64": 64,
+            "xamlOpacity": 1,
+            "compositionOpacity": 1
+          }
+        ],
+        "captureFailures": [
+          "timers-initial: empty, uniform or insufficiently opaque pixel readback.",
+          "timers-reopened: empty, uniform or insufficiently opaque pixel readback."
+        ],
+        "observations": [
+          {
+            "stage": "overlay-lifecycle-hidden-retained",
+            "outcome": "satisfied",
+            "state": {
+              "hwnd": "0x30164",
+              "processId": 9188,
+              "closingEvents": 1,
+              "closedEvents": 0,
+              "cancelObserved": true,
+              "closeRequestPosted": true,
+              "shutdownRequested": false,
+              "experienceChangedEvents": 3,
+              "experienceState": "Hidden",
+              "native": {
+                "isWindow": true,
+                "processId": 9188,
+                "regionType": 1,
+                "regionBounds": {
+                  "x": -212,
+                  "y": 0,
+                  "width": 0,
+                  "height": 0
+                }
+              },
+              "eventSequence": [
+                {
+                  "sequence": 1,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 1,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 2,
+                  "kind": "system-close-posted",
+                  "detail": {
+                    "message": "WM_SYSCOMMAND",
+                    "command": "SC_CLOSE",
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 3,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Dismissing",
+                    "revision": 2,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 4,
+                  "kind": "app-window-closing",
+                  "detail": {
+                    "cancel": true,
+                    "shutdownRequested": false
+                  }
+                },
+                {
+                  "sequence": 5,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Hidden",
+                    "revision": 3,
+                    "bridgeEnabled": true
+                  }
+                }
+              ],
+              "eventSequenceTruncated": false
+            }
+          },
+          {
+            "truncated": true,
+            "jsonPrefix": "{\"stage\":\"supplemental-timers-reopened-before\",\"state\":{\"bounds\":{\"x\":212,\"y\":0,\"width\":600,\"height\":374},\"virtualScreen\":{\"x\":0,\"y\":0,\"width\":1024,\"height\":768},\"overlayHwnd\":\"0x30164\",\"ownedHwnd\":\"0x501D4\",\"processId\":9188,\"isWindow\":true,\"isVisible\":true,\"isIconic\":false,\"cloakResult\":0,\"cloaked\":0,\"dpi\":96,\"samples\":[{\"x\":362,\"y\":93,\"hwnd\":\"0x501D4\",\"processId\":9188,\"rootHwnd\":\"0x30164\",\"rootProcessId\":9188,\"rootOwnerHwnd\":\"0x30164\",\"ownerChain\":[\"0x30164\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":512,\"y\":93,\"hwnd\":\"0x501D4\",\"processId\":9188,\"rootHwnd\":\"0x30164\",\"rootProcessId\":9188,\"rootOwnerHwnd\":\"0x30164\",\"ownerChain\":[\"0x30164\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":662,\"y\":93,\"hwnd\":\"0x501D4\",\"processId\":9188,\"rootHwnd\":\"0x30164\",\"rootProcessId\":9188,\"rootOwnerHwnd\":\"0x30164\",\"ownerChain\":[\"0x30164\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":362,\"y\":187,\"hwnd\":\"0x501D4\",\"processId\":9188,\"rootHwnd\":\"0x30164\",\"rootProcessId\":9188,\"rootOwnerHwnd\":\"0x30164\",\"ownerChain\":[\"0x30164\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":512,\"y\":187,\"hwnd\":\"0x501D4\",\"processId\":9188,\"rootHwnd\":\"0x30164\",\"rootProcessId\":9188,\"rootOwnerHwnd\":\"0x30164\",\"ownerChain\":[\"0x30164\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":662,\"y\":187,\"hwnd\":\"0x501D4\",\"processId\":9188,\"rootHwnd\":\"0x30164\",\"rootProcessId\":9188,\"rootOwnerHwnd\":\"0x30164\",\"ownerChain\":[\"0x30164\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":362,\"y\":280,\"hwnd\":\"0x501D4\",\"processId\":9188,\"rootHwnd\":\"0x30164\",\"rootProcessId\":9188,\"rootOwnerHwnd\":\"0x30164\",\"ownerChain\":[\"0x30164\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"roo",
+            "completeEvidence": "launcher.json and app/receipt.json"
+          },
+          {
+            "stage": "capture-timers-reopened-layout",
+            "outcome": "waiting",
+            "state": {
+              "name": "Surface",
+              "actualWidth": 560,
+              "actualHeight": 340,
+              "isLoaded": true,
+              "xamlOpacity": 1,
+              "compositionOpacity": 1,
+              "visibility": "Visible"
+            }
+          },
+          {
+            "stage": "capture-timers-reopened-layout",
+            "outcome": "satisfied",
+            "state": {
+              "name": "Surface",
+              "actualWidth": 560,
+              "actualHeight": 340,
+              "isLoaded": true,
+              "xamlOpacity": 1,
+              "compositionOpacity": 1,
+              "visibility": "Visible"
+            }
+          },
+          {
+            "stage": "overlay-lifecycle-hwnd-destroyed",
+            "outcome": "waiting",
+            "state": {
+              "hwnd": "0x30164",
+              "processId": 9188,
+              "closingEvents": 1,
+              "closedEvents": 1,
+              "cancelObserved": true,
+              "closeRequestPosted": true,
+              "shutdownRequested": true,
+              "experienceChangedEvents": 4,
+              "experienceState": "Expanded",
+              "native": {
+                "isWindow": false,
+                "processId": 0,
+                "regionType": null,
+                "regionBounds": null
+              },
+              "eventSequence": [
+                {
+                  "sequence": 1,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 1,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 2,
+                  "kind": "system-close-posted",
+                  "detail": {
+                    "message": "WM_SYSCOMMAND",
+                    "command": "SC_CLOSE",
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 3,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Dismissing",
+                    "revision": 2,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 4,
+                  "kind": "app-window-closing",
+                  "detail": {
+                    "cancel": true,
+                    "shutdownRequested": false
+                  }
+                },
+                {
+                  "sequence": 5,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Hidden",
+                    "revision": 3,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 6,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 4,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 7,
+                  "kind": "explicit-shutdown-requested",
+                  "detail": {
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 8,
+                  "kind": "window-closed",
+                  "detail": {
+                    "shutdownRequested": true
+                  }
+                }
+              ],
+              "eventSequenceTruncated": false
+            }
+          },
+          {
+            "stage": "overlay-lifecycle-hwnd-destroyed",
+            "outcome": "satisfied",
+            "state": {
+              "hwnd": "0x30164",
+              "processId": 9188,
+              "closingEvents": 1,
+              "closedEvents": 1,
+              "cancelObserved": true,
+              "closeRequestPosted": true,
+              "shutdownRequested": true,
+              "experienceChangedEvents": 4,
+              "experienceState": "Expanded",
+              "native": {
+                "isWindow": false,
+                "processId": 0,
+                "regionType": null,
+                "regionBounds": null
+              },
+              "eventSequence": [
+                {
+                  "sequence": 1,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 1,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 2,
+                  "kind": "system-close-posted",
+                  "detail": {
+                    "message": "WM_SYSCOMMAND",
+                    "command": "SC_CLOSE",
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 3,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Dismissing",
+                    "revision": 2,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 4,
+                  "kind": "app-window-closing",
+                  "detail": {
+                    "cancel": true,
+                    "shutdownRequested": false
+                  }
+                },
+                {
+                  "sequence": 5,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Hidden",
+                    "revision": 3,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 6,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 4,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 7,
+                  "kind": "explicit-shutdown-requested",
+                  "detail": {
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 8,
+                  "kind": "window-closed",
+                  "detail": {
+                    "shutdownRequested": true
+                  }
+                }
+              ],
+              "eventSequenceTruncated": false
+            }
+          }
+        ],
+        "exceptions": [],
+        "environment": {
+          "os": "Microsoft Windows NT 10.0.26100.0",
+          "processId": 9188,
+          "sessionId": 2,
+          "userInteractive": true,
+          "inputDesktopAccessible": true,
+          "screenWidth": 1024,
+          "screenHeight": 768,
+          "textScaleFactor": 1
+        },
+        "failure": "Native UI diagnostics did not completely pass: status=blocked, visual=blocked, exit=2.",
+        "supplementalCaptures": [
+          {
+            "file": "timers-initial-desktop.png",
+            "receiptEntryCount": 1,
+            "sha256": "608b319adf47884ea9e5d3bf6e2b24b2e401b82b8a4d3bf84c0f1d3c5ab88b9e",
+            "pixelWidth": 600,
+            "pixelHeight": 374,
+            "status": "captured-for-manual-review",
+            "captureKind": "desktop-bitblt-roi",
+            "sourceApi": "DwmFlush/GetDC(0)/CreateCompatibleDC/CreateDIBSection/BitBlt(SRCCOPY|CAPTUREBLT)/GdiFlush",
+            "sourcePixelSha256": "1e7779fc52f6a197426988ecd6f561054be0f7778c453d104d99db7cf1aa31ac",
+            "sourcePixelFormat": "BGRX32-top-down",
+            "synthesizedOpaqueAlpha": true,
+            "bounds": {
+              "x": 212,
+              "y": 0,
+              "width": 600,
+              "height": 374
+            },
+            "boundsAfter": {
+              "x": 212,
+              "y": 0,
+              "width": 600,
+              "height": 374
+            },
+            "overlayHwnd": "0x30164",
+            "ownedHwnd": "0x501D4",
+            "environment": {
+              "processId": 9188,
+              "dpi": 96,
+              "virtualScreen": {
+                "x": 0,
+                "y": 0,
+                "width": 1024,
+                "height": 768
+              },
+              "boundsSource": "overlay-hwnd-client-rect-to-screen",
+              "peerType": null,
+              "elapsedMilliseconds": 65
+            },
+            "limitations": [
+              "Supplementary manual-review attachment only; does not affect RenderTargetBitmap captures, visual status or scenario results.",
+              "PNG alpha is set to 255 to encode GDI desktop RGB. It is not native transparency evidence; sourcePixelSha256 covers the unmodified BGRX bytes.",
+              "Point samples prove only sampled HWND ownership before/after capture, not per-pixel identity or complete freedom from occlusion. Transparent client margins may show the desktop.",
+              "GDI desktop readback may omit hardware-composed planes; an empty or missing-content attachment alone cannot establish that the physical screen did not show that content.",
+              "Async waits use a 5-second native-read timeout and a linked 10-second budget. Synchronous OS/UI calls cannot be forcibly interrupted; a blocked read releases worker-owned handles when it returns, and the launcher process deadline is the ultimate bound.",
+              "No physical pointer input, multi-monitor coverage, screenshot baseline comparison or complete visual correctness claim."
+            ],
+            "ownershipBefore": {
+              "bounds": {
+                "x": 212,
+                "y": 0,
+                "width": 600,
+                "height": 374
+              },
+              "virtualScreen": {
+                "x": 0,
+                "y": 0,
+                "width": 1024,
+                "height": 768
+              },
+              "overlayHwnd": "0x30164",
+              "ownedHwnd": "0x501D4",
+              "processId": 9188,
+              "isWindow": true,
+              "isVisible": true,
+              "isIconic": false,
+              "cloakResult": 0,
+              "cloaked": 0,
+              "dpi": 96,
+              "sampleCount": 9,
+              "failedSampleCount": 0,
+              "samples": [
+                {
+                  "x": 512,
+                  "y": 187,
+                  "hwnd": "0x501D4",
+                  "processId": 9188,
+                  "rootHwnd": "0x30164",
+                  "rootProcessId": 9188,
+                  "rootOwnerHwnd": "0x30164",
+                  "rootIsVisible": true,
+                  "rootIsIconic": false,
+                  "rootCloakResult": 0,
+                  "rootCloaked": 0,
+                  "ownedByOverlay": true,
+                  "sampleIndex": 4,
+                  "ownerChain": [
+                    "0x30164"
+                  ],
+                  "ownerChainTruncated": false
+                }
+              ],
+              "omittedSampleCount": 8,
+              "truncated": true,
+              "completeEvidence": "launcher.json and app/receipt.json"
+            },
+            "ownershipAfter": {
+              "bounds": {
+                "x": 212,
+                "y": 0,
+                "width": 600,
+                "height": 374
+              },
+              "virtualScreen": {
+                "x": 0,
+                "y": 0,
+                "width": 1024,
+                "height": 768
+              },
+              "overlayHwnd": "0x30164",
+              "ownedHwnd": "0x501D4",
+              "processId": 9188,
+              "isWindow": true,
+              "isVisible": true,
+              "isIconic": false,
+              "cloakResult": 0,
+              "cloaked": 0,
+              "dpi": 96,
+              "sampleCount": 9,
+              "failedSampleCount": 0,
+              "samples": [
+                {
+                  "x": 512,
+                  "y": 187,
+                  "hwnd": "0x501D4",
+                  "processId": 9188,
+                  "rootHwnd": "0x30164",
+                  "rootProcessId": 9188,
+                  "rootOwnerHwnd": "0x30164",
+                  "rootIsVisible": true,
+                  "rootIsIconic": false,
+                  "rootCloakResult": 0,
+                  "rootCloaked": 0,
+                  "ownedByOverlay": true,
+                  "sampleIndex": 4,
+                  "ownerChain": [
+                    "0x30164"
+                  ],
+                  "ownerChainTruncated": false
+                }
+              ],
+              "omittedSampleCount": 8,
+              "truncated": true,
+              "completeEvidence": "launcher.json and app/receipt.json"
+            }
+          },
+          {
+            "file": "timers-reopened-desktop.png",
+            "receiptEntryCount": 1,
+            "sha256": "608b319adf47884ea9e5d3bf6e2b24b2e401b82b8a4d3bf84c0f1d3c5ab88b9e",
+            "pixelWidth": 600,
+            "pixelHeight": 374,
+            "status": "captured-for-manual-review",
+            "captureKind": "desktop-bitblt-roi",
+            "sourceApi": "DwmFlush/GetDC(0)/CreateCompatibleDC/CreateDIBSection/BitBlt(SRCCOPY|CAPTUREBLT)/GdiFlush",
+            "sourcePixelSha256": "1e7779fc52f6a197426988ecd6f561054be0f7778c453d104d99db7cf1aa31ac",
+            "sourcePixelFormat": "BGRX32-top-down",
+            "synthesizedOpaqueAlpha": true,
+            "bounds": {
+              "x": 212,
+              "y": 0,
+              "width": 600,
+              "height": 374
+            },
+            "boundsAfter": {
+              "x": 212,
+              "y": 0,
+              "width": 600,
+              "height": 374
+            },
+            "overlayHwnd": "0x30164",
+            "ownedHwnd": "0x501D4",
+            "environment": {
+              "processId": 9188,
+              "dpi": 96,
+              "virtualScreen": {
+                "x": 0,
+                "y": 0,
+                "width": 1024,
+                "height": 768
+              },
+              "boundsSource": "overlay-hwnd-client-rect-to-screen",
+              "peerType": null,
+              "elapsedMilliseconds": 42
+            },
+            "limitations": [
+              "Supplementary manual-review attachment only; does not affect RenderTargetBitmap captures, visual status or scenario results.",
+              "PNG alpha is set to 255 to encode GDI desktop RGB. It is not native transparency evidence; sourcePixelSha256 covers the unmodified BGRX bytes.",
+              "Point samples prove only sampled HWND ownership before/after capture, not per-pixel identity or complete freedom from occlusion. Transparent client margins may show the desktop.",
+              "GDI desktop readback may omit hardware-composed planes; an empty or missing-content attachment alone cannot establish that the physical screen did not show that content.",
+              "Async waits use a 5-second native-read timeout and a linked 10-second budget. Synchronous OS/UI calls cannot be forcibly interrupted; a blocked read releases worker-owned handles when it returns, and the launcher process deadline is the ultimate bound.",
+              "No physical pointer input, multi-monitor coverage, screenshot baseline comparison or complete visual correctness claim."
+            ],
+            "ownershipBefore": {
+              "bounds": {
+                "x": 212,
+                "y": 0,
+                "width": 600,
+                "height": 374
+              },
+              "virtualScreen": {
+                "x": 0,
+                "y": 0,
+                "width": 1024,
+                "height": 768
+              },
+              "overlayHwnd": "0x30164",
+              "ownedHwnd": "0x501D4",
+              "processId": 9188,
+              "isWindow": true,
+              "isVisible": true,
+              "isIconic": false,
+              "cloakResult": 0,
+              "cloaked": 0,
+              "dpi": 96,
+              "sampleCount": 9,
+              "failedSampleCount": 0,
+              "samples": [
+                {
+                  "x": 512,
+                  "y": 187,
+                  "hwnd": "0x501D4",
+                  "processId": 9188,
+                  "rootHwnd": "0x30164",
+                  "rootProcessId": 9188,
+                  "rootOwnerHwnd": "0x30164",
+                  "rootIsVisible": true,
+                  "rootIsIconic": false,
+                  "rootCloakResult": 0,
+                  "rootCloaked": 0,
+                  "ownedByOverlay": true,
+                  "sampleIndex": 4,
+                  "ownerChain": [
+                    "0x30164"
+                  ],
+                  "ownerChainTruncated": false
+                }
+              ],
+              "omittedSampleCount": 8,
+              "truncated": true,
+              "completeEvidence": "launcher.json and app/receipt.json"
+            },
+            "ownershipAfter": {
+              "bounds": {
+                "x": 212,
+                "y": 0,
+                "width": 600,
+                "height": 374
+              },
+              "virtualScreen": {
+                "x": 0,
+                "y": 0,
+                "width": 1024,
+                "height": 768
+              },
+              "overlayHwnd": "0x30164",
+              "ownedHwnd": "0x501D4",
+              "processId": 9188,
+              "isWindow": true,
+              "isVisible": true,
+              "isIconic": false,
+              "cloakResult": 0,
+              "cloaked": 0,
+              "dpi": 96,
+              "sampleCount": 9,
+              "failedSampleCount": 0,
+              "samples": [
+                {
+                  "x": 512,
+                  "y": 187,
+                  "hwnd": "0x501D4",
+                  "processId": 9188,
+                  "rootHwnd": "0x30164",
+                  "rootProcessId": 9188,
+                  "rootOwnerHwnd": "0x30164",
+                  "rootIsVisible": true,
+                  "rootIsIconic": false,
+                  "rootCloakResult": 0,
+                  "rootCloaked": 0,
+                  "ownedByOverlay": true,
+                  "sampleIndex": 4,
+                  "ownerChain": [
+                    "0x30164"
+                  ],
+                  "ownerChainTruncated": false
+                }
+              ],
+              "omittedSampleCount": 8,
+              "truncated": true,
+              "completeEvidence": "launcher.json and app/receipt.json"
+            }
+          }
+        ],
+        "supplementalCaptureFailures": [],
+        "supplementalEvidenceFailure": null,
+        "supplementalImageLog": [
+          {
+            "file": "timers-initial-desktop.png",
+            "status": "transferred",
+            "reason": null,
+            "bytes": 6202,
+            "sha256": "608b319adf47884ea9e5d3bf6e2b24b2e401b82b8a4d3bf84c0f1d3c5ab88b9e",
+            "chunkCount": 3
+          },
+          {
+            "file": "timers-reopened-desktop.png",
+            "status": "transferred",
+            "reason": null,
+            "bytes": 6202,
+            "sha256": "608b319adf47884ea9e5d3bf6e2b24b2e401b82b8a4d3bf84c0f1d3c5ab88b9e",
+            "chunkCount": 3
+          }
+        ],
+        "supplementalImageLogRequested": true,
+        "visualCheckpoints": [
+          {
+            "stage": "timers-initial",
+            "captureOrder": "frozen-opacity-then-desktop-before-rtb",
+            "motionSettled": true,
+            "frameActive": false,
+            "phase": "Visible",
+            "nativeVisibility": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=1,acrylic=True,configuration=none,lastFailure=none",
+            "layers": [
+              {
+                "name": "Surface",
+                "actualWidth": 560,
+                "actualHeight": 340,
+                "isLoaded": true,
+                "xamlOpacity": 1,
+                "compositionOpacity": 1,
+                "visibility": "Visible"
+              },
+              {
+                "name": "ExpandedPanel",
+                "actualWidth": 560,
+                "actualHeight": 340,
+                "isLoaded": true,
+                "xamlOpacity": 1,
+                "compositionOpacity": 1,
+                "visibility": "Visible"
+              },
+              {
+                "name": "WidgetsExpanded",
+                "actualWidth": 524,
+                "actualHeight": 340,
+                "isLoaded": true,
+                "xamlOpacity": 1,
+                "compositionOpacity": 1,
+                "visibility": "Visible"
+              }
+            ],
+            "lifecycle": {
+              "hwnd": "0x30164",
+              "processId": 9188,
+              "closingEvents": 0,
+              "closedEvents": 0,
+              "cancelObserved": false,
+              "closeRequestPosted": false,
+              "shutdownRequested": false,
+              "experienceChangedEvents": 1,
+              "experienceState": "Expanded",
+              "native": {
+                "isWindow": true,
+                "processId": 9188,
+                "regionType": 3,
+                "regionBounds": {
+                  "x": 20,
+                  "y": 18,
+                  "width": 560,
+                  "height": 340
+                }
+              },
+              "eventSequenceTruncated": false,
+              "eventSequence": [
+                {
+                  "sequence": 1,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 1,
+                    "bridgeEnabled": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "stage": "system-close-hidden-retained",
+            "captureOrder": "frozen-opacity-then-desktop-before-rtb",
+            "motionSettled": true,
+            "frameActive": false,
+            "phase": "Invisible",
+            "nativeVisibility": "active=True,safe=True,visible=False,phase=Invisible,regions=0,regionSkips=4,acrylic=True,configuration=none,lastFailure=none",
+            "layers": [],
+            "lifecycle": {
+              "hwnd": "0x30164",
+              "processId": 9188,
+              "closingEvents": 1,
+              "closedEvents": 0,
+              "cancelObserved": true,
+              "closeRequestPosted": true,
+              "shutdownRequested": false,
+              "experienceChangedEvents": 3,
+              "experienceState": "Hidden",
+              "native": {
+                "isWindow": true,
+                "processId": 9188,
+                "regionType": 1,
+                "regionBounds": {
+                  "x": -212,
+                  "y": 0,
+                  "width": 0,
+                  "height": 0
+                }
+              },
+              "eventSequenceTruncated": false,
+              "eventSequence": [
+                {
+                  "sequence": 1,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 1,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 2,
+                  "kind": "system-close-posted",
+                  "detail": {
+                    "message": "WM_SYSCOMMAND",
+                    "command": "SC_CLOSE",
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 3,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Dismissing",
+                    "revision": 2,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 4,
+                  "kind": "app-window-closing",
+                  "detail": {
+                    "cancel": true,
+                    "shutdownRequested": false
+                  }
+                },
+                {
+                  "sequence": 5,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Hidden",
+                    "revision": 3,
+                    "bridgeEnabled": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "stage": "timers-reopened",
+            "captureOrder": "frozen-opacity-then-desktop-before-rtb",
+            "motionSettled": true,
+            "frameActive": false,
+            "phase": "Visible",
+            "nativeVisibility": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=5,acrylic=True,configuration=none,lastFailure=none",
+            "layers": [
+              {
+                "name": "Surface",
+                "actualWidth": 560,
+                "actualHeight": 340,
+                "isLoaded": true,
+                "xamlOpacity": 1,
+                "compositionOpacity": 1,
+                "visibility": "Visible"
+              },
+              {
+                "name": "ExpandedPanel",
+                "actualWidth": 560,
+                "actualHeight": 340,
+                "isLoaded": true,
+                "xamlOpacity": 1,
+                "compositionOpacity": 1,
+                "visibility": "Visible"
+              },
+              {
+                "name": "WidgetsExpanded",
+                "actualWidth": 524,
+                "actualHeight": 340,
+                "isLoaded": true,
+                "xamlOpacity": 1,
+                "compositionOpacity": 1,
+                "visibility": "Visible"
+              }
+            ],
+            "lifecycle": {
+              "hwnd": "0x30164",
+              "processId": 9188,
+              "closingEvents": 1,
+              "closedEvents": 0,
+              "cancelObserved": true,
+              "closeRequestPosted": true,
+              "shutdownRequested": false,
+              "experienceChangedEvents": 4,
+              "experienceState": "Expanded",
+              "native": {
+                "isWindow": true,
+                "processId": 9188,
+                "regionType": 3,
+                "regionBounds": {
+                  "x": 20,
+                  "y": 18,
+                  "width": 560,
+                  "height": 340
+                }
+              },
+              "eventSequenceTruncated": false,
+              "eventSequence": [
+                {
+                  "sequence": 1,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 1,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 2,
+                  "kind": "system-close-posted",
+                  "detail": {
+                    "message": "WM_SYSCOMMAND",
+                    "command": "SC_CLOSE",
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 3,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Dismissing",
+                    "revision": 2,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 4,
+                  "kind": "app-window-closing",
+                  "detail": {
+                    "cancel": true,
+                    "shutdownRequested": false
+                  }
+                },
+                {
+                  "sequence": 5,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Hidden",
+                    "revision": 3,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 6,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 4,
+                    "bridgeEnabled": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "stage": "explicit-shutdown-destroyed",
+            "captureOrder": "frozen-opacity-then-desktop-before-rtb",
+            "motionSettled": false,
+            "frameActive": null,
+            "phase": null,
+            "nativeVisibility": null,
+            "layers": [],
+            "lifecycle": {
+              "hwnd": "0x30164",
+              "processId": 9188,
+              "closingEvents": 1,
+              "closedEvents": 1,
+              "cancelObserved": true,
+              "closeRequestPosted": true,
+              "shutdownRequested": true,
+              "experienceChangedEvents": 4,
+              "experienceState": "Expanded",
+              "native": {
+                "isWindow": false,
+                "processId": 0,
+                "regionType": null,
+                "regionBounds": null
+              },
+              "eventSequenceTruncated": false,
+              "eventSequence": [
+                {
+                  "sequence": 1,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 1,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 2,
+                  "kind": "system-close-posted",
+                  "detail": {
+                    "message": "WM_SYSCOMMAND",
+                    "command": "SC_CLOSE",
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 3,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Dismissing",
+                    "revision": 2,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 4,
+                  "kind": "app-window-closing",
+                  "detail": {
+                    "cancel": true,
+                    "shutdownRequested": false
+                  }
+                },
+                {
+                  "sequence": 5,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Hidden",
+                    "revision": 3,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 6,
+                  "kind": "experience-changed",
+                  "detail": {
+                    "state": "Expanded",
+                    "revision": 4,
+                    "bridgeEnabled": true
+                  }
+                },
+                {
+                  "sequence": 7,
+                  "kind": "explicit-shutdown-requested",
+                  "detail": {
+                    "ownedHwnd": "0x30164"
+                  }
+                },
+                {
+                  "sequence": 8,
+                  "kind": "window-closed",
+                  "detail": {
+                    "shutdownRequested": true
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "releasePromotionEligible": false,
+        "physicalPointerValidated": false,
+        "appReceiptSha256": "11dcd628a4c1a9f35a3605f09cc05be624afb066f8417e7e6163887625d5be59",
+        "scenarios": [
+          {
+            "name": "overlay-first-frame-and-system-close",
+            "status": "passed",
+            "failureStage": null,
+            "failure": null
+          }
+        ],
+        "supplementalCaptureFailuresTruncated": false,
+        "visualCheckpointsTruncated": false
+      },
+      "originalMusicReleaseJobSkipped": true,
+      "actualUniqueScenarios": 1,
+      "scenarioExecutions": 1,
+      "functionalPassed": 1,
+      "functionalFailed": 0,
+      "visualApproved": false,
+      "artifactsDownloaded": false,
+      "supplementalPngsRecoveredFromJobLog": 2,
+      "localPngs": [
+        {
+          "source": "artifacts/local-iterations-2026-10-17/beta-native-ui/39067718911/timers-initial-desktop.png",
+          "retainedIdenticalBytes": "docs/dev/evidence/local-iterations-2026-10-17/native-overlay-39067212418-initial.png",
+          "bytes": 6202,
+          "sha256": "608b319adf47884ea9e5d3bf6e2b24b2e401b82b8a4d3bf84c0f1d3c5ab88b9e",
+          "separatelyViewed": false
+        },
+        {
+          "source": "artifacts/local-iterations-2026-10-17/beta-native-ui/39067718911/timers-reopened-desktop.png",
+          "retainedIdenticalBytes": "docs/dev/evidence/local-iterations-2026-10-17/native-overlay-39067212418-reopened.png",
+          "bytes": 6202,
+          "sha256": "608b319adf47884ea9e5d3bf6e2b24b2e401b82b8a4d3bf84c0f1d3c5ab88b9e",
+          "separatelyViewed": false
+        }
+      ],
+      "receiptSource": "gh run view --job --log; build/launcher binding and original PNG chunk/header/transfer metadata verified",
+      "evidence": {
+        "artifacts/local-iterations-2026-10-17/beta-native-ui/39067718911/job.log": "30190a2d98bdcaba09b16d70eb480e2f7e6afbabbf086893e5256c1b5d2b3675",
+        "artifacts/local-iterations-2026-10-17/beta-native-ui/39067718911/run.json": "bd31dccf2e5848d84506fffa6432ce22a92556af2638a531058564516cf157fd",
+        "artifacts/local-iterations-2026-10-17/beta-native-ui/39067718911/build-receipt.json": "217f9d9eef5732b8288a4f4397f861519cc9a770c416002a70d8d0c52325003a",
+        "artifacts/local-iterations-2026-10-17/beta-native-ui/39067718911/launcher-receipt.json": "35459999f988d236769fcc547517d777ce0f73477b0810d87862d76cfd8e0882"
+      },
+      "interpretation": [
+        "The summary-only retry ran the lifecycle case once and all implemented assertions passed. No old timer/menu/batch cases were repeated.",
+        "Cold and reopened checkpoints froze loaded nonzero visible layers and ExpandedPanel XAML/composition opacity 1 before desktop/RTB. SC_CLOSE was cancelled once, experience became Hidden with empty region while retaining the owned HWND, reopening reused it, and explicit shutdown emitted Closed once and destroyed the HWND.",
+        "Both required RTB images still failed the unchanged opaque-pixel predicate; diagnostic App status blocked, exit 2 and workflow failure remain recorded. This is not a complete visual approval or a release-qualified producer.",
+        "Original desktop PNGs match the run-5 bytes already inspected, showing 25:00, 05:00 and buttons. Both were verified against their own complete summary and transport headers; files are retained by identical-byte reference, with no redundant image claim.",
+        "Full Debug Windows build passed with zero warnings/errors. The later WidgetEditor partial/race edits are not part of this build.",
+        "Latest user instruction ended new development and then deferred release to a new Medium turn. No further native retry or release build was started."
+      ]
     }
   ]
 }
