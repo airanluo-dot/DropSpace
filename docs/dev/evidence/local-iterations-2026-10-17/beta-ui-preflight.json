@@ -1,0 +1,72 @@
+{
+  "kind": "beta-native-ui-preflight",
+  "nativeScenarioExecutions": 0,
+  "scripts": {
+    "kind": "static-only-native-ui-diagnostic-route-review",
+    "functionalScenarioExecutions": 0,
+    "actionsDispatches": 0,
+    "checks": [
+      {
+        "check": "PowerShell 7.6.6 Parser.ParseFile for both new scripts",
+        "result": "passed",
+        "boundary": "syntax parsing only; scripts were not executed"
+      },
+      {
+        "check": "PyYAML parsing, explicit boolean routes, old music job comparison to HEAD",
+        "result": "passed",
+        "boundary": "old job differs only by route condition"
+      },
+      {
+        "check": "focused testing workflow source-integrity audit",
+        "result": "passed",
+        "executions": 2,
+        "reasonForRepeat": "new restore RID propagation constraint after independent review"
+      },
+      {
+        "check": "changed-file whitespace check",
+        "result": "passed"
+      }
+    ],
+    "sourceSha256": {
+      ".github/workflows/music-visual-qa.yml": "7b8cf863dd58837d0bc247ef04524a822d941f2adf84f249e378743b3c850cd9",
+      "scripts/Build-BetaUiDiagnostics.ps1": "1cfbcba90446d15c7c8c6a17ebd09e8088c6bdc105b5dde502ce53e1b58cafa8",
+      "scripts/Test-BetaUiDiagnostics.ps1": "1e97e89f258da311d30dcd9c0619f8963681aa46f0e171fe33881ad1dabe8cdc",
+      "scripts/passive-test-budget.mjs": "033620a1e964b9be47c4a55293fd84a70da86d1632426b5ef249cc6fc4da0839"
+    },
+    "boundary": "No Windows build/runtime/scenario/desktop or pixel evidence was produced in this preflight."
+  },
+  "narrowCompilation": {
+    "recordedAtUtc": "2026-10-17T19:31:00.166848+00:00",
+    "compileAttempts": 2,
+    "compileFailures": 0,
+    "warnings": 0,
+    "errors": 0,
+    "functionalScenarioExecutions": 0,
+    "nativeScenarioExecutions": 0,
+    "boundaries": [
+      "Narrow source-linked C# compile uses actual Windows/WinUI/Core references and signatures-only App collaborators.",
+      "First pass preceded receipt-finalization and evidence refinements; second compiles final frozen BetaUiDiagnostics sources.",
+      "App.xaml.cs composition hook was source-reviewed but not compiled by this narrow project. Full App/XAML build and native execution remain pending Windows."
+    ],
+    "sha256": {
+      "src/DropSpace.App/App.xaml.cs": "53d4952e35a9dba5cf2ee3b26f14d26c247556aba0ee94e666f3262f962fd7cb",
+      "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Evidence.cs": "14e4c1ccb611e73e827e89f58cc200565e6175271d99c21fbf4c4b012d34f82c",
+      "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Fixture.cs": "742b5fb6bd0ca6d3da05107e57f9a1fcb809d6b25b089e0b6a134516bca0ce65",
+      "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.cs": "ed7075d06c44d1aa2701251dc2aa3639a35de0d9a4a566276d5e5092de9d3699",
+      "artifacts/local-iterations-2026-10-17/beta-ui-compile/CompilationStubs.cs": "2ec2297118ec77f1b38a450725fe0c3806510a428f257a1c0197e275f6e8bd19",
+      "artifacts/local-iterations-2026-10-17/beta-ui-compile/BetaUiCompile.csproj": "260fedc3d8c5b5a5ca885ed330f9404304685bd82e45189319609334047443bb",
+      "artifacts/local-iterations-2026-10-17/beta-ui-compile/build-1.log": "b8737a897fc35073f228d8d2529ce7e3a453c2006c0fc1d6b906c20cc04602bf",
+      "artifacts/local-iterations-2026-10-17/beta-ui-compile/build-2-final.log": "b672e355261145aaaea0204360dad81addce314104d45d5c43a337898cdd77b8"
+    }
+  },
+  "sourceEvidence": [
+    {
+      "path": "artifacts/local-iterations-2026-10-17/beta-ui-diagnostics-preflight/validation-inputs.json",
+      "sha256": "87841e4e63c69b127c544c483aa138d67329390b4e80751e327974055c345cf5"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/beta-ui-compile/validation.json",
+      "sha256": "73d162952a2029cf92eaabab486b4fc24afd51921c24454d7f3addfeb5534a32"
+    }
+  ]
+}

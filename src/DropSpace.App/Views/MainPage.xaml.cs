@@ -309,52 +309,62 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        await RunAsync(() => SelectSectionAsync(section));
+        await SelectSectionAsync(section);
     }
 
-    private async Task<long?> SelectSectionAsync(string section)
-    {
-        var revision = Interlocked.Increment(ref _navigationRevision);
-        var ownerToken = _dialogLifetime.Token;
-        await _settingsEditor.FlushEditsAsync();
-        if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return null;
-        await _settingsEditor.FlushDownloadLimitsAsync();
-        // A newer request may bypass a flush that already drained its pending queue.
-        // Only the latest live request may publish its destination after that save.
-        if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return null;
-        if (_moduleNavigation.TryGetValue(section, out var module))
-        {
-            if (IsModuleActive(module.Id)) ShowModulePage(section, module.Manifest, module.Page);
-            else RefreshModuleNavigation();
-            return revision;
-        }
-        RetireModulePage();
-        _syncingNavigation = true;
-        try
-        {
-            Navigation.SelectedItem = GetNavigationItem(section);
-        }
-        finally
-        {
-            _syncingNavigation = false;
-        }
+    private readonly record struct NavigationOwnership(long PageRevision, long SharedRevision);
 
-        try
+    private bool OwnsNavigation(NavigationOwnership ownership, CancellationToken ownerToken) =>
+        !ownerToken.IsCancellationRequested &&
+        ownership.PageRevision == Volatile.Read(ref _navigationRevision) &&
+        _viewModel.IsNavigationCurrent(ownership.SharedRevision);
+
+    private async Task<NavigationOwnership?> SelectSectionAsync(string section)
+    {
+        var ownership = new NavigationOwnership(
+            Interlocked.Increment(ref _navigationRevision), _viewModel.ReserveNavigation());
+        var ownerToken = _dialogLifetime.Token;
+        NavigationOwnership? completed = null;
+        await RunAsync(async () =>
         {
-            await _viewModel.NavigateAsync(section);
-        }
-        catch (Exception exception) when (ownerToken.IsCancellationRequested ||
-            revision != Volatile.Read(ref _navigationRevision))
-        {
-            // The newer navigation owns visible feedback; retain diagnostics without
-            // opening an old request's error dialog over its destination.
-            _logger.LogWarning(exception, "A retired main-page navigation failed.");
-            return null;
-        }
-        UpdateSectionChrome();
-        return !ownerToken.IsCancellationRequested && revision == Volatile.Read(ref _navigationRevision)
-            ? revision
-            : null;
+            try
+            {
+                await _settingsEditor.FlushEditsAsync();
+                if (!OwnsNavigation(ownership, ownerToken)) return;
+                await _settingsEditor.FlushDownloadLimitsAsync();
+                // Main-window and Island requests share this reservation, including requests
+                // that leave a section and return while settings are still being saved.
+                if (!OwnsNavigation(ownership, ownerToken)) return;
+                if (_moduleNavigation.TryGetValue(section, out var module))
+                {
+                    if (IsModuleActive(module.Id)) ShowModulePage(section, module.Manifest, module.Page);
+                    else RefreshModuleNavigation();
+                    if (OwnsNavigation(ownership, ownerToken)) completed = ownership;
+                    return;
+                }
+                RetireModulePage();
+                _syncingNavigation = true;
+                try
+                {
+                    Navigation.SelectedItem = GetNavigationItem(section);
+                }
+                finally
+                {
+                    _syncingNavigation = false;
+                }
+
+                await _viewModel.NavigateAsync(section, ownership.SharedRevision);
+                if (!OwnsNavigation(ownership, ownerToken)) return;
+                UpdateSectionChrome();
+                completed = ownership;
+            }
+            catch (Exception exception) when (!OwnsNavigation(ownership, ownerToken))
+            {
+                // Includes preflight failures: the newer request owns visible feedback.
+                _logger.LogWarning(exception, "A retired main-page navigation failed.");
+            }
+        }, () => OwnsNavigation(ownership, ownerToken));
+        return completed;
     }
 
     private async void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
@@ -1896,36 +1906,35 @@ public sealed partial class MainPage : Page
     private async void OnSpaceAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Space"));
+        await SelectSectionAsync("Space");
     }
 
     private async void OnClipboardAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Clipboard"));
+        await SelectSectionAsync("Clipboard");
     }
 
     private async void OnPinnedAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Pinned"));
+        await SelectSectionAsync("Pinned");
     }
 
     private async void OnSearchAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
         var ownerToken = _dialogLifetime.Token;
-        long? navigationRevision = Volatile.Read(ref _navigationRevision);
+        NavigationOwnership? ownership = new NavigationOwnership(
+            Volatile.Read(ref _navigationRevision), _viewModel.NavigationRevision);
         if (IsModulePageVisible || !_viewModel.IsCollectionVisible)
         {
             var section = _viewModel.IsCollectionVisible ? _viewModel.CurrentSection : "Space";
-            navigationRevision = null;
-            await RunAsync(async () => { navigationRevision = await SelectSectionAsync(section); });
+            ownership = await SelectSectionAsync(section);
         }
 
-        // Navigation can be superseded while settings edits are being flushed.
-        // Focus search only if its collection is still the active surface.
-        if (!ownerToken.IsCancellationRequested && navigationRevision == Volatile.Read(ref _navigationRevision) &&
+        // A newer request from any surface owns focus, even if it returns to this section.
+        if (ownership is { } current && OwnsNavigation(current, ownerToken) &&
             !IsModulePageVisible && _viewModel.IsCollectionVisible)
             SearchBox.Focus(FocusState.Keyboard);
     }
@@ -1933,7 +1942,7 @@ public sealed partial class MainPage : Page
     private async void OnSettingsAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Settings"));
+        await SelectSectionAsync("Settings");
     }
 
     private async void OnUndoAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
@@ -2439,12 +2448,14 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private async Task ShowMessageAsync(string title, string content)
+    private async Task ShowMessageAsync(string title, string content, Func<bool>? canPresent = null)
     {
         var entered = false;
         try
         {
             await _dialogGate.WaitAsync(_dialogLifetime.Token); entered = true;
+            // Navigation can retire while another dialog owns the presentation gate.
+            if (canPresent is not null && !canPresent()) return;
             var dialog = new ContentDialog
             {
                 XamlRoot = XamlRoot,
@@ -2484,7 +2495,7 @@ public sealed partial class MainPage : Page
         });
     }
 
-    private async Task RunAsync(Func<Task> operation)
+    private async Task RunAsync(Func<Task> operation, Func<bool>? canPresentError = null)
     {
         try
         {
@@ -2497,7 +2508,8 @@ public sealed partial class MainPage : Page
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "A main-page operation failed.");
-            if (_dialogLifetime.IsCancellationRequested || XamlRoot is null) return;
+            if (_dialogLifetime.IsCancellationRequested || XamlRoot is null ||
+                (canPresentError is not null && !canPresentError())) return;
             if (exception is HandoffSendUnavailableException handoffFailure)
             {
                 var (title, content) = handoffFailure.Reason switch
@@ -2506,13 +2518,13 @@ public sealed partial class MainPage : Page
                     HandoffSendUnavailableReason.Busy => ("TransferUnavailableTitle", "TransferBusyContent"),
                     _ => ("OperationIncompleteTitle", "OperationIncompleteContent"),
                 };
-                await ShowMessageAsync(_strings.Get(title), _strings.Get(content));
+                await ShowMessageAsync(_strings.Get(title), _strings.Get(content), canPresentError);
                 return;
             }
             if (exception is TransferPreparationLimitException)
             {
                 await ShowMessageAsync(_strings.Get("TransferUnavailableTitle"),
-                    _strings.Get("TransferPreparationLimitContent"));
+                    _strings.Get("TransferPreparationLimitContent"), canPresentError);
                 return;
             }
             if (exception is SettingsUpdateException settingsFailure)
@@ -2520,12 +2532,12 @@ public sealed partial class MainPage : Page
                 SyncSettingsControls();
                 await ShowMessageAsync(_strings.Get("OperationIncompleteTitle"),
                     _strings.Format(settingsFailure.StageResourceKey == "SettingsStageRecovery" ? "SettingsRecoveryFailed" : "SettingsUpdateFailed",
-                        _strings.Get(settingsFailure.StageResourceKey), settingsFailure.OperationId));
+                        _strings.Get(settingsFailure.StageResourceKey), settingsFailure.OperationId), canPresentError);
                 return;
             }
             await ShowMessageAsync(
                 _strings.Get("OperationIncompleteTitle"),
-                _strings.Get("OperationIncompleteContent"));
+                _strings.Get("OperationIncompleteContent"), canPresentError);
         }
     }
 

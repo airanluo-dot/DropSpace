@@ -3694,20 +3694,20 @@
     "WidgetTimerDurationHelp": [
       "49ba0a88af2a368972ae21b3305a0f9a0de7abb39d8c2476321661c5419bd3c1",
       "5e102d81842bfd5b0ee37dd87c3a6c4ecfbf292e7691e25e83d70948ef4839c1"
+    ],
+    "WidgetTimerReset.Text": [
+      "23d712d2c6eda4e0000b250dde60dad42d59ef3545ea257e0e5f19cb813479aa",
+      "f8023f28b846f9b957f076b2343a1953a8ac3d359ffe9bfcd4b948abd3146ae2"
     ]
   },
-  "reviewedBy": "Codex timer localization: five timer IDs; reset-and-pause semantics, native labels, and minute units independently reviewed",
-  "reviewedAt": "2026-10-17T18:02:33.966Z",
+  "reviewedBy": "Codex timer reset: one resource ID reviewed for reset-and-pause semantics, distinct from stopwatch and layout reset",
+  "reviewedAt": "2026-10-17T19:25:32.166Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "WidgetFocusTimer.Text",
-      "WidgetCountdown.Text",
-      "WidgetTimerDuration",
-      "WidgetTimerMinutesFormat",
-      "WidgetTimerDurationHelp"
+      "WidgetTimerReset.Text"
     ],
-    "reviewedBy": "Codex timer localization: five timer IDs; reset-and-pause semantics, native labels, and minute units independently reviewed",
-    "reviewedAt": "2026-10-17T18:02:33.966Z"
+    "reviewedBy": "Codex timer reset: one resource ID reviewed for reset-and-pause semantics, distinct from stopwatch and layout reset",
+    "reviewedAt": "2026-10-17T19:25:32.166Z"
   }
 }

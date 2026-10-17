@@ -1,0 +1,84 @@
+{
+  "kind": "source-linked-navigation-ownership-probe",
+  "headAtValidation": "90dcdfa707dfaf33240b75c9584b3be85d6da598",
+  "command": "dotnet run --project scripts/navigation-projection-probe/NavigationProjectionProbe.csproj --no-restore -- --ownership-only artifacts/local-iterations-2026-10-17/navigation-ownership/results.json",
+  "executions": [
+    {
+      "attempt": 1,
+      "exitCode": 0,
+      "scenarioCount": 2,
+      "passed": 2,
+      "failed": 0,
+      "log": "run.log",
+      "results": "results.json"
+    }
+  ],
+  "originalFiveScenarioSourceUnchanged": true,
+  "originalFiveExecuted": false,
+  "baselineExecuted": false,
+  "boundaries": [
+    "MainPage preflight, deep link and callers not source-linked",
+    "WinUI focus, dialogGate and native UI not executed",
+    "SearchText setter and debounce not source-linked; search scenario calls production ReloadAsync against fixture SearchText",
+    "Asset cleanup uses fixture boundary, not native asset services"
+  ],
+  "files": {
+    "src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs": "bd87bc192192ce76ac85fa5c920f8918df4122d6c7f67170d6f58a8fdfdc2cb9",
+    "src/DropSpace.App/ViewModels/MainViewModel.ItemSelection.cs": "d97a9b5ad40d6a85be0b24867880cd452d44ac4864fdc85bb3617f55831842e7",
+    "src/DropSpace.App/ViewModels/ItemCardViewModel.cs": "cc60b87aeed325ae9666087b33d4fbdeab7dc5d7d2d96f0cd6043352d9cb9786",
+    "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs": "f0fc94b2cdee2ee5af9aa29aa6b74ed7c8d98979501d601a9845dda1067776c8",
+    "src/DropSpace.App/Services/ItemProjectionService.cs": "c4c62f5e6824123555e3bc8b7298cce0e1b1026fee597c3f7dffda7bea46a1d0",
+    "scripts/navigation-projection-probe/NavigationProjectionProbe.csproj": "7314334a429ec7d56e4c49d8205e1664513ca0cde56f683388ebae56486b010f",
+    "scripts/navigation-projection-probe/Program.cs": "8f00aa3b2cef2f66d3452355ed5fe501a04ce983b67aa5d1f365ad3483524484",
+    "scripts/navigation-projection-probe/PlatformShims.cs": "28b715399e72886fc7f69c6419e26641cb017a0dc2afd4298a7a1d99be1ea91f",
+    "scripts/navigation-projection-probe/ScriptedRepository.cs": "29db18fd1ac3a9955d9e92cc27478b93107c44aec5c0f49133698ff367c98bbd",
+    "scripts/navigation-projection-probe/ProbeDispatcher.cs": "b6d5aa1abc711a5c86ee57a3fb00f18e50a30b867f78c6862752ee17fd6ea0d7",
+    "scripts/navigation-projection-probe/README.md": "db1efc1066e3d70a26b736020fda3fdbf5faaa93b71e0ecda0e2daadab8c7186"
+  },
+  "buildDiagnostics": {
+    "emittedWarnings": 0,
+    "emittedErrors": 0,
+    "warningsAsErrors": true,
+    "note": "dotnet run built successfully (exit 0) and emitted no compiler diagnostics; no separate build was executed."
+  },
+  "associatedSourcesNotCompiledByProbe": {
+    "src/DropSpace.App/Views/MainPage.xaml.cs": "24a0f5c4febf450ee0511119634524e2b714f967f27fb19a66d90436c8fdbdee",
+    "src/DropSpace.App/Views/MainPage.Settings.cs": "4c0fa6d53222a1cf494a3de20f2de5e85f9792c5a25e73dfa8dac26794d49abc"
+  },
+  "results": [
+    {
+      "Name": "reserved-navigation-retirement",
+      "Passed": true,
+      "Failures": []
+    },
+    {
+      "Name": "navigation-ticket-identity",
+      "Passed": true,
+      "Failures": []
+    }
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/local-iterations-2026-10-17/navigation-ownership/run.log",
+      "sha256": "c418ccf206bd85c8daa75fe2b7303d199dfd20068376eb276791029d146d6eab"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/navigation-ownership/results.json",
+      "sha256": "6d0f96f0bc2805c2adb20038d308ba10d1b4d8d161a8ad10db09f565e786f5e1"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/navigation-ownership/validation-inputs.json",
+      "sha256": "57d081a04ac62d39f1ce74dc6b4d81f1042b33280cc96d5e5b0411fbaeef4c1f"
+    }
+  ],
+  "finalSourceReview": {
+    "result": "passed",
+    "additionalFunctionalExecutions": 0,
+    "changeAfterProbe": "The module inventory direct user entry also reserves page/shared navigation identity. The original probe execution inputs were preserved.",
+    "files": {
+      "src/DropSpace.App/Views/MainPage.Settings.cs": "d1f00b92537c2f6a02a28e620a2721f7e1cdf305a257f0aba1b8fd88533bbdd3",
+      "src/DropSpace.App/Views/MainPage.xaml.cs": "24a0f5c4febf450ee0511119634524e2b714f967f27fb19a66d90436c8fdbdee",
+      "src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs": "bd87bc192192ce76ac85fa5c920f8918df4122d6c7f67170d6f58a8fdfdc2cb9"
+    }
+  }
+}

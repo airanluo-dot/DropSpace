@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <DefineConstants Condition="'$(NavigationSourcePath)' == ''">$(DefineConstants);NAVIGATION_OWNERSHIP</DefineConstants>
     <NavigationSourcePath Condition="'$(NavigationSourcePath)' == ''">../../src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs</NavigationSourcePath>
   </PropertyGroup>
   <ItemGroup>

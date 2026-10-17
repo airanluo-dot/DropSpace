@@ -42,6 +42,7 @@ public sealed class WidgetEditorView : UserControl
     public WidgetEditorView(NativeSettingsEditor editor, IAppStringLocalizer strings)
     {
         _editor = editor; _strings = strings;
+        AutomationProperties.SetLiveSetting(_error, AutomationLiveSetting.Polite);
         var body = new StackPanel { Spacing = 14 }; Content = body;
         var enabled = new SettingsForm(editor, strings);
         enabled.AddToggle("WidgetsEnabled", s => s.Widgets.Enabled, (s,v) => s with { Widgets = s.Widgets with { Enabled = v } }); body.Children.Add(enabled);

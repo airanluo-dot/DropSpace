@@ -358,3 +358,98 @@ compilation of the navigation and MainPage retirement changes. The runner's raw
 build-log hash has not been independently recomputed locally; its diagnostic
 artifact was not downloaded. Native interaction and pixel validation remain
 separate work.
+
+
+### Continuation: shared navigation requests and widget feedback
+
+A later cross-surface review confirmed the earlier MainPage-only guard's limit.
+While MainPage awaited a settings flush or collection query, an Island action
+could navigate directly through the shared view model. The older MainPage request
+could then publish its destination, show its failure dialog or restore search
+focus over that newer choice. Returning to the same section could not be
+recognized using only the current section name.
+
+The view model now has a navigation generation separate from query/search reloads.
+MainPage reserves it before either settings flush; direct navigation also reserves
+a generation synchronously. A reserved request must still own it before changing
+the destination. MainPage retains both its page generation and shared generation
+through module navigation, query completion, search focus and DLC deep links.
+Retired preflight failures are logged without presenting their old errors. Current
+failures retain the existing error classification, and dialogs check ownership
+again after acquiring the dialog gate. Ordinary search/reload does not invalidate
+navigation ownership. No settings persistence transaction was changed.
+
+A separate widget review corrected a timer menu that reused “Reset stopwatch”.
+The new `WidgetTimerReset.Text` resource says “Reset timer” in all ten languages,
+with a nine-language review limited to that one new ID. Existing stopwatch labels
+and historical review fingerprints were preserved. Calculator/Pinned launch
+failure text and the widget editor's error text are now polite accessibility live
+regions; timer readouts remain non-live to avoid second-by-second announcements.
+Actual resource work executed nine extracts, nine explicit single-ID reviews,
+one passing App resource gate (ten languages, 924 IDs), source-scope assertions
+and whitespace review. No functional test or compilation was performed by that
+resource change itself. Those command outputs were retained in the tool history,
+not as standalone log files. Native screen-reader announcements remain unverified.
+
+
+The shared-navigation probe ran only `--ownership-only`, once: two scenarios,
+two passes, zero failures/retries. The build within `dotnet run` emitted no
+warnings or errors. It called the production reservation and navigation APIs to
+verify that a direct request retires a pending reserved request before any query
+or destination mutation, that same-section navigation and leaving/returning create
+new identities, and that ordinary/search reloads retain navigation ownership.
+The original five scenario bodies were unchanged and were not rerun. MainPage's
+preflight, DLC callback, dialog gate, native focus and the actual search setter
+remain outside this source-linked probe. Inputs, boundaries and actual results
+are retained in `evidence/local-iterations-2026-10-17/navigation-ownership.json`.
+
+
+Final review found the module inventory's direct settings-page entry bypassed
+`SelectSectionAsync`; it now reserves both identities before opening that module.
+The normal module navigation path does not allocate a second identity. All two
+`ShowModulePage` call sites were reviewed. This call-site correction received
+source review only and did not trigger a repeat of the two passing probe cases.
+Their original source identities are retained separately from the final reviewed
+MainPage source hashes.
+
+### Continuation: focused native UI diagnostics
+
+A dedicated, explicit `--beta-ui-diagnostics` entry creates a fresh isolated data
+root and real MainPage/OverlayWindow controls. It exercises exactly two synthetic
+scenarios: the FocusTimer/Countdown duration menus and their hide/reopen lifecycle,
+and real ListView multi-selection when a batch collapses. The fixture explicitly
+uses two 2-by-1 timer tiles. Menu automation, container selection, geometry and
+pixel capture are recorded separately. Six named captures include the actual
+popup subtrees, not just the underlying overlay. This is programmatic automation
+at the runner's actual DPI/text scale, not physical pointer/keyboard, mixed-DPI,
+desktop compositor or screen-reader validation.
+
+The already registered `music-visual-qa.yml` now accepts an explicit
+`beta_ui_diagnostics=true` boolean. Its original music/Release route remains the
+default and is skipped for this selection. The new route restores only locked App
+dependencies, registers the locked Windows runtime packages, compiles Debug as an
+unpackaged framework-dependent app and explicitly generates `DropSpace.resources.pri`.
+It stages no model/runtime payloads and does not package or publish a release.
+Source commit/tree, apphost, three managed assemblies and PRI hashes bind the
+executable to its build receipt; the launcher checks those bytes again. Timeouts,
+missing receipts, failed cases, incomplete captures and blank pixels cannot pass.
+
+Before the first Windows execution, both PowerShell files passed AST syntax
+parsing, YAML and exclusive-route checks passed, and the old music job was
+confirmed unchanged except for its route condition. Two static workflow source
+audits passed; the second covered a review correction to omit a global RID during
+locked restore so Core/Infrastructure keep their committed lock targets. Those
+checks executed zero App functional scenarios. Independent source review covered
+isolated exception handling, service/logger retirement, process ownership and
+failure accounting. Actual Windows execution is recorded after the source commit.
+
+
+The diagnostic C# implementation also passed two narrow compile invocations with
+zero warnings/errors: the initial implementation and then the final capture/exit
+corrections. They used real Windows/WinUI/Core references and signature stubs for
+unrelated App collaborators. Neither invocation executed a functional/native
+scenario or compiled the App launch entry. That entry received source review.
+The direct MainPage host supplies an explicit white Light fixture background;
+the production MainWindow normally supplies its backdrop. The real Overlay
+background is not replaced. Full preflight counts, source identities and limits
+are in `evidence/local-iterations-2026-10-17/beta-ui-preflight.json`.

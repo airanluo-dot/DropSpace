@@ -635,6 +635,7 @@ Nenhum conteúdo será aberto automaticamente.</value></data>
   <data name="WidgetTimerDuration" xml:space="preserve"><value>Duração</value></data>
   <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
   <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>Alterar a duração redefine o temporizador e o deixa pausado.</value></data>
+  <data name="WidgetTimerReset.Text" xml:space="preserve"><value>Redefinir temporizador</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>Espaço livre no disco do sistema</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>Adaptador de rede</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>Calculadora</value></data>

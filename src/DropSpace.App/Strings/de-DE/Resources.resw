@@ -635,6 +635,7 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="WidgetTimerDuration" xml:space="preserve"><value>Dauer</value></data>
   <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} Min.</value></data>
   <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>Wenn Sie die Dauer ändern, wird der Timer zurückgesetzt und pausiert.</value></data>
+  <data name="WidgetTimerReset.Text" xml:space="preserve"><value>Timer zurücksetzen</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>Freier Platz auf dem Systemlaufwerk</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>Netzwerkadapter</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>Rechner</value></data>

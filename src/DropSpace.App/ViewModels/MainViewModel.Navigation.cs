@@ -5,8 +5,23 @@ namespace DropSpace.App.ViewModels;
 
 public sealed partial class MainViewModel
 {
-    public async Task NavigateAsync(string section, CancellationToken cancellationToken = default)
+    private long _navigationOwnershipRevision;
+
+    internal long NavigationRevision => Volatile.Read(ref _navigationOwnershipRevision);
+
+    // Reserve before asynchronous navigation preflight. Reload/search revisions belong to
+    // collection queries and must not retire a navigation's later focus or error feedback.
+    internal long ReserveNavigation() => Interlocked.Increment(ref _navigationOwnershipRevision);
+
+    internal bool IsNavigationCurrent(long revision) => !_disposed && revision == NavigationRevision;
+
+    public Task NavigateAsync(string section, CancellationToken cancellationToken = default) =>
+        NavigateAsync(section, ReserveNavigation(), cancellationToken);
+
+    internal async Task NavigateAsync(string section, long navigationRevision, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!IsNavigationCurrent(navigationRevision)) return;
         section = section is "Clipboard" or "Pinned" or "Settings" or "Music" ? section : "Space";
         var destinationChanged = !string.Equals(section, CurrentSection, StringComparison.Ordinal);
         Interlocked.Increment(ref _reloadRevision);

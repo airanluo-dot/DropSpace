@@ -635,6 +635,7 @@
   <data name="WidgetTimerDuration" xml:space="preserve"><value>設定時間</value></data>
   <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0}分</value></data>
   <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>設定時間を変更すると、タイマーはリセットされ、一時停止します。</value></data>
+  <data name="WidgetTimerReset.Text" xml:space="preserve"><value>タイマーをリセット</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>システムドライブの空き容量</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>ネットワークアダプター</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>電卓</value></data>

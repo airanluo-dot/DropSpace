@@ -4,16 +4,28 @@ using DropSpace.Core.Models;
 using NavigationProjectionProbe;
 
 var results = new List<ScenarioResult>();
+var ownershipOnly = args.Length > 0 && args[0] == "--ownership-only";
+var outputPath = ownershipOnly ? args.ElementAtOrDefault(1) : args.ElementAtOrDefault(0);
 ProbeDispatcher.Run(async () =>
 {
+    if (ownershipOnly)
+    {
+#if NAVIGATION_OWNERSHIP
+        await RunScenario("reserved-navigation-retirement", ReservedNavigationRetirement);
+        await RunScenario("navigation-ticket-identity", NavigationTicketIdentity);
+        return;
+#else
+        throw new InvalidOperationException("Ownership scenarios require the current default navigation source.");
+#endif
+    }
     await RunScenario("cross-section-failure", CrossSectionFailure);
     await RunScenario("cross-section-cancellation", CrossSectionCancellation);
     await RunScenario("same-section-failure", SameSectionFailure);
     await RunScenario("late-success", LateSuccess);
     await RunScenario("late-failure", LateFailure);
 });
-if (args.Length == 1)
-    File.WriteAllText(args[0], JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));
+if (outputPath is not null)
+    File.WriteAllText(outputPath, JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine($"RESULT {results.Count(result => result.Passed)}/{results.Count} scenarios passed.");
 Environment.ExitCode = results.All(result => result.Passed) ? 0 : 1;
 
@@ -139,6 +151,96 @@ static async Task LateFailure(Checks check)
     check.That(view.CurrentSection == "Pinned" && view.IsEmpty && view.Items.Count == 0 && view.ItemCount == 0 && !view.IsBusy,
         "late failure changed the current empty projection");
 }
+
+#if NAVIGATION_OWNERSHIP
+static async Task ReservedNavigationRetirement(Checks check)
+{
+    var (repository, control) = ScriptedRepository.Create();
+    using var view = new MainViewModel(repository);
+    var initial = await Seed(view, control);
+    var callsBeforeReservation = control.CallCount;
+    // The main page can reserve this ticket before awaiting settings preflight.
+    // Its preflight is deliberately not simulated: the public navigation below
+    // occupies the interval before the reserved request reaches the view model.
+    var reserved = view.ReserveNavigation();
+    check.That(view.IsNavigationCurrent(reserved), "new reservation is not current");
+    check.That(view.CurrentSection == "Space" && ReferenceEquals(view.Items.Single(), initial.Card) &&
+        control.CallCount == callsBeforeReservation, "reservation published a destination or queried the repository");
+
+    var external = view.NavigateAsync("Pinned");
+    using var externalQuery = await control.NextAsync();
+    check.That(externalQuery.Query.PinnedOnly, "external navigation did not request Pinned");
+    externalQuery.Reply(new([], null, false));
+    await external;
+    var externalRevision = view.NavigationRevision;
+    var externalStatus = view.ObservedStatus;
+    var callsBeforeStaleRequest = control.CallCount;
+    check.That(!view.IsNavigationCurrent(reserved), "external navigation did not retire the reserved ticket");
+
+    var stale = view.NavigateAsync("Clipboard", reserved);
+    if (!stale.IsCompleted)
+    {
+        using var unexpected = await control.NextAsync();
+        check.That(false, "retired reserved navigation queried the repository");
+        unexpected.Reply(new([], null, false));
+    }
+    await stale;
+    check.That(control.CallCount == callsBeforeStaleRequest, "retired reserved navigation started a new query");
+    check.That(view.CurrentSection == "Pinned" && view.NavigationRevision == externalRevision &&
+        view.IsNavigationCurrent(externalRevision), "retired reserved navigation replaced the current destination or ticket");
+    check.That(ReferenceEquals(view.ObservedStatus, externalStatus) && view.Items.Count == 0 &&
+        view.IsEmpty && !view.IsBusy, "retired reserved navigation changed the accepted projection state");
+}
+
+static async Task NavigationTicketIdentity(Checks check)
+{
+    var (repository, control) = ScriptedRepository.Create();
+    using var view = new MainViewModel(repository);
+    await Seed(view, control);
+    var initial = view.NavigationRevision;
+
+    var sameSection = view.NavigateAsync("Space");
+    using (var query = await control.NextAsync())
+    {
+        check.That(view.NavigationRevision != initial && !view.IsNavigationCurrent(initial),
+            "same-section navigation reused the earlier ticket");
+        query.Reply(new([], null, false));
+    }
+    await sameSection;
+    var beforeRoundTrip = view.NavigationRevision;
+
+    var away = view.NavigateAsync("Pinned");
+    using (var query = await control.NextAsync()) query.Reply(new([], null, false));
+    await away;
+    var awayRevision = view.NavigationRevision;
+    var back = view.NavigateAsync("Space");
+    using (var query = await control.NextAsync()) query.Reply(new([], null, false));
+    await back;
+    check.That(view.CurrentSection == "Space" && view.NavigationRevision != awayRevision &&
+        !view.IsNavigationCurrent(beforeRoundTrip) && !view.IsNavigationCurrent(awayRevision),
+        "returning through another destination revived a previous ticket");
+
+    var current = view.NavigationRevision;
+    var reload = view.ReloadAsync();
+    using (var query = await control.NextAsync()) query.Reply(new([], null, false));
+    await reload;
+    check.That(view.NavigationRevision == current && view.IsNavigationCurrent(current),
+        "same-page reload changed navigation ownership");
+
+    // SearchText is fixture state. Execute the real search reload without claiming
+    // to cover the production setter, debounce timer, bindings, or focus guard.
+    view.SearchText = "ownership-search";
+    var searchReload = view.ReloadAsync();
+    using (var query = await control.NextAsync())
+    {
+        check.That(query.Query.Search == view.SearchText, "search reload lost its search query");
+        query.Reply(new([], null, false));
+    }
+    await searchReload;
+    check.That(view.NavigationRevision == current && view.IsNavigationCurrent(current),
+        "search reload changed navigation ownership");
+}
+#endif
 
 static void CheckRetiredDestination(Checks check, MainViewModel view, AssetOwner previousOwner, string statusKey)
 {

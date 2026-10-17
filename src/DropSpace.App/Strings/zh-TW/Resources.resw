@@ -635,6 +635,7 @@
   <data name="WidgetTimerDuration" xml:space="preserve"><value>計時時間</value></data>
   <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} 分鐘</value></data>
   <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>變更計時時間會重設並暫停計時器。</value></data>
+  <data name="WidgetTimerReset.Text" xml:space="preserve"><value>重設計時器</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>系統磁碟可用空間</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>網路介面卡</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>小算盤</value></data>

@@ -66,6 +66,19 @@ public partial class App : Application
         try
         {
             var commandLine = Environment.GetCommandLineArgs();
+            if (Services.Diagnostics.BetaUiDiagnostics.IsRequested(commandLine))
+            {
+                // This isolated entry point owns its receipts and never enters the user's
+                // normal instance, crash-marker, clipboard, media or startup lifecycle.
+                UnhandledException -= OnUnhandledException;
+                Environment.Exit(await Services.Diagnostics.BetaUiDiagnostics.RunAsync(commandLine, BuildServices, async () =>
+                {
+                    var logger = _fileLogger;
+                    _fileLogger = null;
+                    if (logger is not null) await logger.DisposeAsync();
+                }));
+                return;
+            }
             if (Services.Diagnostics.FeatureModuleUiSmoke.IsRequested(commandLine))
             {
                 try
@@ -555,10 +568,12 @@ public partial class App : Application
         { logger.LogWarning("Feature module recovery isolated ({Category}).", error.GetType().Name); }
     }
 
-    private ServiceProvider BuildServices()
+    private ServiceProvider BuildServices() => BuildServices(null);
+
+    private ServiceProvider BuildServices(string? diagnosticDataRoot)
     {
-        var testRoot = Environment.GetCommandLineArgs().Contains("--test-mode", StringComparer.OrdinalIgnoreCase)
-            ? Environment.GetEnvironmentVariable("DROPSPACE_TEST_DATA_ROOT") : null;
+        var testRoot = diagnosticDataRoot ?? (Environment.GetCommandLineArgs().Contains("--test-mode", StringComparer.OrdinalIgnoreCase)
+            ? Environment.GetEnvironmentVariable("DROPSPACE_TEST_DATA_ROOT") : null);
         var paths = string.IsNullOrWhiteSpace(testRoot) ? AppStoragePaths.CreateForCurrentUser() : new AppStoragePaths(testRoot);
         var fileLogger = new RedactingFileLoggerProvider(paths);
         _fileLogger = fileLogger;

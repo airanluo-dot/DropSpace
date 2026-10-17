@@ -635,6 +635,7 @@
   <data name="WidgetTimerDuration" xml:space="preserve"><value>Длительность</value></data>
   <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} мин</value></data>
   <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>При изменении длительности таймер сбрасывается и ставится на паузу.</value></data>
+  <data name="WidgetTimerReset.Text" xml:space="preserve"><value>Сбросить таймер</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>Свободное место на системном диске</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>Сетевой адаптер</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>Калькулятор</value></data>

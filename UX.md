@@ -105,7 +105,8 @@ remains a separate action. Reset returns to the chosen duration. These timers
 and their duration choices last for the current App session and remain independent.
 Hiding the island does not pause a running timer. The readout rounds remaining
 time up to whole seconds and shows zero only once the deadline is reached.
-Timer menus close when their view is hidden, rebuilt or replaced.
+Timer menus close when their view is hidden, rebuilt or replaced. Their reset action is labeled
+“Reset timer”.
 
 Native widgets use consistent system icons alongside their localized names.
 Calculator and Pinned Items accept one activation at a time. Retrying a failed
@@ -131,6 +132,9 @@ Switching collections retires the previous collection's selection and paging
 position while the new destination loads. A failed load shows an operation
 message without presenting old items as the new collection. Refreshing the same
 collection keeps its existing items available if the replacement query fails.
+A newer destination selected from the main window or island retires older pending
+navigation feedback and search-focus requests, including requests waiting for a
+settings save. Returning to the same destination still counts as a newer request.
 
 ## Updates
 

@@ -225,6 +225,7 @@ public sealed partial class WidgetsExpandedView : UserControl
                 AutomationProperties.SetName(button, view.Text("Widget" + placement.Id + ".Text"));
                 var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id), FontSize = 18 };
                 AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
+                AutomationProperties.SetLiveSetting(value, AutomationLiveSetting.Polite);
                 value.TextWrapping = TextWrapping.NoWrap;
                 value.TextAlignment = TextAlignment.Center;
                 title.TextAlignment = TextAlignment.Center;
@@ -315,7 +316,7 @@ public sealed partial class WidgetsExpandedView : UserControl
                     menu.Items.Add(duration);
                     menu.Items.Add(new MenuFlyoutSeparator());
                     var reset = new MenuFlyoutItem();
-                    XamlResourceOverride.Apply(reset, "StopwatchReset");
+                    XamlResourceOverride.Apply(reset, "WidgetTimerReset");
                     reset.Click += (_, _) =>
                     {
                         if (_active && IsLoaded && ReferenceEquals(_view, view)) view.ResetTimer(placement.Id);
