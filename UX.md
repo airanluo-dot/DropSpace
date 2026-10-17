@@ -135,6 +135,8 @@ collection keeps its existing items available if the replacement query fails.
 A newer destination selected from the main window or island retires older pending
 navigation feedback and search-focus requests, including requests waiting for a
 settings save. Returning to the same destination still counts as a newer request.
+Pinned and Clipboard actions also recheck their originating Island view before
+opening the main window; hiding or position-editing that view retires the request.
 
 ## Updates
 

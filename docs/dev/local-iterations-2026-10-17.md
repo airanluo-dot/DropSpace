@@ -453,3 +453,108 @@ The direct MainPage host supplies an explicit white Light fixture background;
 the production MainWindow normally supplies its backdrop. The real Overlay
 background is not replaced. Full preflight counts, source identities and limits
 are in `evidence/local-iterations-2026-10-17/beta-ui-preflight.json`.
+
+
+The first native run,
+[39062855382](https://github.com/airanluo-dot/DropSpace/actions/runs/39062855382),
+built exact commit `b439cd45610a18b136ccd416e10d188f7e65832c` successfully with
+**zero warnings/errors**. The source/tree and apphost/PRI/three assembly identities
+matched between build and launcher receipts. The original music/Release job was
+skipped. Native execution started two scenarios: **one passed, one failed**.
+`batch-collapse-selection` passed actual selection and trailing-row geometry
+checks; its expanded/collapsed PNG readbacks both passed pixel-content checks.
+The PNGs remain GitHub artifacts and were not locally inspected, so no human
+visual approval is claimed.
+
+`timer-menu-retirement` reached the FocusTimer submenu capture, then timed out
+within the coarse `timer-duration-FocusTimer` stage. That initial record does not
+identify which subsequent duration/start/pause/hide/reopen wait failed. Two
+Overlay/menu readbacks also failed pixel presence checks; the two later timer
+captures did not run. The process exited with code 1 without hitting the launcher's
+timeout. A usable Windows desktop was present (1024 by 768, text scale 1), and the
+batch scenario succeeded in the same process. No whole-run UI success is claimed.
+
+Source inspection found two pixel-evidence boundaries requiring care: Overlay
+content opacity is driven through Composition visuals while its XAML base opacity
+may remain zero, and the reused music-fixture predicate assumes a mostly opaque
+background. These observations do not prove the on-screen Overlay was blank or
+prove that changing the predicate would validate its rendering. The next timer
+attempt adds finer stages and pixel metrics. The already-passing batch scenario
+will not be repeated merely to investigate this independent timer failure.
+
+
+### Continuation: explicit accessibility error events
+
+Official WinUI documentation/source inspection did not establish automatic
+`LiveRegionChanged` events for arbitrary TextBlock text updates. Setting `Polite`
+alone therefore was insufficient to claim active error notification. The widget
+editor now centralizes error text/visibility changes and explicitly raises the
+live-region event once for a new nonempty visible error. This also corrects a drag
+error catch that previously updated text without making its collapsed label visible.
+Hidden/unloaded owners retire pending announcements; clearing or repeating the
+same error does not announce it. Calculator/Pinned failure text waits until it is
+mounted and still belongs to the current tile/request before raising the event.
+Notification exceptions cannot replace the underlying action error.
+
+One attempted compile launch did not start because `dotnet` was absent from PATH.
+Using the installed SDK's absolute path then ran one real WinUI-reference subset
+compile, successfully with zero warnings/errors. No functional or screen-reader
+scenario was executed. The source basis, original inputs and both launch records
+are retained in `evidence/local-iterations-2026-10-17/widget-error-announcements.json`.
+These evidence records are frozen before the later Pinned navigation-call wiring.
+
+
+### Continuation: timer-only failure investigation
+
+The diagnostic launcher and App now accept a fixed `all`, `timers`, or
+`batch-selection` choice. Their exact case/capture maps are 2/6, 1/4 and 1/2;
+unknown choices, mismatched receipts or missing captures cannot pass. A timers-only
+run constructs its Overlay and neutral lifetime host without constructing MainPage
+or executing the previously passing batch case. This changes the diagnostic host
+scope; it is not a product timer fix. The original all route remains available.
+
+Every timer action/wait now records a distinct stage, automation pattern and peer,
+actual Click count, duration/running state, menu state and current host ownership.
+Captures retain the same pixel predicate and add nonzero-alpha, opaque, transparent
+and color counts. XAML/Composition opacity, native window safety/visibility and
+active frame-subscription state are also recorded. The job-log receipt prints a
+bounded tail of these observations without exposing PNG data. Open-source WinUI
+Invoke/Toggle implementations both raise Click, so the original coarse failure
+was not used as justification to alter timer input handling.
+
+This instrumentation passed one additional narrow C# compile with zero warnings
+or errors, independent source review, changed-launcher PowerShell parsing (twice,
+the second after metadata logging changed), one YAML/route check and one workflow
+source audit. These checks executed no functional/native cases. Their original
+inputs and counts are in `evidence/local-iterations-2026-10-17/beta-ui-timer-selection.json`.
+
+
+### Continuation: Island navigation result ownership
+
+The Pinned widget's former final section-name check could accept an old request
+when another surface navigated away and returned to Pinned. Clipboard's open-main
+handler only checked window closure, so an old query could reopen the main window
+and collapse the Island after a newer destination was selected. Both callers now
+reserve their shared navigation identity before awaiting and recheck it immediately
+before visible success or failure feedback. Widget error announcements use that
+same current-request predicate. Retiring the UI still does not cancel an already
+started shared collection load.
+
+Clipboard also tracks presentation ownership per OverlayWindow, including hidden,
+unloaded, page-switched, native-failure and fullscreen-suppressed states. It checks
+the actual host visibility and the same loaded view model before opening the main
+window. Final review found the selected window's position-edit path did not retire
+its Widgets/Clipboard surfaces; entering placement edit now does so, preventing
+pending actions from becoming valid again after commit/cancel restores the view.
+The synchronous Settings action and explicit stress/smoke diagnostic callers were
+not changed.
+
+The real WinUI-reference compile subset ran twice: the first failed with two
+CS0103 errors because its fixture omitted the newly required actual
+`NativeWidgetIcons` source link; adding that source link led to the one necessary
+retry passing with zero warnings/errors. Production compiled inputs did not change
+between attempts. This did not compile OverlayWindow or execute any native/UI,
+original navigation probe or already-passing batch scenario. Final OverlayWindow
+visibility/placement changes received independent source review. The complete
+attempt history and final reviewed source identities are retained in
+`evidence/local-iterations-2026-10-17/island-navigation-consumers.json`.

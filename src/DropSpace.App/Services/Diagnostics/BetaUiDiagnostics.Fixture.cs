@@ -6,6 +6,26 @@ namespace DropSpace.App.Services.Diagnostics
 {
     internal static class BetaUiDiagnosticFixture
     {
+        internal static BetaUiDiagnosticSelection ParseSelection(IReadOnlyList<string> arguments)
+        {
+            var positions = Enumerable.Range(0, arguments.Count)
+                .Where(index => arguments[index].Equals("--beta-ui-scenario", StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (positions.Length > 1 || positions.Length == 1 && positions[0] + 1 >= arguments.Count)
+                throw new ArgumentException("At most one --beta-ui-scenario value is allowed.");
+            var selected = positions.Length == 0 ? "all" : arguments[positions[0] + 1];
+            return selected switch
+            {
+                "all" => new(selected, ["timer-menu-retirement", "batch-collapse-selection"],
+                    ["timers-initial.png", "timer-menu-FocusTimer.png", "timer-menu-Countdown.png", "timers-reopened.png",
+                        "batch-expanded-selected.png", "batch-collapsed-selection.png"]),
+                "timers" => new(selected, ["timer-menu-retirement"],
+                    ["timers-initial.png", "timer-menu-FocusTimer.png", "timer-menu-Countdown.png", "timers-reopened.png"]),
+                "batch-selection" => new(selected, ["batch-collapse-selection"],
+                    ["batch-expanded-selected.png", "batch-collapsed-selection.png"]),
+                _ => throw new ArgumentException("--beta-ui-scenario must be all, timers, or batch-selection."),
+            };
+        }
+
         internal static string CreateOutput(IReadOnlyList<string> arguments)
         {
             var positions = Enumerable.Range(0, arguments.Count)
@@ -52,6 +72,12 @@ namespace DropSpace.App.Services.Diagnostics
 
         internal static void ApplySettings(MainViewModel main, AppSettings settings) =>
             main.ApplyBetaUiDiagnosticSettings(settings);
+    }
+
+    internal sealed record BetaUiDiagnosticSelection(string Name, string[] Scenarios, string[] Captures)
+    {
+        internal bool RunTimers => Name is "all" or "timers";
+        internal bool RunBatch => Name is "all" or "batch-selection";
     }
 }
 

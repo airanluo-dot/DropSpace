@@ -1,0 +1,157 @@
+{
+  "kind": "focused-native-windows-ui-diagnostics",
+  "attempts": [
+    {
+      "runId": 39062855382,
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39062855382",
+      "sourceCommit": "b439cd45610a18b136ccd416e10d188f7e65832c",
+      "sourceTree": "d15f34a5b394e4a09814246be63253089f90c149",
+      "workflowConclusion": "failure",
+      "build": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-build",
+        "status": "passed",
+        "stage": "build-ready",
+        "sourceCommit": "b439cd45610a18b136ccd416e10d188f7e65832c",
+        "sourceTree": "d15f34a5b394e4a09814246be63253089f90c149",
+        "executablePath": "D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.App\\bin\\x64\\Debug\\net10.0-windows10.0.20348.0\\win-x64\\DropSpace.exe",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.dll": "e37dfb38bef9e4b8217dd65b6e6cc227453ac86e1660554b6399656b98db5572",
+          "DropSpace.Core.dll": "95f3f064a8c8872a05c9268babffafe4ddcb8ea9661e8e313da009a1fea6f977",
+          "DropSpace.Infrastructure.dll": "a571bbbdf6fb110d5af963af4adfc32c754a2a093e865d54e2803ec3f0501453"
+        },
+        "startedAtUtc": "2026-10-17T19:32:05.6661325+00:00",
+        "finishedAtUtc": "2026-10-17T19:33:29.7307167+00:00",
+        "configuration": "Debug",
+        "deployment": "unpackaged-framework-dependent",
+        "releasePromotionEligible": false,
+        "functionalScenarioExecutions": 0,
+        "failure": null
+      },
+      "buildWarnings": 0,
+      "buildErrors": 0,
+      "launch": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-launch",
+        "status": "failed",
+        "stage": "complete",
+        "failureStage": null,
+        "sourceCommit": "b439cd45610a18b136ccd416e10d188f7e65832c",
+        "sourceTree": "d15f34a5b394e4a09814246be63253089f90c149",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.Infrastructure.dll": "a571bbbdf6fb110d5af963af4adfc32c754a2a093e865d54e2803ec3f0501453",
+          "DropSpace.Core.dll": "95f3f064a8c8872a05c9268babffafe4ddcb8ea9661e8e313da009a1fea6f977",
+          "DropSpace.dll": "e37dfb38bef9e4b8217dd65b6e6cc227453ac86e1660554b6399656b98db5572"
+        },
+        "startedAtUtc": "2026-10-17T19:33:30.0791031+00:00",
+        "finishedAtUtc": "2026-10-17T19:33:52.1070724+00:00",
+        "processId": 9780,
+        "exitCode": 1,
+        "timedOut": false,
+        "processExited": true,
+        "actualCaseCount": 2,
+        "passedCaseCount": 1,
+        "visualStatus": "blocked",
+        "captures": [
+          {
+            "file": "timers-initial.png",
+            "sha256": "4b3af4f69263b5e187cb437c3573b058bb80eaf8795a3c73e929bd26621e363f",
+            "width": 560,
+            "height": 340,
+            "pixelReadbackPassed": false
+          },
+          {
+            "file": "timer-menu-FocusTimer.png",
+            "sha256": "54c515d8f8472210016f299dafc1c732bb85d830168ba7a94a86a9153fd0e21a",
+            "width": 103,
+            "height": 286,
+            "pixelReadbackPassed": false
+          },
+          {
+            "file": "batch-expanded-selected.png",
+            "sha256": "8c20e14fe54704fea2588e75f2ca1d110a26d5b3c61721d58ed6e674faf516d2",
+            "width": 1028,
+            "height": 749,
+            "pixelReadbackPassed": true
+          },
+          {
+            "file": "batch-collapsed-selection.png",
+            "sha256": "305a2f2f683d46c5567553ccfcbf64d4db54e2ea184e2cc540f0b3729c4a3757",
+            "width": 1028,
+            "height": 749,
+            "pixelReadbackPassed": true
+          }
+        ],
+        "captureFailures": [
+          "timers-initial: empty, uniform or insufficiently opaque pixel readback.",
+          "timer-menu-FocusTimer: empty, uniform or insufficiently opaque pixel readback."
+        ],
+        "exceptions": [],
+        "environment": {
+          "os": "Microsoft Windows NT 10.0.26100.0",
+          "processId": 9780,
+          "sessionId": 2,
+          "userInteractive": true,
+          "inputDesktopAccessible": true,
+          "screenWidth": 1024,
+          "screenHeight": 768,
+          "textScaleFactor": 1
+        },
+        "failure": "Native UI diagnostics did not completely pass: status=failed, visual=blocked, exit=1.",
+        "releasePromotionEligible": false,
+        "physicalPointerValidated": false,
+        "appReceiptSha256": "40e6ec90cc1d924fc298cac4e12b1eb6839216b2ace9f977158741ed199b8407",
+        "scenarios": [
+          {
+            "name": "timer-menu-retirement",
+            "status": "failed",
+            "failureStage": "timer-duration-FocusTimer",
+            "failure": "TaskCanceledException (0x8013153B): A task was canceled."
+          },
+          {
+            "name": "batch-collapse-selection",
+            "status": "passed",
+            "failureStage": null,
+            "failure": null
+          }
+        ]
+      },
+      "originalMusicReleaseJobSkipped": true,
+      "actualUniqueScenarios": 2,
+      "scenarioExecutions": 2,
+      "functionalPassed": 1,
+      "functionalFailed": 1,
+      "visualApproved": false,
+      "artifactsDownloaded": false,
+      "receiptSource": "Completed GitHub job log; runner-reported assembly and PNG hashes were not independently recomputed locally.",
+      "evidence": [
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39062855382/job.log",
+          "sha256": "7a3391ee3b7a9d7ba656db47e28485d9d9c7a8dc8a4e1a385c06bb101f14672a"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39062855382/run.json",
+          "sha256": "bfec3f335fa6df9a413646854a6a2fdefad5c4963f9bfd1943b3ae1e190d90a9"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39062855382/build-receipt.json",
+          "sha256": "0fb4aa89df84501556be1ad587748b63f477c69b41d9ba1c49a56191d19675f0"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39062855382/launcher-receipt.json",
+          "sha256": "ee414b5fca931f67ce4e9f98bcc599fa01131285904daab86d9d3fa4b504747e"
+        }
+      ],
+      "interpretation": [
+        "Real batch-collapse selection and trailing-row geometry passed; two batch readbacks passed nonblank checks, without local PNG inspection.",
+        "Timer code reached FocusTimer submenu capture, then a subsequent wait timed out. The first coarse stage cannot identify which later wait failed.",
+        "Overlay/menu readback failures do not establish blank on-screen rendering: Composition opacity/Acrylic and an opaque-fixture pixel predicate require separate investigation.",
+        "The process exited normally without launcher timeout; no general Release or physical-input qualification."
+      ]
+    }
+  ]
+}

@@ -46,7 +46,12 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
     public Task PinAsync(ItemCardViewModel card) => ExecuteAsync(() => _main.TogglePinAsync(card));
     public Task RemoveAsync(ItemCardViewModel card) => ExecuteAsync(() => _main.RemoveAsync(card));
     public Task TogglePauseAsync() => ExecuteAsync(() => _main.SetClipboardPausedAsync(!_main.IsClipboardPaused));
-    public Task OpenMainAsync() => _main.NavigateAsync("Clipboard");
+    internal long ReserveMainNavigation() => _main.ReserveNavigation();
+    internal bool IsMainNavigationCurrent(long revision) => !_disposed && _main.IsNavigationCurrent(revision);
+    public Task OpenMainAsync() => OpenMainAsync(ReserveMainNavigation());
+    internal Task OpenMainAsync(long navigationRevision) => IsMainNavigationCurrent(navigationRevision)
+        ? _main.NavigateAsync("Clipboard", navigationRevision)
+        : Task.CompletedTask;
     private async Task ExecuteAsync(Func<Task> action)
     {
         try { ErrorMessage = AppUiMessage.Empty; await action(); _refresh.Writer.TryWrite(true); }

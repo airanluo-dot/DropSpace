@@ -6,6 +6,14 @@ on:
         description: Run only Debug timer and batch-selection diagnostics without model assets
         default: false
         type: boolean
+      beta_ui_scenario:
+        description: Select the native UI scenario when beta_ui_diagnostics is enabled
+        default: all
+        type: choice
+        options:
+          - all
+          - timers
+          - batch-selection
 permissions:
   contents: read
   actions: read
@@ -71,7 +79,7 @@ jobs:
 
   native-beta-ui:
     if: inputs.beta_ui_diagnostics == true
-    name: Debug native timers and batch selection
+    name: Debug native UI diagnostics
     runs-on: windows-2025
     timeout-minutes: 25
     steps:
@@ -84,9 +92,11 @@ jobs:
       - name: Build isolated Debug executable and locked Windows runtime prerequisites
         shell: pwsh
         run: ./scripts/Build-BetaUiDiagnostics.ps1
-      - name: Run only native timer and batch-selection diagnostics
+      - name: Run only the explicitly selected native UI scenario
         shell: pwsh
-        run: ./scripts/Test-BetaUiDiagnostics.ps1
+        env:
+          BETA_UI_SCENARIO: ${{ inputs.beta_ui_scenario }}
+        run: ./scripts/Test-BetaUiDiagnostics.ps1 -Scenario $env:BETA_UI_SCENARIO
       - name: Retain native diagnostics including failed or blocked attempts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -107,4 +117,4 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          'Two explicit native UI scenarios only: timers and batch selection. Debug executable; no release qualification or publication. Missing desktop, empty pixel readback, failed assertions or incomplete execution cannot pass. Actual desktop/DPI only; AutomationPeer invocation does not establish physical pointer behavior. Inspect retained PNGs for visual review.' >> $env:GITHUB_STEP_SUMMARY
+          'Only the explicitly selected timer and/or batch-selection scenario runs; actual selection and counts are recorded in the launcher receipt. Debug executable; no release qualification or publication. Missing desktop, empty pixel readback, failed assertions or incomplete execution cannot pass. Actual desktop/DPI only; AutomationPeer invocation does not establish physical pointer behavior. Inspect retained PNGs for visual review.' >> $env:GITHUB_STEP_SUMMARY

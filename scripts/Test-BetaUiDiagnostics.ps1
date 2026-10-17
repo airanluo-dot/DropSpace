@@ -3,12 +3,25 @@
 param(
     [string]$BuildReceiptPath = 'artifacts/beta-ui-diagnostics/build/build-receipt.json',
     [string]$OutputDirectory = 'artifacts/beta-ui-diagnostics/run',
+    [ValidateSet('all', 'timers', 'batch-selection')][string]$Scenario = 'all',
     [ValidateRange(30, 600)][int]$TimeoutSeconds = 240
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'Native Beta UI diagnostics require Windows.' }
+$Scenario = $Scenario.ToLowerInvariant()
+$timerScenarios = @('timer-menu-retirement')
+$batchScenarios = @('batch-collapse-selection')
+$timerCaptures = @('timers-initial.png', 'timer-menu-FocusTimer.png', 'timer-menu-Countdown.png', 'timers-reopened.png')
+$batchCaptures = @('batch-expanded-selected.png', 'batch-collapsed-selection.png')
+$selectionContracts = @{
+    'all' = @{ scenarios = $timerScenarios + $batchScenarios; captures = $timerCaptures + $batchCaptures }
+    'timers' = @{ scenarios = $timerScenarios; captures = $timerCaptures }
+    'batch-selection' = @{ scenarios = $batchScenarios; captures = $batchCaptures }
+}
+$expectedScenarios = @($selectionContracts[$Scenario].scenarios)
+$expectedCaptures = @($selectionContracts[$Scenario].captures)
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 function Resolve-RepositoryPath([string]$Path) {
     return [IO.Path]::GetFullPath($(if ([IO.Path]::IsPathFullyQualified($Path)) { $Path } else { Join-Path $repo $Path }))
@@ -24,21 +37,30 @@ $launch = [ordered]@{
     sourceCommit = $null; sourceTree = $null; executableSha256 = $null; resourceIndexSha256 = $null; managedAssemblyHashes = @{}
     startedAtUtc = [DateTimeOffset]::UtcNow.ToString('O'); finishedAtUtc = $null; processId = $null
     exitCode = $null; timedOut = $false; processExited = $false; actualCaseCount = 0; passedCaseCount = 0
-    visualStatus = 'not-run'; scenarios = @(); captures = @(); captureFailures = @(); exceptions = @(); environment = $null; failure = $null
+    requestedScenario = $Scenario; selectedScenario = $null; plannedCaseCount = $expectedScenarios.Count; reportedPlannedCaseCount = $null
+    visualStatus = 'not-run'; scenarios = @(); captures = @(); captureFailures = @(); observations = @(); exceptions = @(); environment = $null; failure = $null
     releasePromotionEligible = $false; physicalPointerValidated = $false; appReceiptSha256 = $null
 }
 function Copy-AppEvidenceSummary([System.Collections.IDictionary]$AppReceipt) {
     $launch.stage = $AppReceipt.stage
     $launch.failureStage = $AppReceipt.failureStage
+    $launch.selectedScenario = $AppReceipt.selectedScenario
+    $launch.reportedPlannedCaseCount = $AppReceipt.plannedCaseCount
     $launch.actualCaseCount = $AppReceipt.actualCaseCount
     $launch.passedCaseCount = $AppReceipt.passedCaseCount
     $launch.visualStatus = $AppReceipt.visualStatus
     $launch.environment = $AppReceipt.environment
     $launch.scenarios = @($AppReceipt.scenarios)
     $launch.captureFailures = @($AppReceipt.captureFailures)
+    $launch.observations = @($AppReceipt.observations)
     $launch.exceptions = @($AppReceipt.exceptions)
     $launch.captures = @($AppReceipt.captures | ForEach-Object {
-        [ordered]@{ file = $_.file; sha256 = $_.sha256; width = $_.pixelWidth; height = $_.pixelHeight; pixelReadbackPassed = $_.pixelReadbackPassed }
+        $capture = $_
+        $metadata = [ordered]@{ file = $capture.file; sha256 = $capture.sha256; width = $capture.pixelWidth; height = $capture.pixelHeight; pixelReadbackPassed = $capture.pixelReadbackPassed }
+        foreach ($key in @('rasterizationScale', 'targetKind', 'opaquePixelCount', 'transparentPixelCount', 'nonzeroAlphaPixelCount', 'distinctColorCountUpTo64', 'xamlOpacity', 'compositionOpacity')) {
+            if ($capture.ContainsKey($key)) { $metadata[$key] = $capture[$key] }
+        }
+        $metadata
     })
 }
 function Limit-SummaryText([object]$Value) {
@@ -46,6 +68,14 @@ function Limit-SummaryText([object]$Value) {
     $text = [string]$Value
     if ($text.Length -gt 1500) { return $text.Substring(0, 1500) + ' [truncated; see artifact]' }
     return $text
+}
+function Limit-Observation([object]$Value) {
+    if ($null -eq $Value) { return $null }
+    $json = $Value | ConvertTo-Json -Depth 8 -Compress
+    if ($json.Length -gt 2000) {
+        return [ordered]@{ truncated = $true; jsonPrefix = $json.Substring(0, 2000); completeEvidence = 'launcher.json and app/receipt.json' }
+    }
+    return $Value
 }
 $child = $null; $stdout = $null; $stderr = $null
 Push-Location $repo
@@ -84,6 +114,8 @@ try {
     $start.ArgumentList.Add('--beta-ui-diagnostics')
     $start.ArgumentList.Add('--beta-ui-output')
     $start.ArgumentList.Add($appOutput)
+    $start.ArgumentList.Add('--beta-ui-scenario')
+    $start.ArgumentList.Add($Scenario)
     $child = [Diagnostics.Process]::new()
     $child.StartInfo = $start
     if (-not $child.Start()) { throw 'The diagnostic process did not start.' }
@@ -103,18 +135,17 @@ try {
     Copy-AppEvidenceSummary $app
     if ($app.status -ceq 'blocked') { $launch.status = 'blocked' }
     if ($child.ExitCode -ne 0 -or $app.status -cne 'passed' -or $app.visualStatus -cne 'passed' -or
-        $app.plannedCaseCount -ne 2 -or $app.actualCaseCount -ne 2 -or $app.passedCaseCount -ne 2 -or
-        @($app.scenarios).Count -ne 2 -or @($app.exceptions).Count -ne 0 -or @($app.captureFailures).Count -ne 0) {
+        $app.selectedScenario -cne $Scenario -or $app.plannedCaseCount -ne $expectedScenarios.Count -or
+        $app.actualCaseCount -ne $expectedScenarios.Count -or $app.passedCaseCount -ne $expectedScenarios.Count -or
+        @($app.scenarios).Count -ne $expectedScenarios.Count -or @($app.exceptions).Count -ne 0 -or @($app.captureFailures).Count -ne 0) {
         throw "Native UI diagnostics did not completely pass: status=$($app.status), visual=$($app.visualStatus), exit=$($child.ExitCode)."
     }
-    foreach ($name in @('timer-menu-retirement', 'batch-collapse-selection')) {
+    foreach ($name in $expectedScenarios) {
         if (@($app.scenarios | Where-Object { $_.name -ceq $name -and $_.status -ceq 'passed' }).Count -ne 1) {
             throw "The diagnostic receipt did not complete the expected scenario: $name"
         }
     }
-    $expectedCaptures = @('timers-initial.png', 'timer-menu-FocusTimer.png', 'timer-menu-Countdown.png',
-        'timers-reopened.png', 'batch-expanded-selected.png', 'batch-collapsed-selection.png')
-    if (@($app.captures).Count -ne $expectedCaptures.Count) { throw 'The diagnostic receipt does not contain all six native captures.' }
+    if (@($app.captures).Count -ne $expectedCaptures.Count) { throw "The diagnostic receipt does not contain the $($expectedCaptures.Count) native captures required for '$Scenario'." }
     foreach ($file in $expectedCaptures) {
         if (@($app.captures | Where-Object { $_.file -ceq $file }).Count -ne 1) { throw "Missing or repeated native capture: $file" }
     }
@@ -178,6 +209,7 @@ finally {
     $summary.captureFailures = @($launch.captureFailures | Select-Object -First 8 | ForEach-Object { Limit-SummaryText $_ })
     $summary.exceptions = @($launch.exceptions | Select-Object -First 8 | ForEach-Object { Limit-SummaryText $_ })
     $summary.captures = @($launch.captures | Select-Object -First 16)
+    $summary.observations = @($launch.observations | Select-Object -Last 6 | ForEach-Object { Limit-Observation $_ })
     Write-Output ('DROPSPACE_BETA_UI_RECEIPT=' + ($summary | ConvertTo-Json -Depth 6 -Compress))
     if ($null -ne $child) { $child.Dispose() }
     Pop-Location

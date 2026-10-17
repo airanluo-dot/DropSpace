@@ -37,12 +37,15 @@ public sealed class WidgetEditorView : UserControl
     private readonly Button _remove;
     private readonly TextBlock _selected = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _error = new() { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+    private bool _errorAnnouncementPending;
+    private bool _errorOwnerUnloaded;
     private NativeWidgetId? _selectedId;
     private readonly Dictionary<NativeWidgetId, Button> _placedButtons = [];
     public WidgetEditorView(NativeSettingsEditor editor, IAppStringLocalizer strings)
     {
         _editor = editor; _strings = strings;
         AutomationProperties.SetLiveSetting(_error, AutomationLiveSetting.Polite);
+        _error.Loaded += (_, _) => AnnounceErrorIfReady();
         var body = new StackPanel { Spacing = 14 }; Content = body;
         var enabled = new SettingsForm(editor, strings);
         enabled.AddToggle("WidgetsEnabled", s => s.Widgets.Enabled, (s,v) => s with { Widgets = s.Widgets with { Enabled = v } }); body.Children.Add(enabled);
@@ -83,10 +86,55 @@ public sealed class WidgetEditorView : UserControl
         actions.Children.Add(_undo);
         _expanded.Children.Add(new TextBlock { Text = strings.Get("WidgetLibrary"), FontSize = 18 }); _expanded.Children.Add(_library);
         var reset = new Button { Content = strings.Get("WidgetsReset") }; reset.Click += async (_, _) => await UpdateLayoutAsync(_ => WidgetLayout.Default); body.Children.Add(reset);
-        Loaded += (_, _) => { editor.PropertyChanged += OnChanged; Rebuild(); }; Unloaded += (_, _) => editor.PropertyChanged -= OnChanged;
+        Loaded += (_, _) =>
+        {
+            _errorOwnerUnloaded = false;
+            editor.PropertyChanged += OnChanged; Rebuild();
+            AnnounceErrorIfReady();
+        };
+        Unloaded += (_, _) =>
+        {
+            _errorOwnerUnloaded = true;
+            _errorAnnouncementPending = false;
+            editor.PropertyChanged -= OnChanged;
+        };
         Rebuild();
     }
-    private void OnChanged(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Rebuild(); if (args.PropertyName == nameof(NativeSettingsEditor.Error)) { _error.Text = _editor.Error; _error.Visibility = string.IsNullOrEmpty(_error.Text) ? Visibility.Collapsed : Visibility.Visible; } }
+    private void OnChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Rebuild();
+        if (args.PropertyName == nameof(NativeSettingsEditor.Error)) SetError(_editor.Error);
+    }
+    private void SetError(string? message)
+    {
+        var text = message ?? string.Empty;
+        var visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
+        if (_error.Text == text && _error.Visibility == visibility) return;
+        _error.Text = text; _error.Visibility = visibility;
+        _errorAnnouncementPending = visibility == Visibility.Visible && !_errorOwnerUnloaded;
+        AnnounceErrorIfReady();
+    }
+    private void AnnounceErrorIfReady()
+    {
+        try
+        {
+            if (!_errorAnnouncementPending || !IsLoaded || !_error.IsLoaded) return;
+            // Consume this transition once. Unloading, clearing, or another error retires it;
+            // returning to a hidden settings page must not replay an old announcement.
+            _errorAnnouncementPending = false;
+            if (string.IsNullOrEmpty(_error.Text)) return;
+            for (DependencyObject? node = _error; node is not null; node = VisualTreeHelper.GetParent(node))
+                if (node is UIElement element && element.Visibility != Visibility.Visible) return;
+            var peer = FrameworkElementAutomationPeer.FromElement(_error)
+                ?? FrameworkElementAutomationPeer.CreatePeerForElement(_error);
+            peer?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        }
+        catch (Exception)
+        {
+            _errorAnnouncementPending = false;
+            // Accessibility feedback must not replace the original error.
+        }
+    }
     private void Rebuild()
     {
         _library.Children.Clear(); _library.RowDefinitions.Clear();
@@ -216,7 +264,7 @@ public sealed class WidgetEditorView : UserControl
                 row = existing.Row + (int)Math.Round((target.Y - start.Y) / ((_grid.ActualHeight + _grid.RowSpacing) / WidgetLayoutPolicy.Rows));
             }
             try { await PlaceAsync(id, column, row); }
-            catch (Exception) { _error.Text = _strings.Get("WidgetDropFailed"); }
+            catch (Exception) { SetError(_strings.Get("WidgetDropFailed")); }
         }), true);
         button.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => { _suppressClicks.Remove(id); pressedAt = null; dragging = false; _dropPreview.Visibility = Visibility.Collapsed; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0; }), true);
         button.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, args) =>
@@ -315,7 +363,7 @@ public sealed class WidgetEditorView : UserControl
             RefreshPositionInputs(_editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == _selectedId));
             return;
         }
-        _error.Text = string.Empty; _error.Visibility = Visibility.Collapsed;
+        SetError(null);
         var revision = ++_positionRevision;
         var coordinate = (int)value - 1;
         var rejected = false;
@@ -336,8 +384,7 @@ public sealed class WidgetEditorView : UserControl
             });
             if (saved && revision == _positionRevision && _selectedId == id)
             {
-                _error.Text = rejected ? _strings.Get("WidgetNoRoom") : string.Empty;
-                _error.Visibility = rejected ? Visibility.Visible : Visibility.Collapsed;
+                SetError(rejected ? _strings.Get("WidgetNoRoom") : null);
             }
         }
         finally
@@ -359,7 +406,7 @@ public sealed class WidgetEditorView : UserControl
             await PlaceAsync(current.Id, desired.Column, desired.Row, size.Columns, size.Rows);
             return;
         }
-        _error.Visibility = Visibility.Visible; _error.Text = _strings.Get("WidgetNoRoom");
+        SetError(_strings.Get("WidgetNoRoom"));
     }
     private void UpdateGridSizes()
     {
@@ -372,17 +419,17 @@ public sealed class WidgetEditorView : UserControl
     }
     private Task<bool> PlaceAsync(NativeWidgetId id, int column, int row, int? width = null, int? height = null)
     {
-        _error.Text = string.Empty; _error.Visibility = Visibility.Collapsed; _selectedId = id;
+        SetError(null); _selectedId = id;
         var current = _editor.Settings.Widgets.Layout;
         if (!current.Expanded.Any(item => item.Id == id) && !WidgetLayoutPolicy.TryAdd(current, id, column, row, out _))
-        { _error.Visibility = Visibility.Visible; _error.Text = _strings.Get("WidgetNoRoom"); return Task.FromResult(false); }
+        { SetError(_strings.Get("WidgetNoRoom")); return Task.FromResult(false); }
         var existing = current.Expanded.FirstOrDefault(item => item.Id == id);
         if (existing is not null)
         {
             var desired = existing with { Column = column, Row = row, ColumnSpan = width ?? existing.ColumnSpan, RowSpan = height ?? existing.RowSpan };
             if (desired == existing) return Task.FromResult(true);
             if (!WidgetLayoutPolicy.TryMoveOrResize(current, desired, out _))
-            { _error.Visibility = Visibility.Visible; _error.Text = _strings.Get("WidgetNoRoom"); return Task.FromResult(false); }
+            { SetError(_strings.Get("WidgetNoRoom")); return Task.FromResult(false); }
         }
         return UpdateLayoutAsync(layout =>
         {
@@ -395,7 +442,7 @@ public sealed class WidgetEditorView : UserControl
             var moved = old with { Column = column, Row = row, ColumnSpan = width ?? old.ColumnSpan, RowSpan = height ?? old.RowSpan };
             if (!WidgetLayoutPolicy.TryMoveOrResize(layout, moved, out var updated))
             {
-                _error.Visibility = Visibility.Visible; _error.Text = _strings.Get("WidgetNoRoom");
+                SetError(_strings.Get("WidgetNoRoom"));
                 RefreshSelection();
                 return layout;
             }

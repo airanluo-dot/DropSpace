@@ -1,0 +1,112 @@
+{
+  "kind": "native-timer-retry-preflight",
+  "nativeScenarioExecutions": 0,
+  "harness": {
+    "recordedAtUtc": "2026-10-17T19:40:25.237042+00:00",
+    "baselineNativeRun": "39062855382",
+    "baselineCommit": "b439cd45610a18b136ccd416e10d188f7e65832c",
+    "baselineEvidence": "artifacts/local-iterations-2026-10-17/beta-native-ui/39062855382/launcher-receipt.json",
+    "currentSliceCompileAttempts": 1,
+    "compileFailures": 0,
+    "warnings": 0,
+    "errors": 0,
+    "functionalScenarioExecutions": 0,
+    "nativeScenarioExecutions": 0,
+    "review": "Independent read-only review found no blocking selector, isolation, counting, instrumentation or pixel-gate issue.",
+    "nativeInterpretation": [
+      "First native run reached the FocusTimer duration submenu; its generic stage does not identify which subsequent wait timed out.",
+      "WinUI open-source Toggle and Invoke paths raise Click; this is not proof of the exact locked binary behavior, so the production control and chosen input path remain unchanged.",
+      "Overlay RenderTargetBitmap cannot necessarily capture composition opacity or Acrylic. Original pixel predicate remains unchanged; no visual pass claimed."
+    ],
+    "sourceReferences": [
+      "https://github.com/microsoft/microsoft-ui-xaml/blob/main/dxaml/xcp/dxaml/lib/ToggleMenuFlyoutItemAutomationPeer_Partial.cpp",
+      "https://github.com/microsoft/microsoft-ui-xaml/blob/main/dxaml/xcp/dxaml/lib/MenuFlyoutItem_Partial.cpp"
+    ],
+    "boundaries": [
+      "Narrow C# source-linked compile with actual WinUI/Windows/Core assemblies; unrelated App collaborators are signature-only stubs.",
+      "No App/XAML build, native execution, previous batch rerun or dispatch by this agent."
+    ],
+    "sha256": {
+      "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Evidence.cs": "25c5f27ca904d2f5994848ea1b998a28ce006b1e2057631928d327d10adcb39f",
+      "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Fixture.cs": "0dd00ae09a6ecd62ab6df11947401c8e6c5f9f398c52bbe85b587a1469202d24",
+      "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.cs": "f66d1fb05089b8190410db9e21bec06807dac46f13fd1977f539f0ab0ce1d741",
+      "src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs": "a81a7255e95de8482695452bc07b634115b8ad04f011edeec99b69f69d38c7be",
+      "artifacts/local-iterations-2026-10-17/beta-ui-compile/CompilationStubs.cs": "5591b06417719f91297fcc8349e8d19592c624d91865a33b81464f04efaa461b",
+      "artifacts/local-iterations-2026-10-17/beta-ui-compile/BetaUiCompile.csproj": "260fedc3d8c5b5a5ca885ed330f9404304685bd82e45189319609334047443bb",
+      "artifacts/local-iterations-2026-10-17/beta-ui-compile/build-3-selection-instrumentation.log": "fdcdf3b3fd113bda70bc35f6849c192a86b7527e38442398a400157723b84a6a"
+    }
+  },
+  "scripts": {
+    "kind": "static-only-native-ui-scenario-selection-review",
+    "functionalScenarioExecutions": 0,
+    "actionsDispatches": 0,
+    "checks": [
+      {
+        "check": "PowerShell Parser.ParseFile for changed launcher",
+        "result": "passed",
+        "executions": 2,
+        "reasonForRepeat": "Final bounded observation and pixel-statistic metadata logging was added after selector validation."
+      },
+      {
+        "check": "YAML fixed choice, environment propagation, old music job unchanged",
+        "result": "passed",
+        "executions": 1
+      },
+      {
+        "check": "focused workflow source audit",
+        "result": "passed",
+        "executions": 1
+      },
+      {
+        "check": "changed-file whitespace check",
+        "result": "passed",
+        "executions": 2
+      }
+    ],
+    "selectionContract": {
+      "all": {
+        "cases": [
+          "timer-menu-retirement",
+          "batch-collapse-selection"
+        ],
+        "captures": 6
+      },
+      "timers": {
+        "cases": [
+          "timer-menu-retirement"
+        ],
+        "captures": 4
+      },
+      "batch-selection": {
+        "cases": [
+          "batch-collapse-selection"
+        ],
+        "captures": 2
+      }
+    },
+    "sourceSha256": {
+      ".github/workflows/music-visual-qa.yml": "e481abdb6337ec666f635dfdddd0efd6fc5efe8dd5714e3916d0e0aa5248f443",
+      "scripts/Test-BetaUiDiagnostics.ps1": "32d41b03d631f1981d57308def09ace9827505037ba0dea60478a1c9a3bc6148",
+      "scripts/passive-test-budget.mjs": "90c260c7a2e6d95da10a6d2d1df210ee3584b01ac5afe6cc55742e4a2f9c992d"
+    },
+    "boundary": "Static validation only; no App/harness/native input/pixel scenario was executed and no Windows workflow was dispatched.",
+    "summaryBoundaries": {
+      "observations": {
+        "last": 6,
+        "maximumJsonCharactersPerObservation": 2000,
+        "truncationExplicit": true
+      },
+      "captureStatistics": "Only original reported primitive statistics; pixel validity policy unchanged."
+    }
+  },
+  "sourceEvidence": [
+    {
+      "path": "artifacts/local-iterations-2026-10-17/beta-ui-compile/selection-instrumentation-validation.json",
+      "sha256": "deb2f9a9b867bb539236cd43db77eedccd274771993925612eee5b43fb5b6ca9"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/beta-ui-diagnostics-selection-preflight/validation-inputs.json",
+      "sha256": "4650c64959ed68c57aabc3a0e73a310b18c51e6919ce675446aea390047bc0e5"
+    }
+  ]
+}

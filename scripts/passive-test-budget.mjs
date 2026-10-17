@@ -61,12 +61,15 @@ if(cmd==='preflight'){
   const betaUi=visual.split('  native-beta-ui:\n')[1]??'';
   const musicUi=visual.split('  native-visual:\n')[1]?.split('  native-beta-ui:\n')[0]??'';
   assert.match(visual,/beta_ui_diagnostics:[\s\S]*?default: false\n        type: boolean/,'Beta UI diagnostics must remain explicit opt-in');
+  assert.match(visual,/beta_ui_scenario:[\s\S]*?default: all\n        type: choice\n        options:\n          - all\n          - timers\n          - batch-selection/,'Native UI retries must select only the fixed diagnostic scenarios');
   assert.match(betaUi,/if: inputs.beta_ui_diagnostics == true/,'Beta UI diagnostics must run only on their selected route');
   assert.match(musicUi,/if: inputs.beta_ui_diagnostics != true/,'Beta UI diagnostics cannot also run the model-staging music route');
   assert.match(visual,/contents: read/,'Beta UI diagnostics need read-only source access');
   assert.doesNotMatch(visual,/\b(?:contents|actions|packages): write\b/,'Beta UI diagnostics cannot publish');
   assert.match(betaUi,/scripts\/Build-BetaUiDiagnostics.ps1/);
   assert.match(betaUi,/scripts\/Test-BetaUiDiagnostics.ps1/);
+  assert.match(betaUi,/BETA_UI_SCENARIO: \$\{\{ inputs.beta_ui_scenario \}\}/);
+  assert.match(betaUi,/Test-BetaUiDiagnostics.ps1 -Scenario \$env:BETA_UI_SCENARIO/,'Workflow inputs must enter the launcher as data');
   assert.doesNotMatch(betaUi,/\bdotnet\s+(?:test|publish)\b|\bnode\s+--test\b|Test-PortableSmoke|Build-(?:PortableExe|UnsignedPackage|IdentityPackage|Installer)|Get-ReviewedAiRuntime|stage-reviewed-cuda|Stage-LyricsLanguageModel|ci-release-promotion|next-beta-release-validation/,'Beta UI diagnostics cannot expand into suites, model staging or publication');
   const betaBuild=read('scripts/Build-BetaUiDiagnostics.ps1');
   const betaLaunch=read('scripts/Test-BetaUiDiagnostics.ps1');
@@ -80,7 +83,11 @@ if(cmd==='preflight'){
   assert.match(betaBuild,/releasePromotionEligible = \$false/);
   assert.doesNotMatch(betaBuild,/\bdotnet\s+(?:test|publish)\b|Build-PortableExe|Get-ReviewedAiRuntime|Get-PinnedDiagnosticRuntime|Stage-LyricsLanguageModel|stage-reviewed-cuda/,'Debug UI build must not stage models or publish');
   assert.match(betaLaunch,/ArgumentList.Add\('--beta-ui-diagnostics'\)/);
-  assert.match(betaLaunch,/\$app.actualCaseCount -ne 2/);
+  assert.match(betaLaunch,/\[ValidateSet\('all', 'timers', 'batch-selection'\)\]\[string\]\$Scenario = 'all'/);
+  assert.match(betaLaunch,/ArgumentList.Add\('--beta-ui-scenario'\)/);
+  assert.match(betaLaunch,/\$app.selectedScenario -cne \$Scenario/,'Receipts must describe the requested scenario selection');
+  assert.match(betaLaunch,/\$app.actualCaseCount -ne \$expectedScenarios.Count/);
+  assert.match(betaLaunch,/\$app.passedCaseCount -ne \$expectedScenarios.Count/);
   assert.match(betaLaunch,/\$app.visualStatus -cne 'passed'/);
   assert.match(betaLaunch,/DROPSPACE_BETA_UI_RECEIPT=/);
   assert.match(betaLaunch,/releasePromotionEligible = \$false/);

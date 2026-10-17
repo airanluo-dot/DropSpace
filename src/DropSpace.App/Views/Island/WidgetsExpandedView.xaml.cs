@@ -232,22 +232,57 @@ public sealed partial class WidgetsExpandedView : UserControl
                 content.Children.Remove(value);
                 var artwork = new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, Child = icon, HorizontalAlignment = HorizontalAlignment.Stretch };
                 content.Children.Add(artwork);
-                void ShowLaunchFailure()
+                Action? pendingFailureAnnouncement = null;
+                void AnnounceFailureIfReady()
                 {
-                    value.Text = view.Text("WidgetLaunchFailed");
+                    try
+                    {
+                        if (!value.IsLoaded || pendingFailureAnnouncement is not { } announce) return;
+                        pendingFailureAnnouncement = null;
+                        announce();
+                    }
+                    catch (Exception)
+                    {
+                        pendingFailureAnnouncement = null;
+                        // Accessibility feedback must not replace the launch error.
+                    }
+                }
+                value.Loaded += (_, _) => AnnounceFailureIfReady();
+                value.Unloaded += (_, _) => pendingFailureAnnouncement = null;
+                void ShowLaunchFailure(Func<bool> isCurrent)
+                {
+                    if (!isCurrent()) return;
+                    var message = view.Text("WidgetLaunchFailed");
+                    var changed = !ReferenceEquals(artwork.Child, value) || value.Text != message;
+                    value.Text = message;
                     artwork.Child = value;
-                    AutomationProperties.SetHelpText(button, value.Text);
+                    AutomationProperties.SetHelpText(button, message);
+                    if (!changed) return;
+                    pendingFailureAnnouncement = () =>
+                    {
+                        if (!isCurrent() || !ReferenceEquals(artwork.Child, value) || value.Text != message) return;
+                        for (DependencyObject? node = value; node is not null; node = VisualTreeHelper.GetParent(node))
+                            if (node is UIElement element && element.Visibility != Visibility.Visible) return;
+                        var peer = FrameworkElementAutomationPeer.FromElement(value)
+                            ?? FrameworkElementAutomationPeer.CreatePeerForElement(value);
+                        peer?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+                    };
+                    AnnounceFailureIfReady();
                 }
                 bool OwnsTile() => IsLoaded && ReferenceEquals(_view, view) && Tiles.Children.Contains(button);
                 button.Click += async (_, _) =>
                 {
                     if (busy || !_active || !OwnsTile()) return;
                     var token = (_nativeActionRequests ??= new()).Token;
-                    bool IsCurrent() => !token.IsCancellationRequested && _active && OwnsTile();
+                    var navigationRevision = placement.Id == NativeWidgetId.PinnedItems
+                        ? view.ReserveMainNavigation() : (long?)null;
+                    bool IsCurrent() => !token.IsCancellationRequested && _active && OwnsTile() &&
+                        (navigationRevision is not { } revision || view.IsMainNavigationCurrent(revision));
                     busy = true;
                     button.IsEnabled = false;
                     try
                     {
+                        pendingFailureAnnouncement = null;
                         artwork.Child = icon;
                         AutomationProperties.SetHelpText(button, string.Empty);
                         if (placement.Id == NativeWidgetId.Calculator)
@@ -256,13 +291,14 @@ public sealed partial class WidgetsExpandedView : UserControl
                             // this tile's late result and must not claim to cancel that launch.
                             var launched = await Windows.System.Launcher.LaunchUriAsync(new Uri("calculator:"));
                             if (IsCurrent() && !launched)
-                                ShowLaunchFailure();
+                                ShowLaunchFailure(IsCurrent);
                         }
-                        else if (await view.OpenPinnedAsync(token) && IsCurrent())
+                        else if (navigationRevision is { } revision &&
+                            await view.OpenPinnedAsync(revision, token) && IsCurrent())
                             PinnedRequested?.Invoke(this, EventArgs.Empty);
                     }
                     catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-                    catch (Exception) { if (IsCurrent()) ShowLaunchFailure(); }
+                    catch (Exception) { if (IsCurrent()) ShowLaunchFailure(IsCurrent); }
                     finally
                     {
                         busy = false;

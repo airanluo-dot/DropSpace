@@ -45,15 +45,25 @@ public sealed class WidgetViewModel : ObservableObject, IAsyncDisposable
     }
     public string TimerDurationLabel(int minutes) => _strings.Format("WidgetTimerMinutesFormat", minutes);
     public string Text(string key) => _strings.Get(key);
+    internal long ReserveMainNavigation() => _main.ReserveNavigation();
+    internal bool IsMainNavigationCurrent(long revision) => !_disposed && _main.IsNavigationCurrent(revision);
+
     public async Task<bool> OpenPinnedAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (_disposed) return false;
+        return await OpenPinnedAsync(ReserveMainNavigation(), cancellationToken);
+    }
+
+    internal async Task<bool> OpenPinnedAsync(long navigationRevision, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsMainNavigationCurrent(navigationRevision)) return false;
         // Navigation publishes its destination before loading the shared collection.
         // Let that load finish; retiring this temporary view cancels only its result presentation.
-        await _main.NavigateAsync("Pinned");
+        await _main.NavigateAsync("Pinned", navigationRevision);
         cancellationToken.ThrowIfCancellationRequested();
-        return !_disposed && _main.CurrentSection == "Pinned";
+        return IsMainNavigationCurrent(navigationRevision) && _main.CurrentSection == "Pinned";
     }
     public System.Globalization.CultureInfo Culture => _strings.Culture;
     public WidgetViewModel(MainViewModel main, NativeWidgetDataService data, DispatcherQueue dispatcher, IAppStringLocalizer strings, ILogger<WidgetViewModel> logger)

@@ -48,6 +48,8 @@ public sealed partial class OverlayWindow : Window
     private readonly MonitorDescriptor _monitor;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly Action _openMainWindow;
+    private bool _clipboardPresentationActive;
+    private long _clipboardPresentationGeneration;
     private readonly ILogger<OverlayWindow> _logger;
     private readonly DragActivationCallbacks _visualDragCallbacks;
     private readonly OleDragDropService _dragDropService;
@@ -221,6 +223,7 @@ public sealed partial class OverlayWindow : Window
             WidgetsExpanded.SetModuleRuntime(modules, strings);
             WidgetsExpanded.PinnedRequested += (_, _) => { if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
             ClipboardExpanded.ViewModel = clipboardViewModel;
+            ClipboardExpanded.Unloaded += (_, _) => SetClipboardPresentationActive(false);
             ActivityCompact.DataContext = systemActivityViewModel;
             MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
             _materialController = new OverlayMaterialController(
@@ -728,7 +731,7 @@ public sealed partial class OverlayWindow : Window
         MaintainFullscreenVisibility();
         _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Music));
         WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Widgets);
-        ClipboardExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
+        SetClipboardPresentationActive(_isVisible && snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
         PrepareContentForTarget(target);
         if (_previousState == OverlayState.DragReady && snapshot.State == OverlayState.Compact)
         {
@@ -807,7 +810,7 @@ public sealed partial class OverlayWindow : Window
         Cleanup("compact media", () => MusicCompact?.SetActive(false));
         Cleanup("expanded media", () => MusicExpanded?.SetActive(false));
         Cleanup("widgets", () => WidgetsExpanded?.SetActive(false));
-        Cleanup("clipboard", () => ClipboardExpanded?.SetActive(false));
+        Cleanup("clipboard", () => SetClipboardPresentationActive(false));
         Cleanup("media presentation", () => _mediaViewModel?.SetPresentationVisible(this, false));
         Cleanup("media glow", () => _mediaViewModel?.SetIslandGlowActive(this, false));
         Cleanup("glow resources", () => _glow?.Dispose());
@@ -1044,7 +1047,7 @@ public sealed partial class OverlayWindow : Window
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
-        ClipboardExpanded.SetActive(false);
+        SetClipboardPresentationActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
@@ -1101,7 +1104,7 @@ public sealed partial class OverlayWindow : Window
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
-        ClipboardExpanded.SetActive(false);
+        SetClipboardPresentationActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
         _nativeWindowSafeToShow = false;
         CompactPanel.Visibility = Visibility.Collapsed;
@@ -1134,7 +1137,7 @@ public sealed partial class OverlayWindow : Window
         ResetMotionBlur();
         _glowTransfer = null;
         WidgetsExpanded.SetActive(false);
-        ClipboardExpanded.SetActive(false);
+        SetClipboardPresentationActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
         if (!_suppressedForFullscreen)
         {
@@ -1851,6 +1854,8 @@ public sealed partial class OverlayWindow : Window
     public void BeginPlacementEdit(OverlayCustomPlacement savedOriginal, OverlayCustomPlacement projectedStart)
     {
         CancelQuickPanelFocus();
+        WidgetsExpanded.SetActive(false);
+        SetClipboardPresentationActive(false);
         ResetMotionBlur();
         _suppressedForPlacementEdit = false;
         _placementEdit.Arm(savedOriginal, projectedStart);
@@ -2225,10 +2230,40 @@ public sealed partial class OverlayWindow : Window
         try { if (_closing) return; await _widgetViewModel.OpenSettingsAsync(); if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
         catch (Exception exception) { _logger.LogWarning("Widget settings navigation failed ({Category}).", exception.GetType().Name); }
     }
+    private void SetClipboardPresentationActive(bool active)
+    {
+        if (_clipboardPresentationActive != active)
+        {
+            _clipboardPresentationActive = active;
+            Interlocked.Increment(ref _clipboardPresentationGeneration);
+        }
+        ClipboardExpanded?.SetActive(active);
+    }
+
     private async void OnClipboardOpenMainRequested(object? sender, EventArgs args)
     {
-        try { if (_closing) return; if (ClipboardExpanded.ViewModel is { } view) await view.OpenMainAsync(); if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
-        catch (Exception exception) { _logger.LogWarning("Clipboard navigation failed ({Category}).", exception.GetType().Name); }
+        if (_closing || !_isVisible || !_clipboardPresentationActive || !ClipboardExpanded.IsLoaded ||
+            ClipboardExpanded.ViewModel is not { } view) return;
+        var presentationGeneration = Volatile.Read(ref _clipboardPresentationGeneration);
+        var navigationRevision = view.ReserveMainNavigation();
+        bool IsCurrent() => !_closing && _isVisible && _clipboardPresentationActive && ClipboardExpanded.IsLoaded &&
+            presentationGeneration == Volatile.Read(ref _clipboardPresentationGeneration) &&
+            ReferenceEquals(ClipboardExpanded.ViewModel, view) && view.IsMainNavigationCurrent(navigationRevision);
+        try
+        {
+            await view.OpenMainAsync(navigationRevision);
+            if (!IsCurrent()) return;
+            _openMainWindow();
+            _experience.Collapse();
+            _viewModel.Collapse();
+        }
+        catch (Exception exception)
+        {
+            if (IsCurrent())
+                _logger.LogWarning("Clipboard navigation failed ({Category}).", exception.GetType().Name);
+            else
+                _logger.LogDebug("Retired clipboard navigation failed ({Category}).", exception.GetType().Name);
+        }
     }
 
     private void OnOpenMainWindowClicked(object sender, RoutedEventArgs args)
