@@ -61,7 +61,7 @@ if(cmd==='preflight'){
   const betaUi=visual.split('  native-beta-ui:\n')[1]??'';
   const musicUi=visual.split('  native-visual:\n')[1]?.split('  native-beta-ui:\n')[0]??'';
   assert.match(visual,/beta_ui_diagnostics:[\s\S]*?default: false\n        type: boolean/,'Beta UI diagnostics must remain explicit opt-in');
-  assert.match(visual,/beta_ui_scenario:[\s\S]*?default: all\n        type: choice\n        options:\n          - all\n          - timers\n          - batch-selection/,'Native UI retries must select only the fixed diagnostic scenarios');
+  assert.match(visual,/beta_ui_scenario:[\s\S]*?default: all\n        type: choice\n        options:\n          - all\n          - timers\n          - batch-selection\n          - timer-visual/,'Native UI retries must select only the fixed diagnostic scenarios');
   assert.match(betaUi,/if: inputs.beta_ui_diagnostics == true/,'Beta UI diagnostics must run only on their selected route');
   assert.match(musicUi,/if: inputs.beta_ui_diagnostics != true/,'Beta UI diagnostics cannot also run the model-staging music route');
   assert.match(visual,/contents: read/,'Beta UI diagnostics need read-only source access');
@@ -83,7 +83,13 @@ if(cmd==='preflight'){
   assert.match(betaBuild,/releasePromotionEligible = \$false/);
   assert.doesNotMatch(betaBuild,/\bdotnet\s+(?:test|publish)\b|Build-PortableExe|Get-ReviewedAiRuntime|Get-PinnedDiagnosticRuntime|Stage-LyricsLanguageModel|stage-reviewed-cuda/,'Debug UI build must not stage models or publish');
   assert.match(betaLaunch,/ArgumentList.Add\('--beta-ui-diagnostics'\)/);
-  assert.match(betaLaunch,/\[ValidateSet\('all', 'timers', 'batch-selection'\)\]\[string\]\$Scenario = 'all'/);
+  assert.match(betaLaunch,/\[ValidateSet\('all', 'timers', 'batch-selection', 'timer-visual'\)\]\[string\]\$Scenario = 'all'/);
+  assert.match(betaLaunch,/\$timerVisualScenarios = @\('timer-first-frame-and-popup-retirement'\)/);
+  assert.match(betaLaunch,/\$timerVisualCaptures = @\('timers-initial.png', 'timer-menu-FocusTimer.png', 'timers-reopened.png'\)/);
+  assert.match(betaLaunch,/'timer-visual' = @\{ scenarios = \$timerVisualScenarios; captures = \$timerVisualCaptures \}/);
+  assert.match(betaLaunch,/'all' = @\{ scenarios = \$timerScenarios \+ \$batchScenarios; captures = \$timerCaptures \+ \$batchCaptures \}/,'The visual-only route cannot expand the existing all selection');
+  assert.match(betaLaunch,/'timers' = @\{ scenarios = \$timerScenarios; captures = \$timerCaptures \}/);
+  assert.match(betaLaunch,/'batch-selection' = @\{ scenarios = \$batchScenarios; captures = \$batchCaptures \}/);
   assert.match(betaLaunch,/ArgumentList.Add\('--beta-ui-scenario'\)/);
   assert.match(betaLaunch,/\$app.selectedScenario -cne \$Scenario/,'Receipts must describe the requested scenario selection');
   assert.match(betaLaunch,/\$app.actualCaseCount -ne \$expectedScenarios.Count/);
@@ -97,6 +103,9 @@ if(cmd==='preflight'){
   assert.match(betaLaunch,/\$totalBytes \+ \$item.Length -gt 256KB/);
   assert.match(betaLaunch,/\$hash -cne \$capture.sha256/);
   assert.match(betaLaunch,/DROPSPACE_BETA_UI_SUPPLEMENTAL_PNG=/);
+  assert.match(betaLaunch,/\$summary.supplementalCaptures = @\(\$launch.supplementalCaptures \| ForEach-Object \{ Get-SupplementalSummary \$_ \}\)/,'Desktop summaries must retain stable capture identity instead of a whole-object JSON prefix');
+  assert.match(betaLaunch,/Select-EvidenceFields \$Value.details @\('boundsProbe', 'boundsAfterProbe', 'elapsedMilliseconds'\)/,'Failed desktop ROI must remain available in the log summary');
+  assert.match(betaLaunch,/\$summary.visualCheckpoints = @\(\$launch.visualCheckpoints/,'First-frame checkpoints must not share the trailing observations limit');
   assert.match(betaLaunch,/releasePromotionEligible = \$false/);
   const ci=read(path.join(root,'ci.yml'));
   const job=name=>ci.split(`\n  ${name}:\n`)[1]?.split(/\n  [a-z][a-z-]+:\n/)[0]??'';

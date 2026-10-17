@@ -143,6 +143,9 @@ A successful refresh clears a previous refresh error; a failed Copy, Pin or Remo
 remains visible until the next user action, since refreshing does not retry it.
 A pending Pin action disables that card's Pin control. When the operation ends, its
 checked state follows the last known card value again, including after an error.
+Refreshing keeps existing cards with the same record ID and their pending action
+state. Removed cards retire their old presentation; older snapshots cannot revive
+a card already retired in the current view.
 
 ## Updates
 
@@ -207,6 +210,10 @@ Stable accepts only final releases. Beta accepts prereleases and final releases 
 - Dynamic Island has an 8-DIP top gap and full corners. Its Compact, Drop Ready and Expanded states morph without recreating business state.
 
 ### Direct placement adjustment (Preview.5)
+
+An enabled right-button hold must remain valid until placement editing starts.
+Releasing the button, hiding or suppressing the island, or disabling the gesture
+retires its pending request. The explicit Settings entry can still open the editor.
 
 Settings keeps the precise X/Y editor and adds **Adjust Island Position…** for the selected monitor. Activating it arms only that monitor's visible Dynamic Island; every other monitor island is hidden and its native drop target is revoked until the edit ends. The fixed host remains no-activate and no full-screen overlay is created. A pointer press on the island captures the pointer, movement previews physical-pixel deltas converted to monitor-local DIP from the currently clamped projection, including the visible surface's Smart-mode offset, and the hint says “Drag to move · Esc to cancel”. Release commits the unclamped user coordinates once through the normal settings transaction and switches that monitor to Custom. Escape restores the saved entry without writing settings. Smart Drag candidate creation, probe verification, and Classic activation surfaces are suppressed for the edit. Runtime-only display identities remain Automatic-only and show a localized explanation while Custom, X/Y, Apply, and Adjust are disabled.
 

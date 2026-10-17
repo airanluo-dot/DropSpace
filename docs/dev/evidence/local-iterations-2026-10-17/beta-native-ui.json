@@ -793,6 +793,545 @@
         "The initial Overlay RenderTargetBitmap contained only transparent pixels while ExpandedPanel XAML opacity was 0 and Composition opacity was 1. The submenu had 1888 nonzero-alpha pixels and 33 distinct colors but no opaque pixels. These metrics expose the current readback/predicate limits and do not establish blank on-screen rendering.",
         "No unhandled UI exceptions or launcher timeout. No complete timer, visual, physical-input or release qualification."
       ]
+    },
+    {
+      "runId": 39064697266,
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39064697266",
+      "sourceCommit": "6f0fd72af5f640c243567e9773462a8c90d64c27",
+      "sourceTree": "92601240373b8bbcb86884de216d50e5352e4f8e",
+      "workflowConclusion": "failure",
+      "build": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-build",
+        "status": "passed",
+        "stage": "build-ready",
+        "sourceCommit": "6f0fd72af5f640c243567e9773462a8c90d64c27",
+        "sourceTree": "92601240373b8bbcb86884de216d50e5352e4f8e",
+        "executablePath": "D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.App\\bin\\x64\\Debug\\net10.0-windows10.0.20348.0\\win-x64\\DropSpace.exe",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.dll": "46a9db9ef6eba732c6172b870f500fd8f1c26bce4d638ce92437534dbc0247ea",
+          "DropSpace.Core.dll": "206dd57c97af295bee2440284129277bb172814d28c21cebec8fe6464ededdf3",
+          "DropSpace.Infrastructure.dll": "c034c4399d680cfb2b98edff789e1089842100c10f5a261a3a1c4f9b103e2367"
+        },
+        "startedAtUtc": "2026-10-17T19:58:16.0498824+00:00",
+        "finishedAtUtc": "2026-10-17T20:00:06.2647069+00:00",
+        "configuration": "Debug",
+        "deployment": "unpackaged-framework-dependent",
+        "releasePromotionEligible": false,
+        "functionalScenarioExecutions": 0,
+        "failure": null
+      },
+      "buildWarnings": 0,
+      "buildErrors": 0,
+      "launch": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-launch",
+        "status": "blocked",
+        "stage": "complete",
+        "failureStage": null,
+        "sourceCommit": "6f0fd72af5f640c243567e9773462a8c90d64c27",
+        "sourceTree": "92601240373b8bbcb86884de216d50e5352e4f8e",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.Infrastructure.dll": "c034c4399d680cfb2b98edff789e1089842100c10f5a261a3a1c4f9b103e2367",
+          "DropSpace.dll": "46a9db9ef6eba732c6172b870f500fd8f1c26bce4d638ce92437534dbc0247ea",
+          "DropSpace.Core.dll": "206dd57c97af295bee2440284129277bb172814d28c21cebec8fe6464ededdf3"
+        },
+        "startedAtUtc": "2026-10-17T20:00:07.3753911+00:00",
+        "finishedAtUtc": "2026-10-17T20:00:20.1861003+00:00",
+        "processId": 6836,
+        "exitCode": 2,
+        "timedOut": false,
+        "processExited": true,
+        "actualCaseCount": 1,
+        "passedCaseCount": 1,
+        "requestedScenario": "timers",
+        "selectedScenario": "timers",
+        "plannedCaseCount": 1,
+        "reportedPlannedCaseCount": 1,
+        "visualStatus": "blocked",
+        "captures": [
+          {
+            "file": "timers-initial.png",
+            "sha256": "c48f54280f2dcb64808c1aa7b554d33a757e085e661835f878c28ad0b65e4f6b",
+            "width": 560,
+            "height": 340,
+            "pixelReadbackPassed": false,
+            "rasterizationScale": 1,
+            "targetKind": "live-overlay-surface",
+            "opaquePixelCount": 0,
+            "transparentPixelCount": 190400,
+            "nonzeroAlphaPixelCount": 0,
+            "distinctColorCountUpTo64": 1,
+            "xamlOpacity": 1,
+            "compositionOpacity": 1
+          },
+          {
+            "file": "timer-menu-FocusTimer.png",
+            "sha256": "54c515d8f8472210016f299dafc1c732bb85d830168ba7a94a86a9153fd0e21a",
+            "width": 103,
+            "height": 286,
+            "pixelReadbackPassed": false,
+            "rasterizationScale": 1,
+            "targetKind": "live-menu-popup-subtree",
+            "opaquePixelCount": 0,
+            "transparentPixelCount": 27570,
+            "nonzeroAlphaPixelCount": 1888,
+            "distinctColorCountUpTo64": 33,
+            "xamlOpacity": 1,
+            "compositionOpacity": 1
+          },
+          {
+            "file": "timer-menu-Countdown.png",
+            "sha256": "7a8f79b8a421585f29fd2418682615bfb51562d6db99c4f085ce80a330c381ca",
+            "width": 103,
+            "height": 286,
+            "pixelReadbackPassed": false,
+            "rasterizationScale": 1,
+            "targetKind": "live-menu-popup-subtree",
+            "opaquePixelCount": 0,
+            "transparentPixelCount": 27570,
+            "nonzeroAlphaPixelCount": 1888,
+            "distinctColorCountUpTo64": 33,
+            "xamlOpacity": 1,
+            "compositionOpacity": 1
+          },
+          {
+            "file": "timers-reopened.png",
+            "sha256": "bb91aa5ff315425c5837406780075b3a3c2189222dff2cf204a957772b7c2cd1",
+            "width": 560,
+            "height": 340,
+            "pixelReadbackPassed": false,
+            "rasterizationScale": 1,
+            "targetKind": "live-overlay-surface",
+            "opaquePixelCount": 200,
+            "transparentPixelCount": 175767,
+            "nonzeroAlphaPixelCount": 14633,
+            "distinctColorCountUpTo64": 63,
+            "xamlOpacity": 1,
+            "compositionOpacity": 1
+          }
+        ],
+        "captureFailures": [
+          "timers-initial: empty, uniform or insufficiently opaque pixel readback.",
+          "timer-menu-FocusTimer: empty, uniform or insufficiently opaque pixel readback.",
+          "timer-menu-Countdown: empty, uniform or insufficiently opaque pixel readback.",
+          "timers-reopened: empty, uniform or insufficiently opaque pixel readback."
+        ],
+        "observations": [
+          {
+            "stage": "timer-Countdown-action-close-after-reopen",
+            "outcome": "after",
+            "state": {
+              "timer": "Countdown",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 3,
+              "startClicks": 2,
+              "menuClosedEvents": 2,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 119.56521606445312,
+                  "height": 11.956521987915039,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Entering,regions=0,regionSkips=4,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": true,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 119.56521606445312,
+                    "actualHeight": 11.956521987915039,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 0,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 0,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "stage": "timer-Countdown-wait-menu-closed-after-reopen",
+            "outcome": "waiting",
+            "state": {
+              "timer": "Countdown",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 3,
+              "startClicks": 2,
+              "menuClosedEvents": 2,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 119.56521606445312,
+                  "height": 11.956521987915039,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Entering,regions=0,regionSkips=4,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": true,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 119.56521606445312,
+                    "actualHeight": 11.956521987915039,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 0,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 0,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "stage": "timer-Countdown-wait-menu-closed-after-reopen",
+            "outcome": "satisfied",
+            "state": {
+              "timer": "Countdown",
+              "durationMinutes": 10,
+              "isRunning": false,
+              "remainingSeconds": 600,
+              "inputPattern": "Toggle",
+              "peerType": "Microsoft.UI.Xaml.Automation.Peers.ToggleMenuFlyoutItemAutomationPeer",
+              "invokeSupported": false,
+              "toggleSupported": true,
+              "choiceClicks": 1,
+              "durationClicks": 3,
+              "startClicks": 2,
+              "menuClosedEvents": 3,
+              "menuOpen": false,
+              "choiceChecked": true,
+              "choiceLoaded": true,
+              "choiceEnabled": true,
+              "viewLoaded": true,
+              "currentViewModel": true,
+              "tileRetained": true,
+              "durationEnabled": true,
+              "startEnabled": true,
+              "presentation": {
+                "overlay": {
+                  "state": "Expanded",
+                  "page": "Widgets",
+                  "variant": "EmptyWake",
+                  "manuallyOpen": true,
+                  "loaded": true,
+                  "visible": true,
+                  "width": 560,
+                  "height": 340,
+                  "filesActive": false,
+                  "musicActive": false,
+                  "widgetsActive": true,
+                  "clipboardActive": false,
+                  "moduleCompactVisible": false,
+                  "moduleCompactText": "",
+                  "widgets": {
+                    "stripVisible": false,
+                    "chips": "",
+                    "tiles": "System.Management.Automation.OrderedHashtable System.Management.Automation.OrderedHashtable"
+                  }
+                },
+                "nativeVisibilityDiagnostics": "active=True,safe=True,visible=True,phase=Visible,regions=0,regionSkips=4,acrylic=True,configuration=none,lastFailure=none",
+                "hasActiveFrameSubscription": false,
+                "layers": [
+                  {
+                    "name": "Surface",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "ExpandedPanel",
+                    "actualWidth": 560,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 0,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  },
+                  {
+                    "name": "WidgetsExpanded",
+                    "actualWidth": 524,
+                    "actualHeight": 340,
+                    "isLoaded": true,
+                    "xamlOpacity": 1,
+                    "compositionOpacity": 1,
+                    "visibility": "Visible"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "stage": "capture-timers-reopened-layout",
+            "outcome": "waiting",
+            "state": {
+              "name": "Surface",
+              "actualWidth": 560,
+              "actualHeight": 340,
+              "isLoaded": true,
+              "xamlOpacity": 1,
+              "compositionOpacity": 1,
+              "visibility": "Visible"
+            }
+          },
+          {
+            "stage": "capture-timers-reopened-layout",
+            "outcome": "satisfied",
+            "state": {
+              "name": "Surface",
+              "actualWidth": 560,
+              "actualHeight": 340,
+              "isLoaded": true,
+              "xamlOpacity": 1,
+              "compositionOpacity": 1,
+              "visibility": "Visible"
+            }
+          },
+          {
+            "truncated": true,
+            "jsonPrefix": "{\"stage\":\"supplemental-timers-reopened-before\",\"state\":{\"bounds\":{\"x\":212,\"y\":0,\"width\":600,\"height\":374},\"virtualScreen\":{\"x\":0,\"y\":0,\"width\":1024,\"height\":768},\"overlayHwnd\":\"0x20178\",\"ownedHwnd\":\"0x201DA\",\"processId\":6836,\"isWindow\":true,\"isVisible\":true,\"isIconic\":false,\"cloakResult\":0,\"cloaked\":0,\"dpi\":96,\"samples\":[{\"x\":362,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":512,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":662,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":362,\"y\":187,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":512,\"y\":187,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":662,\"y\":187,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":362,\"y\":280,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"roo",
+            "completeEvidence": "launcher.json and app/receipt.json"
+          }
+        ],
+        "exceptions": [],
+        "environment": {
+          "os": "Microsoft Windows NT 10.0.26100.0",
+          "processId": 6836,
+          "sessionId": 2,
+          "userInteractive": true,
+          "inputDesktopAccessible": true,
+          "screenWidth": 1024,
+          "screenHeight": 768,
+          "textScaleFactor": 1
+        },
+        "failure": "Native UI diagnostics did not completely pass: status=blocked, visual=blocked, exit=2.",
+        "supplementalCaptures": [
+          {
+            "truncated": true,
+            "jsonPrefix": "{\"file\":\"timers-initial-desktop.png\",\"receiptEntryCount\":1,\"sha256\":\"b6e6e8c852b1b6e191e82439802d197633dd91e4972714dfe8120988504e3f2d\",\"pixelWidth\":600,\"pixelHeight\":374,\"status\":\"captured-for-manual-review\",\"captureKind\":\"desktop-bitblt-roi\",\"sourceApi\":\"DwmFlush/GetDC(0)/CreateCompatibleDC/CreateDIBSection/BitBlt(SRCCOPY|CAPTUREBLT)/GdiFlush\",\"sourcePixelSha256\":\"296a4c7d294bee97a344978ad8d783da3e78f470cda6fde4bde7612f3d991a5e\",\"sourcePixelFormat\":\"BGRX32-top-down\",\"synthesizedOpaqueAlpha\":true,\"bounds\":{\"x\":212,\"y\":0,\"width\":600,\"height\":374},\"boundsAfter\":{\"x\":212,\"y\":0,\"width\":600,\"height\":374},\"overlayHwnd\":\"0x20178\",\"ownedHwnd\":\"0x201DA\",\"ownershipBefore\":{\"bounds\":{\"x\":212,\"y\":0,\"width\":600,\"height\":374},\"virtualScreen\":{\"x\":0,\"y\":0,\"width\":1024,\"height\":768},\"overlayHwnd\":\"0x20178\",\"ownedHwnd\":\"0x201DA\",\"processId\":6836,\"isWindow\":true,\"isVisible\":true,\"isIconic\":false,\"cloakResult\":0,\"cloaked\":0,\"dpi\":96,\"samples\":[{\"x\":362,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":512,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":662,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":362,\"y\":187,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":512,\"y\":187,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcess",
+            "completeEvidence": "launcher.json and app/receipt.json"
+          },
+          {
+            "truncated": true,
+            "jsonPrefix": "{\"file\":\"timers-reopened-desktop.png\",\"receiptEntryCount\":1,\"sha256\":\"2b1c09e374322cc90280a701db79b2c693a15c07ba0d94e66e47eea9d6506837\",\"pixelWidth\":600,\"pixelHeight\":374,\"status\":\"captured-for-manual-review\",\"captureKind\":\"desktop-bitblt-roi\",\"sourceApi\":\"DwmFlush/GetDC(0)/CreateCompatibleDC/CreateDIBSection/BitBlt(SRCCOPY|CAPTUREBLT)/GdiFlush\",\"sourcePixelSha256\":\"5171980255bc5141c5fbfbe07eefbe3cb234929f4897b0045b247b1f6c228279\",\"sourcePixelFormat\":\"BGRX32-top-down\",\"synthesizedOpaqueAlpha\":true,\"bounds\":{\"x\":212,\"y\":0,\"width\":600,\"height\":374},\"boundsAfter\":{\"x\":212,\"y\":0,\"width\":600,\"height\":374},\"overlayHwnd\":\"0x20178\",\"ownedHwnd\":\"0x201DA\",\"ownershipBefore\":{\"bounds\":{\"x\":212,\"y\":0,\"width\":600,\"height\":374},\"virtualScreen\":{\"x\":0,\"y\":0,\"width\":1024,\"height\":768},\"overlayHwnd\":\"0x20178\",\"ownedHwnd\":\"0x201DA\",\"processId\":6836,\"isWindow\":true,\"isVisible\":true,\"isIconic\":false,\"cloakResult\":0,\"cloaked\":0,\"dpi\":96,\"samples\":[{\"x\":362,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":512,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":662,\"y\":93,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":362,\"y\":187,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProcessId\":6836,\"rootOwnerHwnd\":\"0x20178\",\"ownerChain\":[\"0x20178\"],\"rootIsVisible\":true,\"rootIsIconic\":false,\"rootCloakResult\":0,\"rootCloaked\":0,\"ownedByOverlay\":true},{\"x\":512,\"y\":187,\"hwnd\":\"0x201DA\",\"processId\":6836,\"rootHwnd\":\"0x20178\",\"rootProces",
+            "completeEvidence": "launcher.json and app/receipt.json"
+          }
+        ],
+        "supplementalCaptureFailures": [
+          {
+            "file": "timer-menu-FocusTimer-desktop.png",
+            "status": "blocked",
+            "stage": "validate-before",
+            "reason": "DesktopCaptureBlockedException (0x80131500): The complete target ROI is not within the virtual screen; no substitute crop was used.",
+            "details": {
+              "before": null,
+              "after": null,
+              "elapsedMilliseconds": 7
+            }
+          },
+          {
+            "file": "timer-menu-Countdown-desktop.png",
+            "status": "blocked",
+            "stage": "validate-before",
+            "reason": "DesktopCaptureBlockedException (0x80131500): The complete target ROI is not within the virtual screen; no substitute crop was used.",
+            "details": {
+              "before": null,
+              "after": null,
+              "elapsedMilliseconds": 0
+            }
+          }
+        ],
+        "supplementalEvidenceFailure": null,
+        "supplementalImageLog": [
+          {
+            "file": "timers-initial-desktop.png",
+            "status": "transferred",
+            "reason": null,
+            "bytes": 4093,
+            "sha256": "b6e6e8c852b1b6e191e82439802d197633dd91e4972714dfe8120988504e3f2d",
+            "chunkCount": 2
+          },
+          {
+            "file": "timers-reopened-desktop.png",
+            "status": "transferred",
+            "reason": null,
+            "bytes": 10863,
+            "sha256": "2b1c09e374322cc90280a701db79b2c693a15c07ba0d94e66e47eea9d6506837",
+            "chunkCount": 4
+          }
+        ],
+        "supplementalImageLogRequested": true,
+        "releasePromotionEligible": false,
+        "physicalPointerValidated": false,
+        "appReceiptSha256": "1dacc65051b72a0546e8fa58bd291286995e08a4c9fe50ec7ab2bde65f333f08",
+        "scenarios": [
+          {
+            "name": "timer-menu-retirement",
+            "status": "passed",
+            "failureStage": null,
+            "failure": null
+          }
+        ]
+      },
+      "originalMusicReleaseJobSkipped": true,
+      "actualUniqueScenarios": 1,
+      "scenarioExecutions": 1,
+      "functionalPassed": 1,
+      "functionalFailed": 0,
+      "visualApproved": false,
+      "artifactsDownloaded": false,
+      "supplementalPngsRecoveredFromJobLog": 2,
+      "receiptSource": "Completed GitHub job log. Build/assembly and RTB hashes remain runner reports; two supplemental PNG hashes were recomputed locally against original log-chunk bytes. Full owner-chain metadata in the summary is explicitly truncated.",
+      "evidence": [
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39064697266/job.log",
+          "sha256": "b4d1a5d49ccbc4e0ee5e824eee33a312724f326ec4ea9b8c5e69d70560580a36"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39064697266/run.json",
+          "sha256": "9b24ee4bceacdf525e074f585f81002143a86510268cff1ff9037b5d53aa80d4"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39064697266/build-receipt.json",
+          "sha256": "be9fb70f3cbe61195b8d6de03f99ed4f9a507c694ee0d5f76a45f8e0a8146a60"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39064697266/launcher-receipt.json",
+          "sha256": "8630430a3eeb2f7c0a1f753e1be89ce89c673034271cfc73e4e56dcc5a048887"
+        },
+        {
+          "path": "artifacts/local-iterations-2026-10-17/beta-native-ui/39064697266/supplemental-capture-headers-from-log.json",
+          "sha256": "11358fd766c88832ce856938c6115d9ad1a6d631fb410a07407e06305a24eab3"
+        }
+      ],
+      "localPngs": [
+        {
+          "sourceFile": "timers-initial-desktop.png",
+          "path": "docs/dev/evidence/local-iterations-2026-10-17/native-timers-39064697266-initial.png",
+          "sha256": "b6e6e8c852b1b6e191e82439802d197633dd91e4972714dfe8120988504e3f2d",
+          "bytes": 4093,
+          "transport": "Verified original PNG chunks in completed job log; no resampling or re-encoding."
+        },
+        {
+          "sourceFile": "timers-reopened-desktop.png",
+          "path": "docs/dev/evidence/local-iterations-2026-10-17/native-timers-39064697266-reopened.png",
+          "sha256": "2b1c09e374322cc90280a701db79b2c693a15c07ba0d94e66e47eea9d6506837",
+          "bytes": 10863,
+          "transport": "Verified original PNG chunks in completed job log; no resampling or re-encoding."
+        }
+      ],
+      "interpretation": [
+        "The one timer scenario passed its implemented assertions for both controls, duration selection, start/pause, root MenuFlyout close and hide/reopen. No batch rerun.",
+        "The complete diagnostic is blocked: all four RTB readbacks fail the unchanged pixel predicate; two popup desktop ROIs were rejected as outside the virtual screen.",
+        "Assistant inspection of the actual initial desktop PNG found the rounded surface without visible timer content. The reopened PNG shows both ten-minute readouts/play controls and a duration submenu remaining at the upper-left. These observations are unresolved and prevent visual approval.",
+        "The root-menu close assertion does not prove every descendant popup has disappeared. The fixture also can invoke during an entering animation, as captured by the final observations; further visual lifecycle investigation is required.",
+        "The source retains no raw popup bounds when validation throws before constructing the snapshot, limiting interpretation of the off-screen ROI error.",
+        "Initial local extraction failed with KeyError because supplemental metadata was intentionally truncated. A second extraction used the complete image-transfer entries and complete header prefix, then verified chunk ordering, sizes, PNG signature and SHA-256. No App/native scenario rerun occurred."
+      ]
     }
   ]
 }

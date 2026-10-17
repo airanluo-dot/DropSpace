@@ -1,0 +1,46 @@
+{
+  "kind": "right-hold-request-retirement-source-review",
+  "baselineCommit": "6f0fd72af5f640c243567e9773462a8c90d64c27",
+  "functionalScenarioExecutions": 0,
+  "nativeGestureExecutions": 0,
+  "actionsDispatches": 0,
+  "appCompileExecutions": 0,
+  "checks": [
+    {
+      "check": "changed-file whitespace",
+      "executions": 1,
+      "result": "passed"
+    },
+    {
+      "check": "read-only current official reference metadata API lookup",
+      "result": "PointerUpdateKind is defined as Microsoft.UI.Input.PointerUpdateKind",
+      "typeReferenceLookups": 1,
+      "typeDefinitionLookups": 1
+    }
+  ],
+  "reference": {
+    "file": "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.InteractiveExperiences.Projection.dll",
+    "sha256": "151ff0208ec9f17419d030b8dd02c94abd369542e355d3289f9d86376e1012f1"
+  },
+  "sourceSha256": {
+    "src/DropSpace.App/OverlayWindow.xaml.cs": "05f42e38f824818e884682b532e6c7861fb09f09b2edb9b95da1f4385c729f56",
+    "src/DropSpace.App/Services/OverlayWindowService.cs": "a3d60a4dc8a031fee4fda252dac02f7c0373f256786fdd1b3f4d6a4c0ff3cab7"
+  },
+  "review": "Final independent read-only review found no blocker within pending-hold retirement, queued window/generation validation, accepted-pointer handoff or the preserved settings entry. Physical gestures were not executed.",
+  "boundary": "No fake WinUI fixture or old scenario rerun. Final real Windows App/XAML compile is pending root scheduling; physical right-button hold/capture/placement drag has not been executed.",
+  "retirementCoverageBySource": [
+    "right-button release for matching pointer",
+    "matching PointerCanceled and PointerCaptureLost",
+    "direct/native-failure hide",
+    "dismissal start and settled hidden frame",
+    "fullscreen/other-monitor placement suppression",
+    "setting disabled on snapshot",
+    "close including partial construction",
+    "consumption before synchronous service side effects"
+  ],
+  "preservedEntry": "EventHandler<string> unchanged. MainViewModel settings requests do not require a gesture token. Consumed pointer is passed separately into BeginPlacementEdit; capture must succeed before beginning the drag.",
+  "receipt": {
+    "path": "artifacts/local-iterations-2026-10-17/right-hold-retirement/validation-inputs.json",
+    "sha256": "1fa60a8cb26e6298dcaf048f3dee8bce37cd9e8b37b980b45cdc57be299bba9d"
+  }
+}

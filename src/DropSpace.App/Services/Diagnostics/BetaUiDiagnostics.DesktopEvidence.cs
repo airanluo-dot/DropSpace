@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -21,16 +22,20 @@ internal static partial class BetaUiDiagnostics
         var stage = "prepare";
         BetaUiDesktopSnapshot? before = null;
         BetaUiDesktopSnapshot? after = null;
+        var boundsProbe = new BetaUiDesktopBoundsProbe();
+        var boundsAfterProbe = new BetaUiDesktopBoundsProbe();
         var watch = Stopwatch.StartNew();
         try
         {
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
             deadline.CancelAfter(TimeSpan.FromSeconds(10));
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(overlay);
+            boundsProbe.Source = boundsAfterProbe.Source = popup is null ? "overlay-hwnd-client-rect-to-screen" : "real-popup-automation-peer-screen-rectangle";
             var peer = popup is null ? null : FrameworkElementAutomationPeer.CreatePeerForElement(popup)
                 ?? throw new DesktopCaptureBlockedException("The real popup has no automation peer; no substitute bounds were used.");
+            boundsProbe.PeerType = boundsAfterProbe.PeerType = peer?.GetType().FullName;
             stage = "validate-before";
-            before = ObserveDesktopTarget(hwnd, peer);
+            before = ObserveDesktopTarget(hwnd, peer, boundsProbe);
             ValidateDesktopTarget(before, popup is not null);
             receipt.Observations.Add(new { stage = "supplemental-" + name + "-before", state = before });
 
@@ -49,7 +54,7 @@ internal static partial class BetaUiDiagnostics
                 throw;
             }
             stage = "validate-after";
-            after = ObserveDesktopTarget(hwnd, peer);
+            after = ObserveDesktopTarget(hwnd, peer, boundsAfterProbe);
             ValidateDesktopTarget(after, popup is not null);
             if (before.Bounds != after.Bounds || before.OwnedHwnd != after.OwnedHwnd)
                 throw new DesktopCaptureBlockedException("The target bounds or sampled center HWND changed during readback.");
@@ -83,7 +88,7 @@ internal static partial class BetaUiDiagnostics
         {
             receipt.SupplementalCaptureFailures.Add(new(file,
                 error is DesktopCaptureBlockedException ? "blocked" : "failed", stage, Describe(error),
-                new { before, after, elapsedMilliseconds = watch.ElapsedMilliseconds }));
+                new { boundsProbe, boundsAfterProbe, before, after, elapsedMilliseconds = watch.ElapsedMilliseconds }));
         }
         // Evidence I/O must not turn an optional desktop attachment into a scenario
         // failure or change the primary stage/status recorded by CaptureAsync.
@@ -94,13 +99,16 @@ internal static partial class BetaUiDiagnostics
         }
     }
 
-    private static BetaUiDesktopSnapshot ObserveDesktopTarget(nint overlay, AutomationPeer? popupPeer)
+    private static BetaUiDesktopSnapshot ObserveDesktopTarget(nint overlay, AutomationPeer? popupPeer,
+        BetaUiDesktopBoundsProbe probe)
     {
         var virtualScreen = new BetaUiDesktopBounds(GetSystemMetrics(76), GetSystemMetrics(77),
             GetSystemMetrics(78), GetSystemMetrics(79));
+        probe.VirtualScreen = virtualScreen;
         DesktopNative.GetWindowThreadProcessId(overlay, out var processId);
         var cloakResult = DesktopNative.DwmGetWindowAttribute(overlay, 14, out var cloaked, sizeof(uint));
-        var bounds = ReadDesktopBounds(overlay, popupPeer);
+        var bounds = ReadDesktopBounds(overlay, popupPeer, probe);
+        probe.Bounds = bounds;
         ValidateDesktopBounds(bounds, virtualScreen);
         var samples = new List<BetaUiDesktopSample>();
         // Quarter, center and three-quarter points avoid sampling popup shadows.
@@ -141,11 +149,15 @@ internal static partial class BetaUiDiagnostics
             cloakResult, cloaked, DesktopNative.GetDpiForWindow(overlay), samples.ToArray());
     }
 
-    private static BetaUiDesktopBounds ReadDesktopBounds(nint overlay, AutomationPeer? popupPeer)
+    private static BetaUiDesktopBounds ReadDesktopBounds(nint overlay, AutomationPeer? popupPeer,
+        BetaUiDesktopBoundsProbe probe)
     {
         if (popupPeer is not null)
         {
             var rectangle = popupPeer.GetBoundingRectangle();
+            // Persist the actual peer values before conversion/validation can fail.
+            // Nonfinite values remain explicit strings, which JSON can safely encode.
+            probe.RawBounds = RawScreenBounds(rectangle);
             if (!double.IsFinite(rectangle.X) || !double.IsFinite(rectangle.Y) ||
                 !double.IsFinite(rectangle.Width) || !double.IsFinite(rectangle.Height) ||
                 rectangle.Width <= 0 || rectangle.Height <= 0)
@@ -158,7 +170,16 @@ internal static partial class BetaUiDiagnostics
         if (!DesktopNative.GetClientRect(overlay, out var client)) throw DesktopError("GetClientRect");
         var origin = new DesktopNative.Point { X = client.Left, Y = client.Top };
         if (!DesktopNative.ClientToScreen(overlay, ref origin)) throw DesktopError("ClientToScreen");
+        probe.RawBounds = new { x = origin.X, y = origin.Y, width = (long)client.Right - client.Left,
+            height = (long)client.Bottom - client.Top };
         return new(origin.X, origin.Y, checked(client.Right - client.Left), checked(client.Bottom - client.Top));
+    }
+
+    private static object RawScreenBounds(Windows.Foundation.Rect rectangle)
+    {
+        static object Coordinate(double value) => double.IsFinite(value) ? value : value.ToString("R", CultureInfo.InvariantCulture);
+        return new { x = Coordinate(rectangle.X), y = Coordinate(rectangle.Y),
+            width = Coordinate(rectangle.Width), height = Coordinate(rectangle.Height) };
     }
 
     private static void ValidateDesktopBounds(BetaUiDesktopBounds bounds, BetaUiDesktopBounds screen)
@@ -274,6 +295,14 @@ internal static partial class BetaUiDiagnostics
 }
 
 internal sealed record BetaUiDesktopBounds(int X, int Y, int Width, int Height);
+internal sealed class BetaUiDesktopBoundsProbe
+{
+    public string? Source { get; set; }
+    public string? PeerType { get; set; }
+    public object? RawBounds { get; set; }
+    public BetaUiDesktopBounds? Bounds { get; set; }
+    public BetaUiDesktopBounds? VirtualScreen { get; set; }
+}
 internal sealed record BetaUiDesktopSample(int X, int Y, string Hwnd, uint ProcessId, string RootHwnd,
     uint RootProcessId, string RootOwnerHwnd, string[] OwnerChain, bool RootIsVisible, bool RootIsIconic,
     int RootCloakResult, uint RootCloaked, bool OwnedByOverlay);
@@ -294,6 +323,7 @@ internal sealed record BetaUiSupplementalCapture(string File, string Sha256, int
         "Supplementary manual-review attachment only; does not affect RenderTargetBitmap captures, visual status or scenario results.",
         "PNG alpha is set to 255 to encode GDI desktop RGB. It is not native transparency evidence; sourcePixelSha256 covers the unmodified BGRX bytes.",
         "Point samples prove only sampled HWND ownership before/after capture, not per-pixel identity or complete freedom from occlusion. Transparent client margins may show the desktop.",
+        "GDI desktop readback may omit hardware-composed planes; an empty or missing-content attachment alone cannot establish that the physical screen did not show that content.",
         "Async waits use a 5-second native-read timeout and a linked 10-second budget. Synchronous OS/UI calls cannot be forcibly interrupted; a blocked read releases worker-owned handles when it returns, and the launcher process deadline is the ultimate bound.",
         "No physical pointer input, multi-monitor coverage, screenshot baseline comparison or complete visual correctness claim.",
     ];

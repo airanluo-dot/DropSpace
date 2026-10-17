@@ -43,3 +43,25 @@ successful retry. Only the upstream MainViewModel pin result is controlled. No o
 made visible, so this invocation does not run the four refresh scenarios. Their default
 selection and assertions are unchanged. This does not execute ToggleButton binding, UIA
 state announcements, WinUI/XAML, the production mutation/Undo pipeline, or a real database.
+
+An independent collection scenario is also opt-in; the default four and pin scenario are not
+selected by this command:
+
+```sh
+dotnet run --project scripts/clipboard-island-refresh-probe/ClipboardIslandRefreshProbe.csproj -- --scenario projection_identity results.json
+```
+
+This single scenario checks same-ID card reuse with no collection Reset, pending pin state and
+same-content assets retained, missing cards retired with assets released, changed file content
+invalidating the old presentation generation, rejection of an equal-revision retired snapshot,
+and restoration by a newer revision. The real Core `ProjectionCollection` helper executes through
+the linked complete clipboard VM. MainViewModel's quick-action refresh is a counter-only boundary;
+no merge, retirement or revision algorithm is duplicated in the fixture. An upstream pin failure
+only releases the pending operation after the identity assertions and does not prove persistence
+rollback. Undo is represented by a newer input snapshot, not a real persistence operation.
+
+The assertions cover collection/model behavior, not native ListView container or keyboard focus
+preservation, UIA, XAML bindings, thumbnail IO savings, or the real recent-item read pipeline.
+The shared helper may remove and insert when items reorder; this scenario does not claim that
+native containers survive reordering. The retired-revision filter uses cards still present in
+the projection; it is not a tombstone cache spanning arbitrary later repository snapshots.

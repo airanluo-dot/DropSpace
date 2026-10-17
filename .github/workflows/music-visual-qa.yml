@@ -14,6 +14,7 @@ on:
           - all
           - timers
           - batch-selection
+          - timer-visual
 permissions:
   contents: read
   actions: read

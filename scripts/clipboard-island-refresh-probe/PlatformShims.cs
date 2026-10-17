@@ -53,10 +53,17 @@ namespace DropSpace.App.ViewModels
         internal ControlledBoundary<IReadOnlyList<ItemCardViewModel>> Reads { get; } = new();
         internal ControlledBoundary<bool> Copies { get; } = new();
         internal ControlledBoundary<DropItem> Pins { get; } = new();
+        internal int QuickActionRefreshCount { get; private set; }
         public AppSettings Settings { get; } = new();
         public AppLanguagePreference Language => Settings.Language;
         public string StatusMessage => string.Empty;
         public bool IsClipboardPaused => Settings.ClipboardPaused;
+
+        public void RefreshPrimaryQuickActions(ItemCardViewModel card)
+        {
+            ArgumentNullException.ThrowIfNull(card);
+            QuickActionRefreshCount++;
+        }
 
         public Task<IReadOnlyList<ItemCardViewModel>> GetRecentSourceItemsAsync(
             ItemSource source, int limit, CancellationToken cancellationToken = default)

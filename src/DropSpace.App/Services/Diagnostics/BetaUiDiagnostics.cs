@@ -20,7 +20,7 @@ using Windows.UI.ViewManagement;
 
 namespace DropSpace.App.Services.Diagnostics;
 
-/// <summary>Two explicit native scenarios; the ordinary App startup path never calls this runner.</summary>
+/// <summary>Explicit, independently selected native scenarios; ordinary App startup never calls this runner.</summary>
 internal static partial class BetaUiDiagnostics
 {
     internal static bool IsRequested(IReadOnlyList<string> arguments) =>
@@ -136,8 +136,12 @@ internal static partial class BetaUiDiagnostics
                         stage = "timer-fixture", monitorDpi = monitor.Dpi, settings.Widgets.Layout.Expanded, dataRoot,
                         nativeServices = "Widget sampling and system visual preferences only; other service dependencies remain uninitialized.",
                     });
-                    await RunCaseAsync("timer-menu-retirement", receipt,
-                        () => CheckTimersAsync(overlay, overlayView, island, services.GetRequiredService<WidgetViewModel>(), receipt, token));
+                    if (selection.RunTimerVisual)
+                        await RunCaseAsync("timer-first-frame-and-popup-retirement", receipt,
+                            () => CheckTimerVisualAsync(overlay, overlayView, island, services.GetRequiredService<WidgetViewModel>(), receipt, token));
+                    else
+                        await RunCaseAsync("timer-menu-retirement", receipt,
+                            () => CheckTimersAsync(overlay, overlayView, island, services.GetRequiredService<WidgetViewModel>(), receipt, token));
                     overlay.ApplySnapshot(overlayView.Snapshot with { State = OverlayState.Hidden },
                         true, true, overlayView.FileDragWakeMode, overlayView.GetOverlayPlacement(overlay.MonitorId));
                 }

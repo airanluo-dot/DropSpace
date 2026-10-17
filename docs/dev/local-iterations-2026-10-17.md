@@ -713,3 +713,130 @@ One narrow C# compile passed with zero warnings/errors and stable source/referen
 hashes, plus independent source review. No functional/native execution was added
 at this checkpoint. Full inputs and limits are in
 `evidence/local-iterations-2026-10-17/beta-ui-desktop-capture.json`.
+
+
+### Continuation: timer assertions pass; real images expose unresolved display behavior
+
+Run [39064697266](https://github.com/airanluo-dot/DropSpace/actions/runs/39064697266)
+built exact commit `6f0fd72af5f640c243567e9773462a8c90d64c27` with zero warnings/errors.
+Build and launcher source/tree, apphost, PRI and managed assembly identities matched.
+This includes the Clipboard XAML and centered-press changes in full App compilation,
+without exercising their physical interactions. The old music/Release job was skipped.
+
+The selected timer scenario ran **once and passed its implemented assertions** for
+both FocusTimer and Countdown: duration selection, start/pause, root-menu close,
+hiding and reopening. The batch scenario did not run. All four RTB images still
+failed the unchanged pixel predicate, so the App reported blocked and exited 2;
+the workflow failed rather than claiming complete native UI success.
+
+Two supplemental desktop PNGs were captured and transmitted. Their original bytes
+were reconstructed locally and SHA-256 verified against chunk and transfer metadata.
+The first extraction failed with KeyError because the summary deliberately truncates
+large supplemental metadata; the corrected extraction uses the complete transfer
+entry and intact header prefix. This was local evidence processing, not another
+App execution. Full owner-chain metadata remains remote; original RTB and assembly
+hashes were not independently recomputed locally.
+
+Actual assistant inspection of the initial desktop PNG shows only the rounded
+surface, without visible timer content. The reopened PNG shows the two 10-minute
+readouts/play controls and a duration submenu still visible at the upper-left.
+The 2 x 1 widget layout intentionally omits titles, so that omission is not itself
+a new defect. These images are not visually approved. The implemented root
+MenuFlyout Closed/IsOpen checks do not prove every descendant popup disappeared.
+Final observations also show invocation can occur while the Overlay is still
+Entering; later observations reach its settled size. This requires further
+product-versus-fixture investigation, without repeating the now-passing full timer
+interaction sequence just to obtain images.
+
+Both popup desktop captures were blocked because the reported ROI was outside the
+virtual screen. Their raw bounds were lost when validation threw before creating
+the snapshot, so those errors alone cannot distinguish real popup placement from
+a coordinate-evidence problem. Exact results and the two byte-identical retained
+PNGs are in `evidence/local-iterations-2026-10-17/beta-native-ui.json` and
+`native-timers-39064697266-{initial,reopened}.png`.
+
+
+### Continuation: retire pending right-button placement requests
+
+A right-button hold could queue placement editing, then survive hiding/fullscreen
+suppression before its dispatcher callback ran. The callback previously checked
+monitor availability but not the originating hold. Window and service now keep
+the same event signature while capturing a per-hold generation and verifying the
+same window, current visibility/eligibility and unconsumed request at execution.
+The explicit settings entry still opens placement editing without a gesture token.
+
+Hiding, dismissal, native failure, suppression, matching pointer release/cancel/
+capture loss, disabled setting and closing retire the pending hold and release its
+capture. Elapsed-time checks prevent an older queued timer tick from prematurely
+completing a new hold. A successfully consumed pointer travels separately through
+synchronous service side effects to the editor, which starts dragging only after
+its own capture succeeds. Existing general multi-pointer placement handlers were
+not expanded or claimed tested.
+
+Independent source review found no blocker. One changed-file whitespace check and
+read-only official-reference metadata lookups completed; zero functional scenarios,
+native gestures, App compiles or dispatches were performed for this slice. The
+combined real Windows build remains pending. Exact source identities and boundaries
+are in `evidence/local-iterations-2026-10-17/right-hold-retirement.json`.
+
+
+### Continuation: preserve accepted Clipboard card identity
+
+Clipboard publication now uses the existing Core identity synchronizer and card
+merge contracts instead of clearing and recreating the displayed collection.
+Unchanged record IDs keep their card instance and pending Pin state. Missing cards
+retire their presentation/assets before removal; changed content follows the
+existing revision/generation checks. A snapshot cannot revive a still-present
+retired card at the same or an older revision, while newer revisions can restore
+it. That bounded check is not a persistent tombstone or a new query coordinator.
+
+The recent-item query/thumbnail pipeline and shared synchronizer are unchanged.
+This reduces collection resets and replacement of displayed cards, not temporary
+card creation or upstream IO. The shared helper uses Remove/Insert for actual
+reordering, so no native focus or scroll-preservation guarantee is inferred.
+
+Only the new `projection_identity` integrated source-linked scenario ran once:
+**1/1**, all 16 assertions passed, zero failures/retries/compiler warnings/errors.
+It uses actual VM, card and Core synchronization logic, with explicit read/action,
+quick-action and dispatcher boundaries plus identity-only image/storage shims.
+No actual repository, Undo persistence, asset IO, XAML, UIA or native focus ran.
+The prior four scenarios, Pin scenario and their default selection were unchanged
+and not rerun. Final source review found no blocker. Inputs and evidence are in
+`evidence/local-iterations-2026-10-17/clipboard-island-projection.json`.
+
+
+### Continuation: isolate first-frame and descendant-popup evidence
+
+The new explicit `timer-visual` selection runs one different scenario,
+`timer-first-frame-and-popup-retirement`, with three required captures: initial,
+FocusTimer menu, and reopened. It does not repeat duration changes, start/pause,
+Countdown interactions or batch selection. Old selection contracts and the RTB
+pixel predicate remain unchanged.
+
+The scenario waits for the production Overlay motion/page transition to settle,
+then Rendering, a real compositor commit request and another Rendering event.
+Desktop readback precedes RTB at each capture. Before UIA expansion it requires the
+root menu's Opened event, a loaded/nonzero submenu in its actual popup and stable
+peer bounds. It tracks actual root and descendant Popup instances, requiring a
+Closed event, unloaded child, IsOpen false and absence from the open-popup list
+after hiding. Logical removal from that list alone can happen during unloading.
+If hiding fails, it still tries to reopen and retain the final image without
+manually collapsing the suspect child. Early and hide-stage errors survive later
+cleanup failures, which remain separately recorded.
+
+Raw before/after popup rectangles and virtual-screen bounds now survive validation
+failure. Log summaries preserve capture identity and these failure probes while
+explicitly bounding nested ownership records; the existing PNG transport is
+unchanged. Independent source review found no blocker. This establishes diagnostic
+conditions, not physical display correctness: desktop GDI readback can omit hardware
+planes, and actual PNG inspection remains necessary. Native execution of this new
+selection is pending at this checkpoint.
+
+Preflight includes two successful narrow C# compilations with official WinUI
+references, each with zero warnings/errors. The second was necessary after review
+added the Closed/unloaded requirements and early-error preservation; both inputs
+and logs remain recorded. Launcher/workflow checks executed five times in total:
+AST once, source audit twice across the before/after boundsAfterProbe revision,
+YAML/old-gate integrity once and changed-file whitespace once. These are compilation
+and static checks, zero functional scenarios. Final frozen inputs and the earlier
+snapshots are in `evidence/local-iterations-2026-10-17/timer-visual-preflight.json`.

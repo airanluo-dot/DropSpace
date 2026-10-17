@@ -3,7 +3,7 @@
 param(
     [string]$BuildReceiptPath = 'artifacts/beta-ui-diagnostics/build/build-receipt.json',
     [string]$OutputDirectory = 'artifacts/beta-ui-diagnostics/run',
-    [ValidateSet('all', 'timers', 'batch-selection')][string]$Scenario = 'all',
+    [ValidateSet('all', 'timers', 'batch-selection', 'timer-visual')][string]$Scenario = 'all',
     [ValidateRange(30, 600)][int]$TimeoutSeconds = 240,
     [switch]$IncludeSupplementalImagesInLog
 )
@@ -13,14 +13,17 @@ $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'Native Beta UI diagnostics require Windows.' }
 $Scenario = $Scenario.ToLowerInvariant()
 $timerScenarios = @('timer-menu-retirement')
+$timerVisualScenarios = @('timer-first-frame-and-popup-retirement')
 $batchScenarios = @('batch-collapse-selection')
 $timerCaptures = @('timers-initial.png', 'timer-menu-FocusTimer.png', 'timer-menu-Countdown.png', 'timers-reopened.png')
+$timerVisualCaptures = @('timers-initial.png', 'timer-menu-FocusTimer.png', 'timers-reopened.png')
 $batchCaptures = @('batch-expanded-selected.png', 'batch-collapsed-selection.png')
 $supplementalCaptureNames = @('timers-initial-desktop.png', 'timer-menu-FocusTimer-desktop.png', 'timer-menu-Countdown-desktop.png', 'timers-reopened-desktop.png')
 $selectionContracts = @{
     'all' = @{ scenarios = $timerScenarios + $batchScenarios; captures = $timerCaptures + $batchCaptures }
     'timers' = @{ scenarios = $timerScenarios; captures = $timerCaptures }
     'batch-selection' = @{ scenarios = $batchScenarios; captures = $batchCaptures }
+    'timer-visual' = @{ scenarios = $timerVisualScenarios; captures = $timerVisualCaptures }
 }
 $expectedScenarios = @($selectionContracts[$Scenario].scenarios)
 $expectedCaptures = @($selectionContracts[$Scenario].captures)
@@ -43,6 +46,7 @@ $launch = [ordered]@{
     visualStatus = 'not-run'; scenarios = @(); captures = @(); captureFailures = @(); observations = @(); exceptions = @(); environment = $null; failure = $null
     supplementalCaptures = @(); supplementalCaptureFailures = @(); supplementalEvidenceFailure = $null
     supplementalImageLog = @(); supplementalImageLogRequested = [bool]$IncludeSupplementalImagesInLog
+    visualCheckpoints = @()
     releasePromotionEligible = $false; physicalPointerValidated = $false; appReceiptSha256 = $null
 }
 function Copy-AppEvidenceSummary([System.Collections.IDictionary]$AppReceipt) {
@@ -58,6 +62,7 @@ function Copy-AppEvidenceSummary([System.Collections.IDictionary]$AppReceipt) {
     $launch.captureFailures = @($AppReceipt.captureFailures)
     $launch.observations = @($AppReceipt.observations)
     $launch.exceptions = @($AppReceipt.exceptions)
+    if ($AppReceipt.Contains('visualCheckpoints')) { $launch.visualCheckpoints = @($AppReceipt.visualCheckpoints) }
     $launch.captures = @($AppReceipt.captures | ForEach-Object {
         $capture = $_
         $metadata = [ordered]@{ file = $capture.file; sha256 = $capture.sha256; width = $capture.pixelWidth; height = $capture.pixelHeight; pixelReadbackPassed = $capture.pixelReadbackPassed }
@@ -82,7 +87,7 @@ function Copy-AppEvidenceSummary([System.Collections.IDictionary]$AppReceipt) {
             }
         )
         if ($AppReceipt.Contains('supplementalCaptureFailures')) {
-            $launch.supplementalCaptureFailures = @($AppReceipt.supplementalCaptureFailures | Select-Object -First 4 | ForEach-Object { Limit-Observation $_ })
+            $launch.supplementalCaptureFailures = @($AppReceipt.supplementalCaptureFailures)
         }
     }
     catch { $launch.supplementalEvidenceFailure = Limit-SummaryText $_.Exception.Message }
@@ -100,6 +105,69 @@ function Limit-Observation([object]$Value) {
         return [ordered]@{ truncated = $true; jsonPrefix = $json.Substring(0, 2000); completeEvidence = 'launcher.json and app/receipt.json' }
     }
     return $Value
+}
+function Select-EvidenceFields([System.Collections.IDictionary]$Value, [string[]]$Keys) {
+    $selected = [ordered]@{}
+    if ($null -ne $Value) {
+        foreach ($key in $Keys) {
+            if ($Value.Contains($key)) { $selected[$key] = $Value[$key] }
+        }
+    }
+    return $selected
+}
+function Limit-DesktopOwnership([System.Collections.IDictionary]$Value) {
+    if ($null -eq $Value) { return $null }
+    $result = Select-EvidenceFields $Value @('bounds', 'virtualScreen', 'overlayHwnd', 'ownedHwnd', 'processId', 'isWindow', 'isVisible', 'isIconic', 'cloakResult', 'cloaked', 'dpi')
+    $samples = @(if ($Value.Contains('samples')) { $Value.samples })
+    $failed = @($samples | Where-Object { $_.ownedByOverlay -ne $true })
+    $result.sampleCount = $samples.Count
+    $result.failedSampleCount = $failed.Count
+    # Preserve the center identity and up to three selected ownership samples.
+    # The complete nine-point snapshots remain in both JSON artifacts.
+    $selectedIndices = @(
+        if ($samples.Count -gt 4) { 4 }
+        for ($index = 0; $index -lt $samples.Count; $index++) {
+            if ($samples[$index].ownedByOverlay -ne $true) { $index }
+        }
+    )
+    $indices = @($selectedIndices | Select-Object -Unique | Select-Object -First 3)
+    $result.samples = @(
+        foreach ($index in $indices) {
+            $sample = Select-EvidenceFields $samples[$index] @('x', 'y', 'hwnd', 'processId', 'rootHwnd', 'rootProcessId', 'rootOwnerHwnd', 'rootIsVisible', 'rootIsIconic', 'rootCloakResult', 'rootCloaked', 'ownedByOverlay')
+            $sample.sampleIndex = $index
+            $owners = @($samples[$index].ownerChain)
+            $sample.ownerChain = @($owners | Select-Object -First 4)
+            $sample.ownerChainTruncated = $owners.Count -gt 4
+            $sample
+        }
+    )
+    $result.omittedSampleCount = $samples.Count - $result.samples.Count
+    $result.truncated = $result.omittedSampleCount -gt 0 -or @($result.samples | Where-Object { $_.ownerChainTruncated }).Count -gt 0
+    $result.completeEvidence = 'launcher.json and app/receipt.json'
+    return $result
+}
+function Get-SupplementalSummary([System.Collections.IDictionary]$Value) {
+    # Never truncate the capture identity, source, dimensions, bounds or failure
+    # ROI as one JSON prefix. Only the nested ownership snapshots are reduced.
+    $result = Select-EvidenceFields $Value @('file', 'receiptEntryCount', 'sha256', 'pixelWidth', 'pixelHeight', 'status', 'captureKind', 'sourceApi', 'sourcePixelSha256', 'sourcePixelFormat', 'synthesizedOpaqueAlpha', 'bounds', 'boundsAfter', 'overlayHwnd', 'ownedHwnd', 'environment', 'limitations', 'stage')
+    if ($Value.Contains('reason')) { $result.reason = Limit-SummaryText $Value.reason }
+    foreach ($key in @('ownershipBefore', 'ownershipAfter')) {
+        if ($Value.Contains($key)) { $result[$key] = Limit-DesktopOwnership $Value[$key] }
+    }
+    if ($Value.Contains('details') -and $null -ne $Value.details) {
+        $result.details = Select-EvidenceFields $Value.details @('boundsProbe', 'boundsAfterProbe', 'elapsedMilliseconds')
+        foreach ($key in @('before', 'after')) {
+            if ($Value.details.Contains($key)) { $result.details[$key] = Limit-DesktopOwnership $Value.details[$key] }
+        }
+    }
+    return $result
+}
+function Get-VisualCheckpointSummary([System.Collections.IDictionary]$Value) {
+    $result = Select-EvidenceFields $Value @('stage', 'captureOrder', 'motionSettled', 'frameActive', 'phase', 'nativeVisibility')
+    foreach ($key in @('layers', 'popups')) {
+        if ($Value.Contains($key)) { $result[$key] = Limit-Observation $Value[$key] }
+    }
+    return $result
 }
 function Export-SupplementalImageLog {
     $totalBytes = 0
@@ -296,8 +364,13 @@ finally {
     $summary.exceptions = @($launch.exceptions | Select-Object -First 8 | ForEach-Object { Limit-SummaryText $_ })
     $summary.captures = @($launch.captures | Select-Object -First 16)
     $summary.observations = @($launch.observations | Select-Object -Last 6 | ForEach-Object { Limit-Observation $_ })
-    $summary.supplementalCaptures = @($launch.supplementalCaptures | ForEach-Object { Limit-Observation $_ })
-    Write-Output ('DROPSPACE_BETA_UI_RECEIPT=' + ($summary | ConvertTo-Json -Depth 6 -Compress))
+    $summary.supplementalCaptures = @($launch.supplementalCaptures | ForEach-Object { Get-SupplementalSummary $_ })
+    # Four allowed attachments may each report capture and evidence-write failure.
+    $summary.supplementalCaptureFailures = @($launch.supplementalCaptureFailures | Select-Object -First 8 | ForEach-Object { Get-SupplementalSummary $_ })
+    $summary.supplementalCaptureFailuresTruncated = $launch.supplementalCaptureFailures.Count -gt 8
+    $summary.visualCheckpoints = @($launch.visualCheckpoints | Select-Object -First 8 | ForEach-Object { Get-VisualCheckpointSummary $_ })
+    $summary.visualCheckpointsTruncated = $launch.visualCheckpoints.Count -gt 8
+    Write-Output ('DROPSPACE_BETA_UI_RECEIPT=' + ($summary | ConvertTo-Json -Depth 10 -Compress))
     if ($null -ne $child) { $child.Dispose() }
     Pop-Location
 }

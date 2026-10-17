@@ -4,6 +4,7 @@ using System.Threading.Channels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
@@ -86,6 +87,24 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
     }
     private bool IsRefreshCurrent(long visibilityGeneration) => !_disposed && Volatile.Read(ref _visible) &&
         visibilityGeneration == Volatile.Read(ref _visibilityGeneration);
+    private void ApplyRecentItems(IReadOnlyList<ItemCardViewModel> incoming)
+    {
+        var existingById = Items.ToDictionary(static card => card.Id);
+        // A removal can retire a visible card while an older read is still queued.
+        // Keep that revision check until this snapshot is filtered; a newer Undo
+        // revision can restore the item through the normal card merge contract.
+        var accepted = incoming.Where(card => !card.IsPresentationRetired &&
+            (!existingById.TryGetValue(card.Id, out var existing) || !existing.IsPresentationRetired ||
+                card.Item.Revision > existing.Item.Revision)).ToArray();
+        var acceptedIds = accepted.Select(static card => card.Id).ToHashSet();
+        foreach (var card in Items)
+            if (!acceptedIds.Contains(card.Id)) card.RetirePresentation();
+
+        ProjectionCollection.SynchronizeById(Items, accepted, static card => card.Id, (existing, refreshed) =>
+        {
+            if (existing.TryMergePresentation(refreshed)) _main.RefreshPrimaryQuickActions(existing);
+        });
+    }
     private void OnCaptured(object? sender, DropItem item) { if (Volatile.Read(ref _visible)) _refresh.Writer.TryWrite(true); }
     private void OnMainChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -112,8 +131,7 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
                     {
                         if (IsRefreshCurrent(visibilityGeneration))
                         {
-                            Items.Clear();
-                            foreach (var item in items) Items.Add(item);
+                            ApplyRecentItems(items);
                             // Reading the list successfully does not retry a failed user action.
                             if (_errorOrigin == ClipboardErrorOrigin.Refresh)
                                 SetError(AppUiMessage.Empty, ClipboardErrorOrigin.None);

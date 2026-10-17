@@ -1,6 +1,12 @@
+using System.Collections.Specialized;
 using System.Text.Json;
 using ClipboardIslandRefreshProbe;
+using DropSpace.App.ViewModels;
+using DropSpace.Core.Abstractions;
+using DropSpace.Core.Models;
+using Microsoft.UI.Xaml.Media.Imaging;
 using NavigationProjectionProbe;
+using Windows.Storage;
 
 string? selected = null;
 string? outputPath = null;
@@ -20,6 +26,8 @@ var scenarios = new (string Name, Func<Checks, Task> Run)[]
 };
 if (selected == "pin_action_recovery")
     scenarios = [("pin_action_recovery", PinActionRecovery)];
+if (selected == "projection_identity")
+    scenarios = [("projection_identity", ProjectionIdentity)];
 if (selected is not null && !scenarios.Any(scenario => scenario.Name == selected))
     throw new ArgumentException("Unknown scenario: " + selected);
 var results = new List<ScenarioResult>();
@@ -41,6 +49,123 @@ if (outputPath is not null)
     File.WriteAllText(outputPath, JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine($"RESULT {results.Count(result => result.Passed)}/{results.Count} scenarios passed.");
 Environment.ExitCode = results.All(result => result.Passed) ? 0 : 1;
+
+static async Task ProjectionIdentity(Checks check)
+{
+    await using var fixture = new Fixture();
+    var original = Fixture.Card("original.txt").Item;
+    var retained = Snapshot(original with
+    {
+        Kind = ItemKind.File,
+        File = new FileReference("original.txt", "original.txt", FileEntryKind.File, ".txt", 7,
+            original.CreatedAtUtc, null, null),
+    });
+    var removed = Fixture.Card("removed from next snapshot");
+    var thumbnail = new BitmapImage();
+    var storage = new ProbeStorageItem();
+    retained.Thumbnail = thumbnail;
+    retained.DragStorageItem = storage;
+    removed.Thumbnail = new BitmapImage();
+    removed.DragStorageItem = new ProbeStorageItem();
+    var retainedGeneration = retained.PresentationGeneration;
+    var removedGeneration = removed.PresentationGeneration;
+
+    fixture.View.SetVisible(new object(), true);
+    var seed = await fixture.Main.Reads.NextAsync();
+    seed.Reply([retained, removed]);
+    await fixture.PublishNextAsync();
+    var changes = new List<NotifyCollectionChangedEventArgs>();
+    fixture.View.Items.CollectionChanged += (_, change) => changes.Add(change);
+
+    // Keep a real PinAsync operation pending while an equivalent fresh card arrives.
+    var pin = fixture.View.PinAsync(retained);
+    var pendingPin = await fixture.Main.Pins.NextAsync();
+    var metadata = retained.Item with
+    {
+        Revision = retained.Item.Revision + 1,
+        Title = "metadata refresh",
+        LastUsedAtUtc = retained.Item.CreatedAtUtc.AddMinutes(1),
+    };
+    await PublishAsync(Snapshot(metadata));
+    check.That(fixture.View.Items.Count == 1 && ReferenceEquals(fixture.View.Items[0], retained) && retained.Item == metadata,
+        "An equivalent snapshot did not update the existing same-ID card instance.");
+    check.That(!retained.IsPinActionEnabled && fixture.Main.Pins.CallCount == 1,
+        "An equivalent refresh lost the pending pin action state.");
+    check.That(changes.Count == 1 && changes[0].Action == NotifyCollectionChangedAction.Remove &&
+        changes[0].OldItems?.Count == 1 && ReferenceEquals(changes[0].OldItems![0], removed),
+        "An equivalent refresh rebuilt the retained row instead of removing only the missing card.");
+    check.That(retained.PresentationGeneration == retainedGeneration &&
+        ReferenceEquals(retained.Thumbnail, thumbnail) && ReferenceEquals(retained.DragStorageItem, storage),
+        "A same-content metadata refresh discarded current presentation assets or generation.");
+    check.That(removed.IsPresentationRetired && removed.Thumbnail is null && removed.DragStorageItem is null,
+        "A missing card was removed without retiring and releasing its presentation assets.");
+    var removedCallbackRan = false;
+    check.That(!removed.TryApplyPresentation(removedGeneration, () => removedCallbackRan = true) && !removedCallbackRan,
+        "A removed card accepted a presentation callback from its old generation.");
+    check.That(fixture.Main.QuickActionRefreshCount == 1,
+        "The reused card did not request a quick-action refresh through the upstream boundary.");
+    pendingPin.Fail("controlled pending pin release after identity assertions");
+    await pin;
+
+    // A changed file path, unlike title or pin metadata, invalidates presentation content.
+    var replacement = retained.Item with
+    {
+        Revision = retained.Item.Revision + 1,
+        File = retained.Item.File! with { OriginalPath = "replacement.txt", NormalizedPath = "replacement.txt" },
+    };
+    await PublishAsync(Snapshot(replacement));
+    check.That(fixture.View.Items.Count == 1 && ReferenceEquals(fixture.View.Items[0], retained) && retained.Item == replacement,
+        "A content change replaced the card instance or failed to apply the new snapshot.");
+    check.That(retained.PresentationGeneration > retainedGeneration && retained.Thumbnail is null && retained.DragStorageItem is null,
+        "A content change did not advance the presentation generation and clear old assets.");
+    var replacedCallbackRan = false;
+    check.That(!retained.TryApplyPresentation(retainedGeneration, () => replacedCallbackRan = true) && !replacedCallbackRan,
+        "A content change accepted a presentation callback from the preceding file reference.");
+
+    // Model a removal retiring the visible card before an already-read snapshot publishes.
+    retained.Thumbnail = new BitmapImage();
+    retained.DragStorageItem = new ProbeStorageItem();
+    var beforeRetirement = retained.PresentationGeneration;
+    fixture.RequestRefresh();
+    var staleRead = await fixture.Main.Reads.NextAsync();
+    staleRead.Reply([Snapshot(retained.Item)]);
+    var queuedPublication = await fixture.Dispatcher.NextAsync();
+    retained.RetirePresentation();
+    queuedPublication();
+    check.That(fixture.View.Items.Count == 0 && retained.IsPresentationRetired &&
+        retained.Thumbnail is null && retained.DragStorageItem is null,
+        "An equal-revision snapshot revived a retired card or retained its assets.");
+    check.That(!retained.IsPresentationCurrent(beforeRetirement) && fixture.Main.QuickActionRefreshCount == 2,
+        "Rejecting a retired revision revived its generation or refreshed its quick actions.");
+
+    // A later authoritative revision, as supplied after Undo, may re-enter the projection.
+    var restored = Snapshot(retained.Item with { Revision = retained.Item.Revision + 1 });
+    await PublishAsync(restored);
+    check.That(fixture.View.Items.Count == 1 && ReferenceEquals(fixture.View.Items[0], restored) && !restored.IsPresentationRetired,
+        "A newer revision could not restore the removed item to the projection.");
+
+    // Also exercise a newer revision arriving while the retired instance remains visible.
+    var beforeSecondRetirement = restored.PresentationGeneration;
+    restored.RetirePresentation();
+    var restoredAgain = restored.Item with { Revision = restored.Item.Revision + 1 };
+    await PublishAsync(Snapshot(restoredAgain));
+    check.That(fixture.View.Items.Count == 1 && ReferenceEquals(fixture.View.Items[0], restored) &&
+        restored.Item == restoredAgain && !restored.IsPresentationRetired,
+        "A newer revision did not restore the still-present retired instance through its merge contract.");
+    check.That(!restored.IsPresentationCurrent(beforeSecondRetirement) && fixture.Main.QuickActionRefreshCount == 3,
+        "Restoring a retired instance reused an old generation or skipped quick-action refresh.");
+    check.That(changes.All(change => change.Action != NotifyCollectionChangedAction.Reset),
+        "Projection synchronization emitted a collection Reset/Clear notification.");
+
+    async Task PublishAsync(params ItemCardViewModel[] cards)
+    {
+        fixture.RequestRefresh();
+        var read = await fixture.Main.Reads.NextAsync();
+        read.Reply(cards);
+        await fixture.PublishNextAsync();
+    }
+    static ItemCardViewModel Snapshot(DropItem item) => new(item, IdentityAppStringLocalizer.Instance);
+}
 
 static async Task PinActionRecovery(Checks check)
 {
@@ -200,3 +325,4 @@ internal sealed class Checks
 }
 internal sealed record AssertionResult(bool Passed, string Message);
 internal sealed record ScenarioResult(string Name, bool Passed, IReadOnlyList<AssertionResult> Assertions);
+internal sealed class ProbeStorageItem : IStorageItem;
