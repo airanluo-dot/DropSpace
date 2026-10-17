@@ -127,6 +127,11 @@ DropSpace should feel like a compact system utility, not a content dashboard. Th
 
 Pinned is not a store and the Overlay is not a second product or page. Clipboard items never make the Overlay persist.
 
+Switching collections retires the previous collection's selection and paging
+position while the new destination loads. A failed load shows an operation
+message without presenting old items as the new collection. Refreshing the same
+collection keeps its existing items available if the replacement query fails.
+
 ## Updates
 
 Settings exposes automatic check/download toggles, Stable/Beta channel, current version, last check, state, manual check, download, install/open-location, and release-notes actions. Automatic checking belongs to the process lifetime and runs at most once after normal Tray/Clipboard/Overlay/database startup; reopening a window never checks again. A failed startup check is quiet and visible only as status. Manual checks can repeat and share an in-flight request.

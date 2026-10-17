@@ -286,3 +286,43 @@ getter derives minutes and seconds from the same snapshot.
 These changes received source/whitespace review; no functional Windows lifecycle
 scenario or additional portable probe was run. The next full Windows compile
 covers the combined new source, with results appended below.
+
+The third Windows run,
+[39061052563](https://github.com/airanluo-dot/DropSpace/actions/runs/39061052563),
+compiled exact commit `6604f59a167d06358246b32a0c9d31f3da880f98` successfully:
+**0 warnings, 0 errors**, zero executed tests. Its receipt matched that commit's
+Git tree; both production jobs stayed skipped, and only the distinct Debug check
+was emitted. This covers the native widget action and stopwatch changes at compile
+time. Runtime lifecycle/launch/accessibility scenarios remain unexecuted.
+
+### Continuation: collection navigation ownership
+
+The shared navigation investigation confirmed a separate pre-existing defect:
+`NavigateAsync` changed the section/title before loading, but a failed query kept
+the old cards, count and paging cursor. Once IsBusy reset, the ListView could
+request another page using that old cursor with the new collection filter, mixing
+collections. The issue is broader than widget presentation retirement.
+
+Navigation, loading, paging and the existing capture/removal journal now live in
+`MainViewModel.Navigation.cs`. The production algorithm remains source-linked for
+focused portable execution. A normalized destination change clears the previous
+selection, cursor, pagination flag, cards, asset ownership and count before loading.
+A same-section refresh retains its accepted cards and asset work on failure.
+The destination is not marked empty until a successful query confirms it.
+Cross-destination failures/cancellation show existing localized status messages;
+only the current revision/request may publish them, and exceptions still reach
+the original caller. Clipboard journal merging, removal filtering and overflow
+pagination remain intact. Ordinary navigation has no new user-facing cancel
+button; cancellation coverage concerns the existing API/lifecycle contract.
+
+MainPage also catches a failed collection-navigation await when its page owner
+has retired or a later MainPage navigation revision owns the destination. It
+logs that old failure without opening its error dialog or refocusing search.
+Current navigation errors and settings-save errors still use their existing
+handlers. This view guard does not claim to cover direct navigation from another
+surface that leaves MainPage's own revision unchanged; the shared view-model
+status and query-result guards still protect the projection itself.
+
+The additional localization scan passed for ten languages and 923 IDs. No new
+resource IDs or review fingerprints were needed. The new five-scenario portable
+probe and next Windows build are recorded below after actual execution.

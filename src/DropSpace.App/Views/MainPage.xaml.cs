@@ -339,7 +339,18 @@ public sealed partial class MainPage : Page
             _syncingNavigation = false;
         }
 
-        await _viewModel.NavigateAsync(section);
+        try
+        {
+            await _viewModel.NavigateAsync(section);
+        }
+        catch (Exception exception) when (ownerToken.IsCancellationRequested ||
+            revision != Volatile.Read(ref _navigationRevision))
+        {
+            // The newer navigation owns visible feedback; retain diagnostics without
+            // opening an old request's error dialog over its destination.
+            _logger.LogWarning(exception, "A retired main-page navigation failed.");
+            return null;
+        }
         UpdateSectionChrome();
         return !ownerToken.IsCancellationRequested && revision == Volatile.Read(ref _navigationRevision)
             ? revision

@@ -40,5 +40,12 @@
     "Launch failure injection",
     "Accessibility runtime observation"
   ],
-  "windowsCompilation": "pending"
+  "windowsCompilation": {
+    "runId": 39061052563,
+    "sourceCommit": "6604f59a167d06358246b32a0c9d31f3da880f98",
+    "result": "success",
+    "warnings": 0,
+    "errors": 0,
+    "functionalCases": 0
+  }
 }
