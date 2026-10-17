@@ -37,6 +37,9 @@
         <CompositeTransform x:Name="SurfaceTransform" />
       </Border.RenderTransform>
 
+      <!-- Animated layers keep the XAML opacity default. OverlayCompositionAnimator
+           initializes their handoff visuals to hidden before showing the window;
+           a local zero XAML opacity would overwrite motion on first realization. -->
       <Grid UseLayoutRounding="False">
         <controls:SystemBackdropElement
           x:Name="AcrylicBackdrop"
@@ -56,8 +59,7 @@
           UseLayoutRounding="False"
           Background="{ThemeResource DropSpaceOverlayInteractionBrush}"
           CornerRadius="{StaticResource DropSpaceOverlayRadius}"
-          IsHitTestVisible="False"
-          Opacity="0" />
+          IsHitTestVisible="False" />
         <Grid x:Name="SurfaceContent" UseLayoutRounding="True">
         <Grid>
         <Button
@@ -101,7 +103,6 @@
           HorizontalAlignment="Center"
           VerticalAlignment="Center"
           Spacing="4"
-          Opacity="0"
           Visibility="Collapsed">
           <TextBlock
             HorizontalAlignment="Center"
@@ -116,7 +117,7 @@
             Text="{Binding DragSubtitle}" />
         </StackPanel>
 
-        <Viewbox x:Name="ExpandedPanel" Opacity="0" Visibility="Collapsed" Stretch="Uniform">
+        <Viewbox x:Name="ExpandedPanel" Visibility="Collapsed" Stretch="Uniform">
         <Grid Width="560" Height="340">
         <island:ExpandedIslandMusicView x:Name="MusicExpanded" Margin="18,0" Visibility="Collapsed"/>
         <island:WidgetsExpandedView x:Name="WidgetsExpanded" Margin="18,0" Visibility="Collapsed" SettingsRequested="OnWidgetSettingsRequested"/>

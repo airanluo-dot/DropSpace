@@ -61,6 +61,7 @@ public sealed partial class MainPage : Page
     private bool _quickActionsSettingsBuilt;
     private bool _subscriptionsAttached;
     private bool _presentationActive;
+    private bool _pruningItemSelection;
     private long _navigationRevision;
 
     public MainPage(
@@ -208,6 +209,7 @@ public sealed partial class MainPage : Page
             _dropLinkHost.PairingOffered += OnPairingOfferedAsync;
             _dropLinkHost.HandoffOffered += OnHandoffOfferedAsync;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.BatchVisibilityChanged += OnBatchVisibilityChanged;
             _settingsEditor.PropertyChanged += OnSettingsEditorPropertyChanged;
             _modules.Changed += OnModulesChanged;
             _subscriptionsAttached = true;
@@ -219,6 +221,7 @@ public sealed partial class MainPage : Page
         SyncNavigationSelection();
         SyncSettingsControls();
         UpdateSectionChrome();
+        PruneHiddenItemSelection();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs args) => Retire();
@@ -249,6 +252,7 @@ public sealed partial class MainPage : Page
         }
 
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.BatchVisibilityChanged -= OnBatchVisibilityChanged;
         _settingsEditor.PropertyChanged -= OnSettingsEditorPropertyChanged;
         _modules.Changed -= OnModulesChanged;
         _dropLinkHost.TransferOffered -= OnTransferOfferedAsync;
@@ -259,7 +263,26 @@ public sealed partial class MainPage : Page
 
     private async void OnItemsContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
-        if (args.InRecycleQueue || !_viewModel.HasMoreItems ||
+        if (args.InRecycleQueue)
+        {
+            // Recycled containers must release the old card and its visibility binding.
+            args.ItemContainer.ClearValue(UIElement.VisibilityProperty);
+            return;
+        }
+
+        if (args.Item is ItemCardViewModel card)
+        {
+            // Collapse the container itself so a hidden batch member cannot retain
+            // an empty selection target or participate in keyboard/accessibility navigation.
+            args.ItemContainer.SetBinding(UIElement.VisibilityProperty, new Microsoft.UI.Xaml.Data.Binding
+            {
+                Source = card,
+                Path = new PropertyPath(nameof(ItemCardViewModel.IsBatchMemberVisible)),
+                Converter = (Microsoft.UI.Xaml.Data.IValueConverter)Application.Current.Resources["BoolToVisibilityConverter"],
+            });
+        }
+
+        if (!_viewModel.HasMoreItems ||
             args.ItemIndex + 40 < sender.Items.Count)
         {
             return;
@@ -286,38 +309,62 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        await RunAsync(() => SelectSectionAsync(section));
+        await SelectSectionAsync(section);
     }
 
-    private async Task SelectSectionAsync(string section)
-    {
-        var revision = Interlocked.Increment(ref _navigationRevision);
-        var ownerToken = _dialogLifetime.Token;
-        await _settingsEditor.FlushEditsAsync();
-        if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return;
-        await _settingsEditor.FlushDownloadLimitsAsync();
-        // A newer request may bypass a flush that already drained its pending queue.
-        // Only the latest live request may publish its destination after that save.
-        if (ownerToken.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision)) return;
-        if (_moduleNavigation.TryGetValue(section, out var module))
-        {
-            if (IsModuleActive(module.Id)) ShowModulePage(section, module.Manifest, module.Page);
-            else RefreshModuleNavigation();
-            return;
-        }
-        RetireModulePage();
-        _syncingNavigation = true;
-        try
-        {
-            Navigation.SelectedItem = GetNavigationItem(section);
-        }
-        finally
-        {
-            _syncingNavigation = false;
-        }
+    private readonly record struct NavigationOwnership(long PageRevision, long SharedRevision);
 
-        await _viewModel.NavigateAsync(section);
-        UpdateSectionChrome();
+    private bool OwnsNavigation(NavigationOwnership ownership, CancellationToken ownerToken) =>
+        !ownerToken.IsCancellationRequested &&
+        ownership.PageRevision == Volatile.Read(ref _navigationRevision) &&
+        _viewModel.IsNavigationCurrent(ownership.SharedRevision);
+
+    private async Task<NavigationOwnership?> SelectSectionAsync(string section)
+    {
+        var ownership = new NavigationOwnership(
+            Interlocked.Increment(ref _navigationRevision), _viewModel.ReserveNavigation());
+        var ownerToken = _dialogLifetime.Token;
+        NavigationOwnership? completed = null;
+        await RunAsync(async () =>
+        {
+            try
+            {
+                await _settingsEditor.FlushEditsAsync();
+                if (!OwnsNavigation(ownership, ownerToken)) return;
+                await _settingsEditor.FlushDownloadLimitsAsync();
+                // Main-window and Island requests share this reservation, including requests
+                // that leave a section and return while settings are still being saved.
+                if (!OwnsNavigation(ownership, ownerToken)) return;
+                if (_moduleNavigation.TryGetValue(section, out var module))
+                {
+                    if (IsModuleActive(module.Id)) ShowModulePage(section, module.Manifest, module.Page);
+                    else RefreshModuleNavigation();
+                    if (OwnsNavigation(ownership, ownerToken)) completed = ownership;
+                    return;
+                }
+                RetireModulePage();
+                _syncingNavigation = true;
+                try
+                {
+                    Navigation.SelectedItem = GetNavigationItem(section);
+                }
+                finally
+                {
+                    _syncingNavigation = false;
+                }
+
+                await _viewModel.NavigateAsync(section, ownership.SharedRevision);
+                if (!OwnsNavigation(ownership, ownerToken)) return;
+                UpdateSectionChrome();
+                completed = ownership;
+            }
+            catch (Exception exception) when (!OwnsNavigation(ownership, ownerToken))
+            {
+                // Includes preflight failures: the newer request owns visible feedback.
+                _logger.LogWarning(exception, "A retired main-page navigation failed.");
+            }
+        }, () => OwnsNavigation(ownership, ownerToken));
+        return completed;
     }
 
     private async void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
@@ -331,7 +378,8 @@ public sealed partial class MainPage : Page
         if (args.Key == VirtualKey.Escape)
         {
             if (!string.IsNullOrEmpty(SearchBox.Text)) SearchBox.Text = string.Empty;
-            else ItemsList.Focus(FocusState.Keyboard);
+            else if (!ItemsList.Focus(FocusState.Keyboard))
+                GetNavigationItem(_viewModel.CurrentSection).Focus(FocusState.Keyboard);
             args.Handled = true;
         }
     }
@@ -437,7 +485,12 @@ public sealed partial class MainPage : Page
 
     private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs args)
     {
-        var cards = args.Items.OfType<ItemCardViewModel>().ToArray();
+        var cards = args.Items.OfType<ItemCardViewModel>().Where(IsActionableItem).ToArray();
+        if (cards.Length == 0)
+        {
+            args.Cancel = true;
+            return;
+        }
         if (cards.Length == 1 && cards[0].IsGrouped && cards[0].DropBatchId is { } batchId)
         {
             args.Data.SetDataProvider(StandardDataFormats.StorageItems, async request =>
@@ -510,7 +563,7 @@ public sealed partial class MainPage : Page
 
     private async void OnItemDoubleTapped(object sender, DoubleTappedRoutedEventArgs args)
     {
-        if (ItemsList.SelectedItem is ItemCardViewModel card && card.CanOpen)
+        if (ItemsList.SelectedItem is ItemCardViewModel card && IsActionableItem(card) && card.CanOpen)
         {
             await RunAsync(() => _viewModel.OpenAsync(card));
         }
@@ -518,7 +571,7 @@ public sealed partial class MainPage : Page
 
     private async void OnItemsListKeyDown(object sender, KeyRoutedEventArgs args)
     {
-        if (ItemsList.SelectedItem is not ItemCardViewModel card)
+        if (ItemsList.SelectedItem is not ItemCardViewModel card || !IsActionableItem(card))
         {
             return;
         }
@@ -540,7 +593,8 @@ public sealed partial class MainPage : Page
 
     private async void OnPrimaryQuickActionClicked(object sender, RoutedEventArgs args)
     {
-        if (sender is not FrameworkElement { Tag: QuickActionButtonViewModel quickAction })
+        if (sender is not FrameworkElement { Tag: QuickActionButtonViewModel quickAction } ||
+            !IsActionableItem(quickAction.Card))
         {
             return;
         }
@@ -1228,6 +1282,7 @@ public sealed partial class MainPage : Page
     private async void OnQuickActionClicked(object sender, RoutedEventArgs args)
     {
         if (sender is not MenuFlyoutItem menu || menu.CommandParameter is not string actionText || GetCard(menu) is not { } card) return;
+        if (!IsActionableItem(card)) return;
         if (!Enum.TryParse<ItemActionId>(actionText, out var action)) return;
         await RunAsync(async () =>
         {
@@ -1851,36 +1906,43 @@ public sealed partial class MainPage : Page
     private async void OnSpaceAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Space"));
+        await SelectSectionAsync("Space");
     }
 
     private async void OnClipboardAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Clipboard"));
+        await SelectSectionAsync("Clipboard");
     }
 
     private async void OnPinnedAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Pinned"));
+        await SelectSectionAsync("Pinned");
     }
 
     private async void OnSearchAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        if (_viewModel.IsSettingsVisible || _viewModel.IsMusicVisible)
+        var ownerToken = _dialogLifetime.Token;
+        NavigationOwnership? ownership = new NavigationOwnership(
+            Volatile.Read(ref _navigationRevision), _viewModel.NavigationRevision);
+        if (IsModulePageVisible || !_viewModel.IsCollectionVisible)
         {
-            await RunAsync(() => SelectSectionAsync("Space"));
+            var section = _viewModel.IsCollectionVisible ? _viewModel.CurrentSection : "Space";
+            ownership = await SelectSectionAsync(section);
         }
 
-        SearchBox.Focus(FocusState.Keyboard);
+        // A newer request from any surface owns focus, even if it returns to this section.
+        if (ownership is { } current && OwnsNavigation(current, ownerToken) &&
+            !IsModulePageVisible && _viewModel.IsCollectionVisible)
+            SearchBox.Focus(FocusState.Keyboard);
     }
 
     private async void OnSettingsAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Settings"));
+        await SelectSectionAsync("Settings");
     }
 
     private async void OnUndoAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
@@ -2323,6 +2385,28 @@ public sealed partial class MainPage : Page
             ItemsList.SelectedItems.OfType<ItemCardViewModel>());
     }
 
+    private bool IsActionableItem(ItemCardViewModel card) =>
+        !IsModulePageVisible && _viewModel.IsCurrentVisibleItem(card);
+
+    private void OnItemsSelectionChanged(object sender, SelectionChangedEventArgs args) =>
+        PruneHiddenItemSelection();
+
+    private void OnBatchVisibilityChanged(object? sender, EventArgs args) =>
+        PruneHiddenItemSelection();
+
+    private void PruneHiddenItemSelection()
+    {
+        if (_pruningItemSelection) return;
+        _pruningItemSelection = true;
+        try
+        {
+            foreach (var card in ItemsList.SelectedItems.OfType<ItemCardViewModel>()
+                         .Where(card => !IsActionableItem(card)).ToArray())
+                ItemsList.SelectedItems.Remove(card);
+        }
+        finally { _pruningItemSelection = false; }
+    }
+
     private sealed record QuickActionSlotContext(QuickActionProfile Profile, int Index);
 
     private sealed record QuickActionSettingsControls(
@@ -2364,12 +2448,14 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private async Task ShowMessageAsync(string title, string content)
+    private async Task ShowMessageAsync(string title, string content, Func<bool>? canPresent = null)
     {
         var entered = false;
         try
         {
             await _dialogGate.WaitAsync(_dialogLifetime.Token); entered = true;
+            // Navigation can retire while another dialog owns the presentation gate.
+            if (canPresent is not null && !canPresent()) return;
             var dialog = new ContentDialog
             {
                 XamlRoot = XamlRoot,
@@ -2409,7 +2495,7 @@ public sealed partial class MainPage : Page
         });
     }
 
-    private async Task RunAsync(Func<Task> operation)
+    private async Task RunAsync(Func<Task> operation, Func<bool>? canPresentError = null)
     {
         try
         {
@@ -2422,7 +2508,8 @@ public sealed partial class MainPage : Page
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "A main-page operation failed.");
-            if (_dialogLifetime.IsCancellationRequested || XamlRoot is null) return;
+            if (_dialogLifetime.IsCancellationRequested || XamlRoot is null ||
+                (canPresentError is not null && !canPresentError())) return;
             if (exception is HandoffSendUnavailableException handoffFailure)
             {
                 var (title, content) = handoffFailure.Reason switch
@@ -2431,13 +2518,13 @@ public sealed partial class MainPage : Page
                     HandoffSendUnavailableReason.Busy => ("TransferUnavailableTitle", "TransferBusyContent"),
                     _ => ("OperationIncompleteTitle", "OperationIncompleteContent"),
                 };
-                await ShowMessageAsync(_strings.Get(title), _strings.Get(content));
+                await ShowMessageAsync(_strings.Get(title), _strings.Get(content), canPresentError);
                 return;
             }
             if (exception is TransferPreparationLimitException)
             {
                 await ShowMessageAsync(_strings.Get("TransferUnavailableTitle"),
-                    _strings.Get("TransferPreparationLimitContent"));
+                    _strings.Get("TransferPreparationLimitContent"), canPresentError);
                 return;
             }
             if (exception is SettingsUpdateException settingsFailure)
@@ -2445,12 +2532,12 @@ public sealed partial class MainPage : Page
                 SyncSettingsControls();
                 await ShowMessageAsync(_strings.Get("OperationIncompleteTitle"),
                     _strings.Format(settingsFailure.StageResourceKey == "SettingsStageRecovery" ? "SettingsRecoveryFailed" : "SettingsUpdateFailed",
-                        _strings.Get(settingsFailure.StageResourceKey), settingsFailure.OperationId));
+                        _strings.Get(settingsFailure.StageResourceKey), settingsFailure.OperationId), canPresentError);
                 return;
             }
             await ShowMessageAsync(
                 _strings.Get("OperationIncompleteTitle"),
-                _strings.Get("OperationIncompleteContent"));
+                _strings.Get("OperationIncompleteContent"), canPresentError);
         }
     }
 

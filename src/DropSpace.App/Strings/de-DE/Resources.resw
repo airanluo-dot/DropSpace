@@ -630,8 +630,12 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>Die automatische Wiederherstellung konnte nicht abgeschlossen werden. Verwenden Sie zur Wiederherstellung die Erweiterung „Neu installieren“ oder „Entfernen“.</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>Der Vorgang wurde abgebrochen.</value></data>
   <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC Uhr</value></data>
-  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Fokus · 25 Min</value></data>
-  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Timer · 5 Min</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Fokus-Timer</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Timer</value></data>
+  <data name="WidgetTimerDuration" xml:space="preserve"><value>Dauer</value></data>
+  <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} Min.</value></data>
+  <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>Wenn Sie die Dauer ändern, wird der Timer zurückgesetzt und pausiert.</value></data>
+  <data name="WidgetTimerReset.Text" xml:space="preserve"><value>Timer zurücksetzen</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>Freier Platz auf dem Systemlaufwerk</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>Netzwerkadapter</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>Rechner</value></data>

@@ -6,6 +6,11 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      compile_only:
+        description: Compile Debug App and XAML only; no models, runtime staging, tests, packages, or release evidence
+        required: false
+        default: false
+        type: boolean
       full_tests:
         description: Explicit manual opt-in for unrestricted tests; PRs use focused selection
         required: false
@@ -17,7 +22,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: windows-ci-${{ github.ref }}
+  group: windows-ci-${{ github.ref }}${{ github.event_name == 'workflow_dispatch' && inputs.compile_only == true && '-compile-only' || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -68,7 +73,7 @@ jobs:
       contents: write
       actions: read
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta != 'true'
+    if: (github.event_name != 'workflow_dispatch' || inputs.compile_only != true) && needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta != 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     outputs:
@@ -933,7 +938,7 @@ jobs:
     # final main packages without unit/model suites; one installer payload scenario remains.
     name: Isolated Windows producer
     needs: change-scope
-    if: needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta == 'true'
+    if: (github.event_name != 'workflow_dispatch' || inputs.compile_only != true) && needs.change-scope.outputs.maintenance_only != 'true' && needs.change-scope.outputs.isolated_beta == 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
@@ -1090,15 +1095,84 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  compile-windows:
+    name: Debug App and XAML compilation only
+    if: github.event_name == 'workflow_dispatch' && inputs.compile_only == true
+    runs-on: windows-2025
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Enforce compilation-only scope
+        shell: pwsh
+        env:
+          FULL_TESTS: ${{ inputs.full_tests }}
+        run: |
+          if ($env:FULL_TESTS -eq 'true') { throw 'compile_only cannot be combined with full_tests.' }
+          foreach ($directory in @('artifacts/ai-runtime', 'artifacts/cuda-runtime', 'artifacts/lyrics-language')) {
+            if (Test-Path -LiteralPath $directory) { throw "Compilation-only checkout must not contain staged assets: $directory" }
+          }
+          New-Item artifacts/windows-compile-only -ItemType Directory -Force | Out-Null
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+          cache: true
+          cache-dependency-path: Directory.Packages.props
+      - name: Restore only locked App compilation dependencies
+        shell: pwsh
+        run: |
+          dotnet restore src/DropSpace.App/DropSpace.App.csproj -p:Configuration=Debug -p:Platform=x64 -p:RestoreLockedMode=true
+          if ($LASTEXITCODE -ne 0) { throw 'Locked Debug App dependency restore failed.' }
+      - name: Compile Debug App and XAML without staging or execution
+        shell: pwsh
+        run: |
+          dotnet build src/DropSpace.App/DropSpace.App.csproj -c Debug --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false -bl:artifacts/windows-compile-only/app-build.binlog 2>&1 | Tee-Object artifacts/windows-compile-only/app-build.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Debug App/XAML compilation failed.' }
+      - name: Record nonpublishing compilation evidence
+        shell: pwsh
+        run: |
+          $source = (& git rev-parse HEAD).Trim()
+          if ($source -cne $env:GITHUB_SHA) { throw 'Compilation evidence must bind the actual workflow checkout.' }
+          $receipt = [ordered]@{
+            schemaVersion = 1
+            kind = 'windows-debug-app-xaml-compile-only'
+            repository = $env:GITHUB_REPOSITORY
+            runId = $env:GITHUB_RUN_ID
+            runAttempt = $env:GITHUB_RUN_ATTEMPT
+            sourceCommit = $source
+            sourceTree = (& git rev-parse 'HEAD^{tree}').Trim()
+            configuration = 'Debug'
+            appXamlBuild = $true
+            tests = [ordered]@{ status = 'not-run'; executed = 0 }
+            releasePromotionEligible = $false
+            buildLogSha256 = (Get-FileHash artifacts/windows-compile-only/app-build.txt -Algorithm SHA256).Hash.ToLowerInvariant()
+          }
+          $receipt | ConvertTo-Json -Depth 4 | Set-Content artifacts/windows-compile-only/compile-receipt.json -Encoding utf8
+          Write-Output ('DROPSPACE_COMPILE_RECEIPT=' + ($receipt | ConvertTo-Json -Depth 4 -Compress))
+          'Debug App/XAML compilation only. No App execution, functional tests, AI/CUDA/model staging, packages or publication. This artifact cannot qualify Release promotion.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Retain compilation diagnostics only
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dropspace-debug-compile-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/windows-compile-only/*
+          if-no-files-found: warn
+          retention-days: 14
+
   required-validation:
-    name: Build and test (x64)
-    needs: [change-scope, produce-windows, focused-windows]
+    name: ${{ github.event_name == 'workflow_dispatch' && inputs.compile_only == true && 'Debug App/XAML compile check' || 'Build and test (x64)' }}
+    needs: [change-scope, produce-windows, focused-windows, compile-windows]
     if: ${{ always() }}
     runs-on: ubuntu-26.04
     steps:
       - name: Require the selected producer outcome
         shell: bash
         env:
+          COMPILE_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.compile_only == true }}
+          COMPILE_RESULT: ${{ needs.compile-windows.result }}
           SCOPE_RESULT: ${{ needs.change-scope.result }}
           MAINTENANCE_ONLY: ${{ needs.change-scope.outputs.maintenance_only }}
           RELEASE_VERSION: ${{ needs.change-scope.outputs.release_version }}
@@ -1108,6 +1182,12 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SCOPE_RESULT" == success ]]
+          if [[ "$COMPILE_ONLY" == true ]]; then
+            [[ "$COMPILE_RESULT" == success && "$FOCUSED_RESULT" == skipped && "$LEGACY_RESULT" == skipped ]]
+            echo 'Debug App/XAML compilation succeeded; zero functional cases and no Release or publication evidence.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          [[ "$COMPILE_RESULT" == skipped ]]
           if [[ "$MAINTENANCE_ONLY" == true ]]; then
             [[ "$FOCUSED_RESULT" == skipped && "$LEGACY_RESULT" == skipped ]]
             echo 'Maintenance-only source scope: no App build or functional test pass is claimed.' >> "$GITHUB_STEP_SUMMARY"

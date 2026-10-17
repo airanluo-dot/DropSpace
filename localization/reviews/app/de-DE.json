@@ -2368,12 +2368,12 @@
       "fe57a0e98d5430e55f94c74eb7077fb98ddeb74faa5df0d9935b7df7a48e0ef6"
     ],
     "WidgetFocusTimer.Text": [
-      "0fa29864e0580c9ef57b06f3d485c43fdc7c54c470263681f3346944607a0f73",
-      "4c07dc3653e23b806f43497d2176550aedb3a92687df26a3e206e07b1324972f"
+      "662abe203e2429ae3807ad65c1e4005f7cc986101eb014caa28e676257857e22",
+      "a921e5a04c31ea2338fc24b4f1d57e6d60af4f6a74bf6fe1a4fc1e499dc08913"
     ],
     "WidgetCountdown.Text": [
-      "5d44e8d86cba8dcac1ad7f99be495e6915f32e1e247a74496c06bf53fbcabe64",
-      "04115fa8ff453a47ec80fbf68febba8dbf25e3d824b72839f0d0e2473125c7ff"
+      "cdeec2b374c18dd4b59abc6d8c7001c4b163b3261ae62ac84b15560490f037a0",
+      "cdeec2b374c18dd4b59abc6d8c7001c4b163b3261ae62ac84b15560490f037a0"
     ],
     "WidgetDiskSpace.Text": [
       "345377a76abdd76409958a300c2e52ca226d14a029b2d9a051bd9203b8242d48",
@@ -3682,27 +3682,32 @@
     "NearbyLinkQrAutomationName": [
       "31bd53d7075e5bfb6044058866451f3d12543b771d203137c5df124ec8efdcdc",
       "60b314c0a73a9e820f161d442228d139acd49e35e0932c960d0272dc8a3804b9"
+    ],
+    "WidgetTimerDuration": [
+      "4fc52a3c4c558b517c463b22d86d0e3b9cfd4255c98fe3510f9075b37ab419c9",
+      "668cbe316167110bd88a29f03832fab7cc99ed14a96900e3be89270fc84c82a4"
+    ],
+    "WidgetTimerMinutesFormat": [
+      "96d15cf84b61a585c303169c0cf02914bf046268787391b33df3ff8855f28e12",
+      "f7744b090b9513ba533001b57a12b08025e86b8cb49e0deb4e22ab7156583204"
+    ],
+    "WidgetTimerDurationHelp": [
+      "49ba0a88af2a368972ae21b3305a0f9a0de7abb39d8c2476321661c5419bd3c1",
+      "bc3f22c745567db0bfd8e62cec74e8ef4244705a9bdc42a7581344367370d5a7"
+    ],
+    "WidgetTimerReset.Text": [
+      "23d712d2c6eda4e0000b250dde60dad42d59ef3545ea257e0e5f19cb813479aa",
+      "77a1cf7e3bff3eeb722708c1502ee63b3213e2369994a7299a40999080956963"
     ]
   },
-  "reviewedBy": "codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction",
-  "reviewedAt": "2026-10-13T05:35:24.547Z",
+  "reviewedBy": "Codex timer reset: one resource ID reviewed for reset-and-pause semantics, distinct from stopwatch and layout reset",
+  "reviewedAt": "2026-10-17T19:25:29.672Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "ManageNearbyLinksLabel.Text",
-      "NearbyLinksTitle",
-      "NearbyLinksEmpty",
-      "NearbyLinksSummary",
-      "NearbyLinksLifetime",
-      "NearbyLinksDisabled",
-      "NearbyLinkUnavailable",
-      "NearbyLinkLabel",
-      "RevokeNearbyLinkTitle",
-      "RevokeNearbyLinkContent",
-      "RevokeNearbyLinkCompleted",
-      "NearbyLinkQrAutomationName"
+      "WidgetTimerReset.Text"
     ],
-    "reviewedBy": "codex/native_context and independent media_control_review: nearby link management 12 new IDs; zh-TW revoke label meaning correction",
-    "reviewedAt": "2026-10-13T05:35:24.547Z"
+    "reviewedBy": "Codex timer reset: one resource ID reviewed for reset-and-pause semantics, distinct from stopwatch and layout reset",
+    "reviewedAt": "2026-10-17T19:25:29.672Z"
   }
 }

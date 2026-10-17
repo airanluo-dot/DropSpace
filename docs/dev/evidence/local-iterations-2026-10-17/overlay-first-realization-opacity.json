@@ -1,0 +1,58 @@
+{
+  "recordedAtUtc": "2026-10-17T20:23:03.062018+00:00",
+  "scope": "Remove three local XAML zero opacity declarations; compositor remains the sole motion opacity owner.",
+  "baseCommit": "cfacd50bcb4035c975375e577035225818bfec4d",
+  "sourceSha256": {
+    "src/DropSpace.App/OverlayWindow.xaml": "9c793c72fcd3e739603d7139b8e4d744cb12e6bc17a9bcbc7a8a7af08b16e15d"
+  },
+  "sourceEvidence": {
+    "nativeRunId": "39065889915",
+    "observed": "Cold settled ExpandedPanel XAML/Composition opacity 0/0, warm reopened 0/1; cold desktop showed background. No new native run in this iteration.",
+    "frameworkSource": "https://github.com/microsoft/microsoft-ui-xaml/blob/main/dxaml/xcp/components/comptree/HWCompNodeWinRT.cpp#L142",
+    "frameworkMechanism": "Previous opacity starts at visual default 1 to preserve pre-render handoff writes; UpdatePrimaryVisual writes local XAML opacity when it differs from that cache (lines 2066-2080). Public main source is corroborating implementation evidence, not a trace of the installed runtime.",
+    "initialization": "OverlayMotionOrchestrator constructor SnapTo(Hidden) zeros Surface/Compact/Drag/Expanded and tint before first native show; DragPanel and ExpandedPanel retain Visibility.Collapsed."
+  },
+  "checks": [
+    {
+      "name": "XML parse plus exact named-element attributes against HEAD",
+      "count": 1,
+      "status": "passed",
+      "scope": "Only Opacity removed on the three named elements; collapsed state retained."
+    },
+    {
+      "name": "Whitespace and CRLF check",
+      "count": 1,
+      "status": "passed",
+      "scope": "Product XAML only; 319 CRLF lines and no bare LF at check time."
+    },
+    {
+      "name": "Independent read-only review",
+      "count": 1,
+      "status": "passed",
+      "reviewer": "combined_review",
+      "scope": "Cold initialization, absence of new flash path, compositor ownership, separate close patch unchanged."
+    }
+  ],
+  "readOnlyInvestigationNotes": [
+    "Initial guessed Core OverlayMotionValues.cs path was absent; actual definition read in OverlayMotionController.cs.",
+    "Initial raw framework URL included src/ and returned HTTP 404; corrected public main URL without src/ was read successfully.",
+    "No production UIElement.Opacity writes or storyboard targets found for these five compositor-owned layers.",
+    "Final post-review edit narrows a comment from local XAML opacity to local zero XAML opacity; no executable/attribute change after static check."
+  ],
+  "executionCounts": {
+    "functionalTests": 0,
+    "fakeFrameworkProbes": 0,
+    "appBuilds": 0,
+    "nativeRuns": 0,
+    "workflowDispatches": 0
+  },
+  "limitations": [
+    "Native cold-first-frame fix remains unverified until a subsequent Windows run with a new first-frame assertion.",
+    "No changes to diagnostic opacity, capture gate, timing waits, cases, release, or version.",
+    "The reviewed OverlayWindow.xaml.cs system-close patch remains separate and was not edited during this iteration."
+  ],
+  "receipt": {
+    "path": "artifacts/local-iterations-2026-10-17/overlay-first-realization-opacity/validation-inputs.json",
+    "sha256": "f56643647f9f0f7f0b25a2f21f5a90ccca0e2aeae6f0f511257d8647e67fab8a"
+  }
+}

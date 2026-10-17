@@ -1,0 +1,250 @@
+{
+  "kind": "beta-ui-summary-empty-array-fix",
+  "baselineCommit": "8fe0c822052c2dca0f180133421f23c3a12c5894",
+  "completedAtUtc": "2026-10-17T20:39:02.838374+00:00",
+  "sourceSha256": {
+    "scripts/Test-BetaUiDiagnostics.ps1": "4f21b586a01e447cee39634a824e38101ee1d5fb98b4b5ef4d7d0d4a8224d731",
+    "scripts/Test-BetaUiEvidenceSummary.ps1": "8d6ca98702b489d1ed1f658cf37cfb392698759247d69057e5a21e8a293b8803"
+  },
+  "inputSha256": {
+    "artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/launcher-before.ps1": "fab00f6c182d3d97cd09d2833a3ec929edf785268003e71079d7e7a1de0a3516",
+    "artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/launcher-after.ps1": "4f21b586a01e447cee39634a824e38101ee1d5fb98b4b5ef4d7d0d4a8224d731",
+    "artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/probe-input.ps1": "8d6ca98702b489d1ed1f658cf37cfb392698759247d69057e5a21e8a293b8803",
+    "artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/source-integrity-check.py": "d70707eb565b19333019bcefe47100b4b01a31d6a27551bbcb7eb640483615c0"
+  },
+  "helperScenario": "lifecycle-checkpoint-summary-shapes",
+  "distinctScenarioCount": 1,
+  "functionalScenarioExecutions": 2,
+  "helperScenarioExecutions": 2,
+  "failedScenarioExecutions": 1,
+  "passedScenarioExecutions": 1,
+  "helperRuns": [
+    {
+      "phase": "before",
+      "result": "failed-as-reproduction",
+      "exitCode": 1,
+      "stage": "empty",
+      "assertionsPassed": 0,
+      "failure": "The property 'Length' cannot be found on this object. Verify that the property exists.",
+      "sourceSha256": "fab00f6c182d3d97cd09d2833a3ec929edf785268003e71079d7e7a1de0a3516",
+      "command": [
+        "/workspace/.tools/powershell-parser/expanded/opt/microsoft/powershell/7/pwsh",
+        "-NoProfile",
+        "-NonInteractive",
+        "-File",
+        "/workspace/DropSpace/scripts/Test-BetaUiEvidenceSummary.ps1",
+        "-SourcePath",
+        "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/launcher-before.ps1",
+        "-OutputDirectory",
+        "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/before"
+      ],
+      "receipt": "artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/before/receipt.json"
+    },
+    {
+      "phase": "after",
+      "result": "passed",
+      "exitCode": 0,
+      "assertionsPassed": 20,
+      "sourceSha256": "4f21b586a01e447cee39634a824e38101ee1d5fb98b4b5ef4d7d0d4a8224d731",
+      "command": [
+        "/workspace/.tools/powershell-parser/expanded/opt/microsoft/powershell/7/pwsh",
+        "-NoProfile",
+        "-NonInteractive",
+        "-File",
+        "/workspace/DropSpace/scripts/Test-BetaUiEvidenceSummary.ps1",
+        "-SourcePath",
+        "/workspace/DropSpace/scripts/Test-BetaUiDiagnostics.ps1",
+        "-OutputDirectory",
+        "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/after"
+      ],
+      "receipt": "artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/after/receipt.json"
+    }
+  ],
+  "staticChecks": [
+    {
+      "check": "exact change/snapshot/unchanged gate and transport/whitespace integrity",
+      "executions": 1,
+      "exitCode": 0,
+      "result": "passed",
+      "log": "artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/source-integrity.txt"
+    }
+  ],
+  "review": {
+    "agent": "combined_review",
+    "result": "No blocking finding; read actual production two-line diff, same helper probe and before/after reports/JSON. No reviewer execution."
+  },
+  "nativeAppExecutions": 0,
+  "launcherExecutions": 0,
+  "pngTransportExecutions": 0,
+  "actionsDispatches": 0,
+  "boundary": "Two executions of one explicit PowerShell helper-only scene: first reproduces the old empty-array StrictMode failure; second passes the same scene with 20 assertions. The production launcher body, App, PNG transport and workflows never run here. Native run 39067212418 remains unknown; this local result does not replace its missing summary.",
+  "retainedHelperReceipts": {
+    "before": {
+      "kind": "beta-ui-summary-helper-shape-probe",
+      "scenario": "lifecycle-checkpoint-summary-shapes",
+      "sourcePath": "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/beta-ui-summary-shape-fix/launcher-before.ps1",
+      "sourceSha256": "fab00f6c182d3d97cd09d2833a3ec929edf785268003e71079d7e7a1de0a3516",
+      "actualScenarioCount": 1,
+      "passedScenarioCount": 0,
+      "assertionsPassed": 0,
+      "status": "failed",
+      "stage": "empty",
+      "failure": "The property 'Length' cannot be found on this object. Verify that the property exists.",
+      "nativeAppExecutions": 0,
+      "launcherExecutions": 0,
+      "pngTransportExecutions": 0,
+      "failureDetail": "PropertyNotFoundException: \nLine |\n   4 |      if ($json.Length -gt 2000) {\n     |          ~~~~~~~~~~~~~~~~~~~~~\n     | The property 'Length' cannot be found on this object. Verify that the property exists.\n"
+    },
+    "after": {
+      "kind": "beta-ui-summary-helper-shape-probe",
+      "scenario": "lifecycle-checkpoint-summary-shapes",
+      "sourcePath": "/workspace/DropSpace/scripts/Test-BetaUiDiagnostics.ps1",
+      "sourceSha256": "4f21b586a01e447cee39634a824e38101ee1d5fb98b4b5ef4d7d0d4a8224d731",
+      "actualScenarioCount": 1,
+      "passedScenarioCount": 1,
+      "assertionsPassed": 20,
+      "status": "passed",
+      "stage": "completed",
+      "failure": null,
+      "nativeAppExecutions": 0,
+      "launcherExecutions": 0,
+      "pngTransportExecutions": 0
+    }
+  },
+  "retainedSerializedCheckpointSamples": [
+    {
+      "stage": "empty",
+      "captureOrder": "frozen-opacity-then-desktop-before-rtb",
+      "motionSettled": true,
+      "frameActive": null,
+      "phase": null,
+      "nativeVisibility": null,
+      "layers": [],
+      "lifecycle": {
+        "hwnd": "0x1234",
+        "processId": 123,
+        "closingEvents": 1,
+        "closedEvents": 1,
+        "cancelObserved": true,
+        "closeRequestPosted": true,
+        "shutdownRequested": true,
+        "experienceChangedEvents": 2,
+        "experienceState": "Hidden",
+        "native": {
+          "regionBounds": null,
+          "regionType": null,
+          "processId": 0,
+          "isWindow": false
+        },
+        "eventSequenceTruncated": false,
+        "eventSequence": []
+      }
+    },
+    {
+      "stage": "singleton",
+      "captureOrder": "frozen-opacity-then-desktop-before-rtb",
+      "motionSettled": true,
+      "frameActive": null,
+      "phase": null,
+      "nativeVisibility": null,
+      "layers": [
+        {
+          "name": "Surface",
+          "xamlOpacity": 1.0,
+          "compositionOpacity": 1.0
+        }
+      ],
+      "lifecycle": {
+        "hwnd": "0x1234",
+        "processId": 123,
+        "closingEvents": 1,
+        "closedEvents": 1,
+        "cancelObserved": true,
+        "closeRequestPosted": true,
+        "shutdownRequested": true,
+        "experienceChangedEvents": 2,
+        "experienceState": "Hidden",
+        "native": {
+          "regionBounds": null,
+          "regionType": null,
+          "processId": 0,
+          "isWindow": false
+        },
+        "eventSequenceTruncated": false,
+        "eventSequence": [
+          {
+            "kind": "app-window-closing",
+            "detail": {
+              "cancel": true
+            },
+            "sequence": 1
+          }
+        ]
+      }
+    },
+    {
+      "stage": "nonempty",
+      "captureOrder": "frozen-opacity-then-desktop-before-rtb",
+      "motionSettled": true,
+      "frameActive": null,
+      "phase": null,
+      "nativeVisibility": null,
+      "layers": [
+        {
+          "name": "Surface"
+        },
+        {
+          "name": "ExpandedPanel"
+        },
+        {
+          "name": "WidgetsExpanded"
+        }
+      ],
+      "lifecycle": {
+        "hwnd": "0x1234",
+        "processId": 123,
+        "closingEvents": 1,
+        "closedEvents": 1,
+        "cancelObserved": true,
+        "closeRequestPosted": true,
+        "shutdownRequested": true,
+        "experienceChangedEvents": 2,
+        "experienceState": "Hidden",
+        "native": {
+          "regionBounds": null,
+          "regionType": null,
+          "processId": 0,
+          "isWindow": false
+        },
+        "eventSequenceTruncated": true,
+        "eventSequence": [
+          {
+            "sequence": 1,
+            "kind": "app-window-closing"
+          },
+          {
+            "sequence": 2,
+            "kind": "window-closed"
+          }
+        ]
+      }
+    },
+    {
+      "stage": "nullable",
+      "layers": null,
+      "popups": null
+    },
+    {
+      "stage": "large",
+      "layers": [],
+      "lifecycle": {
+        "eventSequenceTruncated": true,
+        "eventSequence": {
+          "truncated": true,
+          "jsonPrefix": "[{\"detail\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "completeEvidence": "launcher.json and app/receipt.json"
+        }
+      }
+    }
+  ]
+}

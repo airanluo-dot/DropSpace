@@ -1,0 +1,265 @@
+{
+  "kind": "overlay-lifecycle-diagnostic-preflight",
+  "baselineCommit": "cfacd50bcb4035c975375e577035225818bfec4d",
+  "functionalScenarioExecutions": 0,
+  "nativeScenarioExecutions": 0,
+  "actionsDispatches": 0,
+  "review": "Independent behavior and resource source reviews found no blocker; real Windows results remain pending.",
+  "appCompile": {
+    "receiptPath": "artifacts/local-iterations-2026-10-17/beta-ui-compile/overlay-lifecycle-validation.json",
+    "receiptSha256": "3d0e8cd888528c03578005b3f9a5694769fc32bef41317923d808d638c7fa37b",
+    "evidence": {
+      "recordedAtUtc": "2026-10-17T20:32:02.110704+00:00",
+      "currentSliceCompileAttempts": 1,
+      "currentAttempt": 1,
+      "compileExitCode": 0,
+      "compileFailures": 0,
+      "warnings": 0,
+      "errors": 0,
+      "functionalScenarioExecutions": 0,
+      "nativeScenarioExecutions": 0,
+      "inputsFrozen": true,
+      "sourceAndReferenceSha256": {
+        "Directory.Build.props": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e",
+        "artifacts/local-iterations-2026-10-17/beta-ui-compile/BetaUiCompile.csproj": "260fedc3d8c5b5a5ca885ed330f9404304685bd82e45189319609334047443bb",
+        "artifacts/local-iterations-2026-10-17/beta-ui-compile/CompilationStubs.cs": "8e49b14c10d56bfd92519519cadc2215bb23211da8fe2b1efe64e677a2edb658",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.InteractiveExperiences.Projection.dll": "151ff0208ec9f17419d030b8dd02c94abd369542e355d3289f9d86376e1012f1",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Security.Authentication.OAuth.Projection.dll": "4bbfce3f3e7d15625681dae8f2caec2e4f3d5133d806037ccf0ccb97bab4c939",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.WinUI.dll": "c3b1c90d3a1c5966f19db50fb9e9849f8115e8d22abe9dd614584c2d74bc8c1c",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppLifecycle.Projection.dll": "2069e1089147641400908e3379479877eb77f40cf01e48b81bcfbcd7bcd5e64f",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppNotifications.Builder.Projection.dll": "c2ccc60c6ca0e193617e5a68d6b3bcaec829427b44c92523f69d714cd5d78a37",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppNotifications.Projection.dll": "185dac5d668e42b05b3be6f399c577abe05b0e3751965337d4550c4132e2157a",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.Background.Projection.dll": "93fc465da0b8eff22356c46d7fa17882adbe67b8f48e50ab6d7987cd358d01ff",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.DynamicDependency.Projection.dll": "8f9a81f9c426b5340d6a80692ffd496a7a3d8e715d3e86160ca00e31580b4a11",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.Resources.Projection.dll": "ab664c65b10d51dddbb6e237abd4eb1da2c05b075e787352f1ba6403a53594c8",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.WindowsAppRuntime.Projection.dll": "1eb499c9d2e95bb5836510ff4c5175b67787bfb2cadc98ba7c0419b4de3f03f1",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.BadgeNotifications.Projection.dll": "3f5ef67aec6441e465413371ffdb2063073f43b598cd5b8f8270f56793309114",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Foundation.Projection.dll": "860b2369b8cbd3fcd179f96f278f65981b9bf5461b29c722cc78eae1b477cdc5",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Management.Deployment.Projection.dll": "0da7f4fa936b65b14d8597724083202074eb4c5258aaead99144c593c415681e",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Media.Capture.Projection.dll": "95a8d7bc06d03763aec537b10ca3449adbb0134aad4ee6e42df83ce4c2df3315",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.PushNotifications.Projection.dll": "d1551c8233e4eebb5944eb82731e87dcdc5e05a558a7910bd1f1f0f6a654ebce",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Security.AccessControl.Projection.dll": "c333b08e77b089c8165ca02a079f0eeae323f2c338d503a3a9964fb0a61709a3",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Storage.Pickers.Projection.dll": "ed6c1d4b64680ad9695f68a8fc66b0306bb5341bf3083689d3625e7fafa7aa42",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Storage.Projection.dll": "b02beea6e73508e7ffa0fe4038bf81968c71125f4c13e4b93f72a779d2d7fea2",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.System.Power.Projection.dll": "25230734062eb1a6b8937f4892365cc4ab00b09e39527b45c3111d9269965f63",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.System.Projection.dll": "24db5c2c0e4c5a4abc5c2d1e9e0b69c57056ee60d56033b6ba767ab599104bdd",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.WindowsAppRuntime.Bootstrap.Net.dll": "8014a0d9a8c9e376d7e620f350933b42056cfc5f9cf1eb67feced096ec9b9c21",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.DesktopEvidence.cs": "ec9eab073cd6ce3c9b93efb7c35b768bda445a14e3fb3bdca87544c94077e67a",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Evidence.cs": "8b11b0b1fb8aa3199c9e2cce8357b88e8c42487512b37bc694028eec2a8a35c1",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Fixture.cs": "1da4df57f60d68389ce79b1db6fa5a7fc2a5d1aa213b3e262317b033e5bf9a97",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.OverlayLifecycle.cs": "ea412268c6ccd402962f79db901c2346808f465810d51eff91e012690dc99de7",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.TimerVisual.cs": "e2eb611ea7a6eada3b7d7d43d6249de5b517831e3a657b019de63605d77aa507",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.cs": "648016a270918738122bb18e34598f1c02dea8b13a2e4ebbe9c138c928649f1d",
+        "src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs": "a81a7255e95de8482695452bc07b634115b8ad04f011edeec99b69f69d38c7be",
+        "src/DropSpace.Core/bin/Release/net10.0/DropSpace.Core.dll": "b00081167e9bc348ecab04c9245042856d18d22a35cd6e95c8c33e3846dfd3a7"
+      },
+      "changedInputsAfterBuild": [],
+      "log": "artifacts/local-iterations-2026-10-17/beta-ui-compile/build-8-overlay-lifecycle.log",
+      "logSha256": "b79a9a241843bdb017464f4f3fff28fca64a4623cb6dbad65aabd17e3a943430",
+      "command": [
+        "dotnet",
+        "build",
+        "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/beta-ui-compile/BetaUiCompile.csproj",
+        "--no-restore",
+        "--nologo",
+        "-v:minimal"
+      ],
+      "review": "Independent behavior/visual contract review and resource/error review completed before this compile; reviewers performed no checks or runtime executions.",
+      "boundaries": [
+        "Actual production diagnostic partials are linked against actual WinUI/Windows/Core references; unrelated App collaborators remain signature-only stubs.",
+        "Compile fixture and stubs were unchanged for this slice; existing real WaitForMotionSettledAsync signature remains a non-executed stub body.",
+        "No full App/XAML compilation, native API execution, old timer/batch/visual case execution, or runtime assertion is represented by this compile.",
+        "New overlay-lifecycle is one separately selected case with two fixed required RTB filenames and separate manual-review desktop supplements; existing pixel and case gates remain unchanged.",
+        "The first-frame composition opacity and three-layer loaded/visible/nonzero geometry assertions use immutable values captured before any RTB/UIA; desktop precedes RTB.",
+        "Owned HWND programmatic SC_CLOSE is not physical Alt+F4 input coverage. The single-window experience bridge does not initialize global overlay service listeners."
+      ]
+    }
+  },
+  "launcherStaticChecks": {
+    "receiptPath": "artifacts/local-iterations-2026-10-17/beta-ui-overlay-lifecycle-preflight/receipt.json",
+    "receiptSha256": "8c6efdfa11b484bc335bdb6ee5a4cdb3c5a5c142e8d8742fadde45199dd3f455",
+    "evidence": {
+      "kind": "static-only-overlay-lifecycle-selector-and-checkpoint-summary",
+      "baselineCommit": "cfacd50bcb4035c975375e577035225818bfec4d",
+      "completedAtUtc": "2026-10-17T20:25:53.875250+00:00",
+      "checks": [
+        {
+          "check": "PowerShell AST parse",
+          "executions": 1,
+          "result": "passed",
+          "exitCode": 0,
+          "command": [
+            "/workspace/.tools/powershell-parser/expanded/opt/microsoft/powershell/7/pwsh",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "$tokens = $null; $errors = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile('/workspace/DropSpace/scripts/Test-BetaUiDiagnostics.ps1', [ref]$tokens, [ref]$errors); if ($errors.Count -ne 0) { $errors | ForEach-Object { $_.ToString() }; exit 1 }; Write-Output 'PowerShell AST syntax: passed (launcher only; no script execution).'"
+          ],
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-overlay-lifecycle-preflight/powershell-syntax.txt",
+          "sourceSnapshot": "initial"
+        },
+        {
+          "check": "focused workflow source audit",
+          "executions": 1,
+          "result": "passed",
+          "exitCode": 0,
+          "command": [
+            "node",
+            "scripts/passive-test-budget.mjs",
+            "audit"
+          ],
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-overlay-lifecycle-preflight/workflow-audit.txt",
+          "sourceSnapshot": "initial"
+        },
+        {
+          "check": "YAML/unchanged gate and fixed lifecycle evidence fields",
+          "executions": 1,
+          "result": "passed",
+          "exitCode": 0,
+          "command": [
+            "python3",
+            "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/beta-ui-overlay-lifecycle-preflight/source-integrity-check.py"
+          ],
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-overlay-lifecycle-preflight/source-integrity.txt",
+          "sourceSnapshot": "initial"
+        },
+        {
+          "check": "changed-file whitespace check",
+          "executions": 1,
+          "result": "passed",
+          "exitCode": 0,
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "--",
+            "scripts/Test-BetaUiDiagnostics.ps1",
+            ".github/workflows/music-visual-qa.yml",
+            "scripts/passive-test-budget.mjs"
+          ],
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-overlay-lifecycle-preflight/whitespace.txt",
+          "sourceSnapshot": "initial"
+        },
+        {
+          "check": "focused workflow source audit after preserving upstream eventSequenceTruncated",
+          "executions": 1,
+          "exitCode": 0,
+          "result": "passed",
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-overlay-lifecycle-preflight/workflow-audit-event-sequence-truncated.txt",
+          "command": [
+            "node",
+            "scripts/passive-test-budget.mjs",
+            "audit"
+          ],
+          "sourceSnapshot": "eventSequenceTruncatedFollowup"
+        }
+      ],
+      "sourceSha256": {
+        "scripts/Test-BetaUiDiagnostics.ps1": "fab00f6c182d3d97cd09d2833a3ec929edf785268003e71079d7e7a1de0a3516",
+        ".github/workflows/music-visual-qa.yml": "9176d648b7bab8d2ed5bcea717a70f7a5f612a00228280e45f7881f35cd5f838",
+        "scripts/passive-test-budget.mjs": "3fcfaedcb25854e754ea96ae1f41e67d6807eb28ea2eb974abbd9f20f4450225"
+      },
+      "checkInputSha256": {
+        ".github/workflows/ai-model-diagnostics.yml": "7647706b43138041c96297951ee04dc8b1c5c2480b662ad32d47bc73af3c892b",
+        ".github/workflows/ci.yml": "bedcf757f9c827e84a5ea3abef740ded8df90dba7b2e4787ffb75ef18f349292",
+        ".github/workflows/ct2-runtime-diagnostics.yml": "33683c2aaaaa7b95a6c8097c16bf140b4d18df8697a994c9650888f36891a65e",
+        ".github/workflows/cuda-component-contracts.yml": "79f3e7dfbe165cc2990cb117e610739fac08f17921618c67f3fe07a069c6e307",
+        ".github/workflows/deploy-website.yml": "2731e26ee11e0b4eea59db546b3aa6ff9289f34af905c0bcf6aacbf976953945",
+        ".github/workflows/hy-plain-model-diagnostics.yml": "162f1ae08c913247e9a844d0aa06f22f17f7437e210360f71da859a7a2878f06",
+        ".github/workflows/m2m-model-diagnostics.yml": "fc1cbefc2f46dbe70def36961a08f622a4e524a414c15e7935c752e88b7ce00f",
+        ".github/workflows/marian-model-diagnostics.yml": "e2ae41e8fa4a360c77ae0b3a36157ea14cdc5055188b3b8e28eae553db74c7fe",
+        ".github/workflows/music-visual-qa.yml": "9176d648b7bab8d2ed5bcea717a70f7a5f612a00228280e45f7881f35cd5f838",
+        ".github/workflows/publish-release-bridge.yml": "c0b71eb8f9daf5331ad01ac46da8b4766618533e934ed67c669801e84339c726",
+        ".github/workflows/release.yml": "2f0bba5387fdbbc046e130ae1ae4f79bda01839ebd69b621b5c86dc3da74818a",
+        ".github/workflows/secret-scan.yml": "951a7adce05ba77c8669a54f28eabb5a76d6ae0303831685a1756d601cfbc2c7",
+        "scripts/Build-BetaUiDiagnostics.ps1": "1cfbcba90446d15c7c8c6a17ebd09e8088c6bdc105b5dde502ce53e1b58cafa8",
+        "scripts/Test-BetaUiDiagnostics.ps1": "fab00f6c182d3d97cd09d2833a3ec929edf785268003e71079d7e7a1de0a3516",
+        "scripts/passive-test-budget.mjs": "3fcfaedcb25854e754ea96ae1f41e67d6807eb28ea2eb974abbd9f20f4450225"
+      },
+      "integrityScriptSha256": "9790018de02252c53ea2851d3be287b3c99d43966a9a9aebde05190ce00efefb",
+      "functionalScenarioExecutions": 0,
+      "actionsDispatches": 0,
+      "nativeAppExecutions": 0,
+      "scriptOrTransportRuntimeExecutions": 0,
+      "selectedNewScenario": {
+        "selector": "overlay-lifecycle",
+        "caseNames": [
+          "overlay-first-frame-and-system-close"
+        ],
+        "requiredRtbCaptures": [
+          "timers-initial.png",
+          "timers-reopened.png"
+        ]
+      },
+      "review": {
+        "agent": "combined_review",
+        "result": "No blocking finding in three changed files, route and schema; review did not execute checks or certify the App case body."
+      },
+      "boundary": "Static/parser/source integrity only. No native scenario, launcher runtime, screenshot, PNG transfer helper or workflow executed. Existing selectors, primary RTB/status gate, supplemental summary, PNG allowlist and transport remain unchanged.",
+      "sourceSnapshots": {
+        "initial": {
+          "scripts/Test-BetaUiDiagnostics.ps1": "3d44c90d8d4b0d3d0e55599eb48bec631f961313aeb6e9c2c448d2ac9daa8efb",
+          ".github/workflows/music-visual-qa.yml": "9176d648b7bab8d2ed5bcea717a70f7a5f612a00228280e45f7881f35cd5f838",
+          "scripts/passive-test-budget.mjs": "8f83b886447dc61b43550e6e5e264f62d94afd71dba87ce5668c3956a1052eaf"
+        },
+        "eventSequenceTruncatedFollowup": {
+          "scripts/Test-BetaUiDiagnostics.ps1": "fab00f6c182d3d97cd09d2833a3ec929edf785268003e71079d7e7a1de0a3516",
+          ".github/workflows/music-visual-qa.yml": "9176d648b7bab8d2ed5bcea717a70f7a5f612a00228280e45f7881f35cd5f838",
+          "scripts/passive-test-budget.mjs": "3fcfaedcb25854e754ea96ae1f41e67d6807eb28ea2eb974abbd9f20f4450225"
+        }
+      },
+      "checkInputSnapshots": {
+        "initial": {
+          ".github/workflows/ai-model-diagnostics.yml": "7647706b43138041c96297951ee04dc8b1c5c2480b662ad32d47bc73af3c892b",
+          ".github/workflows/ci.yml": "bedcf757f9c827e84a5ea3abef740ded8df90dba7b2e4787ffb75ef18f349292",
+          ".github/workflows/ct2-runtime-diagnostics.yml": "33683c2aaaaa7b95a6c8097c16bf140b4d18df8697a994c9650888f36891a65e",
+          ".github/workflows/cuda-component-contracts.yml": "79f3e7dfbe165cc2990cb117e610739fac08f17921618c67f3fe07a069c6e307",
+          ".github/workflows/deploy-website.yml": "2731e26ee11e0b4eea59db546b3aa6ff9289f34af905c0bcf6aacbf976953945",
+          ".github/workflows/hy-plain-model-diagnostics.yml": "162f1ae08c913247e9a844d0aa06f22f17f7437e210360f71da859a7a2878f06",
+          ".github/workflows/m2m-model-diagnostics.yml": "fc1cbefc2f46dbe70def36961a08f622a4e524a414c15e7935c752e88b7ce00f",
+          ".github/workflows/marian-model-diagnostics.yml": "e2ae41e8fa4a360c77ae0b3a36157ea14cdc5055188b3b8e28eae553db74c7fe",
+          ".github/workflows/music-visual-qa.yml": "9176d648b7bab8d2ed5bcea717a70f7a5f612a00228280e45f7881f35cd5f838",
+          ".github/workflows/publish-release-bridge.yml": "c0b71eb8f9daf5331ad01ac46da8b4766618533e934ed67c669801e84339c726",
+          ".github/workflows/release.yml": "2f0bba5387fdbbc046e130ae1ae4f79bda01839ebd69b621b5c86dc3da74818a",
+          ".github/workflows/secret-scan.yml": "951a7adce05ba77c8669a54f28eabb5a76d6ae0303831685a1756d601cfbc2c7",
+          "scripts/Build-BetaUiDiagnostics.ps1": "1cfbcba90446d15c7c8c6a17ebd09e8088c6bdc105b5dde502ce53e1b58cafa8",
+          "scripts/Test-BetaUiDiagnostics.ps1": "3d44c90d8d4b0d3d0e55599eb48bec631f961313aeb6e9c2c448d2ac9daa8efb",
+          "scripts/passive-test-budget.mjs": "8f83b886447dc61b43550e6e5e264f62d94afd71dba87ce5668c3956a1052eaf"
+        },
+        "eventSequenceTruncatedFollowup": {
+          ".github/workflows/ai-model-diagnostics.yml": "7647706b43138041c96297951ee04dc8b1c5c2480b662ad32d47bc73af3c892b",
+          ".github/workflows/ci.yml": "bedcf757f9c827e84a5ea3abef740ded8df90dba7b2e4787ffb75ef18f349292",
+          ".github/workflows/ct2-runtime-diagnostics.yml": "33683c2aaaaa7b95a6c8097c16bf140b4d18df8697a994c9650888f36891a65e",
+          ".github/workflows/cuda-component-contracts.yml": "79f3e7dfbe165cc2990cb117e610739fac08f17921618c67f3fe07a069c6e307",
+          ".github/workflows/deploy-website.yml": "2731e26ee11e0b4eea59db546b3aa6ff9289f34af905c0bcf6aacbf976953945",
+          ".github/workflows/hy-plain-model-diagnostics.yml": "162f1ae08c913247e9a844d0aa06f22f17f7437e210360f71da859a7a2878f06",
+          ".github/workflows/m2m-model-diagnostics.yml": "fc1cbefc2f46dbe70def36961a08f622a4e524a414c15e7935c752e88b7ce00f",
+          ".github/workflows/marian-model-diagnostics.yml": "e2ae41e8fa4a360c77ae0b3a36157ea14cdc5055188b3b8e28eae553db74c7fe",
+          ".github/workflows/music-visual-qa.yml": "9176d648b7bab8d2ed5bcea717a70f7a5f612a00228280e45f7881f35cd5f838",
+          ".github/workflows/publish-release-bridge.yml": "c0b71eb8f9daf5331ad01ac46da8b4766618533e934ed67c669801e84339c726",
+          ".github/workflows/release.yml": "2f0bba5387fdbbc046e130ae1ae4f79bda01839ebd69b621b5c86dc3da74818a",
+          ".github/workflows/secret-scan.yml": "951a7adce05ba77c8669a54f28eabb5a76d6ae0303831685a1756d601cfbc2c7",
+          "scripts/Build-BetaUiDiagnostics.ps1": "1cfbcba90446d15c7c8c6a17ebd09e8088c6bdc105b5dde502ce53e1b58cafa8",
+          "scripts/Test-BetaUiDiagnostics.ps1": "fab00f6c182d3d97cd09d2833a3ec929edf785268003e71079d7e7a1de0a3516",
+          "scripts/passive-test-budget.mjs": "3fcfaedcb25854e754ea96ae1f41e67d6807eb28ea2eb974abbd9f20f4450225"
+        }
+      },
+      "followup": {
+        "completedAtUtc": "2026-10-17T20:28:05.570593+00:00",
+        "reason": "App lifecycle evidence caps its own event sequence at 24 entries and records eventSequenceTruncated; the log must retain this upstream truncation flag independently of its 2 KB event summary.",
+        "changedFiles": [
+          "scripts/Test-BetaUiDiagnostics.ps1",
+          "scripts/passive-test-budget.mjs"
+        ],
+        "additionalValidationExecutions": 1,
+        "unchangedChecksNotRepeated": [
+          "PowerShell AST",
+          "YAML/unchanged gate and fixed lifecycle evidence fields",
+          "whitespace"
+        ],
+        "functionalScenarioExecutions": 0,
+        "actionsDispatches": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "kind": "timer-visual-diagnostic-preflight",
+  "baselineCommit": "6f0fd72af5f640c243567e9773462a8c90d64c27",
+  "functionalScenarioExecutions": 0,
+  "nativeScenarioExecutions": 0,
+  "actionsDispatches": 0,
+  "review": "Independent final source review found no blocker across the App path, selector, popup retirement, error preservation and launcher/workflow/schema. No native visual approval is implied.",
+  "appCompile": {
+    "receiptPath": "artifacts/local-iterations-2026-10-17/beta-ui-compile/timer-visual-reviewed-validation.json",
+    "receiptSha256": "a8e1e7fa8c338aefd476ece1a6b8287dc688270c46c0560f4cefb0e6543e9e19",
+    "evidence": {
+      "recordedAtUtc": "2026-10-17T20:13:52.335353+00:00",
+      "currentSliceCompileAttempts": 2,
+      "currentAttempt": 2,
+      "compileExitCode": 0,
+      "compileFailures": 0,
+      "warnings": 0,
+      "errors": 0,
+      "functionalScenarioExecutions": 0,
+      "nativeScenarioExecutions": 0,
+      "inputsFrozen": true,
+      "sourceAndReferenceSha256": {
+        "Directory.Build.props": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e",
+        "artifacts/local-iterations-2026-10-17/beta-ui-compile/BetaUiCompile.csproj": "260fedc3d8c5b5a5ca885ed330f9404304685bd82e45189319609334047443bb",
+        "artifacts/local-iterations-2026-10-17/beta-ui-compile/CompilationStubs.cs": "8e49b14c10d56bfd92519519cadc2215bb23211da8fe2b1efe64e677a2edb658",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.InteractiveExperiences.Projection.dll": "151ff0208ec9f17419d030b8dd02c94abd369542e355d3289f9d86376e1012f1",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Security.Authentication.OAuth.Projection.dll": "4bbfce3f3e7d15625681dae8f2caec2e4f3d5133d806037ccf0ccb97bab4c939",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.WinUI.dll": "c3b1c90d3a1c5966f19db50fb9e9849f8115e8d22abe9dd614584c2d74bc8c1c",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppLifecycle.Projection.dll": "2069e1089147641400908e3379479877eb77f40cf01e48b81bcfbcd7bcd5e64f",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppNotifications.Builder.Projection.dll": "c2ccc60c6ca0e193617e5a68d6b3bcaec829427b44c92523f69d714cd5d78a37",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppNotifications.Projection.dll": "185dac5d668e42b05b3be6f399c577abe05b0e3751965337d4550c4132e2157a",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.Background.Projection.dll": "93fc465da0b8eff22356c46d7fa17882adbe67b8f48e50ab6d7987cd358d01ff",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.DynamicDependency.Projection.dll": "8f9a81f9c426b5340d6a80692ffd496a7a3d8e715d3e86160ca00e31580b4a11",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.Resources.Projection.dll": "ab664c65b10d51dddbb6e237abd4eb1da2c05b075e787352f1ba6403a53594c8",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.WindowsAppRuntime.Projection.dll": "1eb499c9d2e95bb5836510ff4c5175b67787bfb2cadc98ba7c0419b4de3f03f1",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.BadgeNotifications.Projection.dll": "3f5ef67aec6441e465413371ffdb2063073f43b598cd5b8f8270f56793309114",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Foundation.Projection.dll": "860b2369b8cbd3fcd179f96f278f65981b9bf5461b29c722cc78eae1b477cdc5",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Management.Deployment.Projection.dll": "0da7f4fa936b65b14d8597724083202074eb4c5258aaead99144c593c415681e",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Media.Capture.Projection.dll": "95a8d7bc06d03763aec537b10ca3449adbb0134aad4ee6e42df83ce4c2df3315",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.PushNotifications.Projection.dll": "d1551c8233e4eebb5944eb82731e87dcdc5e05a558a7910bd1f1f0f6a654ebce",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Security.AccessControl.Projection.dll": "c333b08e77b089c8165ca02a079f0eeae323f2c338d503a3a9964fb0a61709a3",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Storage.Pickers.Projection.dll": "ed6c1d4b64680ad9695f68a8fc66b0306bb5341bf3083689d3625e7fafa7aa42",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Storage.Projection.dll": "b02beea6e73508e7ffa0fe4038bf81968c71125f4c13e4b93f72a779d2d7fea2",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.System.Power.Projection.dll": "25230734062eb1a6b8937f4892365cc4ab00b09e39527b45c3111d9269965f63",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.System.Projection.dll": "24db5c2c0e4c5a4abc5c2d1e9e0b69c57056ee60d56033b6ba767ab599104bdd",
+        "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.WindowsAppRuntime.Bootstrap.Net.dll": "8014a0d9a8c9e376d7e620f350933b42056cfc5f9cf1eb67feced096ec9b9c21",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.DesktopEvidence.cs": "ec9eab073cd6ce3c9b93efb7c35b768bda445a14e3fb3bdca87544c94077e67a",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Evidence.cs": "4791948293cc63bf2ca055a2ec33f61e0fabe1c2a836817097c00c94226b0975",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Fixture.cs": "72075b89b3f72e6b25b7e4e029ca54576721eb07445c31b4394db014ae703325",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.TimerVisual.cs": "e2eb611ea7a6eada3b7d7d43d6249de5b517831e3a657b019de63605d77aa507",
+        "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.cs": "bfa04af700bb62c0e2e1b9d3315c0965cde9785f592920b801f924f822668dd0",
+        "src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs": "a81a7255e95de8482695452bc07b634115b8ad04f011edeec99b69f69d38c7be",
+        "src/DropSpace.Core/bin/Release/net10.0/DropSpace.Core.dll": "b00081167e9bc348ecab04c9245042856d18d22a35cd6e95c8c33e3846dfd3a7"
+      },
+      "log": "artifacts/local-iterations-2026-10-17/beta-ui-compile/build-7-timer-visual-reviewed.log",
+      "logSha256": "9e6438ab8e81a30000e0bd8b69dcbb3d08db889f3fc2860ed3b6bbc3f6fbfbe0",
+      "priorAttemptReceipt": "artifacts/local-iterations-2026-10-17/beta-ui-compile/timer-visual-validation.json",
+      "priorAttemptReceiptSha256": "a7d588c1fbcc836ddaa1fae034776e7d87df25f6666c81843fc6bd60df3c7051",
+      "command": [
+        "dotnet",
+        "build",
+        "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/beta-ui-compile/BetaUiCompile.csproj",
+        "--no-restore",
+        "--nologo",
+        "-v:minimal"
+      ],
+      "reasonForSecondCompile": "Final independent review required observed Closed plus unloaded child for each tracked Popup, and preservation of an early presentation error if later native retirement also throws. Both changes merged into this necessary second narrow build.",
+      "review": "Independent read-only review confirmed the final selector/case/capture contract, rendering/commit and desktop-first boundaries, real popup ownership/retirement, primary error preservation, and boundsProbe evidence. Reviewer ran no checks.",
+      "boundaries": [
+        "Actual production diagnostic partials are linked against actual WinUI/Windows/Core references; unrelated App collaborators remain signature-only stubs.",
+        "Compile fixture only added the actual OverlayWindow.WaitForMotionSettledAsync(CancellationToken) signature; its completed-task body is never executed and proves no UI behavior.",
+        "No App.xaml.cs/XAML compilation or native API, timer, batch or other functional execution in this slice.",
+        "Original timers case and RTB visual gate are unchanged. New timer-visual is separately selected, one case, three fixed RTB names and corresponding supplemental names.",
+        "Compositor commit and GDI readback do not establish physical scanout or all hardware-composed planes; captures remain manual-review evidence and cannot bypass the original visual gate."
+      ]
+    }
+  },
+  "launcherStaticChecks": {
+    "receiptPath": "artifacts/local-iterations-2026-10-17/beta-ui-timer-visual-preflight/receipt.json",
+    "receiptSha256": "2f1d97649b9032a7e049af96055fe9a1983d671a6c9aaed64bd9cd21b21bdf6c",
+    "evidence": {
+      "kind": "static-only-timer-visual-selector-and-evidence-summary",
+      "baselineCommit": "6f0fd72af5f640c243567e9773462a8c90d64c27",
+      "completedAtUtc": "2026-10-17T20:09:20.525328+00:00",
+      "checks": [
+        {
+          "check": "PowerShell AST parse",
+          "executions": 1,
+          "exitCode": 0,
+          "result": "passed",
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-timer-visual-preflight/powershell-syntax.txt",
+          "command": [
+            "/workspace/.tools/powershell-parser/expanded/opt/microsoft/powershell/7/pwsh",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "$tokens = $null; $errors = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile('/workspace/DropSpace/scripts/Test-BetaUiDiagnostics.ps1', [ref]$tokens, [ref]$errors); if ($errors.Count -ne 0) { $errors | ForEach-Object { $_.ToString() }; exit 1 }; Write-Output 'PowerShell AST syntax: passed (launcher only; no script execution).'"
+          ],
+          "sourceSnapshot": "initial"
+        },
+        {
+          "check": "focused workflow source audit",
+          "executions": 1,
+          "exitCode": 0,
+          "result": "passed",
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-timer-visual-preflight/workflow-audit.txt",
+          "command": [
+            "node",
+            "scripts/passive-test-budget.mjs",
+            "audit"
+          ],
+          "sourceSnapshot": "initial"
+        },
+        {
+          "check": "YAML and unchanged-gate/source integrity",
+          "executions": 1,
+          "exitCode": 0,
+          "result": "passed",
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-timer-visual-preflight/source-integrity.txt",
+          "command": [
+            "python3",
+            "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/beta-ui-timer-visual-preflight/source-integrity-check.py"
+          ],
+          "sourceSnapshot": "initial"
+        },
+        {
+          "check": "changed-file whitespace check",
+          "executions": 1,
+          "exitCode": 0,
+          "result": "passed",
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-timer-visual-preflight/whitespace.txt",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "--",
+            "scripts/Test-BetaUiDiagnostics.ps1",
+            ".github/workflows/music-visual-qa.yml",
+            "scripts/passive-test-budget.mjs"
+          ],
+          "sourceSnapshot": "initial"
+        },
+        {
+          "check": "focused workflow source audit after preserving boundsAfterProbe",
+          "executions": 1,
+          "exitCode": 0,
+          "result": "passed",
+          "log": "artifacts/local-iterations-2026-10-17/beta-ui-timer-visual-preflight/workflow-audit-bounds-after-probe.txt",
+          "command": [
+            "node",
+            "scripts/passive-test-budget.mjs",
+            "audit"
+          ],
+          "sourceSnapshot": "boundsAfterProbeFollowup"
+        }
+      ],
+      "sourceSha256": {
+        "scripts/Test-BetaUiDiagnostics.ps1": "ef2aa762195685402cef834196d92f0118834b018a63d83209ed720c4e97ea11",
+        ".github/workflows/music-visual-qa.yml": "6a1f6540f578db3680159a3eadc41f98d7a82f4d4b7075f552d6b7f6f121b687",
+        "scripts/passive-test-budget.mjs": "597fc23d5ee6284c73c9ca3bf4412ef4d3f2ac2ea519f24fa38b78fde344aaae"
+      },
+      "functionalScenarioExecutions": 0,
+      "actionsDispatches": 0,
+      "nativeAppExecutions": 0,
+      "scriptOrTransportRuntimeExecutions": 0,
+      "selectedNewScenario": {
+        "selector": "timer-visual",
+        "caseNames": [
+          "timer-first-frame-and-popup-retirement"
+        ],
+        "requiredRtbCaptures": [
+          "timers-initial.png",
+          "timer-menu-FocusTimer.png",
+          "timers-reopened.png"
+        ]
+      },
+      "boundary": "Static/parser/source integrity only; no native scenario, screenshot, PNG transfer helper, launcher runtime or workflow executed. Original pass gate, old routes and allowlist remain unchanged.",
+      "sourceSnapshots": {
+        "initial": {
+          "scripts/Test-BetaUiDiagnostics.ps1": "2ce8327d0a2b3d7b4ba98ceaed2eee33a86c702c2910ed313ef63c1459206718",
+          ".github/workflows/music-visual-qa.yml": "6a1f6540f578db3680159a3eadc41f98d7a82f4d4b7075f552d6b7f6f121b687",
+          "scripts/passive-test-budget.mjs": "309af2eb081617ed400a46fd1ca658261a50682af284d9671064f9df365937b0"
+        },
+        "boundsAfterProbeFollowup": {
+          "scripts/Test-BetaUiDiagnostics.ps1": "ef2aa762195685402cef834196d92f0118834b018a63d83209ed720c4e97ea11",
+          ".github/workflows/music-visual-qa.yml": "6a1f6540f578db3680159a3eadc41f98d7a82f4d4b7075f552d6b7f6f121b687",
+          "scripts/passive-test-budget.mjs": "597fc23d5ee6284c73c9ca3bf4412ef4d3f2ac2ea519f24fa38b78fde344aaae"
+        }
+      },
+      "followup": {
+        "completedAtUtc": "2026-10-17T20:12:18.152534+00:00",
+        "reason": "Final App failure schema includes details.boundsAfterProbe; preserve the postcapture ROI when validate-after fails before an after snapshot exists.",
+        "changedFiles": [
+          "scripts/Test-BetaUiDiagnostics.ps1",
+          "scripts/passive-test-budget.mjs"
+        ],
+        "additionalValidationExecutions": 1,
+        "unchangedChecksNotRepeated": [
+          "PowerShell AST",
+          "YAML/unchanged gate/source integrity",
+          "whitespace"
+        ],
+        "functionalScenarioExecutions": 0,
+        "actionsDispatches": 0
+      }
+    }
+  }
+}

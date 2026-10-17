@@ -1,0 +1,100 @@
+{
+  "kind": "explicit-widget-error-accessibility-events",
+  "receipt": {
+    "command": [
+      "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet",
+      "build",
+      "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/WidgetErrorAnnouncementCompile.csproj",
+      "-c",
+      "Debug",
+      "--nologo",
+      "--verbosity",
+      "minimal",
+      "-p:RestoreIgnoreFailedSources=true"
+    ],
+    "exitCode": 0,
+    "log": "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/compile.log",
+    "logSha256": "c90953c9cefeb97a65fc17d5f4d73f1a147cb0cfd01c15e00f4ec32786838438",
+    "priorLaunchFailure": "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/launch-failure.json",
+    "functionalTests": 0,
+    "nativeAppExecution": false,
+    "sourceReview": "Passed focused source/whitespace review: centralized editor assignment, drag-error visibility, deduplication, hidden/unloaded/current-tile guards, and error-only event sites."
+  },
+  "inputs": {
+    "scope": "Compile-only source subset against real WinUI and Windows SDK references; generated XAML and unrelated App collaborators stubbed. No runtime or screen-reader validation.",
+    "sources": [
+      {
+        "path": "src/DropSpace.App/Views/Settings/WidgetEditorView.cs",
+        "sha256": "5d72185e4bc416d9353e52066077fb83ae2bfaecea7a9885ad22b984881c271a"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+        "sha256": "91e505953e7452f214ba2b47bde585d13e9a60a8391bd3614226ed6780695d71"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/WidgetViewModel.cs",
+        "sha256": "af58d6de70b7d744f79d8c45d8be6b2c432e468c5bb3981211b87f02f4c5d099"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Widgets/NativeWidgetIcons.cs",
+        "sha256": "49651096da85cbdb80cfb02420d9a8afc48766d00bdc3c483aa3c99141634c27"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Widgets/NativeWidgetDataService.cs",
+        "sha256": "39ef7ee0f84755bc3cfc656dcb563d1d40e98085d6a586808b6e43bee7a4de73"
+      },
+      {
+        "path": "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/WidgetErrorAnnouncementCompile.csproj",
+        "sha256": "fbecf8b664a8fd8e24ccb7e6c77272f3c66ff6a613a29bb2e7bd328ac0589324"
+      },
+      {
+        "path": "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/CompilationStubs.cs",
+        "sha256": "d1ec89982a331fbbfa069c5d20f011238f0377ea3ed000e6d97779d0069c06f7"
+      }
+    ]
+  },
+  "launchFailure": {
+    "command": [
+      "dotnet",
+      "build",
+      "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/WidgetErrorAnnouncementCompile.csproj",
+      "-c",
+      "Debug",
+      "--nologo",
+      "--verbosity",
+      "minimal",
+      "-p:RestoreIgnoreFailedSources=true"
+    ],
+    "compilerStarted": false,
+    "reason": "Python subprocess launch failed: dotnet was not on PATH (FileNotFoundError).",
+    "functionalTests": 0
+  },
+  "compileAttemptsStarted": 1,
+  "compilePasses": 1,
+  "compilerWarnings": 0,
+  "compilerErrors": 0,
+  "nativeScreenReaderExecutions": 0,
+  "sourceBasis": [
+    "https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.automation.automationproperties.livesetting",
+    "https://github.com/microsoft/microsoft-ui-xaml/blob/fe244ca6ac4d482712b234a9de3cf771cc6481de/dxaml/xcp/core/core/elements/AutomationPeer.cpp#L1774"
+  ],
+  "boundary": "Source inspection and real WinUI reference subset compilation; no native UIA event or screen-reader observation. The later navigation caller edit is not included in these frozen compile inputs.",
+  "evidence": [
+    {
+      "path": "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/receipt.json",
+      "sha256": "2338727da04cada3e55382783500faa115c2316b4d7fbbea5cf129d9b3541fbb"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/inputs.json",
+      "sha256": "f69a2b9daddc762436a04b20e1900a1da93e5759606577c84f1ae07191915b2e"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/launch-failure.json",
+      "sha256": "fb5ad28a4666dccb0d4d528f88d0970c617d384d9462c468eb8107ee88030ee3"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/widget-error-announcement-compile/compile.log",
+      "sha256": "c90953c9cefeb97a65fc17d5f4d73f1a147cb0cfd01c15e00f4ec32786838438"
+    }
+  ]
+}

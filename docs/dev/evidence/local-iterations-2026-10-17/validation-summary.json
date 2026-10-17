@@ -1,0 +1,330 @@
+{
+  "baseline": "1e858011b493c1bba10bb918192834fe29257ce5",
+  "baselineTag": "v0.3.2-beta.3",
+  "sdk": "10.0.401",
+  "platform": "Linux",
+  "sources": [
+    {
+      "path": "localization/policy.json",
+      "sha256": "2017a8285947980ae74041df7087d3a6c5aa271ed0bf69e25ee34b74b9d35ee0"
+    },
+    {
+      "path": "localization/reviews/app/de-DE.json",
+      "sha256": "ee61fadf634e9ab7ce1dd31ac28ee09d6968ed33a498c6c6a8e6cc188997c633"
+    },
+    {
+      "path": "localization/reviews/app/es-ES.json",
+      "sha256": "dbeabc8ee0fbe7168bef115d166ce015ebb7eace566b27f745820d503372b926"
+    },
+    {
+      "path": "localization/reviews/app/fr-FR.json",
+      "sha256": "dc6a930119bc26ea7bcd01832c547512ab935f56d6f9b0841c43e3e64b69a046"
+    },
+    {
+      "path": "localization/reviews/app/ja-JP.json",
+      "sha256": "3da8ea60e62bb55d380d536758e7d4b197a50bdc983c3465d7442cc0990f95bb"
+    },
+    {
+      "path": "localization/reviews/app/ko-KR.json",
+      "sha256": "277a968c31f8bc929b8da22d0689e5ea0e46bac992f109ae78246f2a5e718434"
+    },
+    {
+      "path": "localization/reviews/app/pt-BR.json",
+      "sha256": "7358539667b759854698364aa5b8d4e10068ae49a3cf19a41bfa716a97c41321"
+    },
+    {
+      "path": "localization/reviews/app/ru-RU.json",
+      "sha256": "8e39b5dcc2b76124683e99cf0c9a5a6694fd61ee3631f34c62a2d1871449e208"
+    },
+    {
+      "path": "localization/reviews/app/zh-CN.json",
+      "sha256": "fb5d19cd13ec1556dc483652e6c6aa954cb617ae28c0adefbee5d349a298de3e"
+    },
+    {
+      "path": "localization/reviews/app/zh-TW.json",
+      "sha256": "d688ed5f852b5e28ec6ee7980a1cf0907390e6b076067b0ec63de9c5905bba80"
+    },
+    {
+      "path": "scripts/batch-selection-probe/BatchSelectionProbe.csproj",
+      "sha256": "757ebac90c29a42b8b299d445e40e6600b090c5b16faf218e46825ad6c2aca3e"
+    },
+    {
+      "path": "scripts/batch-selection-probe/PlatformShims.cs",
+      "sha256": "425d43c7fa4118ee6a636c11d9ceac8b4dcc5ca81c316c79638fbffe4192e06a"
+    },
+    {
+      "path": "scripts/batch-selection-probe/Program.cs",
+      "sha256": "8695d84aaef15451dddcbd4f322ac582f0f6ea59bbe04be64aa761897a16ccee"
+    },
+    {
+      "path": "scripts/batch-selection-probe/README.md",
+      "sha256": "07cdc1d524008eab1cee029ae6bef8134d123e6565e791dbd9c2ca22a9b06886"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
+      "sha256": "7939440d3a709b276a0738d8f817b6f1670e40d8dd223eaa60ccf4ee5dc0c08b"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+      "sha256": "235fe23aef26da946f0967ed41f83bd5cd5a7268d810206061cd71e5bc654eed"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
+      "sha256": "1603b018af9eac27d83230a306f2c68ac99c89d6a1a8bd5ab19c5bffeb66f26d"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
+      "sha256": "3c5d0611bd6d1ab3067ff4135b1c307926f2c5e38904f1fce88602a175d9c53f"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
+      "sha256": "c36df137b5d3870f3134f5acfc4da71baad342e9ea94aacd85f79afb6a7f2697"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
+      "sha256": "8da0eeea11054bfaa943ac7812418c0ad2ebf8132b7de4d918c4feddad0e7985"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
+      "sha256": "294618c34118e8b023a7fe36278d8ac2b219ad49c0f5e73536275926f599ec37"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
+      "sha256": "96c24840c8d77ad67e9fb5ebf7465cd554909cd9b60646c05f3eeb243c434251"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+      "sha256": "5a571cdd3dc390bd7d9e7220c4b8da47642c5754ea5d40a3ae6d3c3d22d52f69"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
+      "sha256": "b27af710306b66ba7be2cd0b4e4db71ed50037204e7159cc1fbe036d5457821f"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MainViewModel.ItemSelection.cs",
+      "sha256": "d97a9b5ad40d6a85be0b24867880cd452d44ac4864fdc85bb3617f55831842e7"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+      "sha256": "8f87cd55cca8acaa282220e0d5d4169bba2221889634f356f98d6e264e9891f1"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/WidgetViewModel.cs",
+      "sha256": "a9ddd699d3231694d195fb2247c77b6707dce8535153a28955a5e91f9c635da2"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+      "sha256": "df749e6fb626cb7355504a1959f179970e01d11c5bc273edd501eedda661950d"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml",
+      "sha256": "16b7a5cefdd0b70d1d822dad1bb5ba33df8a17478d0be0fa6080b20cb279bc7d"
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+      "sha256": "8d3ce970b1c7bc297aa16be1e19a9716599d0aa7d22692208188c69670d4d4b0"
+    },
+    {
+      "path": "src/DropSpace.Core/Widgets/WidgetCountdown.cs",
+      "sha256": "d8f15e4fd04a78a6d89845524d014a17451f19b05c911320e03270daaf891c7c"
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+      "sha256": "9c15e30b60e84127fb5281682c5d32d495be6ec861c0b058f458d21d3f5b44e4"
+    },
+    {
+      "path": "tests/DropSpace.App.Tests/BatchSelectionSafetyTests.cs",
+      "sha256": "69020f4fd51ab3add960731698f04ea46ffe451bd587bbb9f86c0199bee55e77"
+    },
+    {
+      "path": "tests/DropSpace.Core.Tests/WidgetCountdownTests.cs",
+      "sha256": "bd6eb4f1d62764ffdbd354a29bbb681abcfee5a22f520807668da163c6fe1820"
+    },
+    {
+      "path": "tests/DropSpace.Infrastructure.Tests/DownloadManagerRecoveryTests.cs",
+      "sha256": "4faa4928c08547b44dae479fd8d09a35697886f65d4ac141224596551a4f5aaa"
+    }
+  ],
+  "formalTestResults": [
+    {
+      "path": "artifacts/local-iterations-2026-10-17/download-recovery/download-recovery-after.trx",
+      "sha256": "e7db438e642b200aa731b49b84812545de0d143cbf491ada94b6ce3b757cfed0",
+      "counters": {
+        "total": 4,
+        "executed": 4,
+        "passed": 4,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/widgets/widget-countdown.trx",
+      "sha256": "903b79b5ca1fe76b96fa0f5956ecb87bfc15fd52aa301a0bdb3181a2770a7323",
+      "counters": {
+        "total": 6,
+        "executed": 6,
+        "passed": 6,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    }
+  ],
+  "batchProbe": {
+    "distinctScenarios": 3,
+    "executions": 6,
+    "passed": 6,
+    "failed": 0,
+    "reasonForSecondRun": "Unified projection visibility notification and event ordering assertions were added after the first run."
+  },
+  "downloadProbe": {
+    "before": {
+      "executed": 3,
+      "passed": 1,
+      "failed": 2
+    },
+    "after": {
+      "executed": 3,
+      "passed": 3,
+      "failed": 0
+    },
+    "initialMSTestBuild": "NU1301 cached restore failure; zero cases; locked restore then succeeded."
+  },
+  "widgetCompilation": {
+    "baseline": "1e858011b493c1bba10bb918192834fe29257ce5",
+    "buildResult": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "functionalCases": 0,
+    "targetFramework": "net10.0-windows10.0.26100.0",
+    "supportedOS": "10.0.20348.0",
+    "compiledRealSource": [
+      "src/DropSpace.App/ViewModels/WidgetViewModel.cs",
+      "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+      "src/DropSpace.App/Services/Widgets/NativeWidgetDataService.cs"
+    ],
+    "inputs": [
+      {
+        "path": "src/DropSpace.App/ViewModels/WidgetViewModel.cs",
+        "sha256": "a9ddd699d3231694d195fb2247c77b6707dce8535153a28955a5e91f9c635da2"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+        "sha256": "df749e6fb626cb7355504a1959f179970e01d11c5bc273edd501eedda661950d"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Widgets/NativeWidgetDataService.cs",
+        "sha256": "39ef7ee0f84755bc3cfc656dcb563d1d40e98085d6a586808b6e43bee7a4de73"
+      },
+      {
+        "path": "src/DropSpace.Core/bin/Debug/net10.0/DropSpace.Core.dll",
+        "sha256": "c81cd0102ea8296275867176cddf1ea0dc0a257a3de0555abe0792535a0f1b5e"
+      },
+      {
+        "path": "artifacts/local-iterations-2026-10-17/widgets-compile/WidgetsCompile.csproj",
+        "sha256": "2554945bc85b2023b261596f9c0dd43ac67a644037ddfa72ebf8510395b05f4f"
+      },
+      {
+        "path": "artifacts/local-iterations-2026-10-17/widgets-compile/CompilationStubs.cs",
+        "sha256": "e496fb6cfc0afa3cabd4ded4ac2e8d4f44d1246c617f5cacde492a75240cd505"
+      }
+    ],
+    "nugetLibraries": [
+      "CommunityToolkit.Mvvm/8.4.2"
+    ],
+    "frameworkReferences": {
+      "net10.0-windows10.0.26100.0": {
+        "dependencies": {
+          "CommunityToolkit.Mvvm": {
+            "target": "Package",
+            "version": "[8.4.2, )"
+          }
+        },
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.Windows.SDK.NET.Ref",
+            "version": "[10.0.26100.57, 10.0.26100.57]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[10.0.12, 10.0.12]"
+          }
+        ],
+        "frameworkReferences": {
+          "Microsoft.AspNetCore.App": {
+            "privateAssets": "none"
+          },
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          },
+          "Microsoft.Windows.SDK.NET.Ref.Windows": {
+            "privateAssets": "all"
+          }
+        }
+      }
+    },
+    "boundaries": [
+      "C# compile only; no Windows method execution",
+      "XAML-generated fields and InitializeComponent substituted with documented local compile stubs",
+      "MainViewModel, FeatureModuleRuntime and XamlResourceOverride replaced with signature-matching local host dependency stubs",
+      "No Microsoft.UI/Windows namespace API stubs; official Microsoft SDK reference and WinUI projection assemblies used",
+      "Does not qualify full App/XAML/MSIX or Windows interaction behavior"
+    ],
+    "buildAttempts": [
+      {
+        "attempt": 1,
+        "log": "build-initial.log",
+        "warnings": 0,
+        "errors": 0,
+        "reason": "Initial changed-source C# subset check against real WinUI and Windows SDK references."
+      },
+      {
+        "attempt": 2,
+        "log": "build-final.log",
+        "warnings": 0,
+        "errors": 0,
+        "reason": "New UI changes: 32-DIP play/pause FontIcon, Grid star/auto layout and timer readout ellipsis. No functional checks repeated."
+      }
+    ],
+    "finalOutput": {
+      "path": "artifacts/local-iterations-2026-10-17/widgets-compile/bin/Debug/net10.0-windows10.0.26100.0/WidgetsCompile.dll",
+      "sha256": "e4bd2c6815a84701c8684c7d55e3538834ac6247318735b3b97d03afe386ed82"
+    }
+  },
+  "appLocalization": {
+    "passes": 2,
+    "languages": 10,
+    "resourceIds": 923,
+    "reasonForSecondRun": "Final timer icon/Grid/tooltip source changed after the first integrity scan."
+  },
+  "notExecuted": [
+    "Complete Windows App/XAML build",
+    "Windows App.Tests including BatchSelectionSafetyTests",
+    "WinUI runtime, keyboard, UI Automation and native drag/drop",
+    "Installer or release packaging",
+    "Broad test suites, model inference or live HTTP download scenarios"
+  ],
+  "published": false
+}

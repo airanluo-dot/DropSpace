@@ -1,0 +1,110 @@
+{
+  "kind": "island-navigation-consumer-compile-only",
+  "status": "passed",
+  "head": "b439cd45610a18b136ccd416e10d188f7e65832c",
+  "compiledSources": {
+    "src/DropSpace.App/ViewModels/WidgetViewModel.cs": "fc8964bb5f350e327f71930d9dc0cc25faa4f0d7eee93761e1a7c1426d435389",
+    "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs": "8d0e414f07e314e9c7b451761a7f49f9d38fdaff1371990910e6d4ee988f5c37",
+    "src/DropSpace.App/Services/Widgets/NativeWidgetDataService.cs": "39ef7ee0f84755bc3cfc656dcb563d1d40e98085d6a586808b6e43bee7a4de73",
+    "src/DropSpace.App/ViewModels/ClipboardIslandViewModel.cs": "e4c6ec4b7ad1897bd7aa76edca27dbf2c232456a9cf77e1f682fc7b88c450a85",
+    "src/DropSpace.App/ViewModels/ItemCardViewModel.cs": "cc60b87aeed325ae9666087b33d4fbdeab7dc5d7d2d96f0cd6043352d9cb9786",
+    "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs": "f0fc94b2cdee2ee5af9aa29aa6b74ed7c8d98979501d601a9845dda1067776c8",
+    "src/DropSpace.App/Services/DispatcherQueueExtensions.cs": "59a3eb20b38fcc7a0ec0474e78e63c4345341f09c0fcfe5f2e9d78f9c4fed4c2",
+    "artifacts/local-iterations-2026-10-17/island-navigation-compile/CompilationStubs.cs": "cd5411c5be3c3f043fcd05022396c061c50c6f05f1a6655247862c31e599d1a4",
+    "src/DropSpace.App/Services/Widgets/NativeWidgetIcons.cs": "49651096da85cbdb80cfb02420d9a8afc48766d00bdc3c483aa3c99141634c27"
+  },
+  "associatedSourcesNotCompiled": {
+    "src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs": "bd87bc192192ce76ac85fa5c920f8918df4122d6c7f67170d6f58a8fdfdc2cb9",
+    "src/DropSpace.App/ViewModels/MainViewModel.cs": "1a8ea53a00299b8a729b91ca5364eda8e1aa0e53a7af3b08d2f03d9e073838d9",
+    "src/DropSpace.App/OverlayWindow.xaml.cs": "5e06e744523fabcd6d8aba4de14674236fb4ca8f733d52fd4b9b838cdd0926a9",
+    "src/DropSpace.App/Services/ClipboardCaptureService.cs": "feff2d55692495d796a2fc4f809e82d48bbfda5f29252eb52271f55e89008d1d"
+  },
+  "projectSha256": "e809bce7817951b0066aff38e1ad4843ba0227589045b64396f65bd92766e8db",
+  "nugetConfigSha256": "968006766c5f1f40b05e9edd4e9a135f71c0a2a3d26071fa0240e4f41bd7c709",
+  "officialReferences": {
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.WinUI.dll": "c3b1c90d3a1c5966f19db50fb9e9849f8115e8d22abe9dd614584c2d74bc8c1c",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.InteractiveExperiences.Projection.dll": "151ff0208ec9f17419d030b8dd02c94abd369542e355d3289f9d86376e1012f1",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.DynamicDependency.Projection.dll": "8f9a81f9c426b5340d6a80692ffd496a7a3d8e715d3e86160ca00e31580b4a11",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Storage.Projection.dll": "b02beea6e73508e7ffa0fe4038bf81968c71125f4c13e4b93f72a779d2d7fea2",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.BadgeNotifications.Projection.dll": "3f5ef67aec6441e465413371ffdb2063073f43b598cd5b8f8270f56793309114",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.Resources.Projection.dll": "ab664c65b10d51dddbb6e237abd4eb1da2c05b075e787352f1ba6403a53594c8",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Foundation.Projection.dll": "860b2369b8cbd3fcd179f96f278f65981b9bf5461b29c722cc78eae1b477cdc5",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.System.Power.Projection.dll": "25230734062eb1a6b8937f4892365cc4ab00b09e39527b45c3111d9269965f63",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Management.Deployment.Projection.dll": "0da7f4fa936b65b14d8597724083202074eb4c5258aaead99144c593c415681e",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.WindowsAppRuntime.Projection.dll": "1eb499c9d2e95bb5836510ff4c5175b67787bfb2cadc98ba7c0419b4de3f03f1",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.System.Projection.dll": "24db5c2c0e4c5a4abc5c2d1e9e0b69c57056ee60d56033b6ba767ab599104bdd",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Media.Capture.Projection.dll": "95a8d7bc06d03763aec537b10ca3449adbb0134aad4ee6e42df83ce4c2df3315",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppLifecycle.Projection.dll": "2069e1089147641400908e3379479877eb77f40cf01e48b81bcfbcd7bcd5e64f",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.PushNotifications.Projection.dll": "d1551c8233e4eebb5944eb82731e87dcdc5e05a558a7910bd1f1f0f6a654ebce",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.WindowsAppRuntime.Bootstrap.Net.dll": "8014a0d9a8c9e376d7e620f350933b42056cfc5f9cf1eb67feced096ec9b9c21",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppNotifications.Builder.Projection.dll": "c2ccc60c6ca0e193617e5a68d6b3bcaec829427b44c92523f69d714cd5d78a37",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Security.AccessControl.Projection.dll": "c333b08e77b089c8165ca02a079f0eeae323f2c338d503a3a9964fb0a61709a3",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Security.Authentication.OAuth.Projection.dll": "4bbfce3f3e7d15625681dae8f2caec2e4f3d5133d806037ccf0ccb97bab4c939",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.ApplicationModel.Background.Projection.dll": "93fc465da0b8eff22356c46d7fa17882adbe67b8f48e50ab6d7987cd358d01ff",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.AppNotifications.Projection.dll": "185dac5d668e42b05b3be6f399c577abe05b0e3751965337d4550c4132e2157a",
+    "artifacts/local-iterations-2026-10-17/widgets-compile/references/Microsoft.Windows.Storage.Pickers.Projection.dll": "ed6c1d4b64680ad9695f68a8fc66b0306bb5341bf3083689d3625e7fafa7aa42"
+  },
+  "coreAssemblySha256": "401198055b674b898102b2de4cf357ae11957c5b88ce393797bae3a67ec8ae01",
+  "boundaries": [
+    "Official Microsoft.UI and Windows APIs; no platform API stubs",
+    "MainViewModel/ClipboardCapture host signatures and XAML-generated fields are compile-only substitutes",
+    "OverlayWindow and MainViewModel navigation implementation are not compiled",
+    "No XAML generation, Windows execution, interaction tests or original navigation scenarios"
+  ],
+  "functionalScenariosExecuted": 0,
+  "preparationNotes": [
+    "First input-manifest generation referenced nonexistent Views/OverlayWindow.xaml.cs; corrected to actual App/OverlayWindow.xaml.cs. No build or test had started."
+  ],
+  "executions": [
+    {
+      "attempt": 1,
+      "exitCode": 1,
+      "warnings": 0,
+      "errors": 2,
+      "reason": "Fixture omitted actual NativeWidgetIcons source link required by current WidgetsExpandedView",
+      "log": "build-initial.log",
+      "functionalScenariosExecuted": 0
+    },
+    {
+      "attempt": 2,
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0,
+      "log": "build-retry.log",
+      "command": "dotnet build artifacts/local-iterations-2026-10-17/island-navigation-compile/IslandNavigationCompile.csproj --no-restore -v:minimal",
+      "functionalScenariosExecuted": 0
+    }
+  ],
+  "compiledSourcesUnchangedAcrossBuilds": true,
+  "changedCompiledSources": [],
+  "buildsExecuted": 2,
+  "buildFailures": 1,
+  "necessaryRetries": 1,
+  "networkSourcesEnabled": false,
+  "outputAssemblySha256": "fed526948573779006fdcbcbe1941b7e1b98be8db852d0abe804b82fa39fb96a",
+  "finalReviewedAssociatedSources": {
+    "src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs": "bd87bc192192ce76ac85fa5c920f8918df4122d6c7f67170d6f58a8fdfdc2cb9",
+    "src/DropSpace.App/ViewModels/MainViewModel.cs": "1a8ea53a00299b8a729b91ca5364eda8e1aa0e53a7af3b08d2f03d9e073838d9",
+    "src/DropSpace.App/OverlayWindow.xaml.cs": "93c5a8446f02ef4044089149e4918a1b328db2cfaa0a519e2207a38be792b022",
+    "src/DropSpace.App/Services/ClipboardCaptureService.cs": "feff2d55692495d796a2fc4f809e82d48bbfda5f29252eb52271f55e89008d1d"
+  },
+  "finalReviewedAssociatedSourcesNote": "Associated final source identities only; not compiled by this project. Parent reported combined review of final OverlayWindow visibility/placement-edit retirement guards.",
+  "evidence": [
+    {
+      "path": "artifacts/local-iterations-2026-10-17/island-navigation-compile/validation-inputs.json",
+      "sha256": "98d6220323a28df342aac7f30af29fcaff848697bb72b47b9768a7b5e35c2b48"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/island-navigation-compile/validation-inputs-initial.json",
+      "sha256": "23814926df14b0bb7e485eb5d4dd7c17e51e702710dfaea966b2078d3c61b80a"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/island-navigation-compile/build-initial.log",
+      "sha256": "5dc837ffd9efb22a40415b18d59c0ad921d39edf433b7a2298e53fd4c7cbab24"
+    },
+    {
+      "path": "artifacts/local-iterations-2026-10-17/island-navigation-compile/build-retry.log",
+      "sha256": "0471e15500eb5fa000c8a032685dde3e092a32e95a9511fff575c9e5a19ef629"
+    }
+  ]
+}

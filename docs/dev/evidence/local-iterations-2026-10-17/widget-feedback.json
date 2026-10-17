@@ -1,0 +1,112 @@
+{
+  "kind": "widget-timer-label-and-error-accessibility-review",
+  "resources": {
+    "newId": "WidgetTimerReset.Text",
+    "languages": 10,
+    "totalIds": 924,
+    "extractCommands": 9,
+    "singleIdReviewCommands": 9,
+    "appResourceGateExecutions": 1,
+    "appResourceGateResult": "passed",
+    "historicalReviewFingerprintsPreserved": true
+  },
+  "checks": [
+    "Scoped source assertions",
+    "Whitespace review",
+    "Independent source and translated-label review"
+  ],
+  "functionalTestsExecuted": 0,
+  "compilationsExecuted": 0,
+  "standaloneLogsRetained": false,
+  "executionEvidence": "Collaborating agent tool execution history; no standalone logs were written.",
+  "limitations": [
+    "Actual screen-reader announcements were not executed.",
+    "No native interaction claim from resource validation."
+  ],
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+      "sha256": "98622bf26cefa1ed09786605cb5335ad06f77395ac94ec73d66041043156d925"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/WidgetEditorView.cs",
+      "sha256": "32baec2a4452488fb6b995a5ec7fc772e861a6e05797b32cc92b35161eb43b76"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
+      "sha256": "39e1a06367b177e3fee28e486612f1a082850dee2a548a3528a380fed99c4a75"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+      "sha256": "5202f46e1417a9da5d79e1a06afb459bfdaab5ce5911826d88ab059061e7a4ab"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
+      "sha256": "4286f9f21d0a4271d621762ec215a6ed05c138c9d32b586df0f2611b19f24b50"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
+      "sha256": "48f43a37f5f7ea1eefeee2de5a968a37273f39247961f1296b20f4f90cf6764b"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
+      "sha256": "bc41d52c564f1f1d2c8476ab01885336a0618cb4f33e5f2fa865dc9d69b2be32"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
+      "sha256": "3e17a3770a5aa21c00c9156f0ffcb336893d863a45efc757255dc3af31c9a7a5"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
+      "sha256": "845e351f95fb56868d97567e3dc7b3844a331677bc295afa4829d521b3a64b8d"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
+      "sha256": "5e6f605ced0de749e1dc2e7538c45c53b2b7d9bd5fc6a41b674098f9149da168"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+      "sha256": "2414ac48a9db81442464f4111a0f5234fce0f0a826bfd28e63a264ae67099e74"
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
+      "sha256": "9bbf6f723b6cac1c52f405a4cbd8f5c8d1d518170de4564738bd1fd9113a3ac2"
+    },
+    {
+      "path": "localization/reviews/app/de-DE.json",
+      "sha256": "1cb7560ced739d05339c16e049b7eebf189c30b4e57e9635c481cbfd65fa7d02"
+    },
+    {
+      "path": "localization/reviews/app/es-ES.json",
+      "sha256": "3b7381105483a9bee8096239ff73e2d7c6fcf7caf0940b00fd2ab832b1569105"
+    },
+    {
+      "path": "localization/reviews/app/fr-FR.json",
+      "sha256": "5633c950f6367e18a49fd5d422332addf888f524ec5dbdcc69af6c5d6f41eaad"
+    },
+    {
+      "path": "localization/reviews/app/ja-JP.json",
+      "sha256": "e68a9b1a1c46c3faed146c5f8017ddd3710e734ec1b0a7d03feee6339c2f5224"
+    },
+    {
+      "path": "localization/reviews/app/ko-KR.json",
+      "sha256": "8e281dd6ab0c4a4d3ccbe90f4d0d3456c8e651a879bb8d591c4569e73d6bb005"
+    },
+    {
+      "path": "localization/reviews/app/pt-BR.json",
+      "sha256": "0e665d191a271545c631dc36690d50a709dda92385252a3263c3e7a49c4dda50"
+    },
+    {
+      "path": "localization/reviews/app/ru-RU.json",
+      "sha256": "2d6740cb7bac230344a2944b8e77e9549c64b052e966beae6d78fcb6ed77d90d"
+    },
+    {
+      "path": "localization/reviews/app/zh-CN.json",
+      "sha256": "7f9fe9fb73b8144baac10517108bef72dd042f2b3be58eba820a8f7718731d80"
+    },
+    {
+      "path": "localization/reviews/app/zh-TW.json",
+      "sha256": "d98b25fab7ee506c81fed778ec0dcbf2143f36e9098c87da77c24f57b68d920b"
+    }
+  ]
+}

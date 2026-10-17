@@ -38,8 +38,33 @@ public sealed class WidgetViewModel : ObservableObject, IAsyncDisposable
     }
     public string TimerActionLabel(NativeWidgetId id) => _strings.Get(
         (id == NativeWidgetId.FocusTimer ? FocusTimer : Countdown).IsRunning ? "StopwatchPause" : "StopwatchStart");
+    public void SetTimerDuration(NativeWidgetId id, int minutes)
+    {
+        (id == NativeWidgetId.FocusTimer ? FocusTimer : Countdown).SetDuration(TimeSpan.FromMinutes(minutes));
+        OnPropertyChanged(nameof(StopwatchText));
+    }
+    public string TimerDurationLabel(int minutes) => _strings.Format("WidgetTimerMinutesFormat", minutes);
     public string Text(string key) => _strings.Get(key);
-    public Task OpenPinnedAsync() => _main.NavigateAsync("Pinned");
+    internal long ReserveMainNavigation() => _main.ReserveNavigation();
+    internal bool IsMainNavigationCurrent(long revision) => !_disposed && _main.IsNavigationCurrent(revision);
+
+    public async Task<bool> OpenPinnedAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_disposed) return false;
+        return await OpenPinnedAsync(ReserveMainNavigation(), cancellationToken);
+    }
+
+    internal async Task<bool> OpenPinnedAsync(long navigationRevision, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsMainNavigationCurrent(navigationRevision)) return false;
+        // Navigation publishes its destination before loading the shared collection.
+        // Let that load finish; retiring this temporary view cancels only its result presentation.
+        await _main.NavigateAsync("Pinned", navigationRevision);
+        cancellationToken.ThrowIfCancellationRequested();
+        return IsMainNavigationCurrent(navigationRevision) && _main.CurrentSection == "Pinned";
+    }
     public System.Globalization.CultureInfo Culture => _strings.Culture;
     public WidgetViewModel(MainViewModel main, NativeWidgetDataService data, DispatcherQueue dispatcher, IAppStringLocalizer strings, ILogger<WidgetViewModel> logger)
     {
@@ -57,7 +82,14 @@ public sealed class WidgetViewModel : ObservableObject, IAsyncDisposable
     }
     public WidgetLayout Layout => _main.Settings.Widgets.Layout;
     public bool Enabled => _main.Settings.Widgets.Enabled;
-    public string StopwatchText => $"{(int)_stopwatch.Elapsed.TotalMinutes:00}:{_stopwatch.Elapsed.Seconds:00}";
+    public string StopwatchText
+    {
+        get
+        {
+            var elapsed = _stopwatch.Elapsed;
+            return $"{(int)elapsed.TotalMinutes:00}:{elapsed.Seconds:00}";
+        }
+    }
     public string StopwatchActionLabel => _strings.Get(_stopwatch.IsRunning ? "StopwatchPause" : "StopwatchStart");
     public string ClipboardPauseLabel => _strings.Get(_main.IsClipboardPaused ? "ClipboardIslandResume" : "ClipboardIslandPause");
     public bool ClipboardPaused => _main.IsClipboardPaused;

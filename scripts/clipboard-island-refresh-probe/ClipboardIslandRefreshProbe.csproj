@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <ClipboardSourcePath Condition="'$(ClipboardSourcePath)' == ''">../../src/DropSpace.App/ViewModels/ClipboardIslandViewModel.cs</ClipboardSourcePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Compile Include="$(ClipboardSourcePath)" Link="Production/ClipboardIslandViewModel.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/DispatcherQueueExtensions.cs" Link="Production/DispatcherQueueExtensions.cs" />
+    <Compile Include="../../src/DropSpace.App/ViewModels/ItemCardViewModel.cs" Link="Production/ItemCardViewModel.cs" />
+    <Compile Include="../../src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs" Link="Production/QuickActionButtonViewModel.cs" />
+    <Compile Include="../navigation-projection-probe/ProbeDispatcher.cs" Link="Fixture/ProbeDispatcher.cs" />
+  </ItemGroup>
+</Project>

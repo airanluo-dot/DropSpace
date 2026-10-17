@@ -1,0 +1,34 @@
+{
+  "recordedAtUtc": "2026-10-17T19:50:00.621396+00:00",
+  "baselineNativeRun": "39063598625",
+  "baselineCommit": "ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f",
+  "currentSliceCompileAttempts": 1,
+  "compileFailures": 0,
+  "warnings": 0,
+  "errors": 0,
+  "functionalScenarioExecutions": 0,
+  "nativeScenarioExecutions": 0,
+  "change": "Harness waits for Closed to advance beyond each pre-open cycle baseline as well as IsOpen=false before reusing the duration button.",
+  "evidence": "The failed native run had successful choice Click, ten-minute duration and start/pause. Its reopen attempt occurred with IsOpen=false but ClosedEvents=0; ClosedEvents advanced only later.",
+  "review": "Independent read-only review confirmed the cycle baseline precedes opening, does not miss synchronous closure, and leaves actual button invokes/product handlers/pixel gate unchanged.",
+  "sourceReferences": [
+    "https://github.com/microsoft/microsoft-ui-xaml/blob/main/dxaml/xcp/dxaml/lib/FlyoutBase_partial.cpp#L1190",
+    "https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.primitives.flyoutbase.closed"
+  ],
+  "boundaries": [
+    "Upstream main source is corroboration, not exact locked-SDK binary proof. The actual native event sequence independently supports the close-completion barrier.",
+    "Narrow C# compile uses actual WinUI/Windows/Core references and signature-only App collaborators; no App/XAML or native run by this agent.",
+    "No product, capture target, pixel predicate or passed batch-case change. Native timing correction awaits focused execution."
+  ],
+  "sha256": {
+    "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.cs": "e6df74a5a62f42e8dbf535c9ef800376034bdff9190e979323e217adf52873b8",
+    "artifacts/local-iterations-2026-10-17/beta-ui-compile/CompilationStubs.cs": "5591b06417719f91297fcc8349e8d19592c624d91865a33b81464f04efaa461b",
+    "artifacts/local-iterations-2026-10-17/beta-ui-compile/BetaUiCompile.csproj": "260fedc3d8c5b5a5ca885ed330f9404304685bd82e45189319609334047443bb",
+    "artifacts/local-iterations-2026-10-17/beta-ui-compile/build-4-menu-close-barrier.log": "5bb032180ffe5a79cb420831e5e5062cba6f3de897fb94ef0f3fffc235eff3ed",
+    "artifacts/local-iterations-2026-10-17/beta-native-ui/39063598625/launcher-receipt.json": "824280c8554f4386996db5b16ac8bc828f9ab3cdc5fb40c4228cd4330e0f1e33"
+  },
+  "receipt": {
+    "path": "artifacts/local-iterations-2026-10-17/beta-ui-compile/menu-close-barrier-validation.json",
+    "sha256": "80fdd6e2199cee9d425de2e16d39e80f10dc778e9d173036ddf3f6f703425af0"
+  }
+}

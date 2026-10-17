@@ -1,6 +1,21 @@
 name: Native music visual diagnostics (no publication)
 on:
   workflow_dispatch:
+    inputs:
+      beta_ui_diagnostics:
+        description: Run selected Debug native UI diagnostics without model assets
+        default: false
+        type: boolean
+      beta_ui_scenario:
+        description: Select the native UI scenario when beta_ui_diagnostics is enabled
+        default: all
+        type: choice
+        options:
+          - all
+          - timers
+          - batch-selection
+          - timer-visual
+          - overlay-lifecycle
 permissions:
   contents: read
   actions: read
@@ -9,6 +24,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   native-visual:
+    if: inputs.beta_ui_diagnostics != true
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
@@ -62,3 +78,45 @@ jobs:
         run: |
           'Native WinUI component capture only. Inspect PNGs before visual approval. No publication, real provider, Acrylic, game, or physical DPI claim.' >> $env:GITHUB_STEP_SUMMARY
           if ($env:ENGLISH_OUTCOME -ne 'success' -or $env:CHINESE_OUTCOME -ne 'success') { throw 'Native visual diagnostics failed, were blocked, or did not run. Review the evidence.' }
+
+  native-beta-ui:
+    if: inputs.beta_ui_diagnostics == true
+    name: Debug native UI diagnostics
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Build isolated Debug executable and locked Windows runtime prerequisites
+        shell: pwsh
+        run: ./scripts/Build-BetaUiDiagnostics.ps1
+      - name: Run only the explicitly selected native UI scenario
+        shell: pwsh
+        env:
+          BETA_UI_SCENARIO: ${{ inputs.beta_ui_scenario }}
+        run: ./scripts/Test-BetaUiDiagnostics.ps1 -Scenario $env:BETA_UI_SCENARIO -IncludeSupplementalImagesInLog
+      - name: Retain native diagnostics including failed or blocked attempts
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: beta-native-ui-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/beta-ui-diagnostics/build/*.json
+            artifacts/beta-ui-diagnostics/build/*.txt
+            artifacts/beta-ui-diagnostics/build/*.binlog
+            artifacts/beta-ui-diagnostics/run/launcher.json
+            artifacts/beta-ui-diagnostics/run/*.txt
+            artifacts/beta-ui-diagnostics/run/app/receipt.json
+            artifacts/beta-ui-diagnostics/run/app/stage.json
+            artifacts/beta-ui-diagnostics/run/app/*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Describe diagnostic evidence boundary
+        if: always()
+        shell: pwsh
+        run: |
+          'Only the explicitly selected native UI scenario runs; actual selection and counts are recorded in the launcher receipt. Debug executable; no release qualification or publication. Missing desktop, empty pixel readback, failed assertions or incomplete execution cannot pass. Actual desktop/DPI only; AutomationPeer invocation does not establish physical pointer behavior. Inspect retained PNGs for visual review.' >> $env:GITHUB_STEP_SUMMARY

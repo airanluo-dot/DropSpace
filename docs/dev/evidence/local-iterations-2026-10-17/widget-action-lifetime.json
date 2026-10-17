@@ -1,0 +1,51 @@
+{
+  "parentCommit": "e3cd962ef603150f1f9b20b42eddcba7861df232",
+  "inputs": [
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "sha256": "2e800d12ca45403949095efe1a6af0a800161202ef9fea81b57e9ac1d5c4b5db"
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/WidgetViewModel.cs",
+      "sha256": "af58d6de70b7d744f79d8c45d8be6b2c432e468c5bb3981211b87f02f4c5d099"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+      "sha256": "8888497cd1f40f4c95e8e1ae6e06277672c7c35b41607de05b4cbef5e7bc8ce6"
+    }
+  ],
+  "functionalCasesExecuted": 0,
+  "sourceReview": {
+    "retirementBoundaries": [
+      "SetActive(false)",
+      "Unloaded",
+      "ViewModel replacement",
+      "Rebuild"
+    ],
+    "publicationGuards": [
+      "captured view owner",
+      "loaded current tile",
+      "active view",
+      "non-retired token",
+      "Pinned destination remains current",
+      "host not closing"
+    ],
+    "sharedNavigationPolicy": "Once started, let the existing shared navigation finish; retirement suppresses presentation only.",
+    "retryState": "Restore icon and clear HelpText before a new activation.",
+    "finallyState": "A retained tile can recover after hide/show even when the token retired.",
+    "stopwatch": "Use one Elapsed snapshot."
+  },
+  "notExecuted": [
+    "Native Windows lifecycle interactions",
+    "Launch failure injection",
+    "Accessibility runtime observation"
+  ],
+  "windowsCompilation": {
+    "runId": 39061052563,
+    "sourceCommit": "6604f59a167d06358246b32a0c9d31f3da880f98",
+    "result": "success",
+    "warnings": 0,
+    "errors": 0,
+    "functionalCases": 0
+  }
+}

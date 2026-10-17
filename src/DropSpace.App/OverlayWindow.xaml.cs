@@ -48,6 +48,8 @@ public sealed partial class OverlayWindow : Window
     private readonly MonitorDescriptor _monitor;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly Action _openMainWindow;
+    private bool _clipboardPresentationActive;
+    private long _clipboardPresentationGeneration;
     private readonly ILogger<OverlayWindow> _logger;
     private readonly DragActivationCallbacks _visualDragCallbacks;
     private readonly OleDragDropService _dragDropService;
@@ -106,6 +108,9 @@ public sealed partial class OverlayWindow : Window
     private bool _placementEditActive;
     private readonly DispatcherQueueTimer _rightHoldTimer;
     private Microsoft.UI.Xaml.Input.Pointer? _rightHoldPointer;
+    private long _rightHoldGeneration;
+    private long _rightHoldStartedAt;
+    private bool _rightHoldRequestPending;
     private bool _suppressedForPlacementEdit;
     private TaskCompletionSource<object?>? _motionSettled;
     private int _positionedHostWidthPixels = -1;
@@ -204,19 +209,7 @@ public sealed partial class OverlayWindow : Window
             _rightHoldTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
             _rightHoldTimer.Interval = OverlayPlacementEditSession.HoldDuration;
             _rightHoldTimer.IsRepeating = false;
-            _rightHoldTimer.Tick += (_, _) =>
-            {
-                if (_rightHoldPointer is not null && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove)
-                    PlacementEditRequested?.Invoke(this, MonitorId);
-            };
-            Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
-            Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
-            Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) => { _rightHoldTimer.Stop(); _rightHoldPointer = null; }), true);
-            Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, _) =>
-            {
-                if (_placementEditActive) return;
-                _rightHoldTimer.Stop(); _rightHoldPointer = null;
-            }), true);
+            _rightHoldTimer.Tick += OnRightHoldTimerTick;
             MusicCompact.SetActive(false);
             _compactPanelVisibilityToken = CompactPanel.RegisterPropertyChangedCallback(
                 UIElement.VisibilityProperty, OnCompactPanelVisibilityChanged);
@@ -227,8 +220,9 @@ public sealed partial class OverlayWindow : Window
             MusicExpanded.ViewModel = mediaViewModel;
             WidgetsExpanded.ViewModel = widgetViewModel;
             WidgetsExpanded.SetModuleRuntime(modules, strings);
-            WidgetsExpanded.PinnedRequested += (_, _) => { _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
+            WidgetsExpanded.PinnedRequested += (_, _) => { if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
             ClipboardExpanded.ViewModel = clipboardViewModel;
+            ClipboardExpanded.Unloaded += (_, _) => SetClipboardPresentationActive(false);
             ActivityCompact.DataContext = systemActivityViewModel;
             MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
             _materialController = new OverlayMaterialController(
@@ -243,6 +237,19 @@ public sealed partial class OverlayWindow : Window
                 SurfaceContent,
                 InteractionTintOverlay);
             _motion = new OverlayMotionOrchestrator(OverlayMotionValues.Hidden, _compositionAnimator);
+            // Register pointer feedback only after its animation owner is ready.
+            Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
+            Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
+            Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, args) =>
+            {
+                _motion.ApplyPress(false, IsReducedMotion());
+                if (_rightHoldPointer?.PointerId == args.Pointer.PointerId) CancelRightHold();
+            }), true);
+            Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, args) =>
+            {
+                _motion.ApplyPress(false, IsReducedMotion());
+                if (_rightHoldPointer?.PointerId == args.Pointer.PointerId) CancelRightHold();
+            }), true);
             Root.ActualThemeChanged += OnIslandThemeChanged;
             ApplyTheme(mediaViewModel.Settings.IslandAppearance.Theme);
             _materialController.Apply(_visualPreferences.Resolve(viewModel.MotionPreference));
@@ -309,6 +316,10 @@ public sealed partial class OverlayWindow : Window
                 LogNativeFailure(hideFailure);
                 _nativeWindowSafeToShow = false;
             }
+            // The keyboard Quick Panel can receive system close commands. Its ordinary
+            // close means dismissing this reusable surface, not destroying its HWND.
+            AppWindow.Closing += OnAppWindowClosing;
+            _appWindowClosingSubscribed = true;
         }
         catch
         {
@@ -324,12 +335,21 @@ public sealed partial class OverlayWindow : Window
     private void OnTransparentHostClosed(object sender, WindowEventArgs args)
     {
         _windowClosed = true;
-        _closing = true;
-        CancelQuickPanelFocus();
-        StopAnimationFrames();
+        // Forced/native closure can bypass the cancellable AppWindow closing event.
+        // It must still retire every owner, even when CloseForShutdown was not used.
+        RetireWindowResources();
         Closed -= OnTransparentHostClosed;
-        try { _transparentHost?.Dispose(); }
-        catch (Win32Exception exception) { _logger.LogError(exception, "Overlay erase-hook cleanup failed; the callback remains retained until HWND destruction."); }
+    }
+
+    private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_shutdownStarted || _closing) return;
+        args.Cancel = true;
+        CancelRightHold();
+        if (_placementEditActive) CancelPlacementEdit();
+        // PlacementCancelled first releases the service's editing state and restores
+        // other monitor surfaces; this final dismissal then owns their presentation.
+        _experience.DismissNow();
     }
 
     public string MonitorId => _monitor.Id;
@@ -576,6 +596,7 @@ public sealed partial class OverlayWindow : Window
         OverlayMonitorPlacement placement)
     {
         if (_closing) return;
+        if (!_mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove) CancelRightHold();
         _presentationSnapshot = snapshot;
         var page = _experience.Current.Page;
         _pageReducedMotion = IsReducedMotion();
@@ -659,6 +680,7 @@ public sealed partial class OverlayWindow : Window
         }
         else if (snapshot.State is OverlayState.Dismissing or OverlayState.Hidden)
         {
+            CancelRightHold();
             _visualPhase = OverlayVisualPhase.Exiting;
         }
         else if (!_isVisible)
@@ -722,7 +744,7 @@ public sealed partial class OverlayWindow : Window
         MaintainFullscreenVisibility();
         _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Music));
         WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Widgets);
-        ClipboardExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
+        SetClipboardPresentationActive(_isVisible && snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
         PrepareContentForTarget(target);
         if (_previousState == OverlayState.DragReady && snapshot.State == OverlayState.Compact)
         {
@@ -749,6 +771,7 @@ public sealed partial class OverlayWindow : Window
     private bool _closing;
     private bool _shutdownStarted;
     private bool _windowClosed;
+    private bool _appWindowClosingSubscribed;
 
     public void CloseForShutdown()
     {
@@ -765,9 +788,14 @@ public sealed partial class OverlayWindow : Window
         // Construction can fail after installing global observers but before every
         // resource exists. Fence callbacks first and retire each initialized owner.
         _closing = true;
+        if (_appWindowClosingSubscribed)
+        {
+            _appWindowClosingSubscribed = false;
+            Cleanup("window closing observer", () => AppWindow.Closing -= OnAppWindowClosing);
+        }
         Cleanup("Quick Panel focus request", CancelQuickPanelFocus);
         _presentationSnapshot = null;
-        _rightHoldPointer = null;
+        Cleanup("right-hold gesture", CancelRightHold);
         if (_visualPreferences is { } preferences)
             Cleanup("visual preference observer", () => preferences.Changed -= OnSystemVisualPreferencesChanged);
         if (_mediaViewModel is { } media)
@@ -790,7 +818,8 @@ public sealed partial class OverlayWindow : Window
         if (_animationTimer is { } animationTimer) Cleanup("animation timer observer", () => animationTimer.Tick -= _animationTimerHandler);
         Cleanup("window cancellation", _windowLifetime.Cancel);
         Cleanup("content dialogs", () => Views.ContentDialogLifetime.RetireRoot(Root?.XamlRoot));
-        Cleanup("right-hold timer", () => _rightHoldTimer?.Stop());
+        if (_rightHoldTimer is { } rightHoldTimer)
+            Cleanup("right-hold timer observer", () => rightHoldTimer.Tick -= OnRightHoldTimerTick);
         if (_placementEditActive) Cleanup("placement editing", EndPlacementEditVisuals);
         _suppressedForPlacementEdit = false;
         Cleanup("native drop target", RevokeNativeDropTarget);
@@ -801,7 +830,7 @@ public sealed partial class OverlayWindow : Window
         Cleanup("compact media", () => MusicCompact?.SetActive(false));
         Cleanup("expanded media", () => MusicExpanded?.SetActive(false));
         Cleanup("widgets", () => WidgetsExpanded?.SetActive(false));
-        Cleanup("clipboard", () => ClipboardExpanded?.SetActive(false));
+        Cleanup("clipboard", () => SetClipboardPresentationActive(false));
         Cleanup("media presentation", () => _mediaViewModel?.SetPresentationVisible(this, false));
         Cleanup("media glow", () => _mediaViewModel?.SetIslandGlowActive(this, false));
         Cleanup("glow resources", () => _glow?.Dispose());
@@ -1027,6 +1056,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        CancelRightHold();
         CancelQuickPanelFocus();
         var fileRevision = _presentationSnapshot?.Revision;
         var hideGeneration = _experience.HideGeneration;
@@ -1038,7 +1068,7 @@ public sealed partial class OverlayWindow : Window
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
-        ClipboardExpanded.SetActive(false);
+        SetClipboardPresentationActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
@@ -1086,6 +1116,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        CancelRightHold();
         CancelQuickPanelFocus();
         var fileRevision = _presentationSnapshot?.Revision;
         var hideGeneration = _experience.HideGeneration;
@@ -1095,7 +1126,7 @@ public sealed partial class OverlayWindow : Window
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
-        ClipboardExpanded.SetActive(false);
+        SetClipboardPresentationActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
         _nativeWindowSafeToShow = false;
         CompactPanel.Visibility = Visibility.Collapsed;
@@ -1125,10 +1156,11 @@ public sealed partial class OverlayWindow : Window
 
     private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
     {
+        CancelRightHold();
         ResetMotionBlur();
         _glowTransfer = null;
         WidgetsExpanded.SetActive(false);
-        ClipboardExpanded.SetActive(false);
+        SetClipboardPresentationActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
         if (!_suppressedForFullscreen)
         {
@@ -1395,6 +1427,7 @@ public sealed partial class OverlayWindow : Window
                 return;
             }
             TraceIslandEvent("dismiss-settled");
+            CancelRightHold();
             _hideWhenSettled = false;
             _motion.CompleteVisualAnimations();
             CollapseInvisibleContent(_motion.Current);
@@ -1842,9 +1875,14 @@ public sealed partial class OverlayWindow : Window
 
     public void ResumeAfterPlacementEdit() => _suppressedForPlacementEdit = false;
 
-    public void BeginPlacementEdit(OverlayCustomPlacement savedOriginal, OverlayCustomPlacement projectedStart)
+    public void BeginPlacementEdit(OverlayCustomPlacement savedOriginal, OverlayCustomPlacement projectedStart,
+        Microsoft.UI.Xaml.Input.Pointer? rightHoldPointer = null)
     {
+        CancelRightHold();
+        if (_closing) return;
         CancelQuickPanelFocus();
+        WidgetsExpanded.SetActive(false);
+        SetClipboardPresentationActive(false);
         ResetMotionBlur();
         _suppressedForPlacementEdit = false;
         _placementEdit.Arm(savedOriginal, projectedStart);
@@ -1872,10 +1910,9 @@ public sealed partial class OverlayWindow : Window
         var editTarget = Create(OverlayPlacementEditSession.EditorWidth, OverlayPlacementEditSession.EditorHeight, 0, 24, 0, 0, 0);
         PrepareContentForTarget(editTarget);
         _motion.SetTarget(editTarget, IsReducedMotion());
-        if (_rightHoldPointer is { } held && OverlayWindowInterop.TryGetCursorPosition(out var pointerPosition))
+        if (rightHoldPointer is { } held && OverlayWindowInterop.TryGetCursorPosition(out var pointerPosition) &&
+            PlacementEditSurface.CapturePointer(held))
         {
-            Surface.ReleasePointerCapture(held);
-            PlacementEditSurface.CapturePointer(held);
             _placementEdit.TryBeginDrag(pointerPosition);
         }
         if (!OverlayWindowInterop.SetNoActivate(_windowHandle, true, out var noActivateFailure))
@@ -2219,10 +2256,40 @@ public sealed partial class OverlayWindow : Window
         try { if (_closing) return; await _widgetViewModel.OpenSettingsAsync(); if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
         catch (Exception exception) { _logger.LogWarning("Widget settings navigation failed ({Category}).", exception.GetType().Name); }
     }
+    private void SetClipboardPresentationActive(bool active)
+    {
+        if (_clipboardPresentationActive != active)
+        {
+            _clipboardPresentationActive = active;
+            Interlocked.Increment(ref _clipboardPresentationGeneration);
+        }
+        ClipboardExpanded?.SetActive(active);
+    }
+
     private async void OnClipboardOpenMainRequested(object? sender, EventArgs args)
     {
-        try { if (_closing) return; if (ClipboardExpanded.ViewModel is { } view) await view.OpenMainAsync(); if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
-        catch (Exception exception) { _logger.LogWarning("Clipboard navigation failed ({Category}).", exception.GetType().Name); }
+        if (_closing || !_isVisible || !_clipboardPresentationActive || !ClipboardExpanded.IsLoaded ||
+            ClipboardExpanded.ViewModel is not { } view) return;
+        var presentationGeneration = Volatile.Read(ref _clipboardPresentationGeneration);
+        var navigationRevision = view.ReserveMainNavigation();
+        bool IsCurrent() => !_closing && _isVisible && _clipboardPresentationActive && ClipboardExpanded.IsLoaded &&
+            presentationGeneration == Volatile.Read(ref _clipboardPresentationGeneration) &&
+            ReferenceEquals(ClipboardExpanded.ViewModel, view) && view.IsMainNavigationCurrent(navigationRevision);
+        try
+        {
+            await view.OpenMainAsync(navigationRevision);
+            if (!IsCurrent()) return;
+            _openMainWindow();
+            _experience.Collapse();
+            _viewModel.Collapse();
+        }
+        catch (Exception exception)
+        {
+            if (IsCurrent())
+                _logger.LogWarning("Clipboard navigation failed ({Category}).", exception.GetType().Name);
+            else
+                _logger.LogDebug("Retired clipboard navigation failed ({Category}).", exception.GetType().Name);
+        }
     }
 
     private void OnOpenMainWindowClicked(object sender, RoutedEventArgs args)
@@ -2359,19 +2426,26 @@ public sealed partial class OverlayWindow : Window
     private void OnSurfacePointerExited(object sender, PointerRoutedEventArgs args)
     {
         _motion.ApplyHover(false, IsReducedMotion());
+        // An uncaptured press may be released outside this surface, so no release
+        // event is guaranteed to return and undo its feedback.
+        _motion.ApplyPress(false, IsReducedMotion());
     }
 
     private void OnSurfacePointerPressed(object sender, PointerRoutedEventArgs args)
     {
-        if (!_placementEditActive && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove && args.GetCurrentPoint(Surface).Properties.IsRightButtonPressed)
+        var properties = args.GetCurrentPoint(Surface).Properties;
+        if (properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.RightButtonPressed && CanRequestRightHoldPlacement())
         {
+            CancelRightHold();
+            if (!Surface.CapturePointer(args.Pointer)) return;
             _rightHoldPointer = args.Pointer;
-            Surface.CapturePointer(args.Pointer);
+            _rightHoldStartedAt = Stopwatch.GetTimestamp();
+            _rightHoldTimer.Interval = OverlayPlacementEditSession.HoldDuration;
             _rightHoldTimer.Start();
             args.Handled = true;
             return;
         }
-        if (_presentedState == OverlayState.Compact)
+        if (_presentedState == OverlayState.Compact && !properties.IsRightButtonPressed)
         {
             _motion.ApplyPress(true, IsReducedMotion());
         }
@@ -2379,10 +2453,62 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfacePointerReleased(object sender, PointerRoutedEventArgs args)
     {
-        _rightHoldTimer.Stop();
-        if (_rightHoldPointer is { } held) Surface.ReleasePointerCapture(held);
-        _rightHoldPointer = null;
+        if (_rightHoldPointer?.PointerId == args.Pointer.PointerId &&
+            !args.GetCurrentPoint(Surface).Properties.IsRightButtonPressed) CancelRightHold();
         _motion.ApplyPress(false, IsReducedMotion());
+    }
+
+    private bool CanRequestRightHoldPlacement() =>
+        !_closing && !_placementEditActive && !_suppressedForPlacementEdit && !_suppressedForFullscreen &&
+        _isActiveWindow && _isVisible && _nativeWindowSafeToShow && !_hideWhenSettled &&
+        _presentedState is not (OverlayState.Hidden or OverlayState.Dismissing) &&
+        _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove;
+
+    private void OnRightHoldTimerTick(DispatcherQueueTimer sender, object args)
+    {
+        if (_rightHoldPointer is null || !CanRequestRightHoldPlacement())
+        {
+            CancelRightHold();
+            return;
+        }
+        if (_rightHoldRequestPending) return;
+        // Stop/start can leave an older tick queued. It must not complete a newer hold early.
+        var remaining = OverlayPlacementEditSession.HoldDuration - Stopwatch.GetElapsedTime(_rightHoldStartedAt);
+        if (remaining > TimeSpan.Zero)
+        {
+            _rightHoldTimer.Interval = remaining;
+            _rightHoldTimer.Start();
+            return;
+        }
+        _rightHoldRequestPending = true;
+        PlacementEditRequested?.Invoke(this, MonitorId);
+    }
+
+    internal bool TryGetRightHoldRequest(out long generation)
+    {
+        generation = _rightHoldGeneration;
+        return _rightHoldRequestPending && _rightHoldPointer is not null && CanRequestRightHoldPlacement();
+    }
+
+    internal bool TryConsumeRightHoldRequest(long generation, out Microsoft.UI.Xaml.Input.Pointer? pointer)
+    {
+        pointer = null;
+        if (generation != _rightHoldGeneration || !TryGetRightHoldRequest(out _)) return false;
+        pointer = _rightHoldPointer;
+        // The accepted pointer travels separately to the editor. Synchronous drag cancellation
+        // can hide this surface before BeginPlacementEdit transfers capture to its own element.
+        CancelRightHold();
+        return true;
+    }
+
+    private void CancelRightHold()
+    {
+        var pointer = _rightHoldPointer;
+        _rightHoldPointer = null;
+        _rightHoldRequestPending = false;
+        ++_rightHoldGeneration;
+        _rightHoldTimer?.Stop();
+        if (pointer is not null) Surface.ReleasePointerCapture(pointer);
     }
 
     private void OnSurfaceDragEnter(object sender, DragEventArgs args)

@@ -1,0 +1,173 @@
+{
+  "attempts": [
+    {
+      "runId": 39060274785,
+      "sourceCommit": "d624782a6b1388c879b98abc4adb64425c4e09c5",
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39060274785",
+      "configuration": "Debug",
+      "result": "failure",
+      "functionalTestsExecuted": 0,
+      "rootErrors": [
+        "CS8602 OverlayWindow.xaml.cs(216,17)",
+        "CS8602 OverlayWindow.xaml.cs(221,17)"
+      ],
+      "downstreamErrors": [
+        "WMC1509 missing LocalAssembly",
+        "WMC0001 unknown local converter types",
+        "WMC9999 XAML internal error"
+      ],
+      "diagnostics": {
+        "jobLogPath": "artifacts/local-iterations-2026-10-17/windows-compile/39060274785/job.log",
+        "jobLogSha256": "dec99c0612dec2086758aef6b66b128d7236e4eec43ccedcc81f86c5752f9d1a",
+        "artifactId": 12111306527,
+        "artifactDownloaded": false,
+        "artifactFailure": "Proxy returned 403 on redirect; direct networking refused connection."
+      },
+      "productionJobsSkipped": true,
+      "protectedProductionCheckNotEmitted": true
+    },
+    {
+      "runId": 39060604585,
+      "sourceCommit": "e3cd962ef603150f1f9b20b42eddcba7861df232",
+      "sourceTree": "c207b6b87487f728f40142f3c53d52c2ce949c28",
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39060604585",
+      "configuration": "Debug",
+      "result": "success",
+      "workflowConclusion": "success",
+      "functionalTestsExecuted": 0,
+      "warnings": 0,
+      "errors": 0,
+      "receipt": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-app-xaml-compile-only",
+        "repository": "airanluo-dot/DropSpace",
+        "runId": "39060604585",
+        "runAttempt": "1",
+        "sourceCommit": "e3cd962ef603150f1f9b20b42eddcba7861df232",
+        "sourceTree": "c207b6b87487f728f40142f3c53d52c2ce949c28",
+        "configuration": "Debug",
+        "appXamlBuild": true,
+        "tests": {
+          "status": "not-run",
+          "executed": 0
+        },
+        "releasePromotionEligible": false,
+        "buildLogSha256": "4c5054ec7110d2215de23aa0a2a34432bf701a012ef9a67fc0ef276c76de5de8"
+      },
+      "receiptSource": "GitHub completed compilation job log",
+      "diagnostics": {
+        "jobLogPath": "artifacts/local-iterations-2026-10-17/windows-compile/39060604585/job.log",
+        "jobLogSha256": "f278cb5e9303d117efdc3ef7127f799111204656c5741eab1b37bb384f676c2c",
+        "artifactDownloaded": false,
+        "buildLogHashLocallyRecomputed": false
+      },
+      "productionJobsSkipped": true,
+      "protectedProductionCheckNotEmitted": true
+    },
+    {
+      "runId": 39061052563,
+      "sourceCommit": "6604f59a167d06358246b32a0c9d31f3da880f98",
+      "sourceTree": "2f556441617626184419b655eb224555f0ea5161",
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39061052563",
+      "configuration": "Debug",
+      "result": "success",
+      "workflowConclusion": "success",
+      "functionalTestsExecuted": 0,
+      "warnings": 0,
+      "errors": 0,
+      "receipt": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-app-xaml-compile-only",
+        "repository": "airanluo-dot/DropSpace",
+        "runId": "39061052563",
+        "runAttempt": "1",
+        "sourceCommit": "6604f59a167d06358246b32a0c9d31f3da880f98",
+        "sourceTree": "2f556441617626184419b655eb224555f0ea5161",
+        "configuration": "Debug",
+        "appXamlBuild": true,
+        "tests": {
+          "status": "not-run",
+          "executed": 0
+        },
+        "releasePromotionEligible": false,
+        "buildLogSha256": "a4942caef5730dbe5cc0674fe6b60982c2ea81c212cf7ef1abf7b46932281ac1"
+      },
+      "receiptSource": "GitHub completed compilation job log",
+      "diagnostics": {
+        "jobLogPath": "artifacts/local-iterations-2026-10-17/windows-compile/39061052563/job.log",
+        "jobLogSha256": "a900f91b299e8569c4b780e3ef3f726bd6324990a2175b87041fd6d0ce50dd54",
+        "artifactDownloaded": false,
+        "buildLogHashLocallyRecomputed": false
+      },
+      "productionJobsSkipped": true,
+      "protectedProductionCheckNotEmitted": true
+    },
+    {
+      "runId": 39061775459,
+      "sourceCommit": "e3bb526727f8179b15a959f7c7caad14e7a5a674",
+      "sourceTree": "110a500342c3c6cd806483d249d3bcd6dc1b1a8e",
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39061775459",
+      "configuration": "Debug",
+      "result": "success",
+      "workflowConclusion": "success",
+      "functionalTestsExecuted": 0,
+      "warnings": 0,
+      "errors": 0,
+      "receipt": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-app-xaml-compile-only",
+        "repository": "airanluo-dot/DropSpace",
+        "runId": "39061775459",
+        "runAttempt": "1",
+        "sourceCommit": "e3bb526727f8179b15a959f7c7caad14e7a5a674",
+        "sourceTree": "110a500342c3c6cd806483d249d3bcd6dc1b1a8e",
+        "configuration": "Debug",
+        "appXamlBuild": true,
+        "tests": {
+          "status": "not-run",
+          "executed": 0
+        },
+        "releasePromotionEligible": false,
+        "buildLogSha256": "a865df8e5b30c70a3218d73da8d11fefb6c504f7afbab5e564fc7a7bddc4fd83"
+      },
+      "receiptSource": "GitHub completed compilation job log",
+      "diagnostics": {
+        "jobLogPath": "artifacts/local-iterations-2026-10-17/windows-compile/39061775459/job.log",
+        "jobLogSha256": "02db420b7c389837a48f263c00a1f8ba0cb59cf66506fa93c0815889a673ae36",
+        "artifactDownloaded": false,
+        "buildLogHashLocallyRecomputed": false
+      },
+      "productionJobsSkipped": true,
+      "protectedProductionCheckNotEmitted": true
+    }
+  ],
+  "nextSourceInputs": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "bedcf757f9c827e84a5ea3abef740ded8df90dba7b2e4787ffb75ef18f349292"
+    },
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "sha256": "982ab0c90825bdade25fd14af6b2f6ca62a6a73227e786c5badb0e66eefb8de6"
+    },
+    {
+      "path": "src/DropSpace.App/Services/Widgets/NativeWidgetIcons.cs",
+      "sha256": "49651096da85cbdb80cfb02420d9a8afc48766d00bdc3c483aa3c99141634c27"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/WidgetEditorView.cs",
+      "sha256": "14697e0c87ff4f8d592348cac8880fcff0bba1a5c3b71936da65a2901f4b4c27"
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+      "sha256": "103c5369747fb3a39f222ab76e8fb384d2f5d3abae5724fd19b25bdf5d398e07"
+    }
+  ],
+  "nextChanges": [
+    "Register pointer feedback after motion initialization",
+    "Add shared native widget glyphs",
+    "Print compilation receipt to job log"
+  ],
+  "releasePublished": false,
+  "nextSourceInputsLabel": "Inputs of successful e3cd962 compilation; initial failed inputs are bound by d624782."
+}

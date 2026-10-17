@@ -17,7 +17,7 @@ using PlacementMode = DropSpace.Core.Models.OverlayPlacementMode;
 
 namespace DropSpace.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
+public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
     internal const int MaximumManualBatchItems = 2_048;
     private const int MaximumLiveClipboardItems = 250;
@@ -735,174 +735,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public void ShowUpdatedVersion(ReleaseVersion version) =>
         Status = AppUiMessage.Resource("AppUpdated", version);
 
-    public async Task NavigateAsync(string section, CancellationToken cancellationToken = default)
-    {
-        Interlocked.Increment(ref _reloadRevision);
-        _clipboardReloadCaptures = null;
-        CurrentSection = section;
-        IsSettingsVisible = string.Equals(section, "Settings", StringComparison.Ordinal);
-        switch (section)
-        {
-            case "Clipboard":
-                PageTitle = _strings.Get("PageTitleClipboard");
-                PageDescription = _strings.Get("PageDescriptionClipboard");
-                break;
-            case "Pinned":
-                PageTitle = _strings.Get("PageTitlePinned");
-                PageDescription = _strings.Get("PageDescriptionPinned");
-                break;
-            case "Settings":
-                PageTitle = _strings.Get("PageTitleSettings");
-                PageDescription = _strings.Get("PageDescriptionSettings");
-                IsBusy = false;
-                ClearMainProjection();
-                _projectionCursor = null;
-                HasMoreItems = false;
-                ItemCount = 0;
-                IsEmpty = true;
-                return;
-            case "Music":
-                PageTitle = _strings.Get("PageTitleMusic");
-                PageDescription = _strings.Get("PageDescriptionMusic");
-                IsBusy = false; ClearMainProjection(); _projectionCursor = null;
-                HasMoreItems = false; ItemCount = 0; IsEmpty = true;
-                return;
-            default:
-                CurrentSection = "Space";
-                PageTitle = _strings.Get("PageTitleSpace");
-                PageDescription = _strings.Get("PageDescriptionSpace");
-                break;
-        }
-
-        await ReloadAsync(cancellationToken);
-    }
-
-    public async Task ReloadAsync(CancellationToken cancellationToken = default)
-    {
-        if (!IsCollectionVisible) return;
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        var revision = Interlocked.Increment(ref _reloadRevision);
-        var request = new ItemProjectionRequest(CurrentSection, SearchText);
-        // Captures arriving after the query snapshot must survive replacement of the first page.
-        // This journal belongs only to this reload and is bounded by the live projection cap.
-        var journal = new ProjectionLoadJournal();
-        var captureClipboard = request.Section == "Clipboard" && string.IsNullOrWhiteSpace(request.SearchText);
-        _clipboardReloadCaptures = captureClipboard ? journal : null;
-        _projectionLoads.Add(journal);
-        IsBusy = true;
-        try
-        {
-            var page = await _projection.LoadPageAsync(request, null, cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible ||
-                !ProjectionRequestStillCurrent(request))
-            {
-                return;
-            }
-
-            IReadOnlyList<DropItem> projectedItems = page.Items.Where(item => !journal.RemovedIds.Contains(item.Id)).ToArray();
-            var liveOverflow = journal.CaptureOverflow;
-            if (journal.Captures.Count > 0)
-            {
-                var captures = journal.Captures.Where(item => !journal.RemovedIds.Contains(item.Id)).ToArray();
-                var capturedIds = captures.Select(item => item.Id).ToHashSet();
-                var merged = captures.Concat(projectedItems.Where(item => !capturedIds.Contains(item.Id))).ToArray();
-                liveOverflow |= merged.Length > MaximumLiveClipboardItems;
-                projectedItems = merged.Take(MaximumLiveClipboardItems).ToArray();
-            }
-
-            ClearMainProjection();
-            AppendProjectionItems(projectedItems);
-            ApplyBatchProjectionState();
-            _projectionCursor = page.NextCursor;
-            HasMoreItems = page.HasMore;
-            if (liveOverflow)
-            {
-                // If removal filtered every visible row, the journal still owns the
-                // old retained boundary from which evicted persisted rows can be read.
-                var tail = Items.LastOrDefault()?.Item ?? journal.Captures.Last();
-                _projectionCursor = new ItemQueryCursor(0, tail.CreatedAtUtc, tail.Id);
-                HasMoreItems = true;
-            }
-            ItemCount = Items.Count;
-            IsEmpty = Items.Count == 0;
-
-            Status = !string.IsNullOrWhiteSpace(request.SearchText) && Items.Count == 0
-                ? AppUiMessage.Resource("SearchNoMatches")
-                : AppUiMessage.Empty;
-        }
-        finally
-        {
-            _projectionLoads.Remove(journal);
-            if (ReferenceEquals(_clipboardReloadCaptures, journal)) _clipboardReloadCaptures = null;
-            if (revision == Volatile.Read(ref _reloadRevision))
-            {
-                IsBusy = false;
-            }
-        }
-    }
-
-    public async Task LoadMoreItemsAsync(CancellationToken cancellationToken = default)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (IsBusy || !HasMoreItems || IsSettingsVisible || _projectionCursor is null)
-        {
-            return;
-        }
-
-        if (!await _projectionLoadGate.WaitAsync(0, cancellationToken))
-        {
-            return;
-        }
-
-        var journal = new ProjectionLoadJournal();
-        _projectionLoads.Add(journal);
-        try
-        {
-            var revision = Volatile.Read(ref _reloadRevision);
-            var request = new ItemProjectionRequest(CurrentSection, SearchText);
-            var cursor = _projectionCursor;
-            if (cursor is null) return;
-
-            var page = await _projection.LoadPageAsync(request, cursor, cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible ||
-                !ProjectionRequestStillCurrent(request))
-            {
-                return;
-            }
-
-            AppendProjectionItems(page.Items.Where(item => !journal.RemovedIds.Contains(item.Id)));
-            ApplyBatchProjectionState();
-            _projectionCursor = page.NextCursor;
-            HasMoreItems = page.HasMore;
-            ItemCount = Items.Count;
-            IsEmpty = Items.Count == 0;
-        }
-        finally
-        {
-            _projectionLoads.Remove(journal);
-            _projectionLoadGate.Release();
-        }
-    }
-
-    private bool ProjectionRequestStillCurrent(ItemProjectionRequest request) =>
-        string.Equals(request.Section, CurrentSection, StringComparison.Ordinal) &&
-        string.Equals(request.SearchText, SearchText, StringComparison.Ordinal);
-
-    private void AppendProjectionItems(IEnumerable<DropItem> items)
-    {
-        var knownIds = Items.Select(card => card.Id).ToHashSet();
-        foreach (var item in items)
-        {
-            if (!knownIds.Add(item.Id)) continue;
-            var card = new ItemCardViewModel(item, _strings);
-            RefreshPrimaryQuickActions(card);
-            Items.Add(card);
-            _ = LoadMainCardAssetsAsync(card);
-        }
-    }
-
     public async Task<int> AddPathsAsync(IEnumerable<string> paths, CancellationToken cancellationToken = default)
         => await AddPathsBatchAsync(paths, null, "file-drop", cancellationToken);
 
@@ -1084,22 +916,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         await PublishSpaceProjectionChangedAsync(cancellationToken);
     }
 
-    public void ToggleBatchExpanded(ItemCardViewModel card)
-    {
-        if (card.DropBatchId is not { } batchId)
-        {
-            return;
-        }
-        var members = Items.Where(item => item.DropBatchId == batchId).ToArray();
-        var expanded = !card.IsBatchExpanded;
-        _batchExpansion[batchId] = expanded;
-        foreach (var member in members)
-        {
-            member.IsBatchExpanded = expanded;
-            member.IsBatchMemberVisible = member.IsBatchHeader || expanded;
-        }
-    }
-
     public Task<IReadOnlyList<Windows.Storage.IStorageItem>> GetBatchDragStorageItemsAsync(Guid batchId)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -1117,29 +933,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         var storageItems = await Task.WhenAll(members.Select(item =>
             _dragStorageItems.ResolveAsync(item, cancellationToken)));
         return storageItems.Where(item => item is not null).Cast<Windows.Storage.IStorageItem>().ToArray();
-    }
-
-    private void ApplyBatchProjectionState()
-    {
-        foreach (var group in Items.Where(item => item.IsGrouped && item.DropBatchId is not null)
-                     .GroupBy(item => item.DropBatchId))
-        {
-            var ordered = group.OrderBy(item => item.BatchMetadata?.ItemIndex ?? int.MaxValue).ToArray();
-            // Filters, removal, and paging can omit ItemIndex=0. Keep one loaded member
-            // actionable until the persisted header is available in this projection.
-            // Reevaluate the complete loaded group so later pages never add a second header.
-            var header = ordered.FirstOrDefault(item => item.BatchMetadata?.ItemIndex == 0) ?? ordered[0];
-            var expanded = _batchExpansion.TryGetValue(group.Key!.Value, out var value) && value;
-            for (var index = 0; index < ordered.Length; index++)
-            {
-                var card = ordered[index];
-                var isHeader = ReferenceEquals(card, header);
-
-                card.IsBatchHeader = isHeader;
-                card.IsBatchExpanded = expanded;
-                card.IsBatchMemberVisible = isHeader || expanded;
-            }
-        }
     }
 
     public async Task RemoveAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
@@ -1718,14 +1511,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         foreach (var owner in owners) owner.Cancel();
     }
 
-    private void ClearMainProjection()
-    {
-        // Called only once a replacement page is accepted, or when leaving the
-        // collection. Failed/stale queries retain the visible cards and their work.
-        CancelAllMainCardAssets();
-        Items.Clear();
-    }
-
     private bool RemoveMainProjectionCard(ItemCardViewModel card)
     {
         CancelMainCardAssets(card);
@@ -1807,15 +1592,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             _batchProjectionRefreshQueued = false;
             if (!_disposed) ApplyBatchProjectionState();
         })) _batchProjectionRefreshQueued = false;
-    }
-
-    // Each pending page owns only the removals that can invalidate its snapshot.
-    // Undo starts a new reload, so its fresh page has no predecessor's tombstones.
-    private sealed class ProjectionLoadJournal
-    {
-        public List<DropItem> Captures { get; } = [];
-        public HashSet<Guid> RemovedIds { get; } = [];
-        public bool CaptureOverflow { get; set; }
     }
 
     private void TrimLiveClipboardProjection(int retainedLimit)
@@ -1923,16 +1699,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         {
             _logger.LogWarning(exception, "The item projection could not refresh after Undo finalization.");
         }
-    }
-
-    public ItemSelectionSnapshot ResolveActionSelection(
-        ItemCardViewModel card,
-        IEnumerable<ItemCardViewModel>? selectedCards = null)
-    {
-        ArgumentNullException.ThrowIfNull(card);
-        var clicked = DropItemSnapshot.FromItem(card.Item);
-        var selected = selectedCards?.Select(candidate => DropItemSnapshot.FromItem(candidate.Item));
-        return ItemSelectionResolver.ForClickedItem(clicked, selected);
     }
 
     public QuickActionPartition EvaluateQuickActions(

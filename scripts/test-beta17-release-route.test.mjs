@@ -78,23 +78,24 @@ test('Beta17 route packages only final main, preserves required PR check, and ha
   const job=ci.split('\n  focused-windows:\n')[1].split('\n  required-validation:\n')[0];
   assert.match(job,/name: Isolated Windows producer/);
   const required=ci.split('\n  required-validation:\n')[1];
-  assert.match(required,/name: Build and test \(x64\)/);
-  assert.match(required,/needs: \[change-scope, produce-windows, focused-windows\]/);
+  assert.match(required,/name: \$\{\{ github.event_name == 'workflow_dispatch' && inputs.compile_only == true && 'Debug App\/XAML compile check' \|\| 'Build and test \(x64\)' \}\}/);
+  assert.match(required,/needs: \[change-scope, produce-windows, focused-windows, compile-windows\]/);
   assert.ok(required.includes('[[ "$FOCUSED_RESULT" == success && "$LEGACY_RESULT" == skipped ]]'));
   assert.match(job,/\$producer = 'Beta17'; \$flags = '-SkipTests'; \$verify = 'verify-build-only'/);
   assert.match(job,/github.event_name == 'pull_request'[\s\S]*build_script }} -ValidateOnly/);
   assert.match(job,/github.event_name == 'workflow_dispatch'[\s\S]*build_script }} \$\{\{ steps.candidate-route.outputs.build_flags }}/);
   assert.match(release,/Require exact final-main isolated producer without broad-test fallback/);
-  assert.ok(release.includes("if: ${{ !contains(fromJSON('[\"v0.3.1-beta.17\",\"v0.3.1-beta.18\"]'), steps.version.outputs.tag) }}"));
+  assert.ok(release.includes("$isolatedBeta = $info.Tag -cin @('v0.3.1-beta.17','v0.3.1-beta.18') -or $newBeta -ceq 'true'"));
+  assert.match(release,/Freeze unsigned bytes and generate release metadata\n        if: steps.version.outputs.isolated_beta != 'true'/);
   assert.doesNotMatch(producer.slice(producer.indexOf("if ($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch'")),/dotnet test/);
   assert.match(producer,/Test-MusicVisualSmoke.ps1 -Language en-US/);
   assert.match(model,/488249448/);
   assert.match(model,/0a9af9f7dda1fc77251ec224f84e72023fe64cb3f0e3d5caa20627db3ae61ac1/);
   assert.match(model,/artifacts\/beta17-pr-validation/);
-  assert.ok(model.includes('"$prAssetDirectory/lid.176.bin"'));
+  assert.ok(model.includes('"$PrAssetDirectory/lid.176.bin"'));
   assert.doesNotMatch(job+producer+model,/Get-AiLyricsSmokeModel|Run-WindowsProductionEvidence|Build-CudaLyricsExperiment|Get-Content.*manifest.source|Invoke-WebRequest.*manifest.source/);
   for(const name of ['runtime-publication.json','cuda-runtime-download.json','cuda-runtime-manifest.json'])
-    assert.ok(release.includes(`contains(fromJSON('["v0.3.1-beta.17","v0.3.1-beta.18"]'), needs.validate-release.outputs.tag) && 'artifacts/release/${name}'`));
+    assert.ok(release.includes(`needs.validate-release.outputs.isolated_beta == 'true' && 'artifacts/release/${name}'`));
 });
 test('main missing retained language bytes stops before the PR-only old-App fallback',()=>{
   const model=source('./Reuse-BundledLyricsLanguageModel.ps1');

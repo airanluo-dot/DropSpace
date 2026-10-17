@@ -630,8 +630,12 @@ Aucun contenu ne sera ouvert automatiquement.</value></data>
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>La récupération automatique n'a pas pu se terminer. Utilisez l’amélioration Réinstaller ou Supprimer pour récupérer.</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>L'opération a été annulée.</value></data>
   <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC horloge</value></data>
-  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Concentration · 25 min</value></data>
-  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Minuterie · 5 minutes</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Minuteur de concentration</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Minuteur</value></data>
+  <data name="WidgetTimerDuration" xml:space="preserve"><value>Durée</value></data>
+  <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
+  <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>Changer la durée réinitialise le minuteur et le met en pause.</value></data>
+  <data name="WidgetTimerReset.Text" xml:space="preserve"><value>Réinitialiser le minuteur</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>Espace libre du disque système</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>Adaptateur réseau</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>Calculatrice</value></data>

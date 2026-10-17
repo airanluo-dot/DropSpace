@@ -82,7 +82,13 @@ public sealed partial class MainPage
         _downloadSettingsPanel = new DownloadPanel(editor, _strings, _windowHandle);
         groups["DLC"].Children.Add(_dlcSettingsPage);
         _moduleInventory = new FeatureModuleInventoryView(_modules, _strings,
-            manifest => ShowModulePage(null, manifest, null));
+            manifest =>
+            {
+                // This user entry bypasses SelectSectionAsync but still retires pending navigation.
+                Interlocked.Increment(ref _navigationRevision);
+                _viewModel.ReserveNavigation();
+                ShowModulePage(null, manifest, null);
+            });
         groups["DLC"].Children.Add(_moduleInventory);
         groups["Downloads"].Children.Add(_downloadSettingsPanel);
         var activities = new SettingsForm(editor, _strings);
@@ -124,9 +130,9 @@ public sealed partial class MainPage
         navigation.SelectedItem = navigation.MenuItems[0]; pageHost.Content = pages["General"];
         _openDlcSettings = async () =>
         {
-            var revision = Volatile.Read(ref _navigationRevision) + 1;
-            await RunAsync(() => SelectSectionAsync("Settings"));
-            if (_dialogLifetime.IsCancellationRequested || revision != Volatile.Read(ref _navigationRevision) ||
+            var ownerToken = _dialogLifetime.Token;
+            var ownership = await SelectSectionAsync("Settings");
+            if (ownership is not { } current || !OwnsNavigation(current, ownerToken) ||
                 _viewModel.CurrentSection != "Settings") return;
             navigation.SelectedItem = navigation.MenuItems.OfType<NavigationViewItem>().Single(item => Equals(item.Tag, "DLC"));
         };

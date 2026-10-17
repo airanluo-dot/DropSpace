@@ -1,0 +1,104 @@
+{
+  "kind": "source-linked-clipboard-projection-identity",
+  "status": "passed",
+  "head": "6f0fd72af5f640c243567e9773462a8c90d64c27",
+  "startedAtUtc": "2026-10-17T20:07:07.641854+00:00",
+  "compiledInputs": {
+    "src/DropSpace.App/ViewModels/ClipboardIslandViewModel.cs": "6767e8f6f4cb6da30d7679558eb3b2bf4cc12f08ad515ff57a71f2b2989dd655",
+    "src/DropSpace.App/ViewModels/ItemCardViewModel.cs": "7670335ef4023a24bd9fdadd08502cee34c0c7f428636a7c2467ace6666756e4",
+    "src/DropSpace.App/Services/DispatcherQueueExtensions.cs": "59a3eb20b38fcc7a0ec0474e78e63c4345341f09c0fcfe5f2e9d78f9c4fed4c2",
+    "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs": "f0fc94b2cdee2ee5af9aa29aa6b74ed7c8d98979501d601a9845dda1067776c8",
+    "src/DropSpace.Core/Collections/ProjectionCollection.cs": "521bd0baa84f3219f5e7fce70816bf1090a3cb2ca039f30e8435b679f74234ff",
+    "scripts/navigation-projection-probe/ProbeDispatcher.cs": "b6d5aa1abc711a5c86ee57a3fb00f18e50a30b867f78c6862752ee17fd6ea0d7",
+    "scripts/clipboard-island-refresh-probe/ClipboardIslandRefreshProbe.csproj": "f8c761c7b5a2906ee57ff22c700d126dd0a99a3da6d41000ab1775c53f6826c6",
+    "scripts/clipboard-island-refresh-probe/Program.cs": "12a28b22b53bfafe785d506b86288cddab0286ca0c2dda1b1928ff19f017b7e6",
+    "scripts/clipboard-island-refresh-probe/Fixture.cs": "e9fe49f3f4fe1f831db5073efd799da71137e0bbebeb9df7bc9d64e3df4f53d7",
+    "scripts/clipboard-island-refresh-probe/PlatformShims.cs": "255c3c019c593b16571cadb3cb2512c317a9fce295e91c86fccb37b44e3c0298"
+  },
+  "coreProject": {
+    "project": "src/DropSpace.Core/DropSpace.Core.csproj",
+    "sha256": "5d697fd66f1e7c34f815eafd02bdc2fde9b3669a83877e38c55a03c318b6a274",
+    "sourceManifest": "core-source-manifest.json",
+    "manifestSha256": "aced72fc9b6f46e79e21be21ae5f5eb7b791b605bb6cd658bc3c66c62cd7fd8b"
+  },
+  "buildConfigurationInputs": {
+    "Directory.Build.props": "4a4923e63c8cbe71e5f72aa2a64ce75d8a3f83793630f0e90ee0f12ee5f5920e",
+    "Directory.Packages.props": "0b031473e7c9e3e9bd219e42401d6c9f40ebbd0820b6a5aeb5441358add70dcd"
+  },
+  "associatedSourcesNotCompiled": {
+    "src/DropSpace.App/Views/Island/ClipboardIslandView.xaml": "10c74e9c1ac916628e125542fb098d9e7b4f1277830d6cff44324a3e213a7b47",
+    "src/DropSpace.App/ViewModels/MainViewModel.cs": "1a8ea53a00299b8a729b91ca5364eda8e1aa0e53a7af3b08d2f03d9e073838d9"
+  },
+  "selectedScenario": "projection_identity",
+  "defaultFourScenariosExecuted": false,
+  "pinScenarioExecuted": false,
+  "baselineExecuted": false,
+  "nativeExecuted": false,
+  "command": [
+    "dotnet",
+    "run",
+    "--project",
+    "scripts/clipboard-island-refresh-probe/ClipboardIslandRefreshProbe.csproj",
+    "--artifacts-path",
+    "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/clipboard-island-projection-identity/build",
+    "-p:RestoreConfigFile=/workspace/DropSpace/artifacts/local-iterations-2026-10-17/clipboard-island-projection-identity/NuGet.Config",
+    "--",
+    "--scenario",
+    "projection_identity",
+    "/workspace/DropSpace/artifacts/local-iterations-2026-10-17/clipboard-island-projection-identity/results.json"
+  ],
+  "boundaries": [
+    "Actual full ClipboardIslandViewModel, ItemCardViewModel and Core ProjectionCollection execute; no view-model merge or retirement algorithm is copied.",
+    "MainViewModel recent-item snapshots and pin results are controlled; RefreshPrimaryQuickActions is a counter-only no-IO signature boundary.",
+    "BitmapImage and IStorageItem are identity-only shims; dispatcher scheduling uses explicit queue/completion barriers.",
+    "Undo is represented only by a newer revision snapshot, without the production mutation or persistence pipeline.",
+    "No real recent-item reads, SQLite, thumbnail/asset IO, native WinUI, XAML binding, UIA or focus behavior is executed; no native focus preservation or IO savings are established.",
+    "The retired revision filter checks a card still present when a queued snapshot applies; this is not a persistent tombstone cache."
+  ],
+  "priorScenarioIntegrity": "Default four selection and all four + pin scenario bodies compared byte-for-byte with HEAD before this execution; unchanged.",
+  "executions": [
+    {
+      "attempt": 1,
+      "exitCode": 0,
+      "scenarios": 1,
+      "passed": 1,
+      "failed": 0,
+      "assertionsReached": 16,
+      "assertionsFailed": 0,
+      "compilerWarningsEmitted": 0,
+      "compilerErrorsEmitted": 0,
+      "log": "run.log",
+      "results": "results.json"
+    }
+  ],
+  "retries": 0,
+  "inputChangesDuringExecution": [],
+  "completedAtUtc": "2026-10-17T20:07:18.213186+00:00",
+  "artifactsSha256": {
+    "run.log": "91ecef720fa608853f4edab12a54ce7ff9e86cb3171212007d83abec6c82efed",
+    "results.json": "6e9b0a3749cbdec08436f22831ffaf5c9b1e4d7d5ed038eae4395c7f02fd1bfb",
+    "NuGet.Config": "968006766c5f1f40b05e9edd4e9a135f71c0a2a3d26071fa0240e4f41bd7c709"
+  },
+  "finalSourceReview": {
+    "source": "src/DropSpace.App/ViewModels/ClipboardIslandViewModel.cs",
+    "sha256": "6767e8f6f4cb6da30d7679558eb3b2bf4cc12f08ad515ff57a71f2b2989dd655",
+    "result": "No deterministic blocking issue found in the scoped change.",
+    "reviewedInvariants": [
+      "ApplyRecentItems remains inside the original visibility-generation/disposal guard.",
+      "Existing same-ID cards are merged through real ItemCardViewModel revision/content contracts; local pending-pin state remains on the retained instance.",
+      "Absent accepted IDs are retired before the real Core helper removes them.",
+      "Already-retired incoming cards and equal-or-older revisions for retired cards still in the projection are filtered before synchronization.",
+      "Newer revisions can restore still-present retired cards through TryMergePresentation, which also retires prior asset generations."
+    ],
+    "limits": [
+      "Incoming IDs must be unique, matching the existing recent-item repository contract and shared helper assumptions.",
+      "No persistent tombstone remains after an item leaves the collection.",
+      "Reordering uses the shared helper Remove/Insert behavior; native focus/container continuity is not established.",
+      "Read/thumbnail pipeline and native rendering are unchanged and not executed; no IO savings are claimed."
+    ]
+  },
+  "receipt": {
+    "path": "artifacts/local-iterations-2026-10-17/clipboard-island-projection-identity/validation-inputs.json",
+    "sha256": "f3c745b0d0fbd1bb56cefb37d9a68f2afeef6606d6eb77d87442220b0daca763"
+  }
+}

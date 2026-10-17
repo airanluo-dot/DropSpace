@@ -630,8 +630,12 @@
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>自動回復を完了できませんでした。回復するには、再インストールまたは削除の拡張機能を使用します。</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>操作はキャンセルされました。</value></data>
   <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC 時計</value></data>
-  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>集中・25分</value></data>
-  <data name="WidgetCountdown.Text" xml:space="preserve"><value>タイマー・5分</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>集中タイマー</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>タイマー</value></data>
+  <data name="WidgetTimerDuration" xml:space="preserve"><value>設定時間</value></data>
+  <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0}分</value></data>
+  <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>設定時間を変更すると、タイマーはリセットされ、一時停止します。</value></data>
+  <data name="WidgetTimerReset.Text" xml:space="preserve"><value>タイマーをリセット</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>システムドライブの空き容量</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>ネットワークアダプター</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>電卓</value></data>

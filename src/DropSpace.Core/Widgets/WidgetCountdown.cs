@@ -1,23 +1,71 @@
 namespace DropSpace.Core.Widgets;
 
 /// <summary>Monotonic elapsed-time countdown; hiding a widget does not pause its time.</summary>
-public sealed class WidgetCountdown(TimeSpan duration)
+public sealed class WidgetCountdown
 {
-    private readonly System.Diagnostics.Stopwatch _elapsed = new();
-    public bool IsRunning => _elapsed.IsRunning && Remaining > TimeSpan.Zero;
+    private readonly TimeProvider _clock;
+    private TimeSpan _elapsed;
+    private long _startedAt;
+    private bool _running;
+
+    public WidgetCountdown(TimeSpan duration, TimeProvider? timeProvider = null)
+    {
+        _clock = timeProvider ?? TimeProvider.System;
+        SetDuration(duration);
+    }
+
+    public TimeSpan Duration { get; private set; }
+    public bool IsRunning => _running && Remaining > TimeSpan.Zero;
     public TimeSpan Remaining
     {
         get
         {
-            var elapsed = _elapsed.Elapsed;
-            return duration > elapsed ? duration - elapsed : TimeSpan.Zero;
+            var remaining = Duration - _elapsed;
+            if (!_running) return remaining;
+            var elapsed = _clock.GetElapsedTime(_startedAt);
+            return elapsed < remaining ? remaining - elapsed : TimeSpan.Zero;
         }
     }
+
+    /// <summary>Round up so a running timer never displays zero before its deadline.</summary>
+    public long RemainingSeconds
+    {
+        get
+        {
+            var ticks = Remaining.Ticks;
+            return ticks / TimeSpan.TicksPerSecond + (ticks % TimeSpan.TicksPerSecond == 0 ? 0 : 1);
+        }
+    }
+
     public void Toggle()
     {
-        if (Remaining == TimeSpan.Zero) _elapsed.Restart();
-        else if (_elapsed.IsRunning) _elapsed.Stop();
-        else _elapsed.Start();
+        var remaining = Remaining;
+        if (remaining == TimeSpan.Zero)
+        {
+            Reset();
+        }
+        else if (_running)
+        {
+            _elapsed = Duration - remaining;
+            _running = false;
+            return;
+        }
+
+        _startedAt = _clock.GetTimestamp();
+        _running = Duration > TimeSpan.Zero;
     }
-    public void Reset() => _elapsed.Reset();
+
+    /// <summary>Changing duration resets and pauses the current session.</summary>
+    public void SetDuration(TimeSpan duration)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(duration, TimeSpan.Zero);
+        Duration = duration;
+        Reset();
+    }
+
+    public void Reset()
+    {
+        _running = false;
+        _elapsed = TimeSpan.Zero;
+    }
 }

@@ -1,17 +1,19 @@
 using System.ComponentModel;
+using DropSpace.App.Services.Widgets;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Widgets;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Input;
 
 namespace DropSpace.App.Views.Settings;
 
-public sealed class WidgetEditorView : UserControl
+public sealed partial class WidgetEditorView : UserControl
 {
     private const double DragThresholdDips = 6;
     private readonly NativeSettingsEditor _editor;
@@ -19,6 +21,14 @@ public sealed class WidgetEditorView : UserControl
     private readonly Grid _grid = new() { Height = 270, ColumnSpacing = 6, RowSpacing = 6 };
     private readonly Grid _library = new() { ColumnSpacing = 6, RowSpacing = 6, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
     private readonly StackPanel _sizes = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
+    private readonly Grid _position = new() { ColumnSpacing = 12, Visibility = Visibility.Collapsed };
+    private readonly NumberBox _column = new() { Minimum = 1, Maximum = WidgetLayoutPolicy.Columns, SmallChange = 1, LargeChange = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
+    private readonly NumberBox _row = new() { Minimum = 1, Maximum = WidgetLayoutPolicy.Rows, SmallChange = 1, LargeChange = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
+    private bool _syncingPosition;
+    private int _positionEdits;
+    private long _layoutFeedbackRevision;
+    private int _layoutEdits;
+    private NativeWidgetId? _positionSelection;
     private readonly HashSet<NativeWidgetId> _suppressClicks = [];
     private WidgetLayout? _undoLayout;
     private readonly Button _undo = new();
@@ -27,11 +37,15 @@ public sealed class WidgetEditorView : UserControl
     private readonly Button _remove;
     private readonly TextBlock _selected = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _error = new() { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+    private bool _errorAnnouncementPending;
+    private bool _errorOwnerUnloaded;
     private NativeWidgetId? _selectedId;
     private readonly Dictionary<NativeWidgetId, Button> _placedButtons = [];
     public WidgetEditorView(NativeSettingsEditor editor, IAppStringLocalizer strings)
     {
         _editor = editor; _strings = strings;
+        AutomationProperties.SetLiveSetting(_error, AutomationLiveSetting.Polite);
+        _error.Loaded += (_, _) => AnnounceErrorIfReady();
         var body = new StackPanel { Spacing = 14 }; Content = body;
         var enabled = new SettingsForm(editor, strings);
         enabled.AddToggle("WidgetsEnabled", s => s.Widgets.Enabled, (s,v) => s with { Widgets = s.Widgets with { Enabled = v } }); body.Children.Add(enabled);
@@ -43,6 +57,15 @@ public sealed class WidgetEditorView : UserControl
         for (var i = 0; i < WidgetLayoutPolicy.Rows; i++) _grid.RowDefinitions.Add(new());
         _expanded.Children.Add(_error);
         _expanded.Children.Add(_grid); _expanded.Children.Add(_selected);
+        _column.Header = new TextBlock { Text = strings.Get("WidgetColumn"), TextWrapping = TextWrapping.Wrap };
+        _row.Header = new TextBlock { Text = strings.Get("WidgetRow"), TextWrapping = TextWrapping.Wrap };
+        AutomationProperties.SetAutomationId(_column, "WidgetColumn");
+        AutomationProperties.SetAutomationId(_row, "WidgetRow");
+        _position.ColumnDefinitions.Add(new()); _position.ColumnDefinitions.Add(new());
+        _position.Children.Add(_column); Grid.SetColumn(_row, 1); _position.Children.Add(_row);
+        _expanded.Children.Add(_position);
+        _column.ValueChanged += async (_, args) => await MoveCoordinateAsync(true, args.NewValue);
+        _row.ValueChanged += async (_, args) => await MoveCoordinateAsync(false, args.NewValue);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         _remove = new Button { Content = strings.Get("WidgetRemove") };
         _remove.Click += OnRemove;
@@ -51,17 +74,72 @@ public sealed class WidgetEditorView : UserControl
         _undo.Content = strings.Get("WidgetUndo"); _undo.IsEnabled = false;
         _undo.Click += async (_, _) =>
         {
-            if (_undoLayout is not { } previous) return;
-            if (await editor.UpdateAsync(s => s with { Widgets = s.Widgets with { Layout = previous } }))
-            { _undoLayout = null; _undo.IsEnabled = false; }
+            if (_layoutEdits > 0 || _undoLayout is not { } previous) return;
+            BeginLayoutIntent();
+            ++_layoutEdits; RefreshUndoEnabled();
+            try
+            {
+                if (await editor.UpdateAsync(s => s with { Widgets = s.Widgets with { Layout = previous } }) &&
+                    ReferenceEquals(_undoLayout, previous)) _undoLayout = null;
+            }
+            finally { --_layoutEdits; RefreshUndoEnabled(); }
         };
         actions.Children.Add(_undo);
         _expanded.Children.Add(new TextBlock { Text = strings.Get("WidgetLibrary"), FontSize = 18 }); _expanded.Children.Add(_library);
-        var reset = new Button { Content = strings.Get("WidgetsReset") }; reset.Click += async (_, _) => { RememberUndo(); await editor.UpdateAsync(s => s with { Widgets = s.Widgets with { Layout = WidgetLayout.Default } }); }; body.Children.Add(reset);
-        Loaded += (_, _) => { editor.PropertyChanged += OnChanged; Rebuild(); }; Unloaded += (_, _) => editor.PropertyChanged -= OnChanged;
+        var reset = new Button { Content = strings.Get("WidgetsReset") }; reset.Click += async (_, _) =>
+        {
+            BeginLayoutIntent();
+            await UpdateLayoutAsync(_ => WidgetLayout.Default);
+        }; body.Children.Add(reset);
+        Loaded += (_, _) =>
+        {
+            _errorOwnerUnloaded = false;
+            editor.PropertyChanged += OnChanged; Rebuild();
+            AnnounceErrorIfReady();
+        };
+        Unloaded += (_, _) =>
+        {
+            _errorOwnerUnloaded = true;
+            _errorAnnouncementPending = false;
+            editor.PropertyChanged -= OnChanged;
+        };
         Rebuild();
     }
-    private void OnChanged(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Rebuild(); if (args.PropertyName == nameof(NativeSettingsEditor.Error)) { _error.Text = _editor.Error; _error.Visibility = string.IsNullOrEmpty(_error.Text) ? Visibility.Collapsed : Visibility.Visible; } }
+    private void OnChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Rebuild();
+        if (args.PropertyName == nameof(NativeSettingsEditor.Error)) SetError(_editor.Error);
+    }
+    private void SetError(string? message)
+    {
+        var text = message ?? string.Empty;
+        var visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
+        if (_error.Text == text && _error.Visibility == visibility) return;
+        _error.Text = text; _error.Visibility = visibility;
+        _errorAnnouncementPending = visibility == Visibility.Visible && !_errorOwnerUnloaded;
+        AnnounceErrorIfReady();
+    }
+    private void AnnounceErrorIfReady()
+    {
+        try
+        {
+            if (!_errorAnnouncementPending || !IsLoaded || !_error.IsLoaded) return;
+            // Consume this transition once. Unloading, clearing, or another error retires it;
+            // returning to a hidden settings page must not replay an old announcement.
+            _errorAnnouncementPending = false;
+            if (string.IsNullOrEmpty(_error.Text)) return;
+            for (DependencyObject? node = _error; node is not null; node = VisualTreeHelper.GetParent(node))
+                if (node is UIElement element && element.Visibility != Visibility.Visible) return;
+            var peer = FrameworkElementAutomationPeer.FromElement(_error)
+                ?? FrameworkElementAutomationPeer.CreatePeerForElement(_error);
+            peer?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        }
+        catch (Exception)
+        {
+            _errorAnnouncementPending = false;
+            // Accessibility feedback must not replace the original error.
+        }
+    }
     private void Rebuild()
     {
         _library.Children.Clear(); _library.RowDefinitions.Clear();
@@ -146,7 +224,9 @@ public sealed class WidgetEditorView : UserControl
     private Button CreateDragButton(NativeWidgetId id, string label)
     {
         var content = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-        content.Children.Add(new FontIcon { Glyph = id switch { NativeWidgetId.Clock => "\uE823", NativeWidgetId.Calendar => "\uE787", NativeWidgetId.ResourceUsage => "\uE9D9", NativeWidgetId.Battery => "\uE850", NativeWidgetId.Uptime => "\uE7E8", NativeWidgetId.Stopwatch => "\uE916", NativeWidgetId.ClipboardPause => "\uE77F", _ => "\uE713" }, FontSize = 18 });
+        var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(id), FontSize = 18 };
+        AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
+        content.Children.Add(icon);
         content.Children.Add(new TextBlock { Text = label, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });
         var dragTransform = new TranslateTransform();
         var button = new Button { Content = content, MinWidth = 0, MinHeight = 0, HorizontalContentAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(4), ManipulationMode = ManipulationModes.None, RenderTransform = dragTransform };
@@ -189,7 +269,7 @@ public sealed class WidgetEditorView : UserControl
                 row = existing.Row + (int)Math.Round((target.Y - start.Y) / ((_grid.ActualHeight + _grid.RowSpacing) / WidgetLayoutPolicy.Rows));
             }
             try { await PlaceAsync(id, column, row); }
-            catch (Exception) { _error.Text = _strings.Get("WidgetDropFailed"); }
+            catch (Exception) { SetError(_strings.Get("WidgetDropFailed")); }
         }), true);
         button.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => { _suppressClicks.Remove(id); pressedAt = null; dragging = false; _dropPreview.Visibility = Visibility.Collapsed; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0; }), true);
         button.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, args) =>
@@ -237,6 +317,7 @@ public sealed class WidgetEditorView : UserControl
                 label.FontWeight = selected ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
         }
         var placement = _editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == _selectedId);
+        RefreshPositionInputs(placement);
         _remove.IsEnabled = placement is not null;
         _selected.Text = placement is null ? string.Empty : WidgetName(placement.Id);
         _selected.Visibility = placement is null ? Visibility.Collapsed : Visibility.Visible;
@@ -258,21 +339,25 @@ public sealed class WidgetEditorView : UserControl
         }
         _sizes.Visibility = _sizes.Children.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
     }
-    private async Task ResizeAsync(WidgetPlacement current, WidgetSize size)
+    private void RefreshPositionInputs(WidgetPlacement? placement)
     {
-        var layout = _editor.Settings.Widgets.Layout;
-        var positions = Enumerable.Range(0, WidgetLayoutPolicy.Rows).SelectMany(row =>
-            Enumerable.Range(0, WidgetLayoutPolicy.Columns).Select(column => (Column: column, Row: row)))
-            .OrderBy(p => Math.Abs(p.Column-current.Column)+Math.Abs(p.Row-current.Row));
-        foreach (var position in positions)
+        _position.Visibility = placement is null ? Visibility.Collapsed : Visibility.Visible;
+        if (placement is null) { _positionSelection = null; return; }
+        // A queued edit still owns the user's displayed number. Settings can notify
+        // for the preceding save before a second coordinate edit has committed.
+        if (_positionEdits > 0 && _positionSelection == placement.Id) return;
+        _syncingPosition = true;
+        try
         {
-            var desired = current with { Column = position.Column, Row = position.Row, ColumnSpan = size.Columns, RowSpan = size.Rows };
-            if (!WidgetLayoutPolicy.TryMoveOrResize(layout, desired, out _)) continue;
-            await PlaceAsync(current.Id, desired.Column, desired.Row, size.Columns, size.Rows);
-            return;
+            _positionSelection = placement.Id;
+            _column.Maximum = WidgetLayoutPolicy.Columns - placement.ColumnSpan + 1;
+            _row.Maximum = WidgetLayoutPolicy.Rows - placement.RowSpan + 1;
+            _column.Value = placement.Column + 1;
+            _row.Value = placement.Row + 1;
+            AutomationProperties.SetName(_column, WidgetName(placement.Id) + ": " + _strings.Get("WidgetColumn"));
+            AutomationProperties.SetName(_row, WidgetName(placement.Id) + ": " + _strings.Get("WidgetRow"));
         }
-        _error.Visibility = Visibility.Visible;
-        _error.Visibility = Visibility.Visible; _error.Text = _strings.Get("WidgetNoRoom");
+        finally { _syncingPosition = false; }
     }
     private void UpdateGridSizes()
     {
@@ -283,54 +368,9 @@ public sealed class WidgetEditorView : UserControl
         if (Math.Abs(_grid.Height-height)>0.5) _grid.Height=height;
         foreach (var row in _library.RowDefinitions) row.Height = new GridLength(cell);
     }
-    private Task<bool> PlaceAsync(NativeWidgetId id, int column, int row, int? width = null, int? height = null)
-    {
-        _error.Text = string.Empty; _error.Visibility = Visibility.Collapsed; _selectedId = id;
-        var current = _editor.Settings.Widgets.Layout;
-        if (!current.Expanded.Any(item => item.Id == id) && !WidgetLayoutPolicy.TryAdd(current, id, column, row, out _))
-        { _error.Visibility = Visibility.Visible; _error.Text = _strings.Get("WidgetNoRoom"); return Task.FromResult(false); }
-        var existing = current.Expanded.FirstOrDefault(item => item.Id == id);
-        if (existing is not null)
-        {
-            var desired = existing with { Column = column, Row = row, ColumnSpan = width ?? existing.ColumnSpan, RowSpan = height ?? existing.RowSpan };
-            if (desired == existing) return Task.FromResult(true);
-            if (!WidgetLayoutPolicy.TryMoveOrResize(current, desired, out _))
-            { _error.Visibility = Visibility.Visible; _error.Text = _strings.Get("WidgetNoRoom"); return Task.FromResult(false); }
-        }
-        RememberUndo();
-        return _editor.UpdateAsync(settings =>
-        {
-            var layout = settings.Widgets.Layout;
-            var old = layout.Expanded.FirstOrDefault(item => item.Id == id);
-            if (old is null)
-            {
-                if (!WidgetLayoutPolicy.TryAdd(layout, id, column, row, out var added)) throw new InvalidOperationException("No vacant widget slot remains.");
-                return settings with { Widgets = settings.Widgets with { Layout = added } };
-            }
-            var moved = old with { Column = column, Row = row, ColumnSpan = width ?? old.ColumnSpan, RowSpan = height ?? old.RowSpan };
-            if (!WidgetLayoutPolicy.TryMoveOrResize(layout, moved, out var updated))
-            {
-                _error.Visibility = Visibility.Visible; _error.Text = _strings.Get("WidgetNoRoom");
-                RefreshSelection();
-                return settings;
-            }
-            return settings with { Widgets = settings.Widgets with { Layout = updated } };
-        });
-    }
-    private void RememberUndo()
-    {
-        _undoLayout = _editor.Settings.Widgets.Layout; _undo.IsEnabled = true;
-    }
     private async void OnRemove(object sender, RoutedEventArgs args)
     {
         if (_selectedId is { } id) await RemoveAsync(id);
-    }
-    private async Task RemoveAsync(NativeWidgetId id)
-    {
-        if (!_editor.Settings.Widgets.Layout.Expanded.Any(item => item.Id == id)) return;
-        RememberUndo();
-        var saved = await _editor.UpdateAsync(s => s with { Widgets = s.Widgets with { Layout = new(s.Widgets.Layout.Expanded.Where(item => item.Id != id).ToArray(), s.Widgets.Layout.Compact) } });
-        if (saved && _selectedId == id) { _selectedId = null; RefreshSelection(); }
     }
     private string WidgetName(NativeWidgetId id) => _strings.Get(id == NativeWidgetId.Settings ? "WidgetSettingsName" : "Widget" + id + ".Text");
     private static Style ThemeStyle(string key) => (Style)Application.Current.Resources[key];

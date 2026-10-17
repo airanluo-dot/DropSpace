@@ -68,6 +68,12 @@ Dragging changes widget position; selecting a widget shows an accent border,
 bold label and accessible selected status. Adding from the library scans vacant
 contiguous cells and never moves existing widgets. Insufficient space shows a
 localized error. Position/size controls remain available without dragging.
+The selected widget exposes one-based Column and Row inputs. Each valid coordinate
+change applies directly against the latest saved arrangement; blocked positions
+restore the actual coordinates. The upper bounds account for the widget's size.
+Undo becomes available after a layout change commits, and remains unavailable
+while layout edits are still saving. Failed or unchanged edits preserve the
+previous successful undo step.
 Music is a main-window navigation destination. Settings categories are General,
 Island, Widgets, System activities, Devices and sharing, Updates, About. Keep
 native control labels, keyboard alternatives, and visible save/action errors.
@@ -90,6 +96,23 @@ explicitly timed lyrics disappear during gaps after their declared end.
 Translation lines attach to their nearest original once, so opening credits do
 not repeat the first sung line's translation when timestamps coincide.
 
+## Widget controls (local development after v0.3.2-beta.3)
+
+Focus timer and Timer keep their 25-minute and 5-minute defaults. Activate the
+time readout, or open its context menu, to choose Duration: 1, 5, 10, 15, 25,
+45 or 60 minutes. Choosing a duration pauses and resets that timer; Start/Pause
+remains a separate action. Reset returns to the chosen duration. These timers
+and their duration choices last for the current App session and remain independent.
+Hiding the island does not pause a running timer. The readout rounds remaining
+time up to whole seconds and shows zero only once the deadline is reached.
+Timer menus close when their view is hidden, rebuilt or replaced. Their reset action is labeled
+“Reset timer”.
+
+Native widgets use consistent system icons alongside their localized names.
+Calculator and Pinned Items accept one activation at a time. Retrying a failed
+action restores its icon; closing or replacing the widget view prevents a late
+result from reopening the main window or replacing current feedback.
+
 ## Experience goal
 
 DropSpace should feel like a compact system utility, not a content dashboard. The common path is: capture silently, locate quickly, act once, disappear.
@@ -104,6 +127,30 @@ DropSpace should feel like a compact system utility, not a content dashboard. Th
 - **Top Overlay**: one Dynamic Island over the same Temporary Space state and actions.
 
 Pinned is not a store and the Overlay is not a second product or page. Clipboard items never make the Overlay persist.
+
+A system close command on the keyboard-opened island dismisses it so it can be
+opened again. Exiting DropSpace still closes its windows normally.
+
+Switching collections retires the previous collection's selection and paging
+position while the new destination loads. A failed load shows an operation
+message without presenting old items as the new collection. Refreshing the same
+collection keeps its existing items available if the replacement query fails.
+A newer destination selected from the main window or island retires older pending
+navigation feedback and search-focus requests, including requests waiting for a
+settings save. Returning to the same destination still counts as a newer request.
+Pinned and Clipboard actions also recheck their originating Island view before
+opening the main window; hiding or position-editing that view retires the request.
+The Clipboard island retains its last accepted cards while refreshing. After all
+of its windows hide, reopening ignores results and errors from the old view.
+A successful refresh clears a previous refresh error; a failed Copy, Pin or Remove
+remains visible until the next user action, since refreshing does not retry it.
+A pending Pin action disables that card's Pin control. When the operation ends, its
+checked state follows the last known card value again, including after an error.
+Refreshing keeps existing cards with the same record ID and their pending action
+state. Removed cards retire their old presentation; older snapshots cannot revive
+a card already retired in the current view.
+An action that finishes after its card or visible session has retired does not
+publish an old failure into the current list. Current operation errors remain visible.
 
 ## Updates
 
@@ -168,6 +215,10 @@ Stable accepts only final releases. Beta accepts prereleases and final releases 
 - Dynamic Island has an 8-DIP top gap and full corners. Its Compact, Drop Ready and Expanded states morph without recreating business state.
 
 ### Direct placement adjustment (Preview.5)
+
+An enabled right-button hold must remain valid until placement editing starts.
+Releasing the button, hiding or suppressing the island, or disabling the gesture
+retires its pending request. The explicit Settings entry can still open the editor.
 
 Settings keeps the precise X/Y editor and adds **Adjust Island Position…** for the selected monitor. Activating it arms only that monitor's visible Dynamic Island; every other monitor island is hidden and its native drop target is revoked until the edit ends. The fixed host remains no-activate and no full-screen overlay is created. A pointer press on the island captures the pointer, movement previews physical-pixel deltas converted to monitor-local DIP from the currently clamped projection, including the visible surface's Smart-mode offset, and the hint says “Drag to move · Esc to cancel”. Release commits the unclamped user coordinates once through the normal settings transaction and switches that monitor to Custom. Escape restores the saved entry without writing settings. Smart Drag candidate creation, probe verification, and Classic activation surfaces are suppressed for the edit. Runtime-only display identities remain Automatic-only and show a localized explanation while Custom, X/Y, Apply, and Adjust are disabled.
 
@@ -303,7 +354,7 @@ Smart Drag has a strict invisible-candidate phase. The Dynamic Island does not c
 
 ## Preview.14 motion behavior
 
-The Dynamic Island uses one visual target per state and can reverse immediately when drag, drop, dismissal, expansion, or fullscreen suppression changes. Geometry morphs are independent from content opacity and elevation. Incoming content appears after a short 35–60 ms handoff and fades in over 120–167 ms with only a small 4 DIP visual offset; outgoing content leaves in about 83–100 ms. Hover adds a restrained translucent overlay over the existing material, and press briefly compresses content to 0.985. A valid accepted drop may compress the island inward to 0.97 and return to 1.0; it never grows outward to communicate acceptance.
+The Dynamic Island uses one visual target per state and can reverse immediately when drag, drop, dismissal, expansion, or fullscreen suppression changes. Geometry morphs are independent from content opacity and elevation. Incoming content appears after a short 35–60 ms handoff and fades in over 120–167 ms with only a small 4 DIP visual offset; outgoing content leaves in about 83–100 ms. Hover adds a restrained translucent overlay over the existing material, and press briefly compresses content to 0.985 around its current center. A valid accepted drop may compress the island inward to 0.97 and return to 1.0; it never grows outward to communicate acceptance.
 
 Reduced motion follows the Windows preference or the explicit Overlay setting. It removes bounce, overshoot, noticeable scale, and unnecessary translation while preserving state clarity with an immediate/short geometry change, short opacity fades, and a brief border/highlight drop cue. Changing theme, advanced effects, animation preference, or high contrast updates the material without changing Smart Drag authorization, native hit testing, focus, taskbar, or Alt+Tab ownership.
 

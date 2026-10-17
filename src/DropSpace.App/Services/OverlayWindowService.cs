@@ -737,6 +737,11 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnOverlayPlacementEditRequested(object? sender, string monitorId)
     {
+        // Settings requests deliberately open a hidden island. Only pointer-originated requests
+        // need a live hold token, captured before this callback is queued on the dispatcher.
+        var gestureSource = sender as OverlayWindow;
+        var holdGeneration = 0L;
+        if (gestureSource is not null && !gestureSource.TryGetRightHoldRequest(out holdGeneration)) return;
         _dispatcher.TryEnqueue(() =>
         {
             if (_disposed)
@@ -762,6 +767,13 @@ public sealed class OverlayWindowService : IDisposable
                 _logger.LogWarning(
                     "Placement edit rejected on runtime-only monitor {MonitorId}; a persistent display identity is required.",
                     monitorId);
+                return;
+            }
+
+            Microsoft.UI.Xaml.Input.Pointer? rightHoldPointer = null;
+            if (gestureSource is not null &&
+                (!ReferenceEquals(gestureSource, window) || !window.TryConsumeRightHoldRequest(holdGeneration, out rightHoldPointer)))
+            {
                 return;
             }
 
@@ -796,7 +808,7 @@ public sealed class OverlayWindowService : IDisposable
                 }
             }
             var projected = window.GetProjectedPlacement(placement);
-            window.BeginPlacementEdit(placement.CustomCoordinates, projected);
+            window.BeginPlacementEdit(placement.CustomCoordinates, projected, rightHoldPointer);
             _logger.LogInformation(
                 "Dynamic Island placement edit armed on monitor {MonitorId}; Smart Drag candidate creation is suppressed until the edit ends.",
                 monitorId);

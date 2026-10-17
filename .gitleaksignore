@@ -1,0 +1,13 @@
+# Exact reviewed false positives: SHA-256 file identities in immutable evidence.
+# Seven SDK OAuth assembly digests and three unchanged secret-scan workflow digests.
+# No paths, rules, commits or general hash patterns are excluded.
+8fe0c822052c2dca0f180133421f23c3a12c5894:docs/dev/evidence/local-iterations-2026-10-17/overlay-lifecycle-preflight.json:generic-api-key:27
+8fe0c822052c2dca0f180133421f23c3a12c5894:docs/dev/evidence/local-iterations-2026-10-17/overlay-lifecycle-preflight.json:generic-api-key:174
+8fe0c822052c2dca0f180133421f23c3a12c5894:docs/dev/evidence/local-iterations-2026-10-17/overlay-lifecycle-preflight.json:generic-api-key:224
+8fe0c822052c2dca0f180133421f23c3a12c5894:docs/dev/evidence/local-iterations-2026-10-17/overlay-lifecycle-preflight.json:generic-api-key:241
+6f0fd72af5f640c243567e9773462a8c90d64c27:docs/dev/evidence/local-iterations-2026-10-17/clipboard-island-pin-feedback.json:generic-api-key:101
+6f0fd72af5f640c243567e9773462a8c90d64c27:docs/dev/evidence/local-iterations-2026-10-17/beta-ui-desktop-capture.json:generic-api-key:14
+cfacd50bcb4035c975375e577035225818bfec4d:docs/dev/evidence/local-iterations-2026-10-17/timer-visual-preflight.json:generic-api-key:27
+ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f:docs/dev/evidence/local-iterations-2026-10-17/island-navigation-consumers.json:generic-api-key:42
+4a656c938a803d742082687379ed3f6593a8e415:docs/dev/evidence/local-iterations-2026-10-17/widget-layout-intent.json:generic-api-key:703
+4a656c938a803d742082687379ed3f6593a8e415:docs/dev/evidence/local-iterations-2026-10-17/widget-layout-intent.json:generic-api-key:758

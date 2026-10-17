@@ -1,12 +1,15 @@
 using System.ComponentModel;
 using DropSpace.App.Services;
 using DropSpace.App.Services.Dlc;
+using DropSpace.App.Services.Widgets;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Dlc;
 using System.Text.Json;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Widgets;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
@@ -18,11 +21,14 @@ public sealed partial class WidgetsExpandedView : UserControl
     private readonly Dictionary<NativeWidgetId, TextBlock> _values = [];
     private readonly Dictionary<NativeWidgetId, WidgetPlacement> _placements = [];
     private readonly Dictionary<NativeWidgetId, Button> _timerButtons = [];
+    private readonly Dictionary<NativeWidgetId, Button> _timerValueButtons = [];
+    private readonly List<MenuFlyout> _timerFlyouts = [];
     private Button? _stopwatchButton, _clipboardButton;
     private bool _active;
     private bool _subscribed;
     private bool _structureDirty = true;
     private bool _dataDirty = true;
+    private CancellationTokenSource? _nativeActionRequests;
     private FeatureModuleRuntime? _modules;
     private IAppStringLocalizer? _moduleStrings;
     private CancellationTokenSource? _moduleRequests;
@@ -45,6 +51,8 @@ public sealed partial class WidgetsExpandedView : UserControl
         set
         {
             if (ReferenceEquals(_view, value)) return;
+            RetireNativeActions();
+            CloseTimerMenus();
             Unsubscribe();
             _view?.SetVisible(this, false);
             _view = value;
@@ -64,7 +72,7 @@ public sealed partial class WidgetsExpandedView : UserControl
     public void SetActive(bool active)
     {
         _active = active;
-        if (!active) RetireModuleContent();
+        if (!active) { RetireNativeActions(); CloseTimerMenus(); RetireModuleContent(); }
         _view?.SetVisible(this, active && IsLoaded);
         RenderPending();
     }
@@ -78,7 +86,9 @@ public sealed partial class WidgetsExpandedView : UserControl
     }
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
+        RetireNativeActions();
         Unsubscribe();
+        CloseTimerMenus();
         _view?.SetVisible(this, false);
         _structureDirty = true;
         _dataDirty = true;
@@ -191,6 +201,9 @@ public sealed partial class WidgetsExpandedView : UserControl
     }
     private void Rebuild()
     {
+        RetireNativeActions();
+        CloseTimerMenus();
+        _timerFlyouts.Clear(); _timerValueButtons.Clear();
         Tiles.Children.Clear(); _timerButtons.Clear(); _values.Clear(); _placements.Clear(); _stopwatchButton = null; _clipboardButton = null;
         if (_view is null) return;
         EmptyText.Visibility = !_view.Enabled || _view.Layout.Expanded.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -206,31 +219,101 @@ public sealed partial class WidgetsExpandedView : UserControl
             FrameworkElement tile;
             if (placement.Id is NativeWidgetId.Calculator or NativeWidgetId.PinnedItems)
             {
+                var view = _view;
+                var busy = false;
                 var button = new Button { Content = content, MinWidth = 0, MinHeight = 0, Padding = new(4), HorizontalContentAlignment = HorizontalAlignment.Stretch, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-                value.Text = placement.Id == NativeWidgetId.Calculator ? "± × ÷" : "★";
+                AutomationProperties.SetName(button, view.Text("Widget" + placement.Id + ".Text"));
+                var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id), FontSize = 18 };
+                AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
+                AutomationProperties.SetLiveSetting(value, AutomationLiveSetting.Polite);
                 value.TextWrapping = TextWrapping.NoWrap;
                 value.TextAlignment = TextAlignment.Center;
                 title.TextAlignment = TextAlignment.Center;
                 content.Children.Remove(value);
-                content.Children.Add(new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, Child = value, HorizontalAlignment = HorizontalAlignment.Stretch });
-                button.Click += async (_, _) =>
+                var artwork = new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, Child = icon, HorizontalAlignment = HorizontalAlignment.Stretch };
+                content.Children.Add(artwork);
+                Action? pendingFailureAnnouncement = null;
+                void AnnounceFailureIfReady()
                 {
                     try
                     {
+                        if (!value.IsLoaded || pendingFailureAnnouncement is not { } announce) return;
+                        pendingFailureAnnouncement = null;
+                        announce();
+                    }
+                    catch (Exception)
+                    {
+                        pendingFailureAnnouncement = null;
+                        // Accessibility feedback must not replace the launch error.
+                    }
+                }
+                value.Loaded += (_, _) => AnnounceFailureIfReady();
+                value.Unloaded += (_, _) => pendingFailureAnnouncement = null;
+                void ShowLaunchFailure(Func<bool> isCurrent)
+                {
+                    if (!isCurrent()) return;
+                    var message = view.Text("WidgetLaunchFailed");
+                    var changed = !ReferenceEquals(artwork.Child, value) || value.Text != message;
+                    value.Text = message;
+                    artwork.Child = value;
+                    AutomationProperties.SetHelpText(button, message);
+                    if (!changed) return;
+                    pendingFailureAnnouncement = () =>
+                    {
+                        if (!isCurrent() || !ReferenceEquals(artwork.Child, value) || value.Text != message) return;
+                        for (DependencyObject? node = value; node is not null; node = VisualTreeHelper.GetParent(node))
+                            if (node is UIElement element && element.Visibility != Visibility.Visible) return;
+                        var peer = FrameworkElementAutomationPeer.FromElement(value)
+                            ?? FrameworkElementAutomationPeer.CreatePeerForElement(value);
+                        peer?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+                    };
+                    AnnounceFailureIfReady();
+                }
+                bool OwnsTile() => IsLoaded && ReferenceEquals(_view, view) && Tiles.Children.Contains(button);
+                button.Click += async (_, _) =>
+                {
+                    if (busy || !_active || !OwnsTile()) return;
+                    var token = (_nativeActionRequests ??= new()).Token;
+                    var navigationRevision = placement.Id == NativeWidgetId.PinnedItems
+                        ? view.ReserveMainNavigation() : (long?)null;
+                    bool IsCurrent() => !token.IsCancellationRequested && _active && OwnsTile() &&
+                        (navigationRevision is not { } revision || view.IsMainNavigationCurrent(revision));
+                    busy = true;
+                    button.IsEnabled = false;
+                    try
+                    {
+                        pendingFailureAnnouncement = null;
+                        artwork.Child = icon;
+                        AutomationProperties.SetHelpText(button, string.Empty);
                         if (placement.Id == NativeWidgetId.Calculator)
                         {
-                            if (!await Windows.System.Launcher.LaunchUriAsync(new Uri("calculator:")))
-                                value.Text = _view.Text("WidgetLaunchFailed");
+                            // Windows owns an accepted launch; retirement only suppresses
+                            // this tile's late result and must not claim to cancel that launch.
+                            var launched = await Windows.System.Launcher.LaunchUriAsync(new Uri("calculator:"));
+                            if (IsCurrent() && !launched)
+                                ShowLaunchFailure(IsCurrent);
                         }
-                        else { await _view.OpenPinnedAsync(); PinnedRequested?.Invoke(this, EventArgs.Empty); }
+                        else if (navigationRevision is { } revision &&
+                            await view.OpenPinnedAsync(revision, token) && IsCurrent())
+                            PinnedRequested?.Invoke(this, EventArgs.Empty);
                     }
-                    catch (Exception) { value.Text = _view.Text("WidgetLaunchFailed"); }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+                    catch (Exception) { if (IsCurrent()) ShowLaunchFailure(IsCurrent); }
+                    finally
+                    {
+                        busy = false;
+                        // A hidden host can retain this same tile. Restore its button
+                        // even when the request was retired, without touching a replacement.
+                        if (OwnsTile()) button.IsEnabled = true;
+                    }
                 };
                 tile = button;
             }
             else if (placement.Id == NativeWidgetId.Settings)
             {
-                var button = new Button { Content = new FontIcon { Glyph = "\uE713" }, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+                var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id) };
+                AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
+                var button = new Button { Content = icon, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                 XamlResourceOverride.Apply(button, "WidgetSettingsAction");
                 button.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty); tile = button;
             }
@@ -239,14 +322,61 @@ public sealed partial class WidgetsExpandedView : UserControl
                 _values[placement.Id] = value;
                 if (placement.Id is NativeWidgetId.FocusTimer or NativeWidgetId.Countdown)
                 {
-                    content.Children.Remove(title); content.Orientation = Orientation.Horizontal;
-                    var timerButton = new Button { Padding = new(4, 1, 4, 1), FontSize = 11 };
-                    timerButton.Click += (_, _) => _view.ToggleTimer(placement.Id);
-                    _timerButtons[placement.Id] = timerButton; content.Children.Add(timerButton);
-                    var menu = new MenuFlyout(); var reset = new MenuFlyoutItem();
-                    XamlResourceOverride.Apply(reset, "StopwatchReset");
-                    reset.Click += (_, _) => _view.ResetTimer(placement.Id);
+                    var view = _view;
+                    content.Children.Clear();
+                    var timerButton = new Button
+                    {
+                        Content = new FontIcon { FontSize = 16 },
+                        Padding = new(4), Width = 32, MinWidth = 32, MinHeight = 32,
+                    };
+                    timerButton.Click += (_, _) => view.ToggleTimer(placement.Id);
+                    _timerButtons[placement.Id] = timerButton;
+                    var menu = new MenuFlyout();
+                    var duration = new MenuFlyoutSubItem { Text = view.Text("WidgetTimerDuration") };
+                    var choices = new List<(int Minutes, ToggleMenuFlyoutItem Item)>();
+                    foreach (var minutes in new[] { 1, 5, 10, 15, 25, 45, 60 })
+                    {
+                        var choice = new ToggleMenuFlyoutItem { Text = view.TimerDurationLabel(minutes) };
+                        choice.Click += (_, _) =>
+                        {
+                            if (_active && IsLoaded && ReferenceEquals(_view, view))
+                                view.SetTimerDuration(placement.Id, minutes);
+                        };
+                        duration.Items.Add(choice); choices.Add((minutes, choice));
+                    }
+                    menu.Opening += (_, _) =>
+                    {
+                        var timer = placement.Id == NativeWidgetId.FocusTimer ? view.FocusTimer : view.Countdown;
+                        foreach (var choice in choices) choice.Item.IsChecked = timer.Duration == TimeSpan.FromMinutes(choice.Minutes);
+                    };
+                    menu.Items.Add(duration);
+                    menu.Items.Add(new MenuFlyoutSeparator());
+                    var reset = new MenuFlyoutItem();
+                    XamlResourceOverride.Apply(reset, "WidgetTimerReset");
+                    reset.Click += (_, _) =>
+                    {
+                        if (_active && IsLoaded && ReferenceEquals(_view, view)) view.ResetTimer(placement.Id);
+                    };
                     menu.Items.Add(reset); content.ContextFlyout = menu;
+                    _timerFlyouts.Add(menu);
+                    value.TextWrapping = TextWrapping.NoWrap;
+                    value.TextTrimming = TextTrimming.CharacterEllipsis;
+                    value.TextAlignment = TextAlignment.Center;
+                    var durationButton = new Button
+                    {
+                        Content = value, Flyout = menu, Padding = new(4, 1, 4, 1), MinWidth = 0,
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                    };
+                    Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(durationButton, view.Text("WidgetTimerDurationHelp"));
+                    ToolTipService.SetToolTip(durationButton, view.Text("WidgetTimerDuration") + "\n" + view.Text("WidgetTimerDurationHelp"));
+                    _timerValueButtons[placement.Id] = durationButton;
+                    var controls = new Grid { ColumnSpacing = 4 };
+                    controls.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+                    controls.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+                    controls.Children.Add(durationButton);
+                    Grid.SetColumn(timerButton, 1); controls.Children.Add(timerButton);
+                    content.Children.Add(controls);
                 }
                 if (placement.Id == NativeWidgetId.Stopwatch)
                 {
@@ -276,8 +406,10 @@ public sealed partial class WidgetsExpandedView : UserControl
         if (_view is null) return;
         foreach (var (id, button) in _timerButtons)
         {
-            button.Content = _view.TimerActionLabel(id);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, _view.TimerActionLabel(id));
+            var timer = id == NativeWidgetId.FocusTimer ? _view.FocusTimer : _view.Countdown;
+            ((FontIcon)button.Content).Glyph = timer.IsRunning ? "\uE769" : "\uE768";
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, _view.Text("Widget" + id + ".Text") + ": " + _view.TimerActionLabel(id));
+            ToolTipService.SetToolTip(button, _view.TimerActionLabel(id));
         }
         if (_stopwatchButton is not null) { _stopwatchButton.Content = _view.StopwatchActionLabel; Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_stopwatchButton, _view.StopwatchActionLabel); }
         if (_clipboardButton is not null)
@@ -287,11 +419,13 @@ public sealed partial class WidgetsExpandedView : UserControl
             ((FontIcon)_clipboardButton.Content).Glyph = _view.ClipboardPaused ? "\uE768" : "\uE769";
         }
         foreach (var (id, text) in _values)
-            text.Text = data is null ? "—" : id switch
+            text.Text = id switch
             {
+                NativeWidgetId.FocusTimer => TimerText(_view.FocusTimer),
+                NativeWidgetId.Countdown => TimerText(_view.Countdown),
+                NativeWidgetId.Stopwatch => _view.StopwatchText,
+                _ when data is null => "—",
                 NativeWidgetId.UtcClock => data.LocalTime.UtcDateTime.ToString("HH:mm", _view.Culture) + " UTC",
-                NativeWidgetId.FocusTimer => TimerText(_view.FocusTimer.Remaining),
-                NativeWidgetId.Countdown => TimerText(_view.Countdown.Remaining),
                 NativeWidgetId.DiskSpace => data.DiskFreeBytes is { } free ? $"{free / 1073741824d:0.0} GB" : "—",
                 NativeWidgetId.NetworkStatus => data.NetworkAvailable is { } available ? _view.Text(available ? "WidgetNetworkConnected" : "WidgetNetworkDisconnected") : "—",
                 NativeWidgetId.WeekProgress => $"{System.Globalization.ISOWeek.GetWeekOfYear(data.LocalTime.DateTime)} · {(int)((((int)data.LocalTime.DayOfWeek + 6) % 7 + data.LocalTime.TimeOfDay.TotalDays) / 7 * 100)}%",
@@ -300,10 +434,30 @@ public sealed partial class WidgetsExpandedView : UserControl
                 NativeWidgetId.ResourceUsage => $"CPU {Percent(data.CpuPercent)}\nRAM {Percent(data.MemoryPercent)}",
                 NativeWidgetId.Battery => data.BatteryPercent is { } battery ? $"{battery}%" : data.OnAcPower == true ? "AC" : "—",
                 NativeWidgetId.Uptime => $"{(int)data.Uptime.TotalHours}h {data.Uptime.Minutes}m",
-                NativeWidgetId.Stopwatch => _view.StopwatchText,
                 _ => string.Empty,
             };
+        foreach (var (id, button) in _timerValueButtons)
+        {
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button,
+                _view.Text("Widget" + id + ".Text") + ": " + _view.Text("WidgetTimerDuration") + ", " + _values[id].Text);
+            ToolTipService.SetToolTip(button, _view.Text("WidgetTimerDuration") + ": " + _values[id].Text + "\n" + _view.Text("WidgetTimerDurationHelp"));
+        }
     }
-    private static string TimerText(TimeSpan value) => $"{(int)value.TotalMinutes:00}:{value.Seconds:00}";
+    private void CloseTimerMenus()
+    {
+        foreach (var menu in _timerFlyouts) menu.Hide();
+    }
+    private void RetireNativeActions()
+    {
+        var requests = _nativeActionRequests;
+        _nativeActionRequests = null;
+        try { requests?.Cancel(); }
+        finally { requests?.Dispose(); }
+    }
+    private string TimerText(WidgetCountdown timer)
+    {
+        var seconds = timer.RemainingSeconds;
+        return (seconds / 60).ToString("00", _view?.Culture) + ":" + (seconds % 60).ToString("00", _view?.Culture);
+    }
     private static string Percent(double? value) => value is { } number ? $"{number:0}%" : "—";
 }
