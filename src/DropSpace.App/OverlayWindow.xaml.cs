@@ -740,6 +740,7 @@ public sealed partial class OverlayWindow : Window
         }
         else if (reducedMotion) ResetMotionBlur();
         _motion.SetTarget(target, reducedMotion);
+        MusicCompact.SetGeometrySettled(!_motion.IsGeometryAnimating);
         StartAnimationFrames(preferDisplayCadence: !reducedMotion && expandedTransition);
         _previousState = snapshot.State;
         UpdateGlowTarget();
@@ -1555,6 +1556,7 @@ public sealed partial class OverlayWindow : Window
         SurfaceTransform.ScaleX = geometry.SurfaceScale;
         SurfaceTransform.ScaleY = geometry.SurfaceScale;
         CollapseInvisibleContent(values);
+        MusicCompact.SetGeometrySettled(!_motion.IsGeometryAnimating);
 
         // Width/Height setters invalidate arrange; the native region and mask otherwise
         // advance ahead of the allocated backdrop during a resize frame. Resolve only

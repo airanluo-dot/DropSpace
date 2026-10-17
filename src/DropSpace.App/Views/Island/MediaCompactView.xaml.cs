@@ -21,6 +21,13 @@ public sealed partial class MediaCompactView : UserControl
     private readonly TextBlock _measure = new() { FontSize = 13, TextWrapping = TextWrapping.NoWrap };
     private double _textWidth;
     private double _secondaryTextWidth;
+    private double _secondaryHeight;
+    private double _secondaryFontSize;
+    private bool _layoutPending;
+    private bool _geometrySettled = true;
+    private readonly Dictionary<string, double> _prefixWidths = new(StringComparer.Ordinal);
+    private string? _trackIdentity;
+    private long _lineStartTicks;
     private readonly LyricsMarqueeSession _secondaryMarquee = new();
     private bool _translationWasVisible;
     private string _displayedTranslation = string.Empty;
@@ -33,7 +40,6 @@ public sealed partial class MediaCompactView : UserControl
     private double _measuredFontSize;
     private ushort _measuredFontWeight;
     private double _measuredRasterizationScale = 1;
-    private readonly TextBlock _secondaryMeasure = new() { FontSize = 11, TextWrapping = TextWrapping.NoWrap };
     private XamlRoot? _xamlRoot;
     public double IdealIslandWidth { get; private set; } = 280;
     public double IdealIslandHeight { get; private set; } = 40;
@@ -75,15 +81,28 @@ public sealed partial class MediaCompactView : UserControl
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         ActualThemeChanged += (_, _) => InvalidateTextMeasure();
-        LayoutUpdated += (_, _) => NotifyTranslationVisibility();
+        LayoutUpdated += (_, _) =>
+        {
+            if (_layoutPending)
+            {
+                _layoutPending = false;
+                RefreshHighlight();
+            }
+            NotifyTranslationVisibility();
+        };
         RegisterPropertyChangedCallback(VisibilityProperty, OnVisibilityChanged);
+        foreach (var line in new[] { BaseLine, SecondaryLine })
+        foreach (var property in new[] { TextBlock.FontFamilyProperty, TextBlock.FontWeightProperty,
+            TextBlock.FontStyleProperty, TextBlock.FontStretchProperty, TextBlock.CharacterSpacingProperty,
+            TextBlock.IsTextScaleFactorEnabledProperty, FrameworkElement.LanguageProperty, FrameworkElement.FlowDirectionProperty })
+            line.RegisterPropertyChangedCallback(property, (_, _) => InvalidateTextMeasure());
     }
 
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
         Subscribe();
         AttachXamlRoot();
-        RequestRefresh();
+        InvalidateTextMeasure();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs args)
@@ -91,7 +110,7 @@ public sealed partial class MediaCompactView : UserControl
         DetachXamlRoot();
         Unsubscribe();
         CancelRefresh();
-        _secondaryMarquee.Reset();
+        ResetScroll();
         NotifyTranslationVisibility();
     }
     public MediaViewModel? ViewModel
@@ -140,7 +159,7 @@ public sealed partial class MediaCompactView : UserControl
         if (_presentationActive == active) return;
         _presentationActive = active;
         if (CanRender) RequestRefresh();
-        else CancelRefresh();
+        else { CancelRefresh(); ResetScroll(); }
         NotifyTranslationVisibility();
     }
 
@@ -176,17 +195,17 @@ public sealed partial class MediaCompactView : UserControl
     private void OnVisibilityChanged(DependencyObject sender, DependencyProperty property)
     {
         if (CanRender) RequestRefresh();
-        else CancelRefresh();
+        else { CancelRefresh(); ResetScroll(); }
     }
     private void OnViewportSizeChanged(object sender, SizeChangedEventArgs args)
     {
         ViewportClip.Rect = new Rect(0, 0, Math.Max(0, args.NewSize.Width), Math.Max(0, args.NewSize.Height));
-        RefreshHighlight();
+        DeferScrollUntilLayout();
     }
     private void OnSecondaryViewportSizeChanged(object sender, SizeChangedEventArgs args)
     {
         SecondaryViewportClip.Rect = new Rect(0, 0, Math.Max(0, args.NewSize.Width), Math.Max(0, args.NewSize.Height));
-        RefreshHighlight();
+        DeferScrollUntilLayout();
         NotifyTranslationVisibility();
     }
     private void Refresh()
@@ -194,6 +213,14 @@ public sealed partial class MediaCompactView : UserControl
         if (_view is null || BaseLine is null) return;
         RefreshCount++;
         var previousHeight = IdealIslandHeight;
+        var lineStart = _view.LyricPresentation.Line?.Start.Ticks ?? 0;
+        if (_trackIdentity != _view.Session.TrackIdentity || _lineStartTicks != lineStart)
+        {
+            _trackIdentity = _view.Session.TrackIdentity;
+            _lineStartTicks = lineStart;
+            ResetScroll();
+            _prefixWidths.Clear();
+        }
         var settings = _view.Settings;
         var showDots = settings.Lyrics.Enabled && settings.IslandActivity.ShowLyricsInCompact && _view.LyricPresentation.IsInterlude;
         BaseLine.FontSize = settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled ? settings.Lyrics.OriginalFontSize : 13;
@@ -211,11 +238,16 @@ public sealed partial class MediaCompactView : UserControl
         if (BaseLine.Text != text || _textWidth == 0 || measureChanged)
         {
             BaseLine.Text = text; HighlightLine.Text = text;
-            _textWidth = Measure(text);
+            // Measure the attached text, including its small glyph inset, in the
+            // same font/fallback, accessibility and rasterization context as rendering.
+            BaseLine.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            _textWidth = BaseLine.DesiredSize.Width;
             LyricCanvas.Width = _textWidth;
-            _primaryHeight = Math.Max(28, _measure.DesiredSize.Height);
+            _primaryHeight = Math.Max(28, BaseLine.DesiredSize.Height);
             LyricViewport.Height = _primaryHeight;
-            LyricCanvas.Height = _measure.DesiredSize.Height;
+            LyricCanvas.Height = BaseLine.DesiredSize.Height;
+            _prefixWidths.Clear();
+            DeferScrollUntilLayout();
             Canvas.SetTop(LyricCanvas, Math.Max(0, (_primaryHeight - LyricCanvas.Height) / 2));
             _measuredFontFamily = fontFamily;
             _measuredFontSize = fontSize;
@@ -223,28 +255,21 @@ public sealed partial class MediaCompactView : UserControl
             _measuredRasterizationScale = rasterizationScale;
         }
         var secondary = showDots ? string.Empty : LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null);
-        if (_secondaryMeasureInvalid || SecondaryLine.Text != secondary ||
-            _secondaryMeasure.FontSize != SecondaryLine.FontSize || measureChanged)
+        if (_secondaryMeasureInvalid || SecondaryLine.Text != secondary || measureChanged ||
+            _secondaryFontSize != SecondaryLine.FontSize)
         {
             SecondaryLine.Text = secondary;
-            _secondaryMeasure.FontFamily = SecondaryLine.FontFamily;
-            _secondaryMeasure.FontSize = SecondaryLine.FontSize;
-            _secondaryMeasure.FontWeight = SecondaryLine.FontWeight;
-            _secondaryMeasure.FontStyle = SecondaryLine.FontStyle;
-            _secondaryMeasure.CharacterSpacing = SecondaryLine.CharacterSpacing;
-            _secondaryMeasure.Language = SecondaryLine.Language;
-            _secondaryMeasure.FlowDirection = SecondaryLine.FlowDirection;
-            _secondaryMeasure.IsTextScaleFactorEnabled = SecondaryLine.IsTextScaleFactorEnabled;
-            _secondaryMeasure.Text = SecondaryLine.Text;
-            _secondaryMeasure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            _secondaryTextWidth = _secondaryMeasure.DesiredSize.Width;
-            SecondaryLine.Width = _secondaryTextWidth;
-            SecondaryViewport.Height = _secondaryMeasure.DesiredSize.Height;
+            SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
+            SecondaryViewport.Visibility = SecondaryLine.Visibility;
+            SecondaryLine.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            _secondaryFontSize = SecondaryLine.FontSize;
+            _secondaryTextWidth = SecondaryLine.DesiredSize.Width;
+            _secondaryHeight = SecondaryLine.DesiredSize.Height;
+            SecondaryViewport.Height = _secondaryHeight;
             _secondaryMeasureInvalid = false;
+            DeferScrollUntilLayout();
         }
-        SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
-        SecondaryViewport.Visibility = SecondaryLine.Visibility;
-        var secondaryHeight = SecondaryLine.Visibility == Visibility.Visible ? _secondaryMeasure.DesiredSize.Height : 0;
+        var secondaryHeight = SecondaryLine.Visibility == Visibility.Visible ? _secondaryHeight : 0;
         IdealIslandHeight = showDots ? 40 : IslandGeometry.MusicCompactHeight(_primaryHeight + secondaryHeight + 12);
         LyricViewport.Height = showDots ? 28 : _primaryHeight;
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
@@ -254,11 +279,13 @@ public sealed partial class MediaCompactView : UserControl
         for (var index = 0; index < bands.Length; index++)
             bands[index].Height = 2 + 20 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
         var maximum = settings.Lyrics.UnlimitedScrollingWidth ? _availableWidth : settings.Lyrics.ScrollingMaxWidth;
-        var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Min(Math.Max(_textWidth, _secondaryMeasure.DesiredSize.Width), maximum) : 180;
+        var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Min(Math.Max(_textWidth, _secondaryTextWidth), maximum) : 180;
+        // Round outward once, rather than losing a fractional pixel at either edge.
+        textWidth = Math.Ceiling(textWidth * rasterizationScale) / rasterizationScale;
         var width = 28 + textWidth + (settings.IslandActivity.ShowArtwork ? 36 : 12) + (spectrum ? 45 : 12);
         width = Math.Min(_availableWidth, showDots ? 280 : Math.Max(180, width));
         if (Math.Abs(width - IdealIslandWidth) > 0.5 || Math.Abs(previousHeight - IdealIslandHeight) > 0.5)
-        { IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
+        { DeferScrollUntilLayout(); IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
         RefreshHighlight();
         RefreshInterlude();
         NotifyTranslationVisibility();
@@ -288,8 +315,35 @@ public sealed partial class MediaCompactView : UserControl
         _textWidth = 0;
         _measuredFontFamily = null;
         _secondaryMeasureInvalid = true;
-        _secondaryMarquee.Reset();
+        _prefixWidths.Clear();
+        DeferScrollUntilLayout();
         RequestRefresh();
+    }
+    // The host signals its existing spring's state; no timer or extra frame loop.
+    internal void SetGeometrySettled(bool settled)
+    {
+        if (_geometrySettled == settled) return;
+        _geometrySettled = settled;
+        ResetScroll();
+        if (settled) DeferScrollUntilLayout();
+    }
+    private void ResetScroll()
+    {
+        LyricTranslation.TranslateX = 0;
+        SecondaryTranslation.TranslateX = 0;
+        _secondaryMarquee.Reset();
+    }
+    private void DeferScrollUntilLayout()
+    {
+        _layoutPending = true;
+        ResetScroll();
+        Layout.InvalidateArrange();
+    }
+    private double ScrollViewport(double textWidth, double actualWidth)
+    {
+        // At most half a physical pixel: absorb layout rounding, not true overflow.
+        var tolerance = 0.5 / Math.Max(1, XamlRoot?.RasterizationScale ?? 1);
+        return textWidth <= actualWidth + tolerance ? Math.Max(textWidth, actualWidth) : actualWidth;
     }
     private void RefreshHighlight()
     {
@@ -312,17 +366,22 @@ public sealed partial class MediaCompactView : UserControl
             }
         }
         HighlightClip.Rect = new Rect(0, 0, Math.Max(0, highlight), Math.Max(28, BaseLine.ActualHeight));
+        if (_layoutPending || !_geometrySettled || !CanRender)
+        {
+            ResetScroll();
+            return;
+        }
         var scroll = 0d;
         if (_view.Settings.Lyrics.Enabled && _view.Settings.IslandActivity.ShowLyricsInCompact && _view.Settings.Lyrics.Scrolling && !_view.IsReducedMotion)
         {
             scroll = LyricsDisplayPolicy.CompactScrollOffset(frame.Line,
                 _view.Position - _view.Session.Timeline.Start, _view.Settings.Lyrics.DelayMilliseconds,
-                _view.Settings.Lyrics.WordSyncedHighlighting, highlight, _textWidth, LyricViewport.ActualWidth);
+                _view.Settings.Lyrics.WordSyncedHighlighting, highlight, _textWidth, ScrollViewport(_textWidth, LyricViewport.ActualWidth));
         }
         LyricTranslation.TranslateX = -scroll;
         SecondaryTranslation.TranslateX = -_secondaryMarquee.Update(new(
             _view.Session.TrackIdentity, presentation.Line?.Start.Ticks ?? 0, SecondaryLine.Text,
-            SecondaryLine.FontSize, XamlRoot?.RasterizationScale ?? 1, _secondaryTextWidth, SecondaryViewport.ActualWidth,
+            SecondaryLine.FontSize, XamlRoot?.RasterizationScale ?? 1, _secondaryTextWidth, ScrollViewport(_secondaryTextWidth, SecondaryViewport.ActualWidth),
             _view.Settings.Lyrics.Enabled && _view.Settings.IslandActivity.ShowLyricsInCompact && _view.Settings.Lyrics.Scrolling,
             _view.IsReducedMotion), _view.Position);
     }
@@ -338,11 +397,15 @@ public sealed partial class MediaCompactView : UserControl
     }
     private double Measure(string text)
     {
+        if (_prefixWidths.TryGetValue(text, out var width)) return width;
+        _measure.Padding = BaseLine.Padding;
+        _measure.UseLayoutRounding = BaseLine.UseLayoutRounding;
+        _measure.FontStretch = BaseLine.FontStretch;
         _measure.FontFamily = BaseLine.FontFamily; _measure.FontSize = BaseLine.FontSize; _measure.FontWeight = BaseLine.FontWeight;
         _measure.FontStyle = BaseLine.FontStyle; _measure.CharacterSpacing = BaseLine.CharacterSpacing;
         _measure.Language = BaseLine.Language; _measure.FlowDirection = BaseLine.FlowDirection;
         _measure.IsTextScaleFactorEnabled = BaseLine.IsTextScaleFactorEnabled;
         _measure.Text = text; _measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        return _measure.DesiredSize.Width;
+        return _prefixWidths[text] = _measure.DesiredSize.Width;
     }
 }

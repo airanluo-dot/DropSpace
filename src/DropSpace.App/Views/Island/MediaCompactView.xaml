@@ -17,8 +17,8 @@
       <Canvas x:Name="LyricScrollHost">
       <Grid x:Name="LyricCanvas" HorizontalAlignment="Left" VerticalAlignment="Center">
         <Grid.RenderTransform><CompositeTransform x:Name="LyricTranslation" /></Grid.RenderTransform>
-        <TextBlock x:Name="BaseLine" FontSize="13" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}" />
-        <TextBlock x:Name="HighlightLine" FontSize="13" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" AutomationProperties.AccessibilityView="Raw">
+        <TextBlock x:Name="BaseLine" Padding="2,0" UseLayoutRounding="False" FontSize="13" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}" />
+        <TextBlock x:Name="HighlightLine" Padding="2,0" UseLayoutRounding="False" FontSize="13" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" AutomationProperties.AccessibilityView="Raw">
           <TextBlock.Clip><RectangleGeometry x:Name="HighlightClip" /></TextBlock.Clip>
         </TextBlock>
       </Grid>
@@ -32,7 +32,7 @@
     <Grid x:Name="SecondaryViewport" SizeChanged="OnSecondaryViewportSizeChanged" Visibility="Collapsed">
       <Grid.Clip><RectangleGeometry x:Name="SecondaryViewportClip" /></Grid.Clip>
       <Canvas x:Name="SecondaryScrollHost">
-      <TextBlock x:Name="SecondaryLine" HorizontalAlignment="Left" FontSize="11" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}" Visibility="Collapsed">
+      <TextBlock x:Name="SecondaryLine" Padding="2,0" UseLayoutRounding="False" HorizontalAlignment="Left" FontSize="11" TextWrapping="NoWrap" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}" Visibility="Collapsed">
         <TextBlock.RenderTransform><CompositeTransform x:Name="SecondaryTranslation" /></TextBlock.RenderTransform>
       </TextBlock>
       </Canvas>
