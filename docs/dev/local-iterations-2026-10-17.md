@@ -985,3 +985,37 @@ source audit twice across the added eventSequenceTruncated schema flag, YAML/old
 contract integrity once, and whitespace once. No functional scenarios ran during
 preflight. Inputs and original/follow-up snapshots are preserved in
 `evidence/local-iterations-2026-10-17/overlay-lifecycle-preflight.json`.
+
+
+### Continuation: retain incomplete lifecycle evidence and repair log serialization
+
+Windows run 39067212418 built commit 8fe0c822052c2dca0f180133421f23c3a12c5894
+with zero warnings/errors and launched the single new lifecycle scenario. Both
+desktop PNGs reached the log, but the launcher's final summary failed on the empty
+post-close layers array: pipeline ConvertTo-Json received no input, then StrictMode
+rejected Length on null. The launcher summary marker is absent. Record one native
+execution with an unknown final outcome; no lifecycle pass, assertion failure or
+App exit code can be established from the accessible evidence.
+
+The original PNG bytes were recovered with sequence/count/signature/size/SHA
+checks against the chunks. The unavailable summary prevents an independent header
+comparison. Initial and reopened images are byte-identical (6,202 bytes). Reopening the
+original initial PNG confirms visible 25:00, 05:00, play buttons and the collapse
+arrow, correcting an earlier mistaken blank-background interpretation. The cold
+desktop content is now visible before RTB/menu interaction. Full lifecycle
+assertions and physical visual correctness remain unconfirmed. The first local collector
+failed because the marker was missing; fallback recovery was evidence processing,
+not an App rerun. No artifact download was retried.
+
+The launcher fix changes only two helper lines: pass the object directly into
+ConvertTo-Json and preserve array shape on return. One explicit source-linked
+PowerShell helper scenario executed twice: the old source reproduced the exact
+Length exception, then the new source passed 20 assertions covering empty,
+singleton, multiple, nullable and bounded observations. One byte/snapshot/whitespace
+integrity check and independent read-only review passed. The RTB/status predicates
+and PNG transport are byte-unchanged; the helper probe never launches the App.
+
+Run evidence and both original PNGs are retained through beta-native-ui.json;
+local before/after inputs and execution counts are recorded in
+`evidence/local-iterations-2026-10-17/beta-ui-summary-shape-fix.json`. A focused
+lifecycle retry is needed to resolve the missing result and presentation state.

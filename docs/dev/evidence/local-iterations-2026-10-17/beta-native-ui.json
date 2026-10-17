@@ -2419,6 +2419,82 @@
         "First local retrieval through the direct job-log REST redirect was refused with 403. The gh run-view log path succeeded; this was evidence transport, not an App rerun or functional failure. No artifact download was retried.",
         "Full Windows compilation covers prior right-hold retirement and Clipboard identity publication. It does not include the later uncommitted stale-action feedback or system-close changes, and does not execute physical gesture/clipboard flows."
       ]
+    },
+    {
+      "runId": 39067212418,
+      "url": "https://github.com/airanluo-dot/DropSpace/actions/runs/39067212418",
+      "sourceCommit": "8fe0c822052c2dca0f180133421f23c3a12c5894",
+      "sourceTree": "99b701f60f803ccd1026990bdf747e9ab0232bad",
+      "workflowConclusion": "failure",
+      "build": {
+        "schemaVersion": 1,
+        "kind": "windows-debug-native-ui-build",
+        "status": "passed",
+        "stage": "build-ready",
+        "sourceCommit": "8fe0c822052c2dca0f180133421f23c3a12c5894",
+        "sourceTree": "99b701f60f803ccd1026990bdf747e9ab0232bad",
+        "executablePath": "D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.App\\bin\\x64\\Debug\\net10.0-windows10.0.20348.0\\win-x64\\DropSpace.exe",
+        "executableSha256": "086f82c495c42c8e0df4fcc7ba846cf4f7fcad829d0debdcb84e77d557061571",
+        "resourceIndexSha256": "d0b46decbb398a4f54f6e9f058b2a1e5d70f0f71ab70d049f25a4e3dc4c69a8a",
+        "managedAssemblyHashes": {
+          "DropSpace.Core.dll": "b01f51eecad7e64548daf021d3a28de043445e5413435cc18931b0e4478672cc",
+          "DropSpace.Infrastructure.dll": "c0f4f21e2fb996e525e21f569d1080e2cbc08e51839a3acf52a95a6268ef9d6e",
+          "DropSpace.dll": "843f3b55425ce2f76c5a24bb2245201f43ce4dbf6543c136aac3236504920cf5"
+        },
+        "startedAtUtc": "2026-10-17T20:33:41.2636587+00:00",
+        "finishedAtUtc": "2026-10-17T20:35:22.9451493+00:00",
+        "configuration": "Debug",
+        "deployment": "unpackaged-framework-dependent",
+        "releasePromotionEligible": false,
+        "functionalScenarioExecutions": 0,
+        "failure": null
+      },
+      "buildWarnings": 0,
+      "buildErrors": 0,
+      "launch": null,
+      "launcherSummaryFailure": "The property 'Length' cannot be found on this object. Verify that the property exists.",
+      "originalMusicReleaseJobSkipped": true,
+      "selectedScenario": "overlay-lifecycle",
+      "actualUniqueScenarios": 1,
+      "scenarioExecutions": 1,
+      "functionalPassed": 0,
+      "functionalFailed": 0,
+      "functionalUnknown": 1,
+      "completionAndAppExitCodeUnknown": true,
+      "visualApproved": false,
+      "artifactsDownloaded": false,
+      "supplementalPngsRecoveredFromJobLog": 2,
+      "localPngs": [
+        {
+          "source": "artifacts/local-iterations-2026-10-17/beta-native-ui/39067212418/timers-initial-desktop.png",
+          "retained": "docs/dev/evidence/local-iterations-2026-10-17/native-overlay-39067212418-initial.png",
+          "bytes": 6202,
+          "sha256": "608b319adf47884ea9e5d3bf6e2b24b2e401b82b8a4d3bf84c0f1d3c5ab88b9e",
+          "viewedByAssistant": true
+        },
+        {
+          "source": "artifacts/local-iterations-2026-10-17/beta-native-ui/39067212418/timers-reopened-desktop.png",
+          "retained": "docs/dev/evidence/local-iterations-2026-10-17/native-overlay-39067212418-reopened.png",
+          "bytes": 6202,
+          "sha256": "608b319adf47884ea9e5d3bf6e2b24b2e401b82b8a4d3bf84c0f1d3c5ab88b9e",
+          "viewedByAssistant": false
+        }
+      ],
+      "receiptSource": "gh run view --job --log; build marker and original PNG chunks. Launcher summary marker absent.",
+      "evidence": {
+        "artifacts/local-iterations-2026-10-17/beta-native-ui/39067212418/job.log": "b6d94e12349a7ca4f7e95cbef3711ffd2f0514718c4fcb704e69a45e97b3d86e",
+        "artifacts/local-iterations-2026-10-17/beta-native-ui/39067212418/run.json": "771eb01ffa2ce0ee109125f5e20ebd156457e13922d408c94c9a2d96fbba07cb",
+        "artifacts/local-iterations-2026-10-17/beta-native-ui/39067212418/build-receipt.json": "5889c67e1148f655ccade7472c6ff84a6cc8b57d088a4686622c0af1cacdc5cc",
+        "artifacts/local-iterations-2026-10-17/beta-native-ui/39067212418/partial-image-recovery.json": "232f44838076516848f937fa047d8c38042a82f8a94fee3fa2a165e94ee7297d"
+      },
+      "interpretation": [
+        "One selected overlay-first-frame-and-system-close execution reached both desktop capture points. Its final App result, assertion completion and exit code are unavailable; record one unknown outcome, not a pass or assertion failure.",
+        "Launcher finally-stage log summarization failed at Get-VisualCheckpointSummary after PNG transport. Its empty layers array reaches a pipeline ConvertTo-Json with no input, leaving null before a StrictMode Length access. The complete artifact remains unavailable because artifact download redirects are blocked.",
+        "The first local collector failed because the launcher marker was absent. Fallback verified chunk sequence/count, original PNG signature, byte count and SHA; no independent comparison with the missing launcher header/transfer summary was possible. This was local evidence processing, not a native retry.",
+        "Initial desktop PNG was reopened with view_image and clearly shows 25:00, 05:00, two play buttons and the collapse arrow. This corrects an earlier mistaken blank-background interpretation. Reopened PNG is byte-identical; it was not separately opened. Cold desktop content is now observable before RTB/menu interaction, while the missing lifecycle metadata still prevents a final assertion result. GDI hardware-plane limitations remain.",
+        "Full Windows Debug compilation passed with zero warnings/errors and covers cold-opacity, ordinary system-close and late clipboard-error ownership changes. It does not prove their native behavior.",
+        "No prior timer, popup or batch scenario was repeated. A focused lifecycle retry is justified after correcting summary serialization."
+      ]
     }
   ]
 }

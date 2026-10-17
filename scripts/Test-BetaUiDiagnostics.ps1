@@ -103,11 +103,11 @@ function Limit-SummaryText([object]$Value) {
 }
 function Limit-Observation([object]$Value) {
     if ($null -eq $Value) { return $null }
-    $json = $Value | ConvertTo-Json -Depth 8 -Compress
+    $json = ConvertTo-Json -InputObject $Value -Depth 8 -Compress
     if ($json.Length -gt 2000) {
         return [ordered]@{ truncated = $true; jsonPrefix = $json.Substring(0, 2000); completeEvidence = 'launcher.json and app/receipt.json' }
     }
-    return $Value
+    return ,$Value
 }
 function Select-EvidenceFields([System.Collections.IDictionary]$Value, [string[]]$Keys) {
     $selected = [ordered]@{}
