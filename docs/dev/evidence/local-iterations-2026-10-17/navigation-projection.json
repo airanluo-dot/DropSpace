@@ -1,0 +1,304 @@
+{
+  "schemaVersion": 1,
+  "productionSourceCommit": "e3bb526727f8179b15a959f7c7caad14e7a5a674",
+  "summary": {
+    "unique_scenarios": 5,
+    "scenario_executions": 10,
+    "before": {
+      "executions": 5,
+      "passed": 3,
+      "failed": 2,
+      "exit_code": 1,
+      "expected_regression_failures": [
+        "cross-section-failure",
+        "cross-section-cancellation"
+      ]
+    },
+    "after": {
+      "executions": 5,
+      "passed": 5,
+      "failed": 0,
+      "exit_code": 0
+    },
+    "scenario_retries": 0,
+    "pre_execution_build": {
+      "command": "dotnet build scripts/navigation-projection-probe/NavigationProjectionProbe.csproj --nologo -v:minimal",
+      "exit_code": 0,
+      "warnings": 0,
+      "errors": 0,
+      "functional_cases_executed": 0
+    },
+    "common_inputs_unchanged": true,
+    "common_source_count": 11,
+    "core_assembly_identical": true,
+    "navigation_before_sha256": "1b1a38eb61e0daef39cdd8b00dc18562b82b6ab191a59da46d61b8a55e98e750",
+    "navigation_after_sha256": "52fab7bd54ba097a040cc9626ff036fbc2567454fc17579e4f3758aa8476bcef",
+    "boundary": "Real source-linked navigation, paging, selection, item cards, query construction and Task.Run scheduling; controlled QueryPage responses, managed single-thread continuation pump, state-only ViewModel fixture and instrumented asset-owner tokens. No WinUI, SQLite, thumbnail/storage decoding, actual native cleanup, bindings, debounce, focus, or accessibility execution.",
+    "review": "Independent read-only review confirmed unchanged baseline source segments, actual LoadMore cursor/mixing execution, and late-failure status gating. No reviewer test execution.",
+    "evidence": [
+      {
+        "path": "artifacts/navigation-projection-probe/after/results.json",
+        "sha256": "16b43bcc8887ff11b86e0e0af91b13d8eb876d029ce681ee1d7ef20be878362a"
+      },
+      {
+        "path": "artifacts/navigation-projection-probe/after/run.json",
+        "sha256": "b7de8ba0b6ed0ed75a1c4decf01159df0ddae5f4521b85959e08ef701ca03509"
+      },
+      {
+        "path": "artifacts/navigation-projection-probe/after/run.log",
+        "sha256": "41ebc4acb8d1cd37fdb2674a8fe9d48c63d6902a3dcf977411e9b639288385e0"
+      },
+      {
+        "path": "artifacts/navigation-projection-probe/before/MainViewModel.Navigation.cs",
+        "sha256": "1b1a38eb61e0daef39cdd8b00dc18562b82b6ab191a59da46d61b8a55e98e750"
+      },
+      {
+        "path": "artifacts/navigation-projection-probe/before/extraction.json",
+        "sha256": "9085997d3727cb60fec790d88fa791d220494c517cb3c9fb04fcc824a55f5738"
+      },
+      {
+        "path": "artifacts/navigation-projection-probe/before/results.json",
+        "sha256": "41a80cdc1a0bb37729e0f6c8eb2c460d765b00870bd627d63be4548689359740"
+      },
+      {
+        "path": "artifacts/navigation-projection-probe/before/run.json",
+        "sha256": "d73064c49557023e907e6deb6deef14793ce0006ddddab653d8872671247148f"
+      },
+      {
+        "path": "artifacts/navigation-projection-probe/before/run.log",
+        "sha256": "41f3b4d9fc93b07e757b17f191d7280427ac5e6aa3a23b398c5000cdb2e585ff"
+      }
+    ]
+  },
+  "baselineExtraction": {
+    "commit": "6604f59a167d06358246b32a0c9d31f3da880f98",
+    "original_path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+    "original_blob_sha256": "2f5ba5a4556960cc66121a9fa411dd3d748d5f0f144de320156d4dd7b2036851",
+    "extracted_path": "artifacts/navigation-projection-probe/before/MainViewModel.Navigation.cs",
+    "extracted_sha256": "1b1a38eb61e0daef39cdd8b00dc18562b82b6ab191a59da46d61b8a55e98e750",
+    "segments": [
+      {
+        "start_marker": "    public async Task NavigateAsync(",
+        "end_marker": "    public async Task<int> AddPathsAsync(",
+        "first_line": 738,
+        "sha256": "851850ae50e422ce1c0038b7706fc0e80f3f538c355958b4c41e07f430d1ea2d"
+      },
+      {
+        "start_marker": "    private void ClearMainProjection()",
+        "end_marker": "    private bool RemoveMainProjectionCard(",
+        "first_line": 1682,
+        "sha256": "e6deb27601147a97fb73b6824eed66b6147f96bcda10b87edb0cf809adae3f6b"
+      },
+      {
+        "start_marker": "    private sealed class ProjectionLoadJournal",
+        "end_marker": "    private void TrimLiveClipboardProjection(",
+        "first_line": 1775,
+        "sha256": "b9fa1fe948ae37e007abd91c2e7bee00b051c05732c70f1c6e7ccadb32c056c7"
+      }
+    ],
+    "modifications": "Only a partial-class wrapper and required using directives; method bodies are unchanged."
+  },
+  "before": {
+    "phase": "before",
+    "command": [
+      "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet",
+      "run",
+      "--project",
+      "scripts/navigation-projection-probe/NavigationProjectionProbe.csproj",
+      "--no-restore",
+      "-p:NavigationSourcePath=/workspace/DropSpace/artifacts/navigation-projection-probe/before/MainViewModel.Navigation.cs",
+      "--",
+      "/workspace/DropSpace/artifacts/navigation-projection-probe/before/results.json"
+    ],
+    "started_utc": "2026-10-17T19:16:50.284566+00:00",
+    "finished_utc": "2026-10-17T19:16:55.719448+00:00",
+    "exit_code": 1,
+    "log_sha256": "41f3b4d9fc93b07e757b17f191d7280427ac5e6aa3a23b398c5000cdb2e585ff",
+    "sources": [
+      {
+        "path": "artifacts/navigation-projection-probe/before/MainViewModel.Navigation.cs",
+        "sha256": "1b1a38eb61e0daef39cdd8b00dc18562b82b6ab191a59da46d61b8a55e98e750"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/ProbeDispatcher.cs",
+        "sha256": "b6d5aa1abc711a5c86ee57a3fb00f18e50a30b867f78c6862752ee17fd6ea0d7"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/Program.cs",
+        "sha256": "4c57fd4902ce7b23a3c25ff4689461436721b96a745f485eb22a1d4a1a66590c"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/PlatformShims.cs",
+        "sha256": "28b715399e72886fc7f69c6419e26641cb017a0dc2afd4298a7a1d99be1ea91f"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/prepare-baseline.py",
+        "sha256": "a16a70f1aa5be40b3c8e45e6430323884f4ed2e8aa277d34f9a39dc51d2109e0"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/NavigationProjectionProbe.csproj",
+        "sha256": "f7447470d24d4f2ecc0384bee44c5b48189e110e4186a41509c6c6a53a03f135"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/README.md",
+        "sha256": "6fcea4cc940817bd460ce04773c1127d03db3b2773562349050ea1a88cae835f"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/ScriptedRepository.cs",
+        "sha256": "29db18fd1ac3a9955d9e92cc27478b93107c44aec5c0f49133698ff367c98bbd"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/MainViewModel.ItemSelection.cs",
+        "sha256": "d97a9b5ad40d6a85be0b24867880cd452d44ac4864fdc85bb3617f55831842e7"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/ItemCardViewModel.cs",
+        "sha256": "cc60b87aeed325ae9666087b33d4fbdeab7dc5d7d2d96f0cd6043352d9cb9786"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs",
+        "sha256": "f0fc94b2cdee2ee5af9aa29aa6b74ed7c8d98979501d601a9845dda1067776c8"
+      },
+      {
+        "path": "src/DropSpace.App/Services/ItemProjectionService.cs",
+        "sha256": "c4c62f5e6824123555e3bc8b7298cce0e1b1026fee597c3f7dffda7bea46a1d0"
+      }
+    ],
+    "core_assembly_sha256": "f05228bffbdfd992f39c8c59c541209a025690ba0ba209164950472f8c8945d3"
+  },
+  "after": {
+    "phase": "after",
+    "command": [
+      "/workspace/.tools/dotnet-deb/usr/share/dotnet/dotnet",
+      "run",
+      "--project",
+      "scripts/navigation-projection-probe/NavigationProjectionProbe.csproj",
+      "--no-restore",
+      "--",
+      "/workspace/DropSpace/artifacts/navigation-projection-probe/after/results.json"
+    ],
+    "started_utc": "2026-10-17T19:17:12.046448+00:00",
+    "finished_utc": "2026-10-17T19:17:13.889502+00:00",
+    "exit_code": 0,
+    "log_sha256": "41ebc4acb8d1cd37fdb2674a8fe9d48c63d6902a3dcf977411e9b639288385e0",
+    "sources": [
+      {
+        "path": "src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs",
+        "sha256": "52fab7bd54ba097a040cc9626ff036fbc2567454fc17579e4f3758aa8476bcef"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/ProbeDispatcher.cs",
+        "sha256": "b6d5aa1abc711a5c86ee57a3fb00f18e50a30b867f78c6862752ee17fd6ea0d7"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/Program.cs",
+        "sha256": "4c57fd4902ce7b23a3c25ff4689461436721b96a745f485eb22a1d4a1a66590c"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/PlatformShims.cs",
+        "sha256": "28b715399e72886fc7f69c6419e26641cb017a0dc2afd4298a7a1d99be1ea91f"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/prepare-baseline.py",
+        "sha256": "a16a70f1aa5be40b3c8e45e6430323884f4ed2e8aa277d34f9a39dc51d2109e0"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/NavigationProjectionProbe.csproj",
+        "sha256": "f7447470d24d4f2ecc0384bee44c5b48189e110e4186a41509c6c6a53a03f135"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/README.md",
+        "sha256": "6fcea4cc940817bd460ce04773c1127d03db3b2773562349050ea1a88cae835f"
+      },
+      {
+        "path": "scripts/navigation-projection-probe/ScriptedRepository.cs",
+        "sha256": "29db18fd1ac3a9955d9e92cc27478b93107c44aec5c0f49133698ff367c98bbd"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/MainViewModel.ItemSelection.cs",
+        "sha256": "d97a9b5ad40d6a85be0b24867880cd452d44ac4864fdc85bb3617f55831842e7"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/ItemCardViewModel.cs",
+        "sha256": "cc60b87aeed325ae9666087b33d4fbdeab7dc5d7d2d96f0cd6043352d9cb9786"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs",
+        "sha256": "f0fc94b2cdee2ee5af9aa29aa6b74ed7c8d98979501d601a9845dda1067776c8"
+      },
+      {
+        "path": "src/DropSpace.App/Services/ItemProjectionService.cs",
+        "sha256": "c4c62f5e6824123555e3bc8b7298cce0e1b1026fee597c3f7dffda7bea46a1d0"
+      }
+    ],
+    "core_assembly_sha256": "f05228bffbdfd992f39c8c59c541209a025690ba0ba209164950472f8c8945d3"
+  },
+  "resultsBefore": [
+    {
+      "Name": "cross-section-failure",
+      "Passed": false,
+      "Failures": [
+        "previous destination rows/count/selection remain",
+        "previous destination cursor/HasMore remain",
+        "previous destination asset work remains owned",
+        "destination status is not OperationIncompleteContent",
+        "failed destination queried more; oldCursorReused=True, source=Clipboard, cursor=8907b727-5806-4258-ab43-9021d5ed7080",
+        "retired paging cursor was reused",
+        "failed destination mixed previous rows with a continuation page",
+        "Space and Clipboard rows actually coexist after continuation"
+      ]
+    },
+    {
+      "Name": "cross-section-cancellation",
+      "Passed": false,
+      "Failures": [
+        "previous destination rows/count/selection remain",
+        "previous destination cursor/HasMore remain",
+        "previous destination asset work remains owned",
+        "destination status is not ActionCancelled"
+      ]
+    },
+    {
+      "Name": "same-section-failure",
+      "Passed": true,
+      "Failures": []
+    },
+    {
+      "Name": "late-success",
+      "Passed": true,
+      "Failures": []
+    },
+    {
+      "Name": "late-failure",
+      "Passed": true,
+      "Failures": []
+    }
+  ],
+  "resultsAfter": [
+    {
+      "Name": "cross-section-failure",
+      "Passed": true,
+      "Failures": []
+    },
+    {
+      "Name": "cross-section-cancellation",
+      "Passed": true,
+      "Failures": []
+    },
+    {
+      "Name": "same-section-failure",
+      "Passed": true,
+      "Failures": []
+    },
+    {
+      "Name": "late-success",
+      "Passed": true,
+      "Failures": []
+    },
+    {
+      "Name": "late-failure",
+      "Passed": true,
+      "Failures": []
+    }
+  ]
+}

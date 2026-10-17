@@ -326,3 +326,35 @@ status and query-result guards still protect the projection itself.
 The additional localization scan passed for ten languages and 923 IDs. No new
 resource IDs or review fingerprints were needed. The new five-scenario portable
 probe and next Windows build are recorded below after actual execution.
+
+
+The navigation probe executed five distinct scenarios against unchanged extracted
+navigation methods from `6604f59` and then the current production partial. The
+baseline passed three and failed the two expected cross-destination regressions;
+the current source passed all five. This was ten actual scenario executions,
+eight passes and two expected baseline failures, with no retry. The failure case
+actually called `LoadMoreItemsAsync` and observed the baseline reusing its old
+cursor under the new filter and mixing the destination row with prior rows.
+Same-section failure preserved accepted rows, selection, cursor and asset owners;
+late old success and late old failure did not overwrite the current destination
+or its empty-search status. The same eleven common inputs and Core assembly were
+used on both sides. An earlier compile-only probe build had zero warnings/errors
+and executed no scenarios.
+
+`scripts/navigation-projection-probe/` links production navigation, selection,
+projection and card sources. Its controlled repository, managed synchronization
+context, state-only view-model fixture and instrumented asset tokens do not
+execute WinUI binding, SQLite, actual thumbnail cleanup, focus, accessibility or
+search debounce. Complete counts, command lines, baseline extraction identities
+and source hashes are retained in `evidence/local-iterations-2026-10-17/navigation-projection.json`.
+
+The fourth Windows run,
+[39061775459](https://github.com/airanluo-dot/DropSpace/actions/runs/39061775459),
+compiled exact commit `e3bb526727f8179b15a959f7c7caad14e7a5a674` successfully:
+**0 warnings, 0 errors**, zero executed tests. The completed job log contained a
+receipt matching that commit and its Git tree. Both production jobs were skipped;
+no protected production check was emitted. This confirms full Debug App/XAML
+compilation of the navigation and MainPage retirement changes. The runner's raw
+build-log hash has not been independently recomputed locally; its diagnostic
+artifact was not downloaded. Native interaction and pixel validation remain
+separate work.

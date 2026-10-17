@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <NavigationSourcePath Condition="'$(NavigationSourcePath)' == ''">../../src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs</NavigationSourcePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Compile Include="$(NavigationSourcePath)" Link="Production/MainViewModel.Navigation.cs" />
+    <Compile Include="../../src/DropSpace.App/ViewModels/MainViewModel.ItemSelection.cs" Link="Production/MainViewModel.ItemSelection.cs" />
+    <Compile Include="../../src/DropSpace.App/ViewModels/ItemCardViewModel.cs" Link="Production/ItemCardViewModel.cs" />
+    <Compile Include="../../src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs" Link="Production/QuickActionButtonViewModel.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/ItemProjectionService.cs" Link="Production/ItemProjectionService.cs" />
+  </ItemGroup>
+</Project>
