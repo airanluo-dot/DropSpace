@@ -58,6 +58,25 @@ if(cmd==='preflight'){
     assert.doesNotMatch(content,/^  (push|pull_request|release|schedule|create|workflow_run):/m,'Automatic model/visual tests detected: '+file);
   }
   const ci=read(path.join(root,'ci.yml'));
+  const job=name=>ci.split(`\n  ${name}:\n`)[1]?.split(/\n  [a-z][a-z-]+:\n/)[0]??'';
+  const compile=job('compile-windows');
+  assert.match(ci,/group: windows-ci-\$\{\{ github.ref \}\}\$\{\{ github.event_name == 'workflow_dispatch' && inputs.compile_only == true && '-compile-only' \|\| '' \}\}/,'Debug compilation must not cancel the ordinary producer');
+  const compileInput=ci.split('      compile_only:\n')[1]?.split(/\n      [a-z][a-z_]+:\n/)[0]??'';
+  assert.match(compileInput,/default: false\n        type: boolean/,'Compilation-only dispatch must be explicit opt-in');
+  assert.match(compile,/if: github.event_name == 'workflow_dispatch' && inputs.compile_only == true/,'Debug compilation must be manually selected');
+  assert.match(compile,/contents: read/,'Compilation-only permissions must be read-only');
+  assert.doesNotMatch(compile,/\b(?:contents|actions|packages): write\b/,'Compilation must not grant publication permissions');
+  assert.match(compile,/dotnet build src\/DropSpace.App\/DropSpace.App.csproj -c Debug --no-restore/);
+  assert.match(compile,/-p:GenerateAppxPackageOnBuild=false/);
+  assert.match(compile,/kind = 'windows-debug-app-xaml-compile-only'/);
+  assert.match(compile,/releasePromotionEligible = \$false/);
+  assert.match(compile,/name: dropspace-debug-compile-/);
+  assert.doesNotMatch(compile,/\bdotnet\s+(?:test|run|publish)\b|\bnode\s+--test\b|unittest|Test-PortableSmoke|Build-(?:PortableExe|UnsignedPackage|IdentityPackage|Installer)|Get-ReviewedAiRuntime|stage-reviewed-cuda|Stage-LyricsLanguageModel|test-ai-release-approval|ci-release-promotion|next-beta-release-validation/,'Compilation-only dispatch must not execute tests, stage runtime/model assets or produce release evidence');
+  for(const name of ['produce-windows','focused-windows'])
+    assert.match(job(name),/if: \(github.event_name != 'workflow_dispatch' \|\| inputs.compile_only != true\) &&/,'Existing producer must exclude compilation-only dispatch: '+name);
+  assert.match(job('required-validation'),/\[\[ "\$COMPILE_RESULT" == success && "\$FOCUSED_RESULT" == skipped && "\$LEGACY_RESULT" == skipped \]\]/,'Compilation-only required check must reject fallback or concurrent production');
+  assert.match(job('required-validation'),/\[\[ "\$COMPILE_RESULT" == skipped \]\]/,'Ordinary validation cannot be satisfied by a Debug build');
+  assert.match(job('required-validation'),/name: \$\{\{ github.event_name == 'workflow_dispatch' && inputs.compile_only == true && 'Debug App\/XAML compile check' \|\| 'Build and test \(x64\)' \}\}/,'Debug compilation cannot emit the protected production check name');
   assert.match(ci,/Enforce permanent passive test waiver/);
   assert.match(ci,/github.event_name == 'pull_request' && env.OWNER_SKIP_TESTS == 'true'/);
   assert.match(ci,/scripts\/passive-test-budget.mjs preflight/);

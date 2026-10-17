@@ -630,8 +630,11 @@
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>Автоматическое восстановление не удалось завершить. Используйте улучшение «Переустановить или удалить» для восстановления.</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>Операция была отменена.</value></data>
   <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC часы</value></data>
-  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Фокус · 25 мин.</value></data>
-  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Таймер · 5 мин</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Таймер концентрации</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Таймер</value></data>
+  <data name="WidgetTimerDuration" xml:space="preserve"><value>Длительность</value></data>
+  <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} мин</value></data>
+  <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>При изменении длительности таймер сбрасывается и ставится на паузу.</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>Свободное место на системном диске</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>Сетевой адаптер</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>Калькулятор</value></data>

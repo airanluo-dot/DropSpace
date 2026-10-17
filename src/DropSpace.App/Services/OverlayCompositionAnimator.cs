@@ -53,6 +53,9 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         _reducedMotion = reducedMotion;
         _contentIncomingOffsetDip = profile.IncomingOffsetDip;
+        // A system-preference change can arrive while the pointer is still down.
+        // Retire the old scale immediately instead of waiting for a release event.
+        if (reducedMotion) ApplyPress(false, reducedMotion: true);
     }
 
     public void ApplyMotion(OverlayMotionValues values)
@@ -88,12 +91,14 @@ internal sealed class OverlayCompositionAnimator : IDisposable
 
     public void ApplyHover(bool entered, bool reducedMotion)
     {
+        if (_disposed) return;
         _hoverOpacity = entered ? 0.08f : 0;
         _interactionTint.Opacity = _hoverOpacity;
     }
 
     public void ApplyPress(bool pressed, bool reducedMotion)
     {
+        if (_disposed) return;
         _pressScale = pressed && !reducedMotion ? (float)OverlayMotionTokens.PressScale : 1;
         _content.Scale = new Vector3(_pressScale, _pressScale, 1);
     }

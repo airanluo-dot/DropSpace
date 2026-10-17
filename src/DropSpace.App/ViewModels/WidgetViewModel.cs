@@ -38,6 +38,12 @@ public sealed class WidgetViewModel : ObservableObject, IAsyncDisposable
     }
     public string TimerActionLabel(NativeWidgetId id) => _strings.Get(
         (id == NativeWidgetId.FocusTimer ? FocusTimer : Countdown).IsRunning ? "StopwatchPause" : "StopwatchStart");
+    public void SetTimerDuration(NativeWidgetId id, int minutes)
+    {
+        (id == NativeWidgetId.FocusTimer ? FocusTimer : Countdown).SetDuration(TimeSpan.FromMinutes(minutes));
+        OnPropertyChanged(nameof(StopwatchText));
+    }
+    public string TimerDurationLabel(int minutes) => _strings.Format("WidgetTimerMinutesFormat", minutes);
     public string Text(string key) => _strings.Get(key);
     public Task OpenPinnedAsync() => _main.NavigateAsync("Pinned");
     public System.Globalization.CultureInfo Culture => _strings.Culture;

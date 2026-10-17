@@ -630,8 +630,11 @@
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>자동 복구를 완료할 수 없습니다. 복구하려면 향상된 기능 다시 설치 또는 제거를 사용하십시오.</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>작업이 취소되었습니다.</value></data>
   <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC 시계</value></data>
-  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>집중 · 25분</value></data>
-  <data name="WidgetCountdown.Text" xml:space="preserve"><value>타이머 · 5분</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>집중 타이머</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>타이머</value></data>
+  <data name="WidgetTimerDuration" xml:space="preserve"><value>타이머 시간</value></data>
+  <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0}분</value></data>
+  <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>시간을 변경하면 타이머가 초기화되고 일시 중지됩니다.</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>시스템 디스크 여유 공간</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>네트워크 어댑터</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>계산기</value></data>

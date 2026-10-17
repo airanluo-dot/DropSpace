@@ -211,9 +211,14 @@ public sealed partial class OverlayWindow : Window
             };
             Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
             Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
-            Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) => { _rightHoldTimer.Stop(); _rightHoldPointer = null; }), true);
+            Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) =>
+            {
+                _motion.ApplyPress(false, IsReducedMotion());
+                _rightHoldTimer.Stop(); _rightHoldPointer = null;
+            }), true);
             Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, _) =>
             {
+                _motion.ApplyPress(false, IsReducedMotion());
                 if (_placementEditActive) return;
                 _rightHoldTimer.Stop(); _rightHoldPointer = null;
             }), true);
@@ -2359,6 +2364,9 @@ public sealed partial class OverlayWindow : Window
     private void OnSurfacePointerExited(object sender, PointerRoutedEventArgs args)
     {
         _motion.ApplyHover(false, IsReducedMotion());
+        // An uncaptured press may be released outside this surface, so no release
+        // event is guaranteed to return and undo its feedback.
+        _motion.ApplyPress(false, IsReducedMotion());
     }
 
     private void OnSurfacePointerPressed(object sender, PointerRoutedEventArgs args)

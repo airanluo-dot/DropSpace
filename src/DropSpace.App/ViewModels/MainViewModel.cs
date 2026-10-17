@@ -17,7 +17,7 @@ using PlacementMode = DropSpace.Core.Models.OverlayPlacementMode;
 
 namespace DropSpace.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
+public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
     internal const int MaximumManualBatchItems = 2_048;
     private const int MaximumLiveClipboardItems = 250;
@@ -1084,22 +1084,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         await PublishSpaceProjectionChangedAsync(cancellationToken);
     }
 
-    public void ToggleBatchExpanded(ItemCardViewModel card)
-    {
-        if (card.DropBatchId is not { } batchId)
-        {
-            return;
-        }
-        var members = Items.Where(item => item.DropBatchId == batchId).ToArray();
-        var expanded = !card.IsBatchExpanded;
-        _batchExpansion[batchId] = expanded;
-        foreach (var member in members)
-        {
-            member.IsBatchExpanded = expanded;
-            member.IsBatchMemberVisible = member.IsBatchHeader || expanded;
-        }
-    }
-
     public Task<IReadOnlyList<Windows.Storage.IStorageItem>> GetBatchDragStorageItemsAsync(Guid batchId)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -1117,29 +1101,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         var storageItems = await Task.WhenAll(members.Select(item =>
             _dragStorageItems.ResolveAsync(item, cancellationToken)));
         return storageItems.Where(item => item is not null).Cast<Windows.Storage.IStorageItem>().ToArray();
-    }
-
-    private void ApplyBatchProjectionState()
-    {
-        foreach (var group in Items.Where(item => item.IsGrouped && item.DropBatchId is not null)
-                     .GroupBy(item => item.DropBatchId))
-        {
-            var ordered = group.OrderBy(item => item.BatchMetadata?.ItemIndex ?? int.MaxValue).ToArray();
-            // Filters, removal, and paging can omit ItemIndex=0. Keep one loaded member
-            // actionable until the persisted header is available in this projection.
-            // Reevaluate the complete loaded group so later pages never add a second header.
-            var header = ordered.FirstOrDefault(item => item.BatchMetadata?.ItemIndex == 0) ?? ordered[0];
-            var expanded = _batchExpansion.TryGetValue(group.Key!.Value, out var value) && value;
-            for (var index = 0; index < ordered.Length; index++)
-            {
-                var card = ordered[index];
-                var isHeader = ReferenceEquals(card, header);
-
-                card.IsBatchHeader = isHeader;
-                card.IsBatchExpanded = expanded;
-                card.IsBatchMemberVisible = isHeader || expanded;
-            }
-        }
     }
 
     public async Task RemoveAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
@@ -1923,16 +1884,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         {
             _logger.LogWarning(exception, "The item projection could not refresh after Undo finalization.");
         }
-    }
-
-    public ItemSelectionSnapshot ResolveActionSelection(
-        ItemCardViewModel card,
-        IEnumerable<ItemCardViewModel>? selectedCards = null)
-    {
-        ArgumentNullException.ThrowIfNull(card);
-        var clicked = DropItemSnapshot.FromItem(card.Item);
-        var selected = selectedCards?.Select(candidate => DropItemSnapshot.FromItem(candidate.Item));
-        return ItemSelectionResolver.ForClickedItem(clicked, selected);
     }
 
     public QuickActionPartition EvaluateQuickActions(

@@ -16,6 +16,7 @@
     <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="OnClipboardAccelerator" />
     <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="OnPinnedAccelerator" />
     <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="OnSearchAccelerator" />
+    <KeyboardAccelerator Key="L" Modifiers="Control" Invoked="OnSearchAccelerator" />
     <KeyboardAccelerator Key="S" Modifiers="Control,Shift" Invoked="OnSettingsAccelerator" />
     <KeyboardAccelerator Key="Z" Modifiers="Control" Invoked="OnUndoAccelerator" />
   </Page.KeyboardAccelerators>
@@ -209,6 +210,7 @@
             IsItemClickEnabled="False"
             ItemsSource="{Binding Items}"
             KeyDown="OnItemsListKeyDown"
+            SelectionChanged="OnItemsSelectionChanged"
             SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
             SelectionMode="Extended"
             Visibility="{Binding IsEmpty, Converter={StaticResource InverseBoolToVisibilityConverter}}">
@@ -221,7 +223,7 @@
             </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
               <DataTemplate>
-                <Grid MinHeight="{StaticResource DropSpaceRowMinHeight}" Padding="12,9" ColumnSpacing="12" Visibility="{Binding IsBatchMemberVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid MinHeight="{StaticResource DropSpaceRowMinHeight}" Padding="12,9" ColumnSpacing="12">
                   <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />

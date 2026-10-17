@@ -68,6 +68,12 @@ Dragging changes widget position; selecting a widget shows an accent border,
 bold label and accessible selected status. Adding from the library scans vacant
 contiguous cells and never moves existing widgets. Insufficient space shows a
 localized error. Position/size controls remain available without dragging.
+The selected widget exposes one-based Column and Row inputs. Each valid coordinate
+change applies directly against the latest saved arrangement; blocked positions
+restore the actual coordinates. The upper bounds account for the widget's size.
+Undo becomes available after a layout change commits, and remains unavailable
+while layout edits are still saving. Failed or unchanged edits preserve the
+previous successful undo step.
 Music is a main-window navigation destination. Settings categories are General,
 Island, Widgets, System activities, Devices and sharing, Updates, About. Keep
 native control labels, keyboard alternatives, and visible save/action errors.
@@ -89,6 +95,17 @@ position does not rewind merely because metadata callbacks are sparse, and
 explicitly timed lyrics disappear during gaps after their declared end.
 Translation lines attach to their nearest original once, so opening credits do
 not repeat the first sung line's translation when timestamps coincide.
+
+## Timer controls (local development after v0.3.2-beta.3)
+
+Focus timer and Timer keep their 25-minute and 5-minute defaults. Activate the
+time readout, or open its context menu, to choose Duration: 1, 5, 10, 15, 25,
+45 or 60 minutes. Choosing a duration pauses and resets that timer; Start/Pause
+remains a separate action. Reset returns to the chosen duration. These timers
+and their duration choices last for the current App session and remain independent.
+Hiding the island does not pause a running timer. The readout rounds remaining
+time up to whole seconds and shows zero only once the deadline is reached.
+Timer menus close when their view is hidden, rebuilt or replaced.
 
 ## Experience goal
 

@@ -168,6 +168,22 @@
         ],
         "reason": "Native language name remains invariant"
       },
+      "WidgetCountdown.Text": {
+        "value": "Timer",
+        "languages": [
+          "de-DE"
+        ],
+        "reason": "Reviewed natural German loanword for a countdown timer; same spelling as English"
+      },
+      "WidgetTimerMinutesFormat": {
+        "value": "{0} min",
+        "languages": [
+          "fr-FR",
+          "es-ES",
+          "pt-BR"
+        ],
+        "reason": "Reviewed standard minute unit abbreviation and numeric placeholder in these locales"
+      },
       "LanguageSimplifiedChinese.Content": {
         "value": "简体中文",
         "languages": [

@@ -632,8 +632,11 @@ Nothing will be opened automatically.</value></data>
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>Automatic recovery could not finish. Use Reinstall or Remove enhancement to recover.</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>The operation was canceled.</value></data>
   <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC clock</value></data>
-  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Focus · 25 min</value></data>
-  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Timer · 5 min</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Focus timer</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Timer</value></data>
+  <data name="WidgetTimerDuration" xml:space="preserve"><value>Duration</value></data>
+  <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
+  <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>Changing the duration resets and pauses the timer.</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>System disk free</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>Network adapter</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>Calculator</value></data>

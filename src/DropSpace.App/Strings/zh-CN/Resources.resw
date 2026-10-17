@@ -632,8 +632,11 @@
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>自动恢复未能完成，请使用重新安装或移除增强恢复。</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>操作已取消。</value></data>
   <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC 时钟</value></data>
-  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>专注 · 25 分钟</value></data>
-  <data name="WidgetCountdown.Text" xml:space="preserve"><value>倒计时 · 5 分钟</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>专注计时器</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>倒计时</value></data>
+  <data name="WidgetTimerDuration" xml:space="preserve"><value>时长</value></data>
+  <data name="WidgetTimerMinutesFormat" xml:space="preserve"><value>{0} 分钟</value></data>
+  <data name="WidgetTimerDurationHelp" xml:space="preserve"><value>更改时长会重置并暂停计时器。</value></data>
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>系统盘可用空间</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>网络连接</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>计算器</value></data>

@@ -18,6 +18,8 @@ public sealed partial class WidgetsExpandedView : UserControl
     private readonly Dictionary<NativeWidgetId, TextBlock> _values = [];
     private readonly Dictionary<NativeWidgetId, WidgetPlacement> _placements = [];
     private readonly Dictionary<NativeWidgetId, Button> _timerButtons = [];
+    private readonly Dictionary<NativeWidgetId, Button> _timerValueButtons = [];
+    private readonly List<MenuFlyout> _timerFlyouts = [];
     private Button? _stopwatchButton, _clipboardButton;
     private bool _active;
     private bool _subscribed;
@@ -45,6 +47,7 @@ public sealed partial class WidgetsExpandedView : UserControl
         set
         {
             if (ReferenceEquals(_view, value)) return;
+            CloseTimerMenus();
             Unsubscribe();
             _view?.SetVisible(this, false);
             _view = value;
@@ -64,7 +67,7 @@ public sealed partial class WidgetsExpandedView : UserControl
     public void SetActive(bool active)
     {
         _active = active;
-        if (!active) RetireModuleContent();
+        if (!active) { CloseTimerMenus(); RetireModuleContent(); }
         _view?.SetVisible(this, active && IsLoaded);
         RenderPending();
     }
@@ -79,6 +82,7 @@ public sealed partial class WidgetsExpandedView : UserControl
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         Unsubscribe();
+        CloseTimerMenus();
         _view?.SetVisible(this, false);
         _structureDirty = true;
         _dataDirty = true;
@@ -191,6 +195,8 @@ public sealed partial class WidgetsExpandedView : UserControl
     }
     private void Rebuild()
     {
+        CloseTimerMenus();
+        _timerFlyouts.Clear(); _timerValueButtons.Clear();
         Tiles.Children.Clear(); _timerButtons.Clear(); _values.Clear(); _placements.Clear(); _stopwatchButton = null; _clipboardButton = null;
         if (_view is null) return;
         EmptyText.Visibility = !_view.Enabled || _view.Layout.Expanded.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -239,14 +245,61 @@ public sealed partial class WidgetsExpandedView : UserControl
                 _values[placement.Id] = value;
                 if (placement.Id is NativeWidgetId.FocusTimer or NativeWidgetId.Countdown)
                 {
-                    content.Children.Remove(title); content.Orientation = Orientation.Horizontal;
-                    var timerButton = new Button { Padding = new(4, 1, 4, 1), FontSize = 11 };
-                    timerButton.Click += (_, _) => _view.ToggleTimer(placement.Id);
-                    _timerButtons[placement.Id] = timerButton; content.Children.Add(timerButton);
-                    var menu = new MenuFlyout(); var reset = new MenuFlyoutItem();
+                    var view = _view;
+                    content.Children.Clear();
+                    var timerButton = new Button
+                    {
+                        Content = new FontIcon { FontSize = 16 },
+                        Padding = new(4), Width = 32, MinWidth = 32, MinHeight = 32,
+                    };
+                    timerButton.Click += (_, _) => view.ToggleTimer(placement.Id);
+                    _timerButtons[placement.Id] = timerButton;
+                    var menu = new MenuFlyout();
+                    var duration = new MenuFlyoutSubItem { Text = view.Text("WidgetTimerDuration") };
+                    var choices = new List<(int Minutes, ToggleMenuFlyoutItem Item)>();
+                    foreach (var minutes in new[] { 1, 5, 10, 15, 25, 45, 60 })
+                    {
+                        var choice = new ToggleMenuFlyoutItem { Text = view.TimerDurationLabel(minutes) };
+                        choice.Click += (_, _) =>
+                        {
+                            if (_active && IsLoaded && ReferenceEquals(_view, view))
+                                view.SetTimerDuration(placement.Id, minutes);
+                        };
+                        duration.Items.Add(choice); choices.Add((minutes, choice));
+                    }
+                    menu.Opening += (_, _) =>
+                    {
+                        var timer = placement.Id == NativeWidgetId.FocusTimer ? view.FocusTimer : view.Countdown;
+                        foreach (var choice in choices) choice.Item.IsChecked = timer.Duration == TimeSpan.FromMinutes(choice.Minutes);
+                    };
+                    menu.Items.Add(duration);
+                    menu.Items.Add(new MenuFlyoutSeparator());
+                    var reset = new MenuFlyoutItem();
                     XamlResourceOverride.Apply(reset, "StopwatchReset");
-                    reset.Click += (_, _) => _view.ResetTimer(placement.Id);
+                    reset.Click += (_, _) =>
+                    {
+                        if (_active && IsLoaded && ReferenceEquals(_view, view)) view.ResetTimer(placement.Id);
+                    };
                     menu.Items.Add(reset); content.ContextFlyout = menu;
+                    _timerFlyouts.Add(menu);
+                    value.TextWrapping = TextWrapping.NoWrap;
+                    value.TextTrimming = TextTrimming.CharacterEllipsis;
+                    value.TextAlignment = TextAlignment.Center;
+                    var durationButton = new Button
+                    {
+                        Content = value, Flyout = menu, Padding = new(4, 1, 4, 1), MinWidth = 0,
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                    };
+                    Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(durationButton, view.Text("WidgetTimerDurationHelp"));
+                    ToolTipService.SetToolTip(durationButton, view.Text("WidgetTimerDuration") + "\n" + view.Text("WidgetTimerDurationHelp"));
+                    _timerValueButtons[placement.Id] = durationButton;
+                    var controls = new Grid { ColumnSpacing = 4 };
+                    controls.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+                    controls.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+                    controls.Children.Add(durationButton);
+                    Grid.SetColumn(timerButton, 1); controls.Children.Add(timerButton);
+                    content.Children.Add(controls);
                 }
                 if (placement.Id == NativeWidgetId.Stopwatch)
                 {
@@ -276,8 +329,10 @@ public sealed partial class WidgetsExpandedView : UserControl
         if (_view is null) return;
         foreach (var (id, button) in _timerButtons)
         {
-            button.Content = _view.TimerActionLabel(id);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, _view.TimerActionLabel(id));
+            var timer = id == NativeWidgetId.FocusTimer ? _view.FocusTimer : _view.Countdown;
+            ((FontIcon)button.Content).Glyph = timer.IsRunning ? "\uE769" : "\uE768";
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, _view.Text("Widget" + id + ".Text") + ": " + _view.TimerActionLabel(id));
+            ToolTipService.SetToolTip(button, _view.TimerActionLabel(id));
         }
         if (_stopwatchButton is not null) { _stopwatchButton.Content = _view.StopwatchActionLabel; Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_stopwatchButton, _view.StopwatchActionLabel); }
         if (_clipboardButton is not null)
@@ -287,11 +342,13 @@ public sealed partial class WidgetsExpandedView : UserControl
             ((FontIcon)_clipboardButton.Content).Glyph = _view.ClipboardPaused ? "\uE768" : "\uE769";
         }
         foreach (var (id, text) in _values)
-            text.Text = data is null ? "—" : id switch
+            text.Text = id switch
             {
+                NativeWidgetId.FocusTimer => TimerText(_view.FocusTimer),
+                NativeWidgetId.Countdown => TimerText(_view.Countdown),
+                NativeWidgetId.Stopwatch => _view.StopwatchText,
+                _ when data is null => "—",
                 NativeWidgetId.UtcClock => data.LocalTime.UtcDateTime.ToString("HH:mm", _view.Culture) + " UTC",
-                NativeWidgetId.FocusTimer => TimerText(_view.FocusTimer.Remaining),
-                NativeWidgetId.Countdown => TimerText(_view.Countdown.Remaining),
                 NativeWidgetId.DiskSpace => data.DiskFreeBytes is { } free ? $"{free / 1073741824d:0.0} GB" : "—",
                 NativeWidgetId.NetworkStatus => data.NetworkAvailable is { } available ? _view.Text(available ? "WidgetNetworkConnected" : "WidgetNetworkDisconnected") : "—",
                 NativeWidgetId.WeekProgress => $"{System.Globalization.ISOWeek.GetWeekOfYear(data.LocalTime.DateTime)} · {(int)((((int)data.LocalTime.DayOfWeek + 6) % 7 + data.LocalTime.TimeOfDay.TotalDays) / 7 * 100)}%",
@@ -300,10 +357,23 @@ public sealed partial class WidgetsExpandedView : UserControl
                 NativeWidgetId.ResourceUsage => $"CPU {Percent(data.CpuPercent)}\nRAM {Percent(data.MemoryPercent)}",
                 NativeWidgetId.Battery => data.BatteryPercent is { } battery ? $"{battery}%" : data.OnAcPower == true ? "AC" : "—",
                 NativeWidgetId.Uptime => $"{(int)data.Uptime.TotalHours}h {data.Uptime.Minutes}m",
-                NativeWidgetId.Stopwatch => _view.StopwatchText,
                 _ => string.Empty,
             };
+        foreach (var (id, button) in _timerValueButtons)
+        {
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button,
+                _view.Text("Widget" + id + ".Text") + ": " + _view.Text("WidgetTimerDuration") + ", " + _values[id].Text);
+            ToolTipService.SetToolTip(button, _view.Text("WidgetTimerDuration") + ": " + _values[id].Text + "\n" + _view.Text("WidgetTimerDurationHelp"));
+        }
     }
-    private static string TimerText(TimeSpan value) => $"{(int)value.TotalMinutes:00}:{value.Seconds:00}";
+    private void CloseTimerMenus()
+    {
+        foreach (var menu in _timerFlyouts) menu.Hide();
+    }
+    private string TimerText(WidgetCountdown timer)
+    {
+        var seconds = timer.RemainingSeconds;
+        return (seconds / 60).ToString("00", _view?.Culture) + ":" + (seconds % 60).ToString("00", _view?.Culture);
+    }
     private static string Percent(double? value) => value is { } number ? $"{number:0}%" : "—";
 }

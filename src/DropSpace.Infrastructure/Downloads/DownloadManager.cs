@@ -136,7 +136,6 @@ public sealed class DownloadManager : IAsyncDisposable
         try
         {
             if (_restored) return;
-            _restored = true;
             var recovered = await _repository.GetAllAsync(token).ConfigureAwait(false);
             RecoveryError = _repository.RecoveryError;
             foreach (var snapshot in recovered)
@@ -172,6 +171,19 @@ public sealed class DownloadManager : IAsyncDisposable
                 if (await ReconcileCommittedAsync(item, token).ConfigureAwait(false)) continue;
                 await SetAsync(item, snapshot.State == DownloadTaskState.Failed ? DownloadTaskState.Failed : DownloadTaskState.Paused).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    // Reconciliation may be cancelled while hashing a committed file.
+                    // This cold item owns no run; remove only its provisional projection
+                    // so the next recovery can validate its journal again.
+                    lock (_sync)
+                    {
+                        _work.Remove(snapshot.Id);
+                        _order.Remove(snapshot.Id);
+                        _dirtyProgress.Remove(snapshot.Id);
+                    }
+                    throw;
+                }
                 catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
                 {
                     lock (_sync) item.Snapshot = item.Snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled
@@ -182,6 +194,9 @@ public sealed class DownloadManager : IAsyncDisposable
                     // Do not attempt another throwing checkpoint while reporting a failed checkpoint.
                 }
             }
+            // Only a fully traversed journal completes recovery. Cancelled reads or
+            // partial recovery remain retryable under the same serialized action gate.
+            _restored = true;
         }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
         {
