@@ -18,41 +18,6 @@ public sealed partial class WidgetEditorView
         SetError(rejected ? _strings.Get("WidgetNoRoom") : null);
         return true;
     }
-    private async Task MoveCoordinateAsync(bool column, double value)
-    {
-        if (_syncingPosition || _selectedId is not { } id) return;
-        if (!double.IsFinite(value) || value != Math.Truncate(value) || value < 1 ||
-            value > (column ? WidgetLayoutPolicy.Columns : WidgetLayoutPolicy.Rows))
-        {
-            RefreshPositionInputs(_editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == _selectedId));
-            return;
-        }
-        var revision = BeginLayoutIntent();
-        var coordinate = (int)value - 1;
-        var rejected = false;
-        ++_positionEdits;
-        try
-        {
-            var saved = await UpdateLayoutAsync(layout =>
-            {
-                // Resolve the untouched coordinate inside the serialized transaction,
-                // so entering Column then Row cannot undo the preceding column edit.
-                var current = layout.Expanded.FirstOrDefault(item => item.Id == id);
-                if (current is null) return layout;
-                var desired = column ? current with { Column = coordinate } : current with { Row = coordinate };
-                if (desired == current) return layout;
-                if (!WidgetLayoutPolicy.TryMoveOrResize(layout, desired, out var updated))
-                { rejected = true; return layout; }
-                return updated;
-            });
-            if (saved) PublishLayoutFeedback(revision, id, rejected);
-        }
-        finally
-        {
-            --_positionEdits;
-            RefreshPositionInputs(_editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == _selectedId));
-        }
-    }
     private async Task ResizeAsync(WidgetPlacement current, WidgetSize size)
     {
         var id = current.Id;
@@ -61,7 +26,7 @@ public sealed partial class WidgetEditorView
         _selectedId = id;
         var saved = await UpdateLayoutAsync(layout =>
         {
-            // Size input can follow a still-saving coordinate edit. Choose a slot
+            // Size input can follow a still-saving drag placement. Choose a slot
             // from the actual transaction layout, preserving that committed move.
             var latest = layout.Expanded.FirstOrDefault(item => item.Id == id);
             if (latest is null) return layout;

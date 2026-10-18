@@ -37,6 +37,9 @@ After building a fresh module ZIP, run
 `node scripts/register-official-module.mjs <ZIP> <module-id> <version>` to update both catalog copies
 from its actual bytes. Publish the ZIP under the descriptor's exact official Release/asset name,
 then publish the catalog. Never replace an existing version's assets.
+The `dropspace.sample` ID is an internal lifecycle/UI fixture, excluded from both user
+catalogs and rejected by the registration script. Its descriptor stays only in
+`modules/sample/fixture-catalog.json`; it must not be published as an official DLC.
 
 Under `%LOCALAPPDATA%/DropSpace/Modules`, state, immutable packages, resumable staging and retained
 module data are separate. Extraction rejects traversal/absolute/alternate-stream/device paths,

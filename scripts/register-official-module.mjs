@@ -5,6 +5,8 @@ import {createHash} from 'node:crypto';
 const [archive,id,version] = process.argv.slice(2);
 if (!/^[a-z][a-z0-9.-]{0,79}$/.test(id ?? '') || !/^\d+\.\d+\.\d+$/.test(version ?? ''))
   throw Error('Usage: node scripts/register-official-module.mjs <ZIP> <module-id> <version>');
+// The lifecycle/UI fixture must never become a user-downloadable official DLC.
+if (id === 'dropspace.sample') throw Error('dropspace.sample is internal-only; use modules/sample/fixture-catalog.json for local probes.');
 const data = fs.readFileSync(archive);
 const item = {id, version,
   url:`https://github.com/airanluo-dot/DropSpace/releases/download/dlc-${id}-${version}/${id}-${version}-win-x64.zip`,

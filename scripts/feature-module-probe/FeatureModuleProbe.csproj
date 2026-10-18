@@ -6,8 +6,8 @@
     <!-- Linked production types deliberately take precedence over the referenced assembly's
          types in this standalone evidence probe; no production project enables this. -->
     <NoWarn>$(NoWarn);CS0436</NoWarn>
-    <DefineConstants Condition="'$(ProbeCatalogFile)' != ''">$(DefineConstants);MODULE_PROBE_FIXTURE_CATALOG</DefineConstants>
-    <ProbeCatalogFile Condition="'$(ProbeCatalogFile)' == ''">../../src/DropSpace.Infrastructure/Dlc/official-modules.json</ProbeCatalogFile>
+    <DefineConstants>$(DefineConstants);MODULE_PROBE_FIXTURE_CATALOG</DefineConstants>
+    <ProbeCatalogFile Condition="'$(ProbeCatalogFile)' == ''">../../modules/sample/fixture-catalog.json</ProbeCatalogFile>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj" />

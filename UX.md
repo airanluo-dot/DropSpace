@@ -67,10 +67,9 @@ widgets have 1 by 1 forms; CPU/memory needs at least 2 by 1. Empty slots stay em
 Dragging changes widget position; selecting a widget shows an accent border,
 bold label and accessible selected status. Adding from the library scans vacant
 contiguous cells and never moves existing widgets. Insufficient space shows a
-localized error. Position/size controls remain available without dragging.
-The selected widget exposes one-based Column and Row inputs. Each valid coordinate
-change applies directly against the latest saved arrangement; blocked positions
-restore the actual coordinates. The upper bounds account for the widget's size.
+localized error. Dragging places or moves widgets; dragging back to the library
+removes them. The selected widget retains shape buttons for size changes and an
+explicit Remove action. Row/column numeric inputs are not part of this editor.
 Undo becomes available after a layout change commits, and remains unavailable
 while layout edits are still saving. Failed or unchanged edits preserve the
 previous successful undo step.

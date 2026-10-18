@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "status": "owner-accepted-experimental-beta",
-  "reason": "Owner-authorized corrective release v0.3.2-beta.4; model inputs and historical evidence unchanged. See exact owner decision.",
+  "reason": "Owner-authorized corrective release v0.3.2-beta.5; model inputs and historical evidence unchanged. See exact owner decision.",
   "scope": {
-    "releaseVersion": "v0.3.2-beta.4",
+    "releaseVersion": "v0.3.2-beta.5",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -337,7 +337,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "2dc84f982e95285f841051799f6c2314ccce3b96334a2b6fd044a40044590b08"
+          "sha256": "7f426eecadda6c15666d5f806c65c118396756ed59a987076f210c5e77a1f68f"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -569,7 +569,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Dlc/official-modules.json",
-          "sha256": "2a8fc541c1c676af1b8e33476195a8172f79730372fd0d0b786eae162291b839"
+          "sha256": "b9200584d618aaed7cb9a01d2f7a36c73f8562af6733cddb93f5ca791410901b"
         },
         {
           "path": "src/DropSpace.Infrastructure/Dlc/OfficialModuleCatalog.cs",
@@ -1268,7 +1268,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "4a44ca28a91b166d3d0bb211084c71a3c5bdfffa7b15e6799116963bea337652"
+      "sha256": "50fa1541870184ca59ffa000be8b03d8540c4ad34f15e14cb0bc9a41a90e5741"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2711,7 +2711,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.4-owner-accepted-review.json",
-    "sha256": "af18458799ae679df1a51565557d9367a221b86264c3194072a273520420bbb2"
+    "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.5-owner-accepted-review.json",
+    "sha256": "c2f7e017bd2a4df927e31b3b67b4edbf7b73eca9a4e687ed2241e458f90adaa4"
   }
 }
