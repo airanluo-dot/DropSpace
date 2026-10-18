@@ -14,3 +14,5 @@ ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f:docs/dev/evidence/local-iterations-2026
 
 # Beta 4 scan-log SHA-256, recomputed from the retained original log bytes.
 727d78547cc85f05a6aa5dba476a03320d5f78aa:docs/dev/evidence/beta4-release-2026-10-18.json:generic-api-key:67
+# Same verified audit log digest in the squash-merged main commit.
+b0f6fbf42b580165306844bc55f782798073357d:docs/dev/evidence/beta4-release-2026-10-18.json:generic-api-key:67
