@@ -50,3 +50,12 @@ field. Added only the precise commit/path/rule/line fingerprint; scanner/rules r
 The original PR build 39094510710 is superseded by this necessary final-tree correction; no
 functional scenario is repeated. Website static build and CUDA metadata contracts passed on
 that first PR revision; normal automated checks on the new revision remain authoritative.
+
+PR #128 final Windows build 39094567471 passed full Release App/XAML compilation with 0 warnings
+and 0 errors; final PR secret scan 39094567495 passed. Squash merge b0f6fbf changed the commit
+identity of the same retained audit digest. Main scan 39094799998 therefore reported the same
+verified hash at the new exact fingerprint. This is recorded rather than ignored as a gate:
+producer 39094805580 was cancelled during preparation, and the exact main fingerprint is added
+in a follow-up PR. No application code or scanner rules change. New final-tree build qualification
+is mandatory. A status query briefly returned HTTP 401; subsequent ordinary CLI requests worked
+without credential/configuration changes.
