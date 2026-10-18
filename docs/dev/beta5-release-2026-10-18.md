@@ -39,3 +39,14 @@ Compilation, catalog/source inspection and download hashes are integrity checks,
 passes. Native drag/Undo clicks, visual/DPI and full upgrade lifecycle remain unverified.
 
 Publication run IDs and final public artifact verification are recorded after execution.
+
+## Preparation and first security gate
+
+Release metadata consistency and exact owner/source approval binding passed. No model validation
+was run or claimed. PR #128 first secret scan 39094510857 found one generic-api-key false positive:
+the retained Beta 4 scan-log SHA at commit 727d785, evidence JSON line 67. Recomputed the original
+log bytes: 504acc31f907f2d4c28fd748fd55cd1c81ad7d76d7bf822b308784d92ea35f5e, exactly matching that
+field. Added only the precise commit/path/rule/line fingerprint; scanner/rules remain unchanged.
+The original PR build 39094510710 is superseded by this necessary final-tree correction; no
+functional scenario is repeated. Website static build and CUDA metadata contracts passed on
+that first PR revision; normal automated checks on the new revision remain authoritative.
