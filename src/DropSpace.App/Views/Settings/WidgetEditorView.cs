@@ -21,14 +21,8 @@ public sealed partial class WidgetEditorView : UserControl
     private readonly Grid _grid = new() { Height = 270, ColumnSpacing = 6, RowSpacing = 6 };
     private readonly Grid _library = new() { ColumnSpacing = 6, RowSpacing = 6, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
     private readonly StackPanel _sizes = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
-    private readonly Grid _position = new() { ColumnSpacing = 12, Visibility = Visibility.Collapsed };
-    private readonly NumberBox _column = new() { Minimum = 1, Maximum = WidgetLayoutPolicy.Columns, SmallChange = 1, LargeChange = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
-    private readonly NumberBox _row = new() { Minimum = 1, Maximum = WidgetLayoutPolicy.Rows, SmallChange = 1, LargeChange = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
-    private bool _syncingPosition;
-    private int _positionEdits;
     private long _layoutFeedbackRevision;
     private int _layoutEdits;
-    private NativeWidgetId? _positionSelection;
     private readonly HashSet<NativeWidgetId> _suppressClicks = [];
     private WidgetLayout? _undoLayout;
     private readonly Button _undo = new();
@@ -57,15 +51,6 @@ public sealed partial class WidgetEditorView : UserControl
         for (var i = 0; i < WidgetLayoutPolicy.Rows; i++) _grid.RowDefinitions.Add(new());
         _expanded.Children.Add(_error);
         _expanded.Children.Add(_grid); _expanded.Children.Add(_selected);
-        _column.Header = new TextBlock { Text = strings.Get("WidgetColumn"), TextWrapping = TextWrapping.Wrap };
-        _row.Header = new TextBlock { Text = strings.Get("WidgetRow"), TextWrapping = TextWrapping.Wrap };
-        AutomationProperties.SetAutomationId(_column, "WidgetColumn");
-        AutomationProperties.SetAutomationId(_row, "WidgetRow");
-        _position.ColumnDefinitions.Add(new()); _position.ColumnDefinitions.Add(new());
-        _position.Children.Add(_column); Grid.SetColumn(_row, 1); _position.Children.Add(_row);
-        _expanded.Children.Add(_position);
-        _column.ValueChanged += async (_, args) => await MoveCoordinateAsync(true, args.NewValue);
-        _row.ValueChanged += async (_, args) => await MoveCoordinateAsync(false, args.NewValue);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         _remove = new Button { Content = strings.Get("WidgetRemove") };
         _remove.Click += OnRemove;
@@ -167,7 +152,7 @@ public sealed partial class WidgetEditorView : UserControl
         foreach (var placement in _editor.Settings.Widgets.Layout.Expanded)
         {
             // Retain the focused/captured control while moving it. Replacing the
-            // grid transfers focus to the numeric editor and scrolls it into view.
+            // grid can move focus and scroll the settings page unexpectedly.
             if (!_placedButtons.TryGetValue(placement.Id, out var button))
             {
                 button = CreateDragButton(placement.Id, WidgetName(placement.Id));
@@ -317,7 +302,6 @@ public sealed partial class WidgetEditorView : UserControl
                 label.FontWeight = selected ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
         }
         var placement = _editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == _selectedId);
-        RefreshPositionInputs(placement);
         _remove.IsEnabled = placement is not null;
         _selected.Text = placement is null ? string.Empty : WidgetName(placement.Id);
         _selected.Visibility = placement is null ? Visibility.Collapsed : Visibility.Visible;
@@ -338,26 +322,6 @@ public sealed partial class WidgetEditorView : UserControl
             _sizes.Children.Add(choose);
         }
         _sizes.Visibility = _sizes.Children.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-    }
-    private void RefreshPositionInputs(WidgetPlacement? placement)
-    {
-        _position.Visibility = placement is null ? Visibility.Collapsed : Visibility.Visible;
-        if (placement is null) { _positionSelection = null; return; }
-        // A queued edit still owns the user's displayed number. Settings can notify
-        // for the preceding save before a second coordinate edit has committed.
-        if (_positionEdits > 0 && _positionSelection == placement.Id) return;
-        _syncingPosition = true;
-        try
-        {
-            _positionSelection = placement.Id;
-            _column.Maximum = WidgetLayoutPolicy.Columns - placement.ColumnSpan + 1;
-            _row.Maximum = WidgetLayoutPolicy.Rows - placement.RowSpan + 1;
-            _column.Value = placement.Column + 1;
-            _row.Value = placement.Row + 1;
-            AutomationProperties.SetName(_column, WidgetName(placement.Id) + ": " + _strings.Get("WidgetColumn"));
-            AutomationProperties.SetName(_row, WidgetName(placement.Id) + ": " + _strings.Get("WidgetRow"));
-        }
-        finally { _syncingPosition = false; }
     }
     private void UpdateGridSizes()
     {

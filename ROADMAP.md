@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.2-beta.4
+## Release target: v0.3.2-beta.5
 
-The current Beta target is `v0.3.2-beta.4` (Beta 4).
-v0.3.2-beta.3 is the immediate upgrade baseline for this release.
+The current Beta target is `v0.3.2-beta.5` (Beta 5).
+v0.3.2-beta.4 is the immediate upgrade baseline for this release.
 
-Publish the saved island/widget, navigation, clipboard and download-recovery improvements. Preserve existing architecture, data, channels and model/CUDA bytes; no new development is included in this publication turn.
+Restore the Beta 3 widget layout interaction while retaining Beta 4 reliability fixes, and exclude the internal sample from public DLC catalogs and downloads. Preserve existing architecture, data, channels and model/CUDA bytes; no other development is included.
 
-Use only required Windows App/XAML compilation, exact-main packaging, one isolated installer payload check and release/update integrity verification. Reuse the recorded focused development evidence; native RTB limitations remain documented. See the [release notes](.github/release-notes/v0.3.2-beta.4.md) and [focused execution record](docs/dev/beta4-release-2026-10-18.md).
+Use only required Windows App/XAML compilation, exact-main packaging, one isolated installer payload check and release/update integrity verification. Reuse the recorded focused development evidence; native RTB limitations remain documented. See the [release notes](.github/release-notes/v0.3.2-beta.5.md) and [focused execution record](docs/dev/beta5-release-2026-10-18.md).
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.4
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.5
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

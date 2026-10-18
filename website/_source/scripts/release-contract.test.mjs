@@ -72,7 +72,7 @@ test("resource filtering still rejects unrecognized or malformed release tags", 
 test("official DLC sample preserves Beta19 and Beta1 App release selection", async () => {
   const { readFile } = await import("node:fs/promises");
   const readJson = async (relative) => JSON.parse(await readFile(new URL(relative, import.meta.url), "utf8"));
-  const catalog = await readJson("../../../modules/catalog.json");
+  const catalog = await readJson("../../../modules/sample/fixture-catalog.json");
   const sample = catalog.packages.find(item => item.id === "dropspace.sample");
   const sampleUrl = new URL(sample.url);
   const sampleTag = sampleUrl.pathname.split("/").filter(Boolean)[4];

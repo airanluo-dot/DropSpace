@@ -3,39 +3,28 @@
 This portable .NET probe links the actual `WidgetEditorView.Layout.cs` methods,
 `NativeSettingsEditor.cs`, and the Core project. It runs exactly two scenarios:
 
-1. With only a 2×1 Clock at column 0, block the first settings publication, enter
-   one-based Column 5, request a 1×1 Clock while the move is pending, then release
-   persistence. The final Clock must be 1×1 at zero-based column 4.
-2. With a 2×1 Clock at (0,0) and a 2×2 Calendar at (2,0), block the rejected
-   one-based Column 3 move's no-op save, request a 1×1 Clock, then release
-   persistence. The Clock must resize, the Calendar must remain unchanged, and
-   the older move must not leave its error over the newer successful resize.
+1. With a 2×1 Clock at (0,0), hold the drag placement save to (4,0), request
+   a 1×1 size, then release persistence. Resize must retain column 4.
+2. Hold a preceding Calendar move from (2,0) to (4,0), queue a Clock drag to
+   (4,0) and then a 1×1 resize. The drag passes preflight against the old layout
+   but is rejected by the queued transaction. Resize must retain Clock at (0,0),
+   preserve Calendar at (4,0), and suppress the older drag rejection feedback.
 
-Both actual actions finish before state assertions. A failed first scenario does
-not skip the second. JSON lines contain the first submitted snapshot, publication
-history, action counts, final state, feedback transitions, and failures. The
-process exits 1 if either scenario fails.
+Both scenarios assert the latest committed Undo snapshot and enabled Undo state.
+Both actions finish before assertions; a failed scenario does not skip the next.
+JSON lines report publication history, action counts, feedback and failures.
+The process exits 1 if either scenario fails.
 
-`MainViewModel` supplies only an in-memory persistence/publication boundary with
-a bounded gate on the first call. The production `NativeSettingsEditor` owns the
-serialization semaphore; Core owns layout validation and placement. A reused
-single-thread managed dispatcher preserves UI continuation order. Visual refresh
-hooks and unrelated constructor dependencies are lightweight fixtures. This does
-not validate WinUI controls, input, accessibility, rendering, disk persistence,
-or native application execution.
-
-For a before/after comparison, `ProductionLayoutSource` can point at an absolute
-path containing the original methods extracted verbatim from the baseline view,
-wrapped in the same partial class. The same fixture supports both old and new
-feedback-revision fields. The normal default links current production source.
-Keep the baseline extraction, logs, hashes, and execution receipts in the ignored
-task artifact directory; record actual attempts in the project-wide ledger.
-
-Example commands for the caller that owns validation:
+The fixture replaces persistence with an in-memory boundary and a bounded first-save
+barrier. Production serialization and Core layout policy run on a reused managed
+single-thread dispatcher. Visual refresh and unrelated dependencies are stubs.
+This does not validate native WinUI drag input, rendering, accessibility, the Undo
+button click, disk persistence, or native application execution.
 
 ```sh
-dotnet run --project scripts/widget-layout-intent-probe/WidgetLayoutIntentProbe.csproj -p:ProductionLayoutSource=/absolute/path/to/WidgetEditorView.Layout.before.cs
 dotnet run --project scripts/widget-layout-intent-probe/WidgetLayoutIntentProbe.csproj
 ```
 
-Preparation of this probe does not imply that either command has been run.
+`ProductionLayoutSource` can override the linked layout partial. Historical numeric
+input before/after evidence belongs to its original probe revision; those records
+are preserved and are not evidence for the current drag scenarios.

@@ -42,24 +42,17 @@ namespace DropSpace.App.Views.Settings
         private readonly ViewModels.NativeSettingsEditor _editor;
         private readonly IAppStringLocalizer _strings;
         private NativeWidgetId? _selectedId;
-        private bool _syncingPosition = false;
-        private int _positionEdits;
         private int _layoutEdits;
         private WidgetLayout? _undoLayout;
         private readonly ProbeButton _undo = new();
-        // The same fixture compiles either the actual old method extraction or
-        // the current partial. Each source uses exactly one feedback revision.
-#pragma warning disable CS0169
-        private long _positionRevision;
         private long _layoutFeedbackRevision;
-#pragma warning restore CS0169
 
         internal string Error { get; private set; } = string.Empty;
         internal List<string> ErrorTransitions { get; } = [];
         internal int MoveCalls { get; private set; }
         internal int ResizeCalls { get; private set; }
         internal int PendingLayoutEdits => _layoutEdits;
-        internal int PendingPositionEdits => _positionEdits;
+        internal WidgetLayout? UndoSnapshot => _undoLayout;
         internal bool UndoEnabled => _undo.IsEnabled;
 
         internal WidgetEditorView(ViewModels.NativeSettingsEditor editor, IAppStringLocalizer strings)
@@ -71,17 +64,17 @@ namespace DropSpace.App.Views.Settings
 
         internal void Select(NativeWidgetId id) => _selectedId = id;
 
-        internal Task MoveColumnAsync(double oneBasedColumn)
+        internal Task MoveToAsync(int column, int row)
         {
             ++MoveCalls;
-            return MoveCoordinateAsync(true, oneBasedColumn);
+            return PlaceAsync(_selectedId!.Value, column, row);
         }
 
         internal Task ResizeSelectedAsync(WidgetSize size)
         {
             ++ResizeCalls;
             // Match the production size-button handler: the snapshot it passes
-            // can precede a coordinate save already waiting on persistence.
+            // can precede a drag save already waiting on persistence.
             var current = _editor.Settings.Widgets.Layout.Expanded.Single(item => item.Id == _selectedId);
             return ResizeAsync(current, size);
         }
@@ -101,7 +94,6 @@ namespace DropSpace.App.Views.Settings
 
         // These hooks own visual controls only. They cannot change settings,
         // feedback revisions, operation order, or the production editing queue.
-        private void RefreshPositionInputs(WidgetPlacement? placement) { }
         private void RefreshSelection() { }
         public void Dispose() => _editor.PropertyChanged -= OnEditorChanged;
 
