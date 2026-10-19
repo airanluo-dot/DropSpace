@@ -158,6 +158,8 @@ public sealed record AppSettings
 
     public string QuickPanelHotkey { get; init; } = "Win+Shift+Space";
 
+    public Dictionary<string, string> KeyboardShortcuts { get; init; } = [];
+
     public string[] SmartDragExcludedProcesses { get; init; } = [];
 
     public bool AutoCheckForUpdates { get; init; } = true;
@@ -335,6 +337,8 @@ public sealed record AppSettings
         {
             throw new ArgumentOutOfRangeException(nameof(QuickPanelHotkey));
         }
+
+        KeyboardShortcutPolicy.Validate(this);
 
         if (SmartDragExcludedProcesses is null || SmartDragExcludedProcesses.Length > SettingsValidationPolicy.MaximumSmartDragExcludedProcesses || SmartDragExcludedProcesses.Any(value =>
                 string.IsNullOrWhiteSpace(value) || value.Length > SettingsValidationPolicy.MaximumSmartDragProcessLength ||

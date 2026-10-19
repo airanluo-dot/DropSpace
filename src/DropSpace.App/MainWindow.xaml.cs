@@ -52,7 +52,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         Services.Media.MediaApplicationIconService mediaIcons,
         NeteaseEnhancementViewModel enhancement,
         Services.Dlc.DlcManagerService dlc,
-        Services.Dlc.FeatureModuleRuntime modules)
+        Services.Dlc.FeatureModuleRuntime modules,
+        GlobalQuickPanelHotkeyService hotkey)
     {
         _viewModel = viewModel;
         _media = media;
@@ -109,7 +110,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             crossDeviceClipboard,
             dropLinkHost,
             sharing,
-            settingsEditor, media, sessions, mediaExperience, mediaIcons, enhancement, dlc, modules);
+            settingsEditor, media, sessions, mediaExperience, mediaIcons, enhancement, dlc, modules, hotkey);
         _mainPage = _createMainPage();
         _mainPage.ModulePresentationChanged += OnModulePresentationChanged;
         RootContent.Content = _mainPage;

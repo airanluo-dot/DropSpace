@@ -3698,16 +3698,112 @@
     "WidgetTimerReset.Text": [
       "23d712d2c6eda4e0000b250dde60dad42d59ef3545ea257e0e5f19cb813479aa",
       "3ec3d5972b4a1a1b46142923b8f0880ed089ec28b68654a4a69d7ff9dfa11237"
+    ],
+    "SettingsPageShortcuts": [
+      "e9bef0b0f3c25e6eaf3a754817a8b4f62e1c8473cb2be3e190975926dbf72d6f",
+      "c48145728a79572fe23c2a2b248163229a7ff7062bf39e602dc8a742bd3f62a8"
+    ],
+    "ShortcutGlobal": [
+      "a258b30f88c30650e73073d5bdde5cfcc6987100ae62d37789e5c46a0d85b7c6",
+      "5eab0c32bb572bbed2b90ed32e752d868516a25ee1ec8d91a09bc0622be0492d"
+    ],
+    "ShortcutMainWindow": [
+      "89dd3f34104a28ee20566e4883f2501aec30aa07034a2a4d10d96f0926fbccd5",
+      "895212273772efa4d7320ecbbaa9551840a48669b7ce236f4d348c734375c268"
+    ],
+    "ShortcutContext": [
+      "3ec0a438290d96b45ff2920e2f5f924ba576f87eccab6abff08cd1469b1af868",
+      "479f1e9895a02fbd1f3966898513a1eac44f711364e8cfff84be0816a0d2bea4"
+    ],
+    "ShortcutOpenIsland": [
+      "9cbef8d20920de0079e66a00bab76e6f74a9bcd33b63113f7dca596f8ee435ec",
+      "82e162cb5acb5f7bc958b6e7b1dc53b84c2b3fe122efc4b969a9d3b22485fdeb"
+    ],
+    "ShortcutSpace": [
+      "55f1713797bbf120b0e17f3ec738d50b5cb87303868c168b1336b44786d3db56",
+      "395245c637812387196db00f7f3fa0d93687b10d61c0d6df7b202adb8becc914"
+    ],
+    "ShortcutClipboard": [
+      "7f62794169a71496db114eac0b3db2746c01b98fec9a48ff28412246b84905eb",
+      "8664f97b3c2921dacf87c4da1347b7406632dc56dec2328fe09e53c25b6c2160"
+    ],
+    "ShortcutPinned": [
+      "9f47d88770d2f847e5c9ef4631f1e387a7e8de0b07776e67cf539243957ad34b",
+      "e19cfbe8b45855aba5885dbfcfea7521613024fa5f767c53f3d352f32b66bd1a"
+    ],
+    "ShortcutSearch": [
+      "49c266baaaa70981ea188fa714d5c40cf13830d786a861c9943ae0d26a7f3fe9",
+      "1b6b1a6f89315f6e4297ec12101c4066eb256512652602f477fb6f2bdc7429ae"
+    ],
+    "ShortcutSearchAlternate": [
+      "52179cb85d4477e53400bbf6957389d857772564f1d463a89f6802d1b46d3447",
+      "e83b510191e069cc3d1a0cd24543de4397d2aabe3235f2753e2933461177fde2"
+    ],
+    "ShortcutSettings": [
+      "74a883a037bc227f91891ab654a753d3a99f31ab06ae5b5d2b6e594a692b41f8",
+      "0d8619aae051ae343ea983e969d29b7bd7a618eb1b25a6c87c133c5e3ee25264"
+    ],
+    "ShortcutSettingsAlternate": [
+      "56712627b32a34889359325f326664e696b06be760be4f1c098950091b98b953",
+      "63630ae265e42d9f6b3f2993458ebb6ed5a17441ec7f90d287a5c8a111933851"
+    ],
+    "ShortcutUndo": [
+      "a8283ade31856f71220db0e6f60a257c6889dc4dad0f275f66ad44b9ed9bf8d5",
+      "dc65bd3603e8227e890ea9df05fcbbf5a53b955359dfc244bab3b49b72e8075c"
+    ],
+    "ShortcutItemOpen": [
+      "db90480a781ae4a2e1061bc0de985982e58e026e75974ea6548a45525e8f90d8",
+      "5c3d1de088d9635ce8893cc420871adfb6df092c6fcff63c86f6257c440a6be3"
+    ],
+    "ShortcutItemRemove": [
+      "435a4cf7a68ec5b01d20b57ed8bdfbe3f31c1d7e98a76458b3e9c871f9d6a7a7",
+      "1aeb488e0decbdc30df2851f0ae0e1e269c7ca184af108dc0b22b4d2f8d57dfd"
+    ],
+    "ShortcutSearchClear": [
+      "4a2faf90137ccc390e3133f0e09236271ea995c82343405dddcf8e4d85be6516",
+      "719802f4f7237b6fda3bea533cc319c83a07b127085dc3b114f7f90d266fa99e"
+    ],
+    "ShortcutIslandClose": [
+      "cb5c81596b62bdc643ac91edbe40246227bd7812f510318c26b731bf2c6a5cb4",
+      "0bbcb60fddbe93fe2b2f7e79cd7389d008828eb87ecd2782c74036dcbc9a246a"
+    ],
+    "ShortcutEditCommit": [
+      "01ac6d608491713e6790cd9338ef1e69d0dd86f7a85dfd1c665ddfd7930f5c60",
+      "125e956621b989d418cc14c452e35228406bfff1e766707553b3e66361501bd3"
+    ],
+    "ShortcutPlacementStep": [
+      "8c81a3b478cc63b7e823b8b77808adfead6305897a47941e9f5f4336717fc763",
+      "463f5a745d1b42a3c347bb2ce9bc2d185577b7de1c5c1e293bd735fbcebc5d09"
+    ],
+    "ShortcutNavigate": [
+      "4e8f31a97ff2af1bc4ac646552b10b7c363041b1765838ae6374698c5afbc94c",
+      "7d6f21c051b2dfad605486b57a346fa7e0dddb7b798114fc6290cad2aca3c2e5"
+    ],
+    "ShortcutTextEdit": [
+      "dc27379f625789c07102bfdf2d3bef21ab4a1a8da63388627a397a0f375481c3",
+      "5d747a0697a79de948876b9975a5028f8a08a18fcc22324cc39ad4a0faa18118"
+    ],
+    "HotkeyRecordPrompt": [
+      "0e50219f604f4ca87cbda79af9a9776f7e269c87595a99b6cc16d93b19d4bce9",
+      "70e79fabd64c2f4c2bdc827977987bf10b03562ed21df764a48a5126d283227e"
+    ],
+    "HotkeySave": [
+      "1509f561f2416598629b886ad7d3c05a7e221e4e0675c84bbff4ee6d9e03913d",
+      "a3030bf8f16dc63c6b277564c68f78a3be5abe5f2907c51826dee7184ff793fd"
+    ],
+    "HotkeyUnavailable": [
+      "19b71cdfa7707dff61e0ee4a6f2ebae27c4ad3256a3c43a9ed18262c6555f138",
+      "eb752f13ee13086001023af9a93022fb3599e3521e8159dcdc95fe2d4a40d517"
     ]
   },
-  "reviewedBy": "Codex timer reset: one resource ID reviewed for reset-and-pause semantics, distinct from stopwatch and layout reset",
-  "reviewedAt": "2026-10-17T19:25:28.380Z",
+  "reviewedBy": "Codex: shortened recorder prompt without changing meaning",
+  "reviewedAt": "2026-10-19T18:56:21.984Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "WidgetTimerReset.Text"
+      "HotkeyRecordPrompt"
     ],
-    "reviewedBy": "Codex timer reset: one resource ID reviewed for reset-and-pause semantics, distinct from stopwatch and layout reset",
-    "reviewedAt": "2026-10-17T19:25:28.380Z"
+    "reviewedBy": "Codex: shortened recorder prompt without changing meaning",
+    "reviewedAt": "2026-10-19T18:56:21.984Z"
   }
 }

@@ -21,7 +21,7 @@ public sealed partial class MainPage
     private void BuildSettingsPages(NativeSettingsEditor editor, Services.Dlc.DlcManagerService dlc)
     {
         var groups = new Dictionary<string, StackPanel>();
-        foreach (var key in new[] { "General", "Island", "Widgets", "DLC", "Downloads", "SystemActivities", "Devices", "Updates", "About" })
+        foreach (var key in new[] { "General", "Island", "Shortcuts", "Widgets", "DLC", "Downloads", "SystemActivities", "Devices", "Updates", "About" })
             groups[key] = new() { Spacing = 18, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
         var sections = LegacySettingsSections.Children.OfType<StackPanel>().ToArray();
         LegacySettingsSections.Children.Clear();
@@ -42,6 +42,7 @@ public sealed partial class MainPage
             }
             else groups[uid == "DevicesSharingSection" ? "Devices" : uid == "UpdatesSection" ? "Updates" : "General"].Children.Add(section);
         }
+        BuildKeyboardShortcutsPage(groups["Shortcuts"]);
         var island = new SettingsForm(editor, _strings);
         island.AddChoice("IslandAppearance", new[]
         {
@@ -78,7 +79,7 @@ public sealed partial class MainPage
         island.AddToggle("IslandRightHoldMove", s => s.IslandAppearance.RightClickHoldToMove, (s,v) => s with { IslandAppearance = s.IslandAppearance with { RightClickHoldToMove = v } });
         groups["Island"].Children.Insert(0, island);
         groups["Widgets"].Children.Add(new WidgetEditorView(editor, _strings));
-        _dlcSettingsPage = new DlcPage(dlc, _strings, editor);
+        _dlcSettingsPage = new DlcPage(dlc, _strings, editor, _modules.RefreshCatalogAsync);
         _downloadSettingsPanel = new DownloadPanel(editor, _strings, _windowHandle);
         groups["DLC"].Children.Add(_dlcSettingsPage);
         _moduleInventory = new FeatureModuleInventoryView(_modules, _strings,
@@ -114,7 +115,7 @@ public sealed partial class MainPage
         {
             var resourceKey = key switch
             {
-                "General" => "SettingsPageGeneral", "Island" => "SettingsPageIsland",
+                "General" => "SettingsPageGeneral", "Island" => "SettingsPageIsland", "Shortcuts" => "SettingsPageShortcuts",
                 "Widgets" => "SettingsPageWidgets", "DLC" => "SettingsPageDlc", "Downloads" => "SettingsPageDownloads", "SystemActivities" => "SettingsPageSystemActivities",
                 "Devices" => "SettingsPageDevices", "Updates" => "SettingsPageUpdates", _ => "SettingsPageAbout",
             };
@@ -124,6 +125,7 @@ public sealed partial class MainPage
         {
             if (args.SelectedItem is not NavigationViewItem { Tag: string key }) return;
             _selectedSettingsPage = key;
+            if (key == "Shortcuts") RefreshKeyboardShortcuts();
             UpdatePresentationActivity();
             pageHost.Content = pages[key];
         };

@@ -78,7 +78,11 @@ Island, Widgets, System activities, Devices and sharing, Updates, About. Keep
 native control labels, keyboard alternatives, and visible save/action errors.
 Settings apply immediately without success notices or Save/Apply actions. Only
 island position retains explicit confirmation. Widget position/size changes and
-valid hotkey/exclusion text changes commit directly; language refreshes in place.
+valid exclusion text changes commit directly; language refreshes in place.
+Keyboard shortcuts have a dedicated settings page grouped by Global, Main window and
+fixed context controls. Global and window commands use click-to-record combinations,
+conflict validation and explicit Save/Cancel. Modified main-window shortcuts persist
+and rebind immediately; standard context controls retain their native behavior.
 The Clipboard page names pin state and record removal explicitly and links to
 the full history. These changes are under validation, not a released snapshot.
 

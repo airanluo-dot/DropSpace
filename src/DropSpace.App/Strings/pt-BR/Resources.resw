@@ -927,4 +927,28 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Excluir os dados e as configurações salvos deste módulo?</value></data>
   <data name="ModuleRetryCleanup" xml:space="preserve"><value>Tentar limpeza novamente</value></data>
   <data name="ModuleHostRequired" xml:space="preserve"><value>Este módulo requer a interface do host {0} e os recursos declarados. Atualize o DropSpace para uma versão compatível.</value></data>
+  <data name="SettingsPageShortcuts" xml:space="preserve"><value>Atalhos de teclado</value></data>
+  <data name="ShortcutGlobal" xml:space="preserve"><value>Globais</value></data>
+  <data name="ShortcutMainWindow" xml:space="preserve"><value>Janela principal</value></data>
+  <data name="ShortcutContext" xml:space="preserve"><value>Controles contextuais · Fixos</value></data>
+  <data name="ShortcutOpenIsland" xml:space="preserve"><value>Abrir Ilha dinâmica</value></data>
+  <data name="ShortcutSpace" xml:space="preserve"><value>Espaço temporário</value></data>
+  <data name="ShortcutClipboard" xml:space="preserve"><value>Histórico da área de transferência</value></data>
+  <data name="ShortcutPinned" xml:space="preserve"><value>Itens fixados</value></data>
+  <data name="ShortcutSearch" xml:space="preserve"><value>Pesquisar</value></data>
+  <data name="ShortcutSearchAlternate" xml:space="preserve"><value>Pesquisar · Alternativo</value></data>
+  <data name="ShortcutSettings" xml:space="preserve"><value>Configurações</value></data>
+  <data name="ShortcutSettingsAlternate" xml:space="preserve"><value>Configurações · Alternativo</value></data>
+  <data name="ShortcutUndo" xml:space="preserve"><value>Desfazer</value></data>
+  <data name="ShortcutItemOpen" xml:space="preserve"><value>Lista · Abrir seleção</value></data>
+  <data name="ShortcutItemRemove" xml:space="preserve"><value>Lista · Remover seleção</value></data>
+  <data name="ShortcutSearchClear" xml:space="preserve"><value>Pesquisa · Limpar ou sair</value></data>
+  <data name="ShortcutIslandClose" xml:space="preserve"><value>Ilha dinâmica · Fechar</value></data>
+  <data name="ShortcutEditCommit" xml:space="preserve"><value>Campo de configuração · Confirmar / cancelar</value></data>
+  <data name="ShortcutPlacementStep" xml:space="preserve"><value>Posição da ilha · Ajustar 10 DIP</value></data>
+  <data name="ShortcutNavigate" xml:space="preserve"><value>Controles · Navegar</value></data>
+  <data name="ShortcutTextEdit" xml:space="preserve"><value>Campos de texto · Selecionar tudo / copiar / recortar / colar / desfazer</value></data>
+  <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Pressione o atalho</value></data>
+  <data name="HotkeySave" xml:space="preserve"><value>Salvar</value></data>
+  <data name="HotkeyUnavailable" xml:space="preserve"><value>Atalho indisponível ou já em uso. Escolha outra combinação.</value></data>
 </root>

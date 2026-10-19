@@ -927,4 +927,28 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Supprimer les données et les paramètres enregistrés pour ce module ?</value></data>
   <data name="ModuleRetryCleanup" xml:space="preserve"><value>Réessayer le nettoyage</value></data>
   <data name="ModuleHostRequired" xml:space="preserve"><value>Ce module nécessite l’interface hôte {0} et les fonctionnalités déclarées. Mettez DropSpace à jour vers une version compatible.</value></data>
+  <data name="SettingsPageShortcuts" xml:space="preserve"><value>Raccourcis clavier</value></data>
+  <data name="ShortcutGlobal" xml:space="preserve"><value>Globaux</value></data>
+  <data name="ShortcutMainWindow" xml:space="preserve"><value>Fenêtre principale</value></data>
+  <data name="ShortcutContext" xml:space="preserve"><value>Commandes contextuelles · Fixes</value></data>
+  <data name="ShortcutOpenIsland" xml:space="preserve"><value>Ouvrir Dynamic Island</value></data>
+  <data name="ShortcutSpace" xml:space="preserve"><value>Espace temporaire</value></data>
+  <data name="ShortcutClipboard" xml:space="preserve"><value>Historique du presse-papiers</value></data>
+  <data name="ShortcutPinned" xml:space="preserve"><value>Éléments épinglés</value></data>
+  <data name="ShortcutSearch" xml:space="preserve"><value>Rechercher</value></data>
+  <data name="ShortcutSearchAlternate" xml:space="preserve"><value>Rechercher · Secondaire</value></data>
+  <data name="ShortcutSettings" xml:space="preserve"><value>Paramètres</value></data>
+  <data name="ShortcutSettingsAlternate" xml:space="preserve"><value>Paramètres · Secondaire</value></data>
+  <data name="ShortcutUndo" xml:space="preserve"><value>Annuler</value></data>
+  <data name="ShortcutItemOpen" xml:space="preserve"><value>Liste · Ouvrir la sélection</value></data>
+  <data name="ShortcutItemRemove" xml:space="preserve"><value>Liste · Retirer la sélection</value></data>
+  <data name="ShortcutSearchClear" xml:space="preserve"><value>Recherche · Effacer ou quitter</value></data>
+  <data name="ShortcutIslandClose" xml:space="preserve"><value>Dynamic Island · Fermer</value></data>
+  <data name="ShortcutEditCommit" xml:space="preserve"><value>Champ de réglage · Valider / annuler</value></data>
+  <data name="ShortcutPlacementStep" xml:space="preserve"><value>Position de l’îlot · Ajuster de 10 DIP</value></data>
+  <data name="ShortcutNavigate" xml:space="preserve"><value>Commandes · Naviguer</value></data>
+  <data name="ShortcutTextEdit" xml:space="preserve"><value>Champs de texte · Tout sélectionner / copier / couper / coller / annuler</value></data>
+  <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Appuyez sur le raccourci</value></data>
+  <data name="HotkeySave" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="HotkeyUnavailable" xml:space="preserve"><value>Raccourci indisponible ou déjà utilisé. Choisissez une autre combinaison.</value></data>
 </root>

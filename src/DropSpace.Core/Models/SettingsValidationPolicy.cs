@@ -65,16 +65,9 @@ public static class SettingsValidationPolicy
                 continue;
             }
 
-            if (key is not null ||
-                !(part.Equals("Space", StringComparison.OrdinalIgnoreCase) ||
-                  part.Length == 1 && char.IsAsciiLetterOrDigit(part[0])))
-            {
-                return null;
-            }
-
-            key = part.Equals("Space", StringComparison.OrdinalIgnoreCase)
-                ? "Space"
-                : char.ToUpperInvariant(part[0]).ToString();
+            var canonicalKey = part.Equals("Space", StringComparison.OrdinalIgnoreCase) ? "Space" : part.ToUpperInvariant();
+            if (key is not null || KeyboardShortcutPolicy.KeyCode(canonicalKey) == 0) return null;
+            key = canonicalKey;
         }
 
         if (modifiers.Count == 0 || key is null)

@@ -927,4 +927,28 @@
   <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Удалить сохранённые данные и настройки этого модуля?</value></data>
   <data name="ModuleRetryCleanup" xml:space="preserve"><value>Повторить очистку</value></data>
   <data name="ModuleHostRequired" xml:space="preserve"><value>Для этого модуля требуется интерфейс хоста {0} и заявленные возможности. Обновите DropSpace до совместимой версии.</value></data>
+  <data name="SettingsPageShortcuts" xml:space="preserve"><value>Сочетания клавиш</value></data>
+  <data name="ShortcutGlobal" xml:space="preserve"><value>Глобальные</value></data>
+  <data name="ShortcutMainWindow" xml:space="preserve"><value>Главное окно</value></data>
+  <data name="ShortcutContext" xml:space="preserve"><value>Контекстные действия · Фиксированные</value></data>
+  <data name="ShortcutOpenIsland" xml:space="preserve"><value>Открыть Динамический остров</value></data>
+  <data name="ShortcutSpace" xml:space="preserve"><value>Временное пространство</value></data>
+  <data name="ShortcutClipboard" xml:space="preserve"><value>История буфера обмена</value></data>
+  <data name="ShortcutPinned" xml:space="preserve"><value>Закреплённые элементы</value></data>
+  <data name="ShortcutSearch" xml:space="preserve"><value>Поиск</value></data>
+  <data name="ShortcutSearchAlternate" xml:space="preserve"><value>Поиск · Дополнительное</value></data>
+  <data name="ShortcutSettings" xml:space="preserve"><value>Настройки</value></data>
+  <data name="ShortcutSettingsAlternate" xml:space="preserve"><value>Настройки · Дополнительное</value></data>
+  <data name="ShortcutUndo" xml:space="preserve"><value>Отменить</value></data>
+  <data name="ShortcutItemOpen" xml:space="preserve"><value>Список · Открыть выбранное</value></data>
+  <data name="ShortcutItemRemove" xml:space="preserve"><value>Список · Удалить выбранное</value></data>
+  <data name="ShortcutSearchClear" xml:space="preserve"><value>Поиск · Очистить или выйти</value></data>
+  <data name="ShortcutIslandClose" xml:space="preserve"><value>Динамический остров · Закрыть</value></data>
+  <data name="ShortcutEditCommit" xml:space="preserve"><value>Поле настройки · Подтвердить / отменить</value></data>
+  <data name="ShortcutPlacementStep" xml:space="preserve"><value>Положение острова · Сдвиг на 10 DIP</value></data>
+  <data name="ShortcutNavigate" xml:space="preserve"><value>Элементы управления · Навигация</value></data>
+  <data name="ShortcutTextEdit" xml:space="preserve"><value>Текстовые поля · Выделить всё / копировать / вырезать / вставить / отменить</value></data>
+  <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Нажмите сочетание клавиш</value></data>
+  <data name="HotkeySave" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="HotkeyUnavailable" xml:space="preserve"><value>Сочетание недоступно или уже используется. Выберите другое.</value></data>
 </root>

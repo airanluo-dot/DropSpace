@@ -28,7 +28,7 @@ public sealed class DlcPage : UserControl
     private int _renderQueued;
     private volatile bool _active;
 
-    public DlcPage(DlcManagerService manager, IAppStringLocalizer strings, ViewModels.NativeSettingsEditor editor)
+    public DlcPage(DlcManagerService manager, IAppStringLocalizer strings, ViewModels.NativeSettingsEditor editor, Func<CancellationToken, Task>? refreshModules = null)
     {
         _manager = manager;
         _strings = strings;
@@ -39,7 +39,20 @@ public sealed class DlcPage : UserControl
         _refresh = new Button { Content = strings.Get("DlcRefresh"), HorizontalAlignment = HorizontalAlignment.Left };
         AutomationProperties.SetName(_refresh, strings.Get("DlcRefresh"));
         AutomationProperties.SetAutomationId(_refresh, "DlcRefresh");
-        _refresh.Click += async (_, _) => await _manager.RefreshAsync(force: true);
+        _refresh.Click += async (_, _) =>
+        {
+            _refresh.IsEnabled = false;
+            try
+            {
+                await _manager.RefreshAsync(force: true);
+                if (refreshModules is not null && _pageStop is { } owner)
+                    await refreshModules(owner.Token);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            { _error.Text = _strings.Get("DlcOperationFailed"); _error.Visibility = Visibility.Visible; }
+            finally { _refresh.IsEnabled = true; }
+        };
         body.Children.Add(_refresh);
         AutomationProperties.SetLiveSetting(_error, AutomationLiveSetting.Polite);
         body.Children.Add(_error);

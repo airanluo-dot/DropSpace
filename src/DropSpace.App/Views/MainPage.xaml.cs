@@ -56,6 +56,7 @@ public sealed partial class MainPage : Page
     private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
     private readonly SemaphoreSlim _dialogGate = new(1, 1);
     private CancellationTokenSource _dialogLifetime = new();
+    private readonly GlobalQuickPanelHotkeyService _hotkey;
     private bool _syncingNavigation;
     private bool _syncingSettings;
     private bool _quickActionsSettingsBuilt;
@@ -84,7 +85,8 @@ public sealed partial class MainPage : Page
         Services.Media.MediaApplicationIconService mediaIcons,
         NeteaseEnhancementViewModel enhancement,
         Services.Dlc.DlcManagerService dlc,
-        Services.Dlc.FeatureModuleRuntime modules)
+        Services.Dlc.FeatureModuleRuntime modules,
+        GlobalQuickPanelHotkeyService hotkey)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
@@ -101,6 +103,7 @@ public sealed partial class MainPage : Page
         _dropLinkHost = dropLinkHost;
         _sharing = sharing;
         _modules = modules;
+        _hotkey = hotkey;
         try
         {
             InitializeComponent();
@@ -109,17 +112,6 @@ public sealed partial class MainPage : Page
         {
             throw new InvalidOperationException("Main-page XAML initialization failed.", exception);
         }
-
-        // Windows.System.VirtualKey has no named value for the US comma key,
-        // although the Win32 virtual-key value is stable. Configure this
-        // accelerator in code so XAML parsing cannot reject the numeric value.
-        var settingsAccelerator = new KeyboardAccelerator
-        {
-            Key = (VirtualKey)188,
-            Modifiers = VirtualKeyModifiers.Control,
-        };
-        settingsAccelerator.Invoked += OnSettingsAccelerator;
-        KeyboardAccelerators.Add(settingsAccelerator);
 
         LanguageCombo.Items.Add(new ComboBoxItem { Content = _strings.Get("LanguageSystem.Content"), Tag = AppLanguagePreference.System.ToString() });
         foreach (var language in AppLanguageCatalog.All)
@@ -1870,17 +1862,6 @@ public sealed partial class MainPage : Page
         box.Value = value; return true;
     }
 
-    private async void OnQuickPanelHotkeyTextChanged(object sender, TextChangedEventArgs args)
-    {
-        if (!_syncingSettings && !string.Equals(QuickPanelHotkeyText.Text, _viewModel.QuickPanelHotkey, StringComparison.Ordinal))
-        {
-            try { _ = GlobalQuickPanelHotkeyService.Parse(QuickPanelHotkeyText.Text.Trim()); }
-            catch (ArgumentException) { return; }
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { QuickPanelHotkey = QuickPanelHotkeyText.Text.Trim() }));
-        }
-    }
-
     private async void OnSmartDragExclusionsTextChanged(object sender, TextChangedEventArgs args)
     {
         if (_syncingSettings)
@@ -2275,7 +2256,7 @@ public sealed partial class MainPage : Page
 
             OverlayPlacementMonitorCombo.ItemsSource = availableOverlayMonitors;
             OverlayPlacementMonitorCombo.SelectedIndex = Math.Max(0, OverlayPlacementMonitorCombo.SelectedIndex);
-            if (QuickPanelHotkeyText.FocusState == FocusState.Unfocused) QuickPanelHotkeyText.Text = _viewModel.QuickPanelHotkey;
+            RefreshKeyboardShortcuts();
             if (SmartDragExclusionsText.FocusState == FocusState.Unfocused) SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
             SyncQuickActionsSettings();
             SyncPlacementCoordinates();

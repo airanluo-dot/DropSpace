@@ -11,15 +11,7 @@
   IsTabStop="True"
   Background="Transparent"
   mc:Ignorable="d">
-  <Page.KeyboardAccelerators>
-    <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="OnSpaceAccelerator" />
-    <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="OnClipboardAccelerator" />
-    <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="OnPinnedAccelerator" />
-    <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="OnSearchAccelerator" />
-    <KeyboardAccelerator Key="L" Modifiers="Control" Invoked="OnSearchAccelerator" />
-    <KeyboardAccelerator Key="S" Modifiers="Control,Shift" Invoked="OnSettingsAccelerator" />
-    <KeyboardAccelerator Key="Z" Modifiers="Control" Invoked="OnUndoAccelerator" />
-  </Page.KeyboardAccelerators>
+
 
   <NavigationView
     x:Name="Navigation"
@@ -729,17 +721,6 @@
                 </StackPanel>
               </StackPanel>
             </Border>
-            <Grid ColumnSpacing="20">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="240" />
-              </Grid.ColumnDefinitions>
-              <StackPanel>
-                <TextBlock services:XamlResourceOverride.Uid="QuickPanelHotkeyTitle" />
-                <TextBlock services:XamlResourceOverride.Uid="QuickPanelHotkeyDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-              </StackPanel>
-              <TextBox x:Name="QuickPanelHotkeyText" Grid.Column="1" TextChanged="OnQuickPanelHotkeyTextChanged" />
-            </Grid>
             <StackPanel Spacing="4">
               <TextBlock services:XamlResourceOverride.Uid="SmartDragExclusionsTitle" />
               <TextBlock services:XamlResourceOverride.Uid="SmartDragExclusionsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
