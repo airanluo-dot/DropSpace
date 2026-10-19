@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "status": "owner-accepted-experimental-beta",
-  "reason": "Owner-authorized corrective release v0.3.2-beta.5; model inputs and historical evidence unchanged. See exact owner decision.",
+  "reason": "Owner-authorized Beta 6 UI correction; unchanged experimental model/runtime configuration and historical limitations carried forward from Beta 5. No new semantic approval.",
   "scope": {
-    "releaseVersion": "v0.3.2-beta.5",
+    "releaseVersion": "v0.3.2-beta.6",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -337,7 +337,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "7f426eecadda6c15666d5f806c65c118396756ed59a987076f210c5e77a1f68f"
+          "sha256": "9c07ec8b810efeb0d4d876355e86d23c521fd4c362c59bc38b146341c79fef5d"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -657,7 +657,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.xaml",
-          "sha256": "b769001cb9cfc6ed6211df3795cdeccc1486b7fcdeac8d14812042bee225721a"
+          "sha256": "38953832337a901c857b7a997c0aeaf4fc3bfded2e7f0c01b360238d14053b0d"
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
@@ -725,11 +725,11 @@
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
-          "sha256": "cfac96bc8c324fc6b1d996219fe55847533dee7c5cd816285ddaaf919153ddd9"
+          "sha256": "dac77256edd7aab918201bc7df46af038d30cacd806ed326802aa2de466281e9"
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml",
-          "sha256": "e433b09fa379bf1c6e21f4ce6662cc7dbc73e67b2d88a7f7391d9968352a2ff2"
+          "sha256": "1552008af4be0eab614447fd27052652cffff73a368ef21c360e3260c483e255"
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs",
@@ -773,7 +773,7 @@
         },
         {
           "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
-          "sha256": "2f10109cc4dadadf6e58143a04e6829ac51209ae68d616a7e43703fbcb947375"
+          "sha256": "eaebc9a16dcde7e5594a902edf49c017bb04dfc74b2e70f3f3cc1c517094d9ed"
         },
         {
           "path": "src/DropSpace.App/Services/AcrylicCoverageBackdropTarget.cs",
@@ -1268,7 +1268,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "50fa1541870184ca59ffa000be8b03d8540c4ad34f15e14cb0bc9a41a90e5741"
+      "sha256": "58c1dc28985a4e83b5668a4f88c1de3243913c34580cc2a92809f337db071889"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2711,7 +2711,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.5-owner-accepted-review.json",
-    "sha256": "c2f7e017bd2a4df927e31b3b67b4edbf7b73eca9a4e687ed2241e458f90adaa4"
+    "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.6-owner-accepted-review.json",
+    "sha256": "5a515bb2d96e45ed822dc3dd3ed45190ce319219f1ee242780884599d614be16"
   }
 }
