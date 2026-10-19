@@ -1,7 +1,8 @@
 <UserControl
     x:Class="DropSpace.App.Views.Island.MediaCompactView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    UseLayoutRounding="False">
   <Grid x:Name="Layout" ColumnSpacing="12" VerticalAlignment="Center">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="Auto" />

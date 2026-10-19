@@ -648,6 +648,11 @@ public sealed partial class OverlayWindow : Window
             _monitor.Scale, naturalWidth, naturalHeight, _mediaViewModel.Settings.IslandAppearance.CompactScale);
         _compactSurfaceWidth = naturalWidth * compactScale;
         CompactPanel.Padding = new Thickness(0);
+        // Music measures fractional glyph advances. Rounding each nested gutter,
+        // spectrum bar and viewport separately steals pixels from a fitting line.
+        // Keep its DIP layout intact; the outer surface still owns pixel coverage.
+        CompactContentRoot.UseLayoutRounding = !mediaCompact;
+        CompactContentScaleHost.UseLayoutRounding = !mediaCompact;
         CompactContentRoot.Width = naturalWidth; CompactContentRoot.Height = naturalHeight;
         CompactContentRoot.Padding = new Thickness(mediaCompact ? 14 : 18, 0, mediaCompact ? 14 : 18, 0);
         CompactContentScaleHost.Width = naturalWidth * compactScale; CompactContentScaleHost.Height = naturalHeight * compactScale;

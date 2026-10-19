@@ -143,6 +143,9 @@ public sealed partial class MediaCompactView : UserControl
     private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
     {
         AttachXamlRoot();
+        // Size/visibility notifications do not change glyph metrics. In particular,
+        // resizing the host must not reset an unchanged line's marquee to zero.
+        if (Math.Abs(_measuredRasterizationScale - sender.RasterizationScale) <= 0.001) return;
         InvalidateMeasure();
         Layout.InvalidateMeasure();
         InvalidateTextMeasure();
@@ -384,14 +387,15 @@ public sealed partial class MediaCompactView : UserControl
             if (_secondaryTextWidth <= ScrollViewport(_secondaryTextWidth, SecondaryViewport.ActualWidth)) SecondaryTranslation.TranslateX = 0;
             return;
         }
-        var scroll = 0d;
-        if (_view.Settings.Lyrics.Enabled && _view.Settings.IslandActivity.ShowLyricsInCompact && _view.Settings.Lyrics.Scrolling && !_view.IsReducedMotion)
+        // Presentation retains the last line during a timed gap. A missing active
+        // frame is not a new line: retain its offset instead of jumping right.
+        if (!presentation.IsWaiting)
         {
-            scroll = LyricsDisplayPolicy.CompactScrollOffset(frame.Line,
+            var scroll = LyricsDisplayPolicy.CompactScrollOffset(frame.Line,
                 _view.Position - _view.Session.Timeline.Start, _view.Settings.Lyrics.DelayMilliseconds,
                 _view.Settings.Lyrics.WordSyncedHighlighting, highlight, _textWidth, ScrollViewport(_textWidth, LyricViewport.ActualWidth));
+            LyricTranslation.TranslateX = -scroll;
         }
-        LyricTranslation.TranslateX = -scroll;
         SecondaryTranslation.TranslateX = -_secondaryMarquee.Update(new(
             _view.Session.TrackIdentity, presentation.Line?.Start.Ticks ?? 0, SecondaryLine.Text,
             SecondaryLine.FontSize, XamlRoot?.RasterizationScale ?? 1, _secondaryTextWidth, ScrollViewport(_secondaryTextWidth, SecondaryViewport.ActualWidth),
