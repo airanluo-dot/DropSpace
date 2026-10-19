@@ -34,6 +34,13 @@ internal static class DownloadStorage
             if (File.Exists(path)) yield return ReparseSafePathPolicy.ResolveExistingContainedPath(root, path);
         }
     }
+    public static void HideStagingDirectory(string outputDirectory)
+    {
+        var directory = Path.Combine(outputDirectory, ".dropspace-downloads");
+        if (!OperatingSystem.IsWindows() || !Directory.Exists(directory)) return;
+        directory = ReparseSafePathPolicy.ResolveExistingContainedPath(outputDirectory, directory);
+        File.SetAttributes(directory, File.GetAttributes(directory) | FileAttributes.Hidden);
+    }
     public static void Clean(string staging)
     {
         foreach (var path in Artifacts(staging).ToArray()) File.Delete(path);

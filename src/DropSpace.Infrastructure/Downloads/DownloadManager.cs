@@ -94,6 +94,13 @@ public sealed class DownloadManager : IAsyncDisposable
     }
     private static string Staging(DownloadRequest request) => Path.Combine(request.OutputDirectory, ".dropspace-downloads", request.TaskId.ToString("N"), "file.part");
 
+    private void TryHideStaging(string directory)
+    {
+        try { DownloadStorage.HideStagingDirectory(directory); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+        { _logger?.LogWarning("Download working-directory visibility could not be updated: {Reason}", error.GetType().Name); }
+    }
+
     public async Task EnqueueAsync(string url, string directory, string? fileName)
     {
         var request = DirectFileRequestFactory.Create(url, directory, fileName);
@@ -128,7 +135,7 @@ public sealed class DownloadManager : IAsyncDisposable
         finally { _actions.Release(); }
         Changed?.Invoke(this, EventArgs.Empty);
     }
-    public async Task RestoreAsync(CancellationToken cancellationToken = default)
+    public async Task RestoreAsync(CancellationToken cancellationToken = default, string? defaultOutputDirectory = null)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
         var token = linked.Token;
@@ -138,6 +145,7 @@ public sealed class DownloadManager : IAsyncDisposable
             if (_restored) return;
             var recovered = await _repository.GetAllAsync(token).ConfigureAwait(false);
             RecoveryError = _repository.RecoveryError;
+            if (!string.IsNullOrWhiteSpace(defaultOutputDirectory)) TryHideStaging(defaultOutputDirectory);
             foreach (var snapshot in recovered)
             {
                 token.ThrowIfCancellationRequested();
@@ -162,6 +170,7 @@ public sealed class DownloadManager : IAsyncDisposable
                 }
                 try
                 {
+                TryHideStaging(snapshot.Request.OutputDirectory);
                 if (snapshot.State is DownloadTaskState.Completed or DownloadTaskState.Cancelled)
                 {
                     if (await TryCleanupAsync(item).ConfigureAwait(false) && item.Snapshot.HistoryRemovalPending)
@@ -369,6 +378,7 @@ public sealed class DownloadManager : IAsyncDisposable
             lock (_sync) item.Snapshot = item.Snapshot with { OutputPath = item.Reservation.OutputPath };
             await SetAsync(item, DownloadTaskState.Queued).ConfigureAwait(false);
             var staging = DownloadStorage.Safe(request.OutputDirectory, Staging(request));
+            TryHideStaging(request.OutputDirectory);
             var progress = new InlineProgress(value =>
             {
                 DownloadTaskSnapshot snapshot;

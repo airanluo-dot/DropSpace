@@ -51,6 +51,7 @@ public static class SettingsChangePolicy
         CustomOverlayPlacements = Pick(baseline.CustomOverlayPlacements, requested.CustomOverlayPlacements, latest.CustomOverlayPlacements),
         OverlayPlacements = Pick(baseline.OverlayPlacements, requested.OverlayPlacements, latest.OverlayPlacements),
         QuickActionPreferences = Pick(baseline.QuickActionPreferences, requested.QuickActionPreferences, latest.QuickActionPreferences),
+        KeyboardShortcuts = Pick(baseline.KeyboardShortcuts, requested.KeyboardShortcuts, latest.KeyboardShortcuts),
         QuickPanelHotkey = Pick(baseline.QuickPanelHotkey, requested.QuickPanelHotkey, latest.QuickPanelHotkey),
         SmartDragExcludedProcesses = Pick(baseline.SmartDragExcludedProcesses, requested.SmartDragExcludedProcesses, latest.SmartDragExcludedProcesses),
         AutoCheckForUpdates = Pick(baseline.AutoCheckForUpdates, requested.AutoCheckForUpdates, latest.AutoCheckForUpdates),

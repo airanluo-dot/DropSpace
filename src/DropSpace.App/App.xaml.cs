@@ -185,7 +185,7 @@ public partial class App : Application
             var downloadManager = _services.GetRequiredService<DropSpace.Infrastructure.Downloads.DownloadManager>();
             _ = Task.Run(async () =>
             {
-                try { await downloadManager.RestoreAsync(); }
+                try { await downloadManager.RestoreAsync(defaultOutputDirectory: persistedSettings.DefaultDownloadDirectory); }
                 catch (OperationCanceledException) { /* Application shutdown owns cancellation. */ }
             });
             var language = _services.GetRequiredService<AppLanguageService>();
@@ -234,7 +234,8 @@ public partial class App : Application
                 _services.GetRequiredService<Services.Media.MediaApplicationIconService>(),
                 _services.GetRequiredService<NeteaseEnhancementViewModel>(),
                 _dlcManager,
-                _featureModules);
+                _featureModules,
+                _services.GetRequiredService<GlobalQuickPanelHotkeyService>());
             // Module handshake must never delay the built-in window startup.
             var moduleStartupLogger = _services.GetRequiredService<ILogger<App>>();
             _featureModuleStartup = ObserveModuleStartupAsync(_featureModules, moduleStartupLogger);

@@ -115,7 +115,8 @@ public sealed class OfficialModuleCatalog : IAsyncDisposable
             var package = record.Deserialize<OfficialModulePackage>(ModulePackageStore.JsonOptions) ?? throw new InvalidDataException("OfficialModuleCatalogInvalid");
             Require(package);
             if (!identities.Add(package.Id)) throw new InvalidDataException("OfficialModuleCatalogDuplicateId");
-            packages.Add(package);
+            // Never expose internal fixtures, including stale remote catalog records.
+            if (package.Id != "dropspace.sample") packages.Add(package);
         }
         return packages.AsReadOnly();
     }

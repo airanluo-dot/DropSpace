@@ -313,9 +313,9 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
             else
             {
                 if (key != 0) throw new ArgumentException("Multiple hotkey keys.", nameof(gesture));
-                if (part.Equals("Space", StringComparison.OrdinalIgnoreCase)) key = 0x20;
-                else if (part.Length == 1 && char.IsAsciiLetterOrDigit(part[0])) key = char.ToUpperInvariant(part[0]);
-                else throw new ArgumentException("Unsupported hotkey key.", nameof(gesture));
+                key = DropSpace.Core.Models.KeyboardShortcutPolicy.KeyCode(
+                    part.Equals("Space", StringComparison.OrdinalIgnoreCase) ? "Space" : part.ToUpperInvariant());
+                if (key == 0) throw new ArgumentException("Unsupported hotkey key.", nameof(gesture));
             }
         }
 

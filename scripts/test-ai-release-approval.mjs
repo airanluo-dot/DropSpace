@@ -127,6 +127,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Core/Models/NativeIslandSettingsPolicy.cs',
   'src/DropSpace.Core/Models/SettingsChangePolicy.cs',
   'src/DropSpace.Core/Models/SettingsValidationPolicy.cs',
+  'src/DropSpace.Core/Models/KeyboardShortcutPolicy.cs',
   'src/DropSpace.Core/Models/SettingsMigration14.cs',
   'src/DropSpace.Core/Policies/AppLanguagePolicy.cs',
   'src/DropSpace.Core/Abstractions/IAppStringLocalizer.cs',
@@ -162,6 +163,8 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs',
   'src/DropSpace.App/Views/MainPage.xaml',
   'src/DropSpace.App/Views/MainPage.xaml.cs',
+  'src/DropSpace.App/Views/MainPage.Hotkeys.cs',
+  'src/DropSpace.App/Services/GlobalQuickPanelHotkeyService.cs',
   'src/DropSpace.App/Services/AppLanguageService.cs',
   'src/DropSpace.App/Services/ResourceStringLocalizer.cs',
   'src/DropSpace.App/Services/SettingsApplicationCoordinator.cs',
@@ -324,7 +327,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.2-beta.6';
+export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));

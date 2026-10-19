@@ -929,4 +929,28 @@
   <data name="ModuleClearDataConfirm" xml:space="preserve"><value>删除此模块保存的数据和设置？</value></data>
   <data name="ModuleRetryCleanup" xml:space="preserve"><value>重试清理</value></data>
   <data name="ModuleHostRequired" xml:space="preserve"><value>此模块需要宿主接口 {0} 及其声明的能力。请将 DropSpace 更新到兼容版本。</value></data>
+  <data name="SettingsPageShortcuts" xml:space="preserve"><value>快捷键</value></data>
+  <data name="ShortcutGlobal" xml:space="preserve"><value>全局</value></data>
+  <data name="ShortcutMainWindow" xml:space="preserve"><value>主窗口</value></data>
+  <data name="ShortcutContext" xml:space="preserve"><value>情境操作 · 固定</value></data>
+  <data name="ShortcutOpenIsland" xml:space="preserve"><value>打开灵动岛</value></data>
+  <data name="ShortcutSpace" xml:space="preserve"><value>临时空间</value></data>
+  <data name="ShortcutClipboard" xml:space="preserve"><value>剪贴板历史</value></data>
+  <data name="ShortcutPinned" xml:space="preserve"><value>已固定项目</value></data>
+  <data name="ShortcutSearch" xml:space="preserve"><value>搜索</value></data>
+  <data name="ShortcutSearchAlternate" xml:space="preserve"><value>搜索 · 备用</value></data>
+  <data name="ShortcutSettings" xml:space="preserve"><value>设置</value></data>
+  <data name="ShortcutSettingsAlternate" xml:space="preserve"><value>设置 · 备用</value></data>
+  <data name="ShortcutUndo" xml:space="preserve"><value>撤销</value></data>
+  <data name="ShortcutItemOpen" xml:space="preserve"><value>项目列表 · 打开选中项目</value></data>
+  <data name="ShortcutItemRemove" xml:space="preserve"><value>项目列表 · 移除选中项目</value></data>
+  <data name="ShortcutSearchClear" xml:space="preserve"><value>搜索框 · 清空或退出</value></data>
+  <data name="ShortcutIslandClose" xml:space="preserve"><value>灵动岛 · 收起</value></data>
+  <data name="ShortcutEditCommit" xml:space="preserve"><value>设置输入框 · 确认 / 取消</value></data>
+  <data name="ShortcutPlacementStep" xml:space="preserve"><value>灵动岛位置 · 调整 10 DIP</value></data>
+  <data name="ShortcutNavigate" xml:space="preserve"><value>控件 · 导航</value></data>
+  <data name="ShortcutTextEdit" xml:space="preserve"><value>文本框 · 全选 / 复制 / 剪切 / 粘贴 / 撤销</value></data>
+  <data name="HotkeyRecordPrompt" xml:space="preserve"><value>请按快捷键</value></data>
+  <data name="HotkeySave" xml:space="preserve"><value>保存</value></data>
+  <data name="HotkeyUnavailable" xml:space="preserve"><value>快捷键不可用或已被占用，请换一个组合。</value></data>
 </root>

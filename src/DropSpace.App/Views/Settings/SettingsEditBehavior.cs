@@ -34,7 +34,7 @@ internal static class SettingsEditBehavior
             box.TextCompositionEnded += (_, _) => state.Composing = false;
             box.KeyDown += (_, e) =>
             {
-                if (e.Key != VirtualKey.Enter || state.Composing || box.Name == "QuickPanelHotkeyText") return;
+                if (e.Key != VirtualKey.Enter || state.Composing) return;
                 // Placement owns its apply action. Other NumberBoxes validate on losing focus.
                 for (var node = VisualTreeHelper.GetParent(box); node is not null; node = VisualTreeHelper.GetParent(node))
                     if (node is NumberBox { Name: "OverlayPlacementXNumber" or "OverlayPlacementYNumber" }) return;

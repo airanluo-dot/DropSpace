@@ -929,4 +929,28 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="ModuleClearDataConfirm" xml:space="preserve"><value>Delete the saved data and settings for this module?</value></data>
   <data name="ModuleRetryCleanup" xml:space="preserve"><value>Retry cleanup</value></data>
   <data name="ModuleHostRequired" xml:space="preserve"><value>This module requires host interface {0} and its declared capabilities. Update DropSpace to a compatible version.</value></data>
+  <data name="SettingsPageShortcuts" xml:space="preserve"><value>Keyboard shortcuts</value></data>
+  <data name="ShortcutGlobal" xml:space="preserve"><value>Global</value></data>
+  <data name="ShortcutMainWindow" xml:space="preserve"><value>Main window</value></data>
+  <data name="ShortcutContext" xml:space="preserve"><value>Context controls · Fixed</value></data>
+  <data name="ShortcutOpenIsland" xml:space="preserve"><value>Open Dynamic Island</value></data>
+  <data name="ShortcutSpace" xml:space="preserve"><value>Temporary Space</value></data>
+  <data name="ShortcutClipboard" xml:space="preserve"><value>Clipboard History</value></data>
+  <data name="ShortcutPinned" xml:space="preserve"><value>Pinned Items</value></data>
+  <data name="ShortcutSearch" xml:space="preserve"><value>Search</value></data>
+  <data name="ShortcutSearchAlternate" xml:space="preserve"><value>Search · Alternate</value></data>
+  <data name="ShortcutSettings" xml:space="preserve"><value>Settings</value></data>
+  <data name="ShortcutSettingsAlternate" xml:space="preserve"><value>Settings · Alternate</value></data>
+  <data name="ShortcutUndo" xml:space="preserve"><value>Undo</value></data>
+  <data name="ShortcutItemOpen" xml:space="preserve"><value>Item list · Open selected item</value></data>
+  <data name="ShortcutItemRemove" xml:space="preserve"><value>Item list · Remove selected item</value></data>
+  <data name="ShortcutSearchClear" xml:space="preserve"><value>Search box · Clear or exit</value></data>
+  <data name="ShortcutIslandClose" xml:space="preserve"><value>Dynamic Island · Dismiss</value></data>
+  <data name="ShortcutEditCommit" xml:space="preserve"><value>Settings field · Commit / cancel</value></data>
+  <data name="ShortcutPlacementStep" xml:space="preserve"><value>Island position · Adjust by 10 DIP</value></data>
+  <data name="ShortcutNavigate" xml:space="preserve"><value>Controls · Navigate</value></data>
+  <data name="ShortcutTextEdit" xml:space="preserve"><value>Text fields · Select all / copy / cut / paste / undo</value></data>
+  <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Press a shortcut</value></data>
+  <data name="HotkeySave" xml:space="preserve"><value>Save</value></data>
+  <data name="HotkeyUnavailable" xml:space="preserve"><value>Shortcut unavailable or already in use. Choose another combination.</value></data>
 </root>

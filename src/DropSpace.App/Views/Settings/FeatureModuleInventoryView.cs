@@ -28,24 +28,6 @@ public sealed class FeatureModuleInventoryView : UserControl
     {
         _runtime = runtime; _strings = strings; _openSettings = openSettings;
         var body = new StackPanel { Spacing = 12 };
-        var refresh = new Button { Content = strings.Get("DlcRefresh"), HorizontalAlignment = HorizontalAlignment.Left };
-        AutomationProperties.SetName(refresh, strings.Get("DlcRefresh"));
-        AutomationProperties.SetAutomationId(refresh, "ModuleCatalogRefresh");
-        refresh.Click += async (_, _) =>
-        {
-            if (IsBusy || !_loaded || !_active || _lifetime is not { IsCancellationRequested: false } owner) return;
-            var token = owner.Token;
-            _operations++; refresh.IsEnabled = false; _error.Visibility = Visibility.Collapsed; Render();
-            try { await _runtime.RefreshCatalogAsync(token); }
-            catch (OperationCanceledException) { }
-            catch (Exception error) when (error is not OutOfMemoryException)
-            {
-                System.Diagnostics.Debug.WriteLine("Official module catalog refresh failed: " + error.GetType().Name);
-                if (_loaded && ReferenceEquals(owner, _lifetime)) { _error.Text = _strings.Get("DlcOperationFailed"); _error.Visibility = Visibility.Visible; }
-            }
-            finally { _operations--; refresh.IsEnabled = true; if (_loaded && _active) Render(); }
-        };
-        body.Children.Add(refresh);
         body.Children.Add(_cards); body.Children.Add(_error); Content = body;
         Loaded += (_, _) =>
         {
@@ -74,6 +56,7 @@ public sealed class FeatureModuleInventoryView : UserControl
         foreach (var snapshot in _runtime.Snapshots)
         {
             var installation = snapshot.Installation;
+            if (installation.Id == "dropspace.sample") continue;
             var manifest = snapshot.Manifest;
             var body = new StackPanel { Spacing = 8 };
             var name = manifest is null ? installation.Id : ModuleContract.Text(manifest, manifest.Name, _strings.Culture.Name);
