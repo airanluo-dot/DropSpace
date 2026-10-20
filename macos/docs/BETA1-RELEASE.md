@@ -19,3 +19,5 @@ QQ Music login; complete other-player controls; physical Windows interoperabilit
 ## Current release state
 
 Not published. Candidate `macos/dist/beta1-daily-candidate` has passed local DMG copy/eject/launch, ad-hoc integrity and targeted daily UI checks; see EXECUTION.md. GitHub publishing is awaiting local authentication. Public browser-download/Gatekeeper and website deployment checks remain open. Public URLs will be recorded only after actual publication.
+
+Final local package directory: `macos/dist/beta1-release-ready`. DMG/ZIP/manifest hashes passed; signed bundle bytes exactly match the daily-tested candidate. Source receipt: `651b3a6e4798371d3823f53509e2bc54388a7b32`. No remote tag exists yet. Authentication command on this host: `macos/build/tooling/github-cli/gh auth login`. Do not send credentials in chat.
