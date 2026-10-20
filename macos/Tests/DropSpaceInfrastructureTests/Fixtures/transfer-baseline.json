@@ -1,0 +1,1100 @@
+{
+  "host": "macOS 27.0.1",
+  "cases": [
+    {
+      "name": "valid",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": true
+    },
+    {
+      "name": "empty-file",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 0,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 0
+          }
+        ],
+        "totalBytes": 0,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": true
+    },
+    {
+      "name": "wrong-chunks",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 2
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "null-chunks",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": null
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "negative-size",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": -1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": -1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "oversize",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 8589934593,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 2049
+          }
+        ],
+        "totalBytes": 8589934593,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "bad-hash",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "upper-hash",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": true
+    },
+    {
+      "name": "bad-kind",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 6,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "empty-id",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "blank-mime",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "long-mime",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "display-trailing-slash",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a/",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "duplicate-id",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          },
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "other.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 2,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "duplicate-path",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          },
+          {
+            "id": "ed656840-23d9-413a-832a-5dd729c71128",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "FOLDER/A.TXT",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 2,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "noncanonical-path",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder//a.txt/",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": true
+    },
+    {
+      "name": "bad-total",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 2,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "offset-time",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T08:00:00+08:00",
+        "chunkBytes": 4194304
+      },
+      "valid": true
+    },
+    {
+      "name": "minor-version",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 99
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": true
+    },
+    {
+      "name": "major-version",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 2,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    },
+    {
+      "name": "chunk-min",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 65536
+      },
+      "valid": true
+    },
+    {
+      "name": "chunk-low",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 65535
+      },
+      "valid": false
+    },
+    {
+      "name": "chunk-high",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "kind": 1,
+            "displayName": "a.txt",
+            "relativePath": "folder/a.txt",
+            "size": 1,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "mimeType": "text/plain",
+            "chunkCount": 1
+          }
+        ],
+        "totalBytes": 1,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 16777217
+      },
+      "valid": false
+    },
+    {
+      "name": "empty-items",
+      "manifest": {
+        "sessionId": "22222222-2222-3333-4444-555555555555",
+        "protocol": {
+          "major": 1,
+          "minor": 0
+        },
+        "items": [],
+        "totalBytes": 0,
+        "createdAtUtc": "2026-10-20T00:00:00+00:00",
+        "chunkBytes": 4194304
+      },
+      "valid": false
+    }
+  ],
+  "paths": [
+    {
+      "input": "a//b/",
+      "result": "a/b"
+    },
+    {
+      "input": "a\\b",
+      "result": "a/b"
+    },
+    {
+      "input": "/a",
+      "result": null
+    },
+    {
+      "input": "\\\\host\\file",
+      "result": null
+    },
+    {
+      "input": "C:relative",
+      "result": null
+    },
+    {
+      "input": "a/../b",
+      "result": null
+    },
+    {
+      "input": "a/./b",
+      "result": null
+    },
+    {
+      "input": "a/\u0000b",
+      "result": null
+    },
+    {
+      "input": "a:colon",
+      "result": null
+    },
+    {
+      "input": "a?question",
+      "result": "a?question"
+    },
+    {
+      "input": "a\u001fb",
+      "result": "a\u001fb"
+    },
+    {
+      "input": "a/ ",
+      "result": "a/ "
+    },
+    {
+      "input": "a/",
+      "result": "a"
+    },
+    {
+      "input": ".hidden",
+      "result": ".hidden"
+    },
+    {
+      "input": "CON",
+      "result": "CON"
+    },
+    {
+      "input": "é",
+      "result": "é"
+    },
+    {
+      "input": "é",
+      "result": "é"
+    }
+  ],
+  "comparisons": [
+    {
+      "left": "a",
+      "right": "A",
+      "equal": true
+    },
+    {
+      "left": "é",
+      "right": "É",
+      "equal": true
+    },
+    {
+      "left": "é",
+      "right": "é",
+      "equal": false
+    },
+    {
+      "left": "ß",
+      "right": "SS",
+      "equal": false
+    },
+    {
+      "left": "ß",
+      "right": "ẞ",
+      "equal": false
+    },
+    {
+      "left": "i",
+      "right": "ı",
+      "equal": false
+    },
+    {
+      "left": "s",
+      "right": "ſ",
+      "equal": false
+    },
+    {
+      "left": "k",
+      "right": "K",
+      "equal": false
+    },
+    {
+      "left": "σ",
+      "right": "ς",
+      "equal": true
+    },
+    {
+      "left": "𐐀",
+      "right": "𐐨",
+      "equal": true
+    }
+  ],
+  "wires": [
+    {
+      "name": "missing-manifest-sessionId",
+      "json": "{\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-manifest-sessionId",
+      "json": "{\"sessionId\":null,\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-manifest-protocol",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-manifest-protocol",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":null,\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-manifest-items",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-manifest-items",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":null,\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "missing-manifest-totalBytes",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-manifest-totalBytes",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":null,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-manifest-createdAtUtc",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "0001-01-01T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-manifest-createdAtUtc",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":null,\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-manifest-chunkBytes",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\"}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-manifest-chunkBytes",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":null}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-item-id",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-item-id",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":null,\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-item-kind",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-item-kind",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":null,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-item-displayName",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-item-displayName",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":null,\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "missing-item-relativePath",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-item-relativePath",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":null,\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "missing-item-size",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-item-size",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":null,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-item-sha256",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-item-sha256",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":null,\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "missing-item-mimeType",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-item-mimeType",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":null,\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "missing-item-chunkCount",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\"}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-item-chunkCount",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":null}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "missing-protocol-major",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": false,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-protocol-major",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":null,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "missing-protocol-minor",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "null-protocol-minor",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":null},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "date-0001-01-01T00:00:00+00:00",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"0001-01-01T00:00:00\\u002B00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "0001-01-01T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "date-9999-12-31T23:59:59.9999999Z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"9999-12-31T23:59:59.9999999Z\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "9999-12-31T23:59:59.9999999+00:00"
+    },
+    {
+      "name": "date-2026-02-29T00:00:00Z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-02-29T00:00:00Z\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "date-2024-02-29T00:00:00Z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2024-02-29T00:00:00Z\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2024-02-29T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "date-2026-10-20T00:00:60Z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:60Z\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "date-2026-10-20T24:00:00Z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T24:00:00Z\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "date-2026-10-20t00:00:00z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20t00:00:00z\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "date-2026-10-20T00:00:00+14:01",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B14:01\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "date-2026-10-20T00:00:00+14:00",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\\u002B14:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.0000000+14:00"
+    },
+    {
+      "name": "date-2026-10-20T00:00:00.1234567890123456Z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00.1234567890123456Z\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.1234567+00:00"
+    },
+    {
+      "name": "date-2026-10-20T00:00:00.12345678901234567Z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00.12345678901234567Z\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "date-2026-10-20T00:00Z",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00Z\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.0000000+00:00"
+    },
+    {
+      "name": "date-2026-10-20",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.0000000+08:00"
+    },
+    {
+      "name": "date-2026-10-20T00:00:00",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00\",\"chunkBytes\":4194304}",
+      "decoded": true,
+      "valid": true,
+      "timestamp": "2026-10-20T00:00:00.0000000+08:00"
+    },
+    {
+      "name": "date-2026-10-20T00:00:00Ztrailing",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"2026-10-20T00:00:00Ztrailing\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    },
+    {
+      "name": "date-0001-01-01T00:00:00+08:00",
+      "json": "{\"sessionId\":\"22222222-2222-3333-4444-555555555555\",\"protocol\":{\"major\":1,\"minor\":0},\"items\":[{\"id\":\"11111111-2222-3333-4444-555555555555\",\"kind\":1,\"displayName\":\"a.txt\",\"relativePath\":\"folder/a.txt\",\"size\":0,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mimeType\":\"text/plain\",\"chunkCount\":0}],\"totalBytes\":0,\"createdAtUtc\":\"0001-01-01T00:00:00\\u002B08:00\",\"chunkBytes\":4194304}",
+      "decoded": false,
+      "valid": false,
+      "timestamp": null
+    }
+  ],
+  "baseline": "1cd4620dd58a67b0963b73487743137813b8864a",
+  "filenameNote": "Actual fixed C# executed on macOS; Path.GetInvalidFileNameChars results are macOS-specific, not a Windows runtime test."
+}

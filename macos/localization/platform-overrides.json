@@ -1,0 +1,50 @@
+{
+  "CrossDeviceClipboardDescription.Text": {
+    "en-US": "Sync with paired devices. Enabling sync also enables device connection; disabling device connection stops sync.",
+    "zh-CN": "与已配对的设备同步。开启同步也会开启设备连接；关闭设备连接会停止同步。",
+    "zh-TW": "與已配對的裝置同步。啟用同步也會啟用裝置連線；關閉裝置連線會停止同步。",
+    "ja-JP": "ペアリング済みのデバイスと同期します。同期を有効にするとデバイス接続も有効になり、デバイス接続を無効にすると同期が停止します。",
+    "ko-KR": "페어링된 기기와 동기화합니다. 동기화를 켜면 기기 연결도 켜지며, 기기 연결을 끄면 동기화가 중지됩니다.",
+    "de-DE": "Mit gekoppelten Geräten synchronisieren. Das Aktivieren der Synchronisierung aktiviert auch die Geräteverbindung; das Deaktivieren der Geräteverbindung stoppt die Synchronisierung.",
+    "fr-FR": "Synchronisez avec les appareils jumelés. L’activation de la synchronisation active aussi la connexion aux appareils ; la désactivation de cette connexion arrête la synchronisation.",
+    "es-ES": "Sincroniza con los dispositivos emparejados. Al activar la sincronización también se activa la conexión entre dispositivos; al desactivar la conexión se detiene la sincronización.",
+    "pt-BR": "Sincronize com dispositivos pareados. Ativar a sincronização também ativa a conexão entre dispositivos; desativar a conexão interrompe a sincronização.",
+    "ru-RU": "Синхронизация с сопряжёнными устройствами. Включение синхронизации также включает подключение устройств; отключение подключения останавливает синхронизацию."
+  },
+  "DefaultClipboardSyncModeDescription.Text": {
+    "en-US": "Your selected mode applies when you pair a device. Accepting an incoming pairing does not enable automatic sending.",
+    "zh-CN": "主动配对设备时应用所选模式。接受其他设备发起的配对不会自动开启发送。",
+    "zh-TW": "主動配對裝置時套用所選模式。接受其他裝置發起的配對不會自動啟用傳送。",
+    "ja-JP": "自分からデバイスをペアリングすると、選択したモードが適用されます。相手からのペアリングを承認しても自動送信は有効になりません。",
+    "ko-KR": "직접 기기를 페어링하면 선택한 모드가 적용됩니다. 다른 기기의 페어링 요청을 수락해도 자동 전송은 켜지지 않습니다.",
+    "de-DE": "Der gewählte Modus gilt, wenn Sie ein Gerät koppeln. Das Annehmen einer eingehenden Kopplung aktiviert keinen automatischen Versand.",
+    "fr-FR": "Le mode choisi s’applique lorsque vous lancez le jumelage d’un appareil. Accepter une demande de jumelage n’active pas l’envoi automatique.",
+    "es-ES": "El modo elegido se aplica cuando inicias el emparejamiento con un dispositivo. Aceptar una solicitud de emparejamiento no activa el envío automático.",
+    "pt-BR": "O modo escolhido é aplicado quando você inicia o pareamento de um dispositivo. Aceitar uma solicitação de pareamento não ativa o envio automático.",
+    "ru-RU": "Выбранный режим применяется, когда вы инициируете сопряжение устройства. Принятие входящего запроса на сопряжение не включает автоматическую отправку."
+  },
+  "NearbyLinksLifetime": {
+    "en-US": "Closing this window or keeping DropSpace in the menu bar keeps these links active. Quitting DropSpace or changing networks invalidates them.",
+    "zh-CN": "关闭此窗口或让 DropSpace 在菜单栏运行时，链接仍然有效。退出 DropSpace 或切换网络会使链接失效。",
+    "zh-TW": "關閉此視窗或讓 DropSpace 在選單列執行時，連結仍然有效。結束 DropSpace 或切換網路會使連結失效。",
+    "ja-JP": "このウインドウを閉じても、DropSpace がメニューバーで動作している間はリンクが有効です。DropSpace を終了するかネットワークを変更すると無効になります。",
+    "ko-KR": "이 창을 닫거나 DropSpace를 메뉴 막대에서 계속 실행해도 링크는 유지됩니다. DropSpace를 종료하거나 네트워크를 변경하면 링크가 무효화됩니다.",
+    "de-DE": "Wenn Sie dieses Fenster schließen oder DropSpace in der Menüleiste weiterlaufen lassen, bleiben die Links aktiv. Beim Beenden von DropSpace oder Wechseln des Netzwerks werden sie ungültig.",
+    "fr-FR": "Les liens restent actifs lorsque vous fermez cette fenêtre ou laissez DropSpace dans la barre des menus. Quitter DropSpace ou changer de réseau les rend invalides.",
+    "es-ES": "Los enlaces siguen activos al cerrar esta ventana o mantener DropSpace en la barra de menús. Salir de DropSpace o cambiar de red los invalida.",
+    "pt-BR": "Os links continuam ativos quando você fecha esta janela ou mantém o DropSpace na barra de menus. Encerrar o DropSpace ou mudar de rede invalida os links.",
+    "ru-RU": "Ссылки остаются активными после закрытия этого окна, пока DropSpace работает в строке меню. Выход из DropSpace или смена сети делает их недействительными."
+  },
+  "CloseToTrayContent": {
+    "en-US": "Closing this window keeps DropSpace in the menu bar. Clipboard recording continues according to your current settings. Use the menu bar to reopen DropSpace or quit. You can choose to exit when closing the window in Settings.",
+    "zh-CN": "关闭窗口后，DropSpace 会留在菜单栏中，剪贴板记录继续遵循当前设置。你可以从菜单栏重新打开或退出 DropSpace，也可以在设置中改为关闭窗口时直接退出。",
+    "zh-TW": "關閉視窗後，DropSpace 會保留在選單列中，剪貼簿記錄會繼續依照目前設定運作。你可以從選單列重新開啟或結束 DropSpace，也可以在設定中改為關閉視窗時直接結束。",
+    "ja-JP": "ウインドウを閉じても DropSpace はメニューバーに残ります。クリップボードの記録は現在の設定に従って続きます。メニューバーから再度開いたり終了したりできます。設定で、ウインドウを閉じると終了するように変更できます。",
+    "ko-KR": "창을 닫아도 DropSpace는 메뉴 막대에 남습니다. 클립보드 기록은 현재 설정에 따라 계속됩니다. 메뉴 막대에서 DropSpace를 다시 열거나 종료할 수 있습니다. 설정에서 창을 닫을 때 앱도 종료하도록 변경할 수 있습니다.",
+    "de-DE": "Beim Schließen dieses Fensters bleibt DropSpace in der Menüleiste. Die Zwischenablage wird gemäß Ihren aktuellen Einstellungen weiter aufgezeichnet. Über die Menüleiste können Sie DropSpace erneut öffnen oder beenden. In den Einstellungen können Sie festlegen, dass die App beim Schließen des Fensters beendet wird.",
+    "fr-FR": "Lorsque vous fermez cette fenêtre, DropSpace reste dans la barre des menus. L’enregistrement du presse-papiers continue selon vos réglages actuels. Utilisez la barre des menus pour rouvrir ou quitter DropSpace. Vous pouvez choisir de quitter l’application à la fermeture de la fenêtre dans les réglages.",
+    "es-ES": "Al cerrar esta ventana, DropSpace permanece en la barra de menús. El registro del portapapeles continúa según tus ajustes actuales. Usa la barra de menús para volver a abrir o salir de DropSpace. En Ajustes puedes elegir que la aplicación se cierre al cerrar la ventana.",
+    "pt-BR": "Ao fechar esta janela, o DropSpace permanece na barra de menus. O registro da área de transferência continua conforme os ajustes atuais. Use a barra de menus para reabrir ou encerrar o DropSpace. Nos Ajustes, você pode optar por encerrar o aplicativo ao fechar a janela.",
+    "ru-RU": "После закрытия окна DropSpace остаётся в строке меню. Запись буфера обмена продолжается согласно текущим настройкам. Через строку меню можно снова открыть DropSpace или выйти из приложения. В настройках можно выбрать выход при закрытии окна."
+  }
+}

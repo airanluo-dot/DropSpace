@@ -365,3 +365,13 @@ html:lang(ja) body { font-family:"Yu Gothic UI","Meiryo","Segoe UI",system-ui,sa
 html:lang(ko) body { font-family:"Malgun Gothic","Apple SD Gothic Neo","Segoe UI",system-ui,sans-serif; }
 html:lang(zh) h1,html:lang(zh) h2,html:lang(ja) h1,html:lang(ja) h2,html:lang(ko) h1,html:lang(ko) h2 { line-height:1.25; letter-spacing:0; }
 @media(max-width:680px) { .language-switch { max-width:155px; } .nav-download { margin-left:auto; } .native-tabs button { padding-inline:3px; } }
+/* Platform choices remain visible even when a browser suggestion is available. */
+.download-card[data-suggested="true"] { outline: 2px solid currentColor; outline-offset: 3px; }
+.mac-page { max-width: 980px; }
+.mac-page header p, .mac-detail p, .mac-detail li { max-width: 76ch; line-height: 1.75; }
+.mac-download, .mac-detail { margin-block: 3rem; padding-block: 0; }
+.mac-disclosure { padding: 1.25rem; border: 1px solid currentColor; border-radius: 12px; }
+.mac-detail h2 { margin-bottom: 1rem; }
+.mac-detail ol { padding-left: 1.5rem; }
+.mac-detail li { margin-block: 1rem; }
+.mac-detail .release-body p { white-space: pre-wrap; }

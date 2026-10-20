@@ -4,6 +4,8 @@ The official ten-language static website for [DropSpace](https://github.com/aira
 
 ## Pages and language selection
 
+The independent Mac page is `https://airanluo-dot.github.io/DropSpace/macos/`. Mac downloads appear only when a validated `macos-v…` GitHub release and its exact asset manifest exist. Mac stable/beta feeds live under `/api/macos/v1/`; Windows `/api/v1/` and its downloads remain unchanged. Mac distribution is locally ad-hoc signed, without Developer ID or Apple notarization, and the page describes Apple’s per-app opening method. Platform detection only suggests a platform and never asserts chip/system compatibility.
+
 The official homepage is `https://airanluo-dot.github.io/DropSpace/`; its changelog is `https://airanluo-dot.github.io/DropSpace/changelog/`. Each content page has one canonical address shared by all ten languages. Canonicals and the sitemap list only these pages; there are no language-specific `hreflang` promises.
 
 `localization/languages.json` is the shared App/website source for supported language codes, native names, matching rules and product terms. English source strings and complete translations live in `src/locales/<language>.json`; templates bind stable semantic resource IDs through `data-i18n` and `data-i18n-attrs`. Reword existing resources without replacing their IDs.
@@ -34,7 +36,7 @@ Both `build` and `build:static` execute the lightweight localization completenes
 
 For subsequent copy changes: extract new/changed text, update only affected translations, record a genuine revision or explicit per-resource confirmation, run the completeness gate, and review changed wording and affected layouts as needed. Never copy English into translations or refresh fingerprints in bulk to clear stale entries. Release bodies and explicit fixed/sample-content exceptions are excluded from ten-language completeness.
 
-Keep the repository-wide passive test budget at no more than 20 executed cases/scenarios across workflows, reruns and retries. A development or publication request does not authorize full Node/Playwright suites, language-by-page matrices, repeated screenshot sweeps or model evaluations. Resource entry counts are not test-case counts. Follow `docs/dev/passive-test-budget.md` and the current task ledger; reuse focused checks without duplicate scans.
+Use focused checks tied to actual changes; the current repository policy has no fixed functional case ceiling. A development or publication request does not authorize full Node/Playwright suites, language-by-page matrices, repeated screenshot sweeps or model evaluations. Resource entry counts are not test-case counts. Follow `docs/dev/passive-test-budget.md` and the current task ledger; reuse focused checks without duplicate scans.
 
 Production sync is fail-closed: `sync-releases` must fetch and validate authoritative GitHub Releases before deployment. Network, HTTP, JSON, contract, Stable-release or required-asset failures retain the previous successful Pages deployment. The committed `data/releases.json` is only a local/PR fixture and is never a production fallback. Asset names are content-hashed, Pages deployment is atomic, and the existing per-document CSP remains enforced.
 

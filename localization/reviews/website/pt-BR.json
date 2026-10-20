@@ -998,9 +998,92 @@
     "ui.uptime.example": [
       "09ea128f0d9d793d1464345e41c0b822a9db31d9872ce4bb187d9870e7dad7a1",
       "8720cd3601f1df82b8f5260ab960b716003cb7fe1cc375a662008b638e829bdd"
+    ],
+    "meta.mac.title": [
+      "8bc15a13e094cf846090eafc375385565e1b6eefcb289c91c5272667794cdbbd",
+      "b92997a48877c26f058f1ab62b347aadb7b2e95c249bc3453ef582e145fab51c"
+    ],
+    "meta.mac.description": [
+      "ebcb3e71df1c7d2081befc701dc0aa8f353e23e2bbd3f729dc754fb7ceda9d88",
+      "91a2b4a4550d0a15fc35760c06cc9c623286638ecfe1654c7dff49e75f1fc574"
+    ],
+    "mac.nav": [
+      "87d27dd0d37b70ddc26eacb7c981214146d4601a3241226a128a3d72cb0b2c73",
+      "8f3134a38b94d04b05420f90af090561cabcef71f480e53969dbef2c95db80ce"
+    ],
+    "mac.intro": [
+      "3ec4186706c422f4b4913ebbb587f349f916df0384a713f74a25629eaf01c7eb",
+      "e0dafc666f83a04d2f8899122aed6bf41204f3c9cdee66b1cfbfe6cb92f913fc"
+    ],
+    "mac.requirements": [
+      "60dbf8c2615b8d035a5cec625c5c92c8294e419cc86953b63ce2618e05cddc96",
+      "cdfb014b7fda8bf0b3540f326576aa727805bad98d1dfbcb04ae8209da91e2db"
+    ],
+    "mac.baseline": [
+      "fbabd2342113622142aa052eb1f1c67c0f08fca3e6ca16d751627c494d7a1eb8",
+      "539fd10cf63c617c066b67dc50df6724618dfe7a1291d5c79a102af81cb63399"
+    ],
+    "mac.integrity": [
+      "f3d737a08586a33bba567a56ab4d071288d272837281a074706da98b44fdef78",
+      "ddf3c2bfb8c43d44e5d97b68d9256576c6c5b1ee91cd2045f297b006743883f9"
+    ],
+    "mac.features": [
+      "964e8ecb280828d94087734b229e6c6447e085e2af308684bbfb409a0d078cc8",
+      "f076dcb70688b728074f4f640c6dbde109e33f6c6639e859e2fe2463e868ce14"
+    ],
+    "mac.features.body": [
+      "0c00d64a30203500b31561516f076a269b65ed4f9c53b66dccdfd68be0c2e63f",
+      "7a71a17efe1728dd9ef7c488f8835f3422af4c00ab5987e99d2b4fcbb1c5b21a"
+    ],
+    "mac.unreleased": [
+      "9fdeee86ffec9605dd198e32049719a0710a03ffb43df3c90f5f9bf3b66e2938",
+      "436d22271f9c0608a5a7ce9054aef4d2adabf785ab1075a2c89742cba65e046c"
+    ],
+    "mac.download": [
+      "cc06de09f612c5d6c747b4938bd2d0ca97d54219574c5a3aa2fea79a5338d184",
+      "030ddfd81479360d785419104ce89997de33c6d93c8d9b1a87975c5fc213c13b"
+    ],
+    "mac.install": [
+      "ab7f24052a861565feaac2d04b98c20ee9fe0a05ddf6b4688f938d9074d5462b",
+      "5dae08964294cd54b8ec4bf41a042c14fa65dd582c0985bc3836a33b910132cd"
+    ],
+    "mac.step1": [
+      "d1a0c869825e60aa212e74a13cedae68d0ec35744ae90f842c403cf40b36dbf8",
+      "1b0d3f08cfc70e09cf162ad3cba82e414857326281a6ed5d3fe0003a80ea798e"
+    ],
+    "mac.step2": [
+      "9e4dd268e6c273c1a93f753f9bd007f76f43fa6a3d76033eac81bd2d274d24f0",
+      "71f5b0e70ccda88a2b06f5afcc47430914bb277c5b8bfbaa7145d93a0987b62e"
+    ],
+    "mac.step3": [
+      "c1eead8cd7ae75ddcdc0b1448d391b922f82e78f444e4db8aa01de6464065d1b",
+      "0d1627b5caf1cd88bbe39a1ab9f1f9156baeb6e3a40b81bcf755215b2f837a85"
+    ],
+    "mac.step4": [
+      "930018be2e4ef37c64194f0f8b122abae5d7d3da50a2654adc7f158a1f24664f",
+      "6d5e83bdcac7ae7b3fe94b96c19602f05b82856e041d57faf59a780414c164a0"
+    ],
+    "mac.history": [
+      "1f20be9dc19576024644ca94980e732ffa650d66c3c83f7e1d0a5f6c36cc1f51",
+      "c80efe99b4ffbc33318f9acf3832cacbaadb91e868933c98f70cee4910ddb647"
+    ],
+    "mac.platformHint": [
+      "e76f122caeb8a6d0b0c5d3ce8e2a707b2fd11b430dbe2ab48beabae6747b0e9b",
+      "18e9ac6b8d8af47c254261d2de7aba247485e0be5b50be00d036ec9a287e4957"
+    ],
+    "mac.appleGuide": [
+      "9a26e01d989a15fb27eca951662ec8da6ccec6f1f1c7b13a9b3126d4f53b30af",
+      "6e88de408ed21e3c2c9eb916ef29348aaeafcc9c93d60441be70f09349750c00"
     ]
   },
-  "reviewedBy": "website/translations: individually translated/reviewed 245 UI IDs; website reviewed four added time/date IDs",
-  "reviewedAt": "2026-10-07T21:45:44.630Z",
-  "initialReviewMethod": "website/translations: individually translated/reviewed 245 UI IDs; website reviewed four added time/date IDs"
+  "reviewedBy": "Codex: Beta 1 scope sentence reviewed; no full human locale certification",
+  "reviewedAt": "2026-10-20T16:36:23.027Z",
+  "initialReviewMethod": "website/translations: individually translated/reviewed 245 UI IDs; website reviewed four added time/date IDs",
+  "latestReviewScope": {
+    "ids": [
+      "mac.baseline"
+    ],
+    "reviewedBy": "Codex: Beta 1 scope sentence reviewed; no full human locale certification",
+    "reviewedAt": "2026-10-20T16:36:23.027Z"
+  }
 }

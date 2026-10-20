@@ -208,3 +208,18 @@ test("Stable outranks every same-version prerelease and large components retain 
   assert.ok(compareReleaseTags("v1.0.0", "v1.0.0-preview.9999") > 0);
   assert.ok(compareReleaseTags("v9007199254740993.0.0", "v9007199254740992.0.0") > 0);
 });
+
+test("macOS releases are isolated before Windows sorting and truncation", () => {
+  const stable = {
+    ...valid, tag_name: "v0.3.1", prerelease: false,
+    html_url: "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1",
+    assets: ["DropSpaceSetup.exe", "DropSpace.exe", "DropSpace-x64.msix", "SHA256SUMS.txt", "update-manifest.json"].map(name => ({
+      name, size: 42, browser_download_url: `https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1/${name}`
+    }))
+  };
+  const macs = Array.from({length: 25}, (_, index) => ({...valid, tag_name: `macos-v0.1.0-beta.${index+1}`, assets: []}));
+  const date = "2026-10-20T00:00:00Z";
+  assert.deepEqual(normalizeGitHubReleases([...macs,stable],date),normalizeGitHubReleases([stable],date));
+  assert.deepEqual(createWebsiteReleaseData([...macs,stable],date),createWebsiteReleaseData([stable],date));
+  assert.throws(() => normalizeGitHubReleases([{...valid,tag_name:"macos-v0.1.0-beta.invalid"}],date),/Invalid release tag/);
+});

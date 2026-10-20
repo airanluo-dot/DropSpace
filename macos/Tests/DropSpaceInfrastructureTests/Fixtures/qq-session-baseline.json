@@ -1,0 +1,1995 @@
+{
+  "baseline": "1cd4620dd58a67b0963b73487743137813b8864a",
+  "cases": [
+    {
+      "input": [],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "oo123456",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "oo123456",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "123456",
+      "gtk": 1078293526,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=synthetic-key; uin=oo123456"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=synthetic-key; uin=oo123456"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "old",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "new",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "007",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "new",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "007",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "007",
+      "gtk": 193500239,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=new; qqmusic_uin=007"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=new; qqmusic_uin=007"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qm_keyst",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "wxuin",
+          "value": "o42",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qm_keyst",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "wxuin",
+          "value": "o42",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "42",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qm_keyst=synthetic-key; wxuin=o42"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qm_keyst=synthetic-key; wxuin=o42"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "invalid",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "invalid",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "0",
+      "gtk": 1078293526,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=synthetic-key; uin=invalid"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=synthetic-key; uin=invalid"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": "y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": "y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "0",
+      "gtk": 1078293526,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "0",
+      "gtk": 1078293526,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=synthetic-key"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=synthetic-key"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": "u.y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": "u.y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "0",
+      "gtk": 1078293526,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=synthetic-key"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com.attacker.test",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".QQ.COM",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/other",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "bad;value",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "bad\\value",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "bad,value",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "0",
+      "gtk": 30352645,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": 0,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": 0,
+          "httpOnly": true
+        }
+      ],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "skey",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "synthetic-key",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [],
+      "usable": false,
+      "uin": "0",
+      "gtk": 5381,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": ""
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "one",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "two",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "o1",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "o2",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "one",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "two",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "o1",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "o2",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "2",
+      "gtk": 193501607,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=one; uin=o1; qqmusic_uin=o2; qqmusic_key=two"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=one; uin=o1; qqmusic_uin=o2; qqmusic_key=two"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "two",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "one",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "three",
+          "domain": "u.y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "o1",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "o2",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "two",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "one",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "three",
+          "domain": "u.y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "o1",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "o2",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "2",
+      "gtk": 193507359,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=three; qqmusic_key=one; uin=o1; qqmusic_key=two; qqmusic_uin=o2"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=one; uin=o1; qqmusic_key=two; qqmusic_uin=o2"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "three",
+          "domain": "u.y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "one",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "two",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "o1",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "o2",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "three",
+          "domain": "u.y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "one",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "two",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "o1",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "o2",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "2",
+      "gtk": 275584093,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=three; qqmusic_key=one; uin=o1; qqmusic_key=two; qqmusic_uin=o2"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=one; uin=o1; qqmusic_key=two; qqmusic_uin=o2"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    },
+    {
+      "input": [
+        {
+          "name": "qqmusic_key",
+          "value": "two",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "three",
+          "domain": "u.y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "one",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "o2",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "o1",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "accepted": [
+        {
+          "name": "qqmusic_key",
+          "value": "two",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "three",
+          "domain": "u.y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_key",
+          "value": "one",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "qqmusic_uin",
+          "value": "o2",
+          "domain": ".y.qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        },
+        {
+          "name": "uin",
+          "value": "o1",
+          "domain": ".qq.com",
+          "path": "/",
+          "expires": null,
+          "httpOnly": true
+        }
+      ],
+      "usable": true,
+      "uin": "2",
+      "gtk": 193507359,
+      "headers": [
+        {
+          "url": "https://u.y.qq.com/cgi-bin/musicu.fcg",
+          "header": "qqmusic_key=three; qqmusic_key=one; uin=o1; qqmusic_key=two; qqmusic_uin=o2"
+        },
+        {
+          "url": "https://c.y.qq.com/",
+          "header": "qqmusic_key=one; uin=o1; qqmusic_key=two; qqmusic_uin=o2"
+        },
+        {
+          "url": "https://y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "http://u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com:444/",
+          "header": ""
+        },
+        {
+          "url": "https://user@u.y.qq.com/",
+          "header": ""
+        },
+        {
+          "url": "https://u.y.qq.com.attacker.test/",
+          "header": ""
+        }
+      ]
+    }
+  ]
+}

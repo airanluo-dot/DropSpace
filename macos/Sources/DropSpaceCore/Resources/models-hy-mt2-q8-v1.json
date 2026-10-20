@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "models-hy-mt2-q8-v1",
+  "releaseUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/models-hy-mt2-q8-v1",
+  "manifestUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/manifest.json",
+  "kind": "official-model-byte-mirror",
+  "transportOnly": true,
+  "models": [
+    {
+      "modelId": "hy-mt2-18-q8-plain-beta",
+      "name": "Hy-MT2 1.8B Q8_0",
+      "upstream": {
+        "repo": "tencent/Hy-MT2-1.8B-GGUF",
+        "revision": "a0c709d9fac510f2c807aa3af52872340dc37a4a",
+        "url": "https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF/resolve/a0c709d9fac510f2c807aa3af52872340dc37a4a/Hy-MT2-1.8B-Q8_0.gguf"
+      },
+      "fullsize": 1908528192,
+      "fullsha": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "parts": [
+        {
+          "order": 1,
+          "name": "Hy-MT2-1.8B-Q8_0.gguf",
+          "bytes": 1908528192,
+          "sha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+          "url": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/Hy-MT2-1.8B-Q8_0.gguf"
+        }
+      ],
+      "licenseFiles": [
+        "Hy-MT2-1.8B-GGUF-LICENSE.txt"
+      ],
+      "noticePresent": false,
+      "assembly": {
+        "method": "concatenate parts in order, without separators",
+        "outputFilename": "Hy-MT2-1.8B-Q8_0.gguf",
+        "byteIdenticalToUpstream": true
+      },
+      "licenseUrls": [
+        "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/Hy-MT2-1.8B-GGUF-LICENSE.txt"
+      ]
+    },
+    {
+      "modelId": "hy-mt2-7b-q8-plain-beta",
+      "name": "Hy-MT2 7B Q8_0",
+      "upstream": {
+        "repo": "tencent/Hy-MT2-7B-GGUF",
+        "revision": "ab8472660ac61fac25f1af43fac2599d52a8a775",
+        "url": "https://huggingface.co/tencent/Hy-MT2-7B-GGUF/resolve/ab8472660ac61fac25f1af43fac2599d52a8a775/HY-MT2-7B-Q8_0.gguf"
+      },
+      "fullsize": 7981928896,
+      "fullsha": "58b3ad55dd6f6fa08c695cddc34fb5f8f708a844f78ae10508071914b0ed67c0",
+      "parts": [
+        {
+          "order": 1,
+          "name": "HY-MT2-7B-Q8_0.gguf.part001",
+          "bytes": 2000000000,
+          "sha256": "65cca832641857c8f37097fa3e354f19cf7146a38c00fd9743dfcbc031de1ebc",
+          "url": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/HY-MT2-7B-Q8_0.gguf.part001"
+        },
+        {
+          "order": 2,
+          "name": "HY-MT2-7B-Q8_0.gguf.part002",
+          "bytes": 2000000000,
+          "sha256": "08dac7fb23464dce35a874f6984f8eb4c60591be3ff92e2144946269fc666851",
+          "url": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/HY-MT2-7B-Q8_0.gguf.part002"
+        },
+        {
+          "order": 3,
+          "name": "HY-MT2-7B-Q8_0.gguf.part003",
+          "bytes": 2000000000,
+          "sha256": "cb4a4229d3413294c2499b47a35e70d3e7bfe95ea4992f28706e219a398fc3c5",
+          "url": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/HY-MT2-7B-Q8_0.gguf.part003"
+        },
+        {
+          "order": 4,
+          "name": "HY-MT2-7B-Q8_0.gguf.part004",
+          "bytes": 1981928896,
+          "sha256": "fc097970db423139f59e71971ccba3088c36d9496d70ce807d9a88593979d434",
+          "url": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/HY-MT2-7B-Q8_0.gguf.part004"
+        }
+      ],
+      "licenseFiles": [
+        "Hy-MT2-7B-GGUF-LICENSE.txt"
+      ],
+      "noticePresent": false,
+      "assembly": {
+        "method": "concatenate parts in order, without separators",
+        "outputFilename": "HY-MT2-7B-Q8_0.gguf",
+        "byteIdenticalToUpstream": true
+      },
+      "licenseUrls": [
+        "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/Hy-MT2-7B-GGUF-LICENSE.txt"
+      ]
+    }
+  ],
+  "supportingAssets": [
+    {
+      "name": "Hy-MT2-1.8B-GGUF-LICENSE.txt",
+      "bytes": 11639,
+      "sha256": "a1d52d448f81c584a47c583e19dfab2d3851c7c84431b07baee093c1113ed114",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/Hy-MT2-1.8B-GGUF-LICENSE.txt"
+    },
+    {
+      "name": "Hy-MT2-7B-GGUF-LICENSE.txt",
+      "bytes": 11635,
+      "sha256": "746750afa6af28fe4f8b326751ad2a40c700d2e5c459c0a1f6a2e76d99ace224",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/Hy-MT2-7B-GGUF-LICENSE.txt"
+    },
+    {
+      "name": "README-model-assets.md",
+      "bytes": 2144,
+      "sha256": "c6868b8c32ddecb2a83093c17ad88ed8d98c365d48cfa22f67fd6ff3dff1fb66",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/download/models-hy-mt2-q8-v1/README-model-assets.md"
+    }
+  ]
+}

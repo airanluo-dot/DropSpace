@@ -998,9 +998,92 @@
     "ui.uptime.example": [
       "09ea128f0d9d793d1464345e41c0b822a9db31d9872ce4bb187d9870e7dad7a1",
       "052e7975cd8ca9b0bf4fc88974bd578fab711e62c0428f07e70b5efd46634492"
+    ],
+    "meta.mac.title": [
+      "8bc15a13e094cf846090eafc375385565e1b6eefcb289c91c5272667794cdbbd",
+      "164e589e44bb351cd850084fcf39941a796341681edb35c9730dad042f9873f7"
+    ],
+    "meta.mac.description": [
+      "ebcb3e71df1c7d2081befc701dc0aa8f353e23e2bbd3f729dc754fb7ceda9d88",
+      "4f60ad8e133d3cf018f9959713a2b1e30f1532d1c359aa9cf26351ee1592576d"
+    ],
+    "mac.nav": [
+      "87d27dd0d37b70ddc26eacb7c981214146d4601a3241226a128a3d72cb0b2c73",
+      "c4d3c54408486bd997dd3695d6dcf05f7a4b2bb78b360d1c4f1459309ea9f735"
+    ],
+    "mac.intro": [
+      "3ec4186706c422f4b4913ebbb587f349f916df0384a713f74a25629eaf01c7eb",
+      "7bce24a6aa1683e3714aac157ac5195fd7af40de17ddc2625735b9e8aa382e8e"
+    ],
+    "mac.requirements": [
+      "60dbf8c2615b8d035a5cec625c5c92c8294e419cc86953b63ce2618e05cddc96",
+      "91e77a42623d177ed21419adf9c62e57116932b8f2c36b2ca0e5e799ba91f51f"
+    ],
+    "mac.baseline": [
+      "fbabd2342113622142aa052eb1f1c67c0f08fca3e6ca16d751627c494d7a1eb8",
+      "23338c24825ff20e089c879e45b93ed525b2cab190958d20dd4afa82f0edf548"
+    ],
+    "mac.integrity": [
+      "f3d737a08586a33bba567a56ab4d071288d272837281a074706da98b44fdef78",
+      "bda4becc70349f3ee0992bfe172bf8490532491c807da9ca5584eb5171c3e065"
+    ],
+    "mac.features": [
+      "964e8ecb280828d94087734b229e6c6447e085e2af308684bbfb409a0d078cc8",
+      "3a149e99cff5afdf12121ffc7735313c8e55b270bbdd0f90c586bdf443ffd538"
+    ],
+    "mac.features.body": [
+      "0c00d64a30203500b31561516f076a269b65ed4f9c53b66dccdfd68be0c2e63f",
+      "37315bef570a05bc37fb84f90df3c9ec9ff15e4f18074f81566d7c77574f4d6d"
+    ],
+    "mac.unreleased": [
+      "9fdeee86ffec9605dd198e32049719a0710a03ffb43df3c90f5f9bf3b66e2938",
+      "010483c16a2e6bd483fb9e51a27b389e6b70eb23925878e0b66e337458553aae"
+    ],
+    "mac.download": [
+      "cc06de09f612c5d6c747b4938bd2d0ca97d54219574c5a3aa2fea79a5338d184",
+      "a533bcf81f8ce69fbce5074b8c4491fff3ba71d61e7b874f09c6f221f6c20b6f"
+    ],
+    "mac.install": [
+      "ab7f24052a861565feaac2d04b98c20ee9fe0a05ddf6b4688f938d9074d5462b",
+      "c4ea409e5c5bdb8dc74481fb624e3983d06a6e3580d55739678ade30ad332903"
+    ],
+    "mac.step1": [
+      "d1a0c869825e60aa212e74a13cedae68d0ec35744ae90f842c403cf40b36dbf8",
+      "de54131d46265d255e2c12788d8415cab2430fb92b3f02542d6aa450aab34d65"
+    ],
+    "mac.step2": [
+      "9e4dd268e6c273c1a93f753f9bd007f76f43fa6a3d76033eac81bd2d274d24f0",
+      "ce0327863e2e381c7b11487d814914502b1f58dd20b8ac0eb3fe94544667d264"
+    ],
+    "mac.step3": [
+      "c1eead8cd7ae75ddcdc0b1448d391b922f82e78f444e4db8aa01de6464065d1b",
+      "a1ff6bc7eea1f6f5257b888089d62b71700a3b899a74b1c1d37fa475bbbe71aa"
+    ],
+    "mac.step4": [
+      "930018be2e4ef37c64194f0f8b122abae5d7d3da50a2654adc7f158a1f24664f",
+      "941e9bb4cc564c8c7513fbdbc34c42b6ce755157cdeea5c533a53c8954007f64"
+    ],
+    "mac.history": [
+      "1f20be9dc19576024644ca94980e732ffa650d66c3c83f7e1d0a5f6c36cc1f51",
+      "56adadfa132c7c735c89036b2b273d4760af834d812080f6032d4071eabab4af"
+    ],
+    "mac.platformHint": [
+      "e76f122caeb8a6d0b0c5d3ce8e2a707b2fd11b430dbe2ab48beabae6747b0e9b",
+      "036680f35e7263eb79edcf575c4cdc62663cfa14f289596c298c90faf9b6a94e"
+    ],
+    "mac.appleGuide": [
+      "9a26e01d989a15fb27eca951662ec8da6ccec6f1f1c7b13a9b3126d4f53b30af",
+      "682881608d9914454278b0842d444b86f7523d0944967cd2ee523e305011a60f"
     ]
   },
-  "reviewedBy": "website: individually translated/reviewed semantic UI IDs; regional/native terms inspected",
-  "reviewedAt": "2026-10-07T21:43:38.156Z",
-  "initialReviewMethod": "website: individually translated/reviewed semantic UI IDs; regional/native terms inspected"
+  "reviewedBy": "Codex: Beta 1 scope wording, source and zh-CN meaning reviewed",
+  "reviewedAt": "2026-10-20T16:36:14.966Z",
+  "initialReviewMethod": "website: individually translated/reviewed semantic UI IDs; regional/native terms inspected",
+  "latestReviewScope": {
+    "ids": [
+      "mac.baseline"
+    ],
+    "reviewedBy": "Codex: Beta 1 scope wording, source and zh-CN meaning reviewed",
+    "reviewedAt": "2026-10-20T16:36:14.966Z"
+  }
 }

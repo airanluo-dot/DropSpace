@@ -333,7 +333,7 @@ export async function checkLocalization({ root = defaultRoot, scopes = ['app', '
 
 export async function checkBuiltWebsite(directory, { staticMode = false, root = defaultRoot } = {}) {
   const issues = [], JSDOM = getDom(root), manifest = json(path.join(root,'localization/languages.json'));
-  const pages = staticMode ? ['index.html'] : ['index.html', 'changelog/index.html'];
+  const pages = staticMode ? ['index.html', 'macos/index.html'] : ['index.html', 'changelog/index.html', 'macos/index.html'];
   for (const page of pages) {
     const file = path.join(directory, page);
     if (!fs.existsSync(file)) { issues.push(`${file}: unified English default page missing`); continue; }

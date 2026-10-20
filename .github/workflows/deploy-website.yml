@@ -33,7 +33,7 @@ concurrency:
 jobs:
   build:
     # Independent module/component releases do not publish or verify an App version.
-    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v') || startsWith(github.event.release.tag_name, 'macos-v')
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -126,9 +126,16 @@ jobs:
       - name: Verify live Release and website metadata
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          PUBLISHED_TAG: ${{ github.event.release.tag_name }}
         shell: bash
         run: |
           expected_tag="$(tr -d '\r\n' < RELEASE_VERSION)"
+          if [[ "$PUBLISHED_TAG" == macos-v* ]]; then
+            node website/_source/scripts/verify-published-macos.mjs "$PUBLISHED_TAG"
+            expected_tag="${{ needs.build.outputs.stable_tag }}"
+            node website/_source/scripts/verify-published-release.mjs "$expected_tag" 180 live
+            exit 0
+          fi
           if [[ "${{ github.event_name }}" == "push" ]]; then
             # A version-promotion push can deploy before its Windows Release is
             # published. Verify the Stable metadata that this build actually

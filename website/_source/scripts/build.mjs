@@ -6,6 +6,7 @@ import { JSDOM } from "jsdom";
 import { languageCatalog, resources, text } from "./i18n.mjs";
 import { checkLocalization, checkBuiltWebsite } from "../../../scripts/check-localization.mjs";
 import { createLatestChangeApi, validateWebsiteReleaseData } from "./release-contract.mjs";
+import { createMacReleaseData, validateMacReleaseData, macChannelFeed } from "./macos-release-contract.mjs";
 import { releaseRequirementsHint, stableRequirements } from "../src/release-requirements.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -17,6 +18,7 @@ const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(
 const stable = releases.stable;
 const stableRelease = releases.api.releases.find((release) => release.tagName === stable.tag);
 const latestChange = createLatestChangeApi(releases.api);
+const macReleases = validateMacReleaseData(releases.macos ?? createMacReleaseData([], new Map(), releases.syncedAt));
 const siteOrigin = (process.env.SITE_ORIGIN ?? (staticShowcase ? "https://dropspace-static.arenvox.chatgpt.site" : "https://airanluo-dot.github.io/DropSpace")).replace(/\/$/, "");
 const basePath = new URL(`${siteOrigin}/`).pathname;
 
@@ -40,6 +42,7 @@ if (!staticShowcase) await mkdir(path.join(dist, "api", "v1"), { recursive: true
 const assetSources = {
   css: "styles.css",
   requirementsJs: "release-requirements.js",
+  platformJs: "platform.js",
   localizationJs: "localization-runtime.js",
   js: "script.js",
   lyricsJs: "lyrics-demo.js",
@@ -112,14 +115,14 @@ function releaseEntries() {
 
 function applyMetadata(document, kind) {
   const pageMeta = { title: text(`meta.${kind}.title`), description: text(`meta.${kind}.description`) };
-  const canonical = `${siteOrigin}/${kind === "changelog" ? "changelog/" : staticShowcase ? "index.html" : ""}`;
+  const canonical = `${siteOrigin}/${kind === "mac" ? "macos/" : kind === "changelog" ? "changelog/" : staticShowcase ? "index.html" : ""}`;
   document.documentElement.lang = "en-US";
   document.documentElement.dataset.page = kind;
   document.title = pageMeta.title;
   document.querySelector('meta[name="description"]')?.setAttribute("content", pageMeta.description);
   document.querySelector('link[rel="canonical"]')?.setAttribute("href", canonical);
   document.querySelector('meta[property="og:title"]')?.setAttribute("content", pageMeta.title);
-  document.querySelector('meta[property="og:description"]')?.setAttribute("content", kind === "changelog" ? pageMeta.description : text("meta.home.ogDescription"));
+  document.querySelector('meta[property="og:description"]')?.setAttribute("content", kind !== "home" ? pageMeta.description : text("meta.home.ogDescription"));
   document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical);
   const publicOrigin = new URL(siteOrigin).origin;
   const publicOg = new URL(assetUrls.og, publicOrigin).href;
@@ -166,7 +169,8 @@ function rewriteLinks(document) {
   for (const link of document.querySelectorAll('a[href]')) {
     const value = link.getAttribute('href');
     if (/^(https?:|mailto:|#)/.test(value)) continue;
-    if (value.includes('changelog')) link.href = changelog;
+    if (value.includes('macos/')) link.href = basePath + 'macos/' + (staticShowcase ? 'index.html' : '');
+    else if (value.includes('changelog')) link.href = changelog;
     else if (value.includes('index.')) link.href = home + (value.includes('#') ? '#' + value.split('#')[1] : '');
   }
 }
@@ -182,6 +186,29 @@ async function render(templatePath, kind) {
     .replace('{{LATEST_CHANGE_URL}}',escapeHtml(change.htmlUrl))
     .replace('{{LATEST_CHANGE_HIGHLIGHTS}}',change.highlights.en.map(item => `<span>${escapeHtml(item)}</span>`).join(''));
   const {document} = new JSDOM(template).window;
+  const macPageURL = basePath + 'macos/' + (staticShowcase ? 'index.html' : '');
+  if (kind === 'home') {
+    const option = document.createElement('a'); option.className = 'download-card'; option.href = macPageURL;
+    option.dataset.platformOption = 'macos';
+    option.innerHTML = `<div><strong data-i18n="mac.nav">${text('mac.nav')}</strong><span data-i18n="mac.requirements">${text('mac.requirements')}</span></div><b>→</b>`;
+    document.querySelector('.download-options')?.append(option);
+    document.querySelector('.download-options [data-download="installer"]')?.setAttribute('data-platform-option', 'windows');
+    const navDownload = document.querySelector('.nav-download');
+    if (navDownload) { navDownload.dataset.platformPrimary = ''; navDownload.dataset.macUrl = macPageURL; }
+    const hint = document.createElement('p'); hint.dataset.i18n = 'mac.platformHint'; hint.textContent = text('mac.platformHint');
+    document.querySelector('#download')?.append(hint);
+    const script = document.createElement('script'); script.type = 'module'; script.src = assetUrls.platformJs; document.body.append(script);
+  }
+  if (kind === 'mac') {
+    const selected = macReleases.stable ?? macReleases.beta;
+    const download = document.querySelector('[data-mac-release]');
+    if (selected) {
+      download.innerHTML = `<p>${escapeHtml(selected.manifest.tag)}</p><a class="button button-primary" data-i18n="${selected.manifest.channel === 'beta' ? 'mac.download' : 'ui.download'}" href="${escapeHtml(selected.manifest.installer.url)}">${text(selected.manifest.channel === 'beta' ? 'mac.download' : 'ui.download')}</a> <a data-i18n="ui.sha.256.checksums" href="${escapeHtml(selected.checksumsURL)}">${text('ui.sha.256.checksums')}</a>`;
+    } else {
+      download.innerHTML = `<p data-i18n="mac.unreleased">${text('mac.unreleased')}</p>`;
+    }
+    document.querySelector('[data-mac-history]').innerHTML = macReleases.releases.map(entry => `<article class="release-entry"><strong>${escapeHtml(entry.manifest.tag)}</strong><div class="release-body"><p lang="en" data-i18n-exempt="release-body">${escapeHtml(entry.manifest.releaseNotes)}</p><a data-i18n="release.notes" href="${escapeHtml(entry.manifest.releaseURL)}">${text('release.notes')}</a> <a data-i18n="ui.download" href="${escapeHtml(entry.manifest.installer.url)}">${text('ui.download')}</a></div></article>`).join('');
+  }
   for (const selector of document.querySelectorAll('[data-language-selector]')) for (const item of languageCatalog.languages) {
     const option = document.createElement('option'); option.value = item.code; option.textContent = item.nativeName; selector.append(option);
   }
@@ -207,6 +234,8 @@ async function render(templatePath, kind) {
 }
 
 await writeFile(path.join(dist, "index.html"), await render("index.html", "home"));
+await mkdir(path.join(dist, "macos"), { recursive: true });
+await writeFile(path.join(dist, "macos", "index.html"), await render("macos/index.html", "mac"));
 if (!staticShowcase) {
   await mkdir(path.join(dist, "changelog"), { recursive: true });
   await writeFile(path.join(dist, "changelog", "index.html"), await render("changelog/index.html", "changelog"));
@@ -228,8 +257,16 @@ await writeFile(path.join(dist, "404.html"), '<!doctype html>\n' + missing.windo
 if (!staticShowcase) await writeFile(path.join(dist, "release-data.json"), `${JSON.stringify(releases, null, 2)}\n`);
 if (!staticShowcase) await writeFile(path.join(dist, "api", "v1", "releases.json"), `${JSON.stringify(releases.api, null, 2)}\n`);
 if (!staticShowcase) await writeFile(path.join(dist, "api", "v1", "latest-change.json"), `${JSON.stringify(latestChange, null, 2)}\n`);
+if (!staticShowcase) {
+  const macAPI = path.join(dist, "api", "macos", "v1");
+  await mkdir(macAPI, { recursive: true });
+  await writeFile(path.join(macAPI, "releases.json"), `${JSON.stringify(macReleases, null, 2)}\n`);
+  for (const channel of ["stable", "beta"]) {
+    await writeFile(path.join(macAPI, `${channel}.json`), `${JSON.stringify(macChannelFeed(macReleases, channel), null, 2)}\n`);
+  }
+}
 await writeFile(path.join(dist, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${siteOrigin}/sitemap.xml\n`);
-await writeFile(path.join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${siteOrigin}/${staticShowcase ? 'index.html' : ''}</loc></url>${staticShowcase ? '' : `<url><loc>${siteOrigin}/changelog/</loc></url>`}</urlset>\n`);
+await writeFile(path.join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${siteOrigin}/${staticShowcase ? 'index.html' : ''}</loc></url>${staticShowcase ? '' : `<url><loc>${siteOrigin}/changelog/</loc></url>`}<url><loc>${siteOrigin}/macos/${staticShowcase ? 'index.html' : ''}</loc></url></urlset>\n`);
 const manifest = JSON.parse(await readFile(path.join(src, "site.webmanifest"), "utf8"));
 manifest.start_url = basePath;
 manifest.icons = [{ src: assetUrls.favicon, sizes: "256x256", type: "image/png" }];

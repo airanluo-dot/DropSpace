@@ -1,0 +1,44 @@
+{
+  "key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+  "share": "a1b2c3d4-e5f6-4789-abcd-0123456789ef",
+  "file": "fedcba98-7654-4321-abcd-ef0123456789",
+  "prefix": "ABEiM0RVZnc=",
+  "nonce": "AAECAwQFBgcICQoL",
+  "items": [
+    {
+      "fileId": "fedcba98-7654-4321-abcd-ef0123456789",
+      "displayName": "中文 😀 & file.txt",
+      "mimeType": "text/plain",
+      "plainLength": 43,
+      "chunkCount": 1,
+      "sha256": "167ee230b195f65b11ea4676a0743e6f6699b68491872546876c138f58f01442",
+      "noncePrefix": "ABEiM0RVZnc="
+    }
+  ],
+  "chunks": [
+    {
+      "index": 0,
+      "plain": "RHJvcFNwYWNlIOS4reaWhyDwn5iACnB1YmxpYyBjcnlwdG8gZml4dHVyZQ==",
+      "wire": "O+Epha/mIjOBh46HfgvdoXtWlIaHo3aE5GyPE7JD0oq1vRfAk7ksKBMno5dqrbMCnQtOW/ymhF/EVq8="
+    },
+    {
+      "index": 1,
+      "plain": "RHJvcFNwYWNlIOS4reaWhyDwn5iACnB1YmxpYyBjcnlwdG8gZml4dHVyZQ==",
+      "wire": "PH9rnU2wtQuv0d+0ghY5LeD3iT92AM+NujKiM1qwhJyOv2+WtgVIWPFOuUOo0wRuWVByA7dAJH0hVz0="
+    },
+    {
+      "index": 256,
+      "plain": "RHJvcFNwYWNlIOS4reaWhyDwn5iACnB1YmxpYyBjcnlwdG8gZml4dHVyZQ==",
+      "wire": "L12hf7DmK5FvfjJKY+NMCDOeG8yXBycYoMifZYklqr+bFO7GXCXEr0ebLYxaawIIjY1WZyqRvlg4+jo="
+    },
+    {
+      "index": 2147483647,
+      "plain": "RHJvcFNwYWNlIOS4reaWhyDwn5iACnB1YmxpYyBjcnlwdG8gZml4dHVyZQ==",
+      "wire": "KHeyVRXO9Uhqtroa2posMJs5pN3ddBRRmdi4ihgzql1rsuAjRPmJWZQ2lSw8l5X7V4f96a8i/76iy88="
+    }
+  ],
+  "manifestWire": "AAECAwQFBgcICQoLIJg/VCG4n5boOXp/hSyW+NPQ4URA03/VgVIjzo72/TpI8rMh53eSvMGI9v7NxeJXRB4uOyLPGYPSCvM87aZ2N/+JYFd1E3v4NxhMX/5s8P6aZaWRgYptitYz60M6iP0c0i4mgymdnWi8W6fFpIBpZ7AxslAwNXydsp3VsSZpUfGDsOqZGRwnVKVjZLM5VwgLu3hQYAfQ33C5n4ApBYadtGVHqaIospbzplsSbgWK9XC1oLjP8pyQ73Q9rDzoC+qAv31acfeherzEIiPpj/P0ZFZXayziITlwL7QJmm+5qHbsNS7qPuA6NtNAECSXupSmUqSIinB9c86yYoYTYFl5FEeYk1nsvD/bYi+whPBdGgB+jILZ+eaeR1XdsLsOc8T0PkXlLrETLcBZezlO+xSK8Tvx+Ev3asoqtM38pjxiMcvUeTHpLetNlBdYWL7jiQY/N/35Pc1u2mAw",
+  "guidWire": "1MOyofbliUerzQEjRWeJ7w==",
+  "fragment": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+  "baseline": "1cd4620dd58a67b0963b73487743137813b8864a"
+}
