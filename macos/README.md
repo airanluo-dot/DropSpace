@@ -1,10 +1,10 @@
-# DropSpace for macOS — development work
+# DropSpace for macOS — public beta
 
 **v0.1.0 Beta 1 — native macOS public beta; Windows v0.3.2 Beta 7 functional reference**
 
 Targets macOS26+ on Apple Silicon. Native SwiftUI/AppKit application, local Swift package, SQLite and public system adapters. Windows reference is fixed at `1cd4620dd58a67b0963b73487743137813b8864a`.
 
-This checkout contains a **basic-beta candidate awaiting public distribution validation**, not a completed 1:1 port. It contains a working native core and explicitly unfinished capability areas. Read [parity](docs/PARITY.md), [settings correspondence](docs/SETTINGS.md), [architecture](docs/ARCHITECTURE.md) and [execution evidence](docs/EXECUTION.md) before evaluating completeness. In particular, persisted music/network configuration is not evidence that its unfinished service works.
+This checkout contains a **published basic daily-usable native macOS public beta**, not a completed 1:1 port. It contains a working native core and explicitly unfinished capability areas. Read [parity](docs/PARITY.md), [settings correspondence](docs/SETTINGS.md), [architecture](docs/ARCHITECTURE.md) and [execution evidence](docs/EXECUTION.md) before evaluating completeness. In particular, persisted music/network configuration is not evidence that its unfinished service works.
 
 The reviewed core behavior subset is recorded in [core contracts](docs/CORE-CONTRACTS.md). The current build has real SQLite data/undo, native file/text intake and preview, pasteboard capture, local image/QR/hash/ZIP operations, configurable local actions, NSPanel/widget work, public scripting media adapters, and resumable HTTP downloads. Coverage and verification differ by feature; the register states those differences. The 1.8B CPU/Metal translation pipeline has real application evidence; 7B bytes are installed/verified but inference is unverified because this host does not meet the unchanged available-memory guard. Full lyrics/player/AI acceptance remains open.
 
@@ -33,4 +33,11 @@ The owner narrowed Beta 1 to daily-usable native workflows on 2026-10-21. The au
 
 `python3 macos/scripts/package.py --output macos/dist/<new-directory>` builds the Release app and four native helpers, signs nested executables and the app locally, verifies arm64/minOS/signatures, and produces a DMG, update ZIP, independent manifest, SHA-256 file and build receipt. Existing output directories are preserved. CMake 3.25+ is required for the native workers (`CMAKE_BIN`); worker source commits are pinned. No Apple developer account is used. ZIP ordering/timestamps/modes are deterministic for identical signed inputs; APFS DMG UUIDs and toolchain output are not claimed byte-identical across builds.
 
-The native updater uses `/api/macos/v1/stable.json` or `beta.json`, shared download budgets, bounded ZIP inspection, same-release hashes and local signature integrity. The helper performs a same-volume bundle swap, awaits actual application startup, and keeps the previous bundle or restores it on launch failure. Read-only installation locations lead to a manual DMG reinstall message. Production update acceptance is still open; see the execution ledger for the exact local probes.
+The native updater uses `/api/macos/v1/stable.json` or `beta.json`, shared download budgets, bounded ZIP inspection, same-release hashes and local signature integrity. The helper performs a same-volume bundle swap, awaits actual application startup, and keeps the previous bundle or restores it on launch failure. Read-only installation locations lead to a manual DMG reinstall message. Automatic update acceptance is still open. The supported manual path was verified using the public Beta 1 bundle with references/settings/source bytes retained; this same-version replacement does not establish future-version migration. See the execution ledger for exact evidence.
+
+## Public downloads
+
+- [Official Mac page](https://airanluo-dot.github.io/DropSpace/macos/)
+- [GitHub v0.1.0 Beta 1](https://github.com/airanluo-dot/DropSpace/releases/tag/macos-v0.1.0-beta.1)
+
+Published 2026-10-21. Browser-downloaded DMG, Finder copy, Gatekeeper Open Anyway with owner authentication, launch and manual same-version replacement were verified on macOS 27.0.1 arm64. macOS 26 remains the deployment minimum, not a physically tested system. No Developer ID signature or Apple notarization.
