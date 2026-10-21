@@ -1,0 +1,563 @@
+{
+  "ranges": [
+    {
+      "value": "0-",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "0-0",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "1-9",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "7-100",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "-1",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "-100",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "-0",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "-",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "0-1,3-4",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "+1-2",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": " 1-2",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "1-2 ",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "01-02",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "0--1",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "9223372036854775808-",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "0-9223372036854775807",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "0-9223372036854775808",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "9-8",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "10-10",
+      "total": 0,
+      "valid": false,
+      "start": 0,
+      "end": -1
+    },
+    {
+      "value": "0-",
+      "total": 1,
+      "valid": true,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "0-0",
+      "total": 1,
+      "valid": true,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "1-9",
+      "total": 1,
+      "valid": false,
+      "start": 1,
+      "end": 0
+    },
+    {
+      "value": "7-100",
+      "total": 1,
+      "valid": false,
+      "start": 7,
+      "end": 0
+    },
+    {
+      "value": "-1",
+      "total": 1,
+      "valid": true,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "-100",
+      "total": 1,
+      "valid": true,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "-0",
+      "total": 1,
+      "valid": false,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "-",
+      "total": 1,
+      "valid": false,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "0-1,3-4",
+      "total": 1,
+      "valid": false,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "+1-2",
+      "total": 1,
+      "valid": false,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": " 1-2",
+      "total": 1,
+      "valid": false,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "1-2 ",
+      "total": 1,
+      "valid": false,
+      "start": 1,
+      "end": 0
+    },
+    {
+      "value": "01-02",
+      "total": 1,
+      "valid": false,
+      "start": 1,
+      "end": 0
+    },
+    {
+      "value": "0--1",
+      "total": 1,
+      "valid": false,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "9223372036854775808-",
+      "total": 1,
+      "valid": false,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "0-9223372036854775807",
+      "total": 1,
+      "valid": true,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "0-9223372036854775808",
+      "total": 1,
+      "valid": false,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "9-8",
+      "total": 1,
+      "valid": false,
+      "start": 9,
+      "end": 0
+    },
+    {
+      "value": "10-10",
+      "total": 1,
+      "valid": false,
+      "start": 10,
+      "end": 0
+    },
+    {
+      "value": "0-",
+      "total": 10,
+      "valid": true,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "0-0",
+      "total": 10,
+      "valid": true,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "1-9",
+      "total": 10,
+      "valid": true,
+      "start": 1,
+      "end": 9
+    },
+    {
+      "value": "7-100",
+      "total": 10,
+      "valid": true,
+      "start": 7,
+      "end": 9
+    },
+    {
+      "value": "-1",
+      "total": 10,
+      "valid": true,
+      "start": 9,
+      "end": 9
+    },
+    {
+      "value": "-100",
+      "total": 10,
+      "valid": true,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "-0",
+      "total": 10,
+      "valid": false,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "-",
+      "total": 10,
+      "valid": false,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "0-1,3-4",
+      "total": 10,
+      "valid": false,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "+1-2",
+      "total": 10,
+      "valid": false,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": " 1-2",
+      "total": 10,
+      "valid": false,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "1-2 ",
+      "total": 10,
+      "valid": false,
+      "start": 1,
+      "end": 9
+    },
+    {
+      "value": "01-02",
+      "total": 10,
+      "valid": true,
+      "start": 1,
+      "end": 2
+    },
+    {
+      "value": "0--1",
+      "total": 10,
+      "valid": false,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "9223372036854775808-",
+      "total": 10,
+      "valid": false,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "0-9223372036854775807",
+      "total": 10,
+      "valid": true,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "0-9223372036854775808",
+      "total": 10,
+      "valid": false,
+      "start": 0,
+      "end": 9
+    },
+    {
+      "value": "9-8",
+      "total": 10,
+      "valid": false,
+      "start": 9,
+      "end": 8
+    },
+    {
+      "value": "10-10",
+      "total": 10,
+      "valid": false,
+      "start": 10,
+      "end": 9
+    },
+    {
+      "value": "0-",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "0-0",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 0,
+      "end": 0
+    },
+    {
+      "value": "1-9",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 1,
+      "end": 9
+    },
+    {
+      "value": "7-100",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 7,
+      "end": 100
+    },
+    {
+      "value": "-1",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 9223372036854775806,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "-100",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 9223372036854775707,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "-0",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "-",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "0-1,3-4",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "+1-2",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": " 1-2",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "1-2 ",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 1,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "01-02",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 1,
+      "end": 2
+    },
+    {
+      "value": "0--1",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "9223372036854775808-",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "0-9223372036854775807",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "0-9223372036854775808",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 0,
+      "end": 9223372036854775806
+    },
+    {
+      "value": "9-8",
+      "total": 9223372036854775807,
+      "valid": false,
+      "start": 9,
+      "end": 8
+    },
+    {
+      "value": "10-10",
+      "total": 9223372036854775807,
+      "valid": true,
+      "start": 10,
+      "end": 10
+    }
+  ],
+  "headers": [
+    {
+      "name": "simple.txt",
+      "value": "attachment; filename=\"simple.txt\"; filename*=UTF-8''simple.txt"
+    },
+    {
+      "name": "中文 & <file>.txt",
+      "value": "attachment; filename=\" & <file>.txt\"; filename*=UTF-8''%E4%B8%AD%E6%96%87%20%26%20%3Cfile%3E.txt"
+    },
+    {
+      "name": "quote\" and slash\\",
+      "value": "attachment; filename=\"quote and slash\"; filename*=UTF-8''quote%22%20and%20slash%5C"
+    },
+    {
+      "name": "a\r\nb\u0001",
+      "value": "attachment; filename=\"ab\"; filename*=UTF-8''a%0D%0Ab%01"
+    },
+    {
+      "name": "é😀.txt",
+      "value": "attachment; filename=\".txt\"; filename*=UTF-8''%C3%A9%F0%9F%98%80.txt"
+    },
+    {
+      "name": "a'b ();%?#.txt",
+      "value": "attachment; filename=\"a'b ();%?#.txt\"; filename*=UTF-8''a%27b%20%28%29%3B%25%3F%23.txt"
+    }
+  ],
+  "baseline": "1cd4620dd58a67b0963b73487743137813b8864a"
+}

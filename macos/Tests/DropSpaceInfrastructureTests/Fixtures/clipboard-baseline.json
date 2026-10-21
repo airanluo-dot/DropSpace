@@ -1,0 +1,413 @@
+{
+  "baseline": "1cd4620dd58a67b0963b73487743137813b8864a",
+  "sdk": "10.0.401",
+  "cases": [
+    {
+      "input": {
+        "name": "line-endings",
+        "text": "a\r\nb\rc"
+      },
+      "created": true,
+      "valid": true,
+      "hash": "03b1360e770ce9cd95ee7db455c6bcd6237688889d5d46a3ca8dfcae6db63242",
+      "bytes": 6,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "url-raw",
+        "text": "HTTPS://EXAMPLE.test:443/a#keep",
+        "kind": 2
+      },
+      "created": true,
+      "valid": true,
+      "hash": "f9d386c0470369b0ac90f6a2924a4ae6d86448df826322d08e1233f7d6b881f6",
+      "bytes": 31,
+      "mime": "text/uri-list",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "not-url",
+        "text": "hello",
+        "kind": 2
+      },
+      "created": true,
+      "valid": true,
+      "hash": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+      "bytes": 5,
+      "mime": "text/uri-list",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "blank",
+        "text": ""
+      },
+      "created": false,
+      "valid": false,
+      "hash": null,
+      "bytes": null,
+      "mime": null,
+      "automatic": null
+    },
+    {
+      "input": {
+        "name": "zero-width",
+        "text": "​"
+      },
+      "created": true,
+      "valid": true,
+      "hash": "f4e48e664a603543865edc77bbc76dd1dd53dc9d0c30f651bbad7c8231091348",
+      "bytes": 3,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "emoji",
+        "text": "é é😀"
+      },
+      "created": true,
+      "valid": true,
+      "hash": "4f86a7a29d296d6514ef89eb9593195541c0b8794078336b44c56e8de77b4c2d",
+      "bytes": 10,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "automatic-exact",
+        "text": "a",
+        "repeat": 262144
+      },
+      "created": true,
+      "valid": true,
+      "hash": "dd3dde87623d9a6b354c68c943d189c89c63652d945e7bbdf0986cae91a49521",
+      "bytes": 262144,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "automatic-over",
+        "text": "a",
+        "repeat": 262145
+      },
+      "created": true,
+      "valid": true,
+      "hash": "c592f4a6b099700b5050ce8bc67367f0c8f44810203124e86405c3e7b6f1a2ba",
+      "bytes": 262145,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "input": {
+        "name": "hard-exact",
+        "text": "a",
+        "repeat": 2097152
+      },
+      "created": true,
+      "valid": true,
+      "hash": "5256ec18f11624025905d057d6befb03d77b243511ac5f77ed5e0221ce6d84b5",
+      "bytes": 2097152,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "input": {
+        "name": "hard-over",
+        "text": "a",
+        "repeat": 2097153
+      },
+      "created": false,
+      "valid": false,
+      "hash": null,
+      "bytes": null,
+      "mime": null,
+      "automatic": null
+    },
+    {
+      "input": {
+        "name": "wrong-kind",
+        "text": "hello",
+        "kind": 3
+      },
+      "created": false,
+      "valid": false,
+      "hash": null,
+      "bytes": null,
+      "mime": null,
+      "automatic": null
+    },
+    {
+      "input": {
+        "name": "image",
+        "image": true
+      },
+      "created": true,
+      "valid": true,
+      "hash": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+      "bytes": 1,
+      "mime": "image/png",
+      "automatic": [
+        false,
+        false,
+        false,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "image-empty",
+        "image": true,
+        "repeat": 0
+      },
+      "created": false,
+      "valid": false,
+      "hash": null,
+      "bytes": null,
+      "mime": null,
+      "automatic": null
+    },
+    {
+      "input": {
+        "name": "empty-event",
+        "text": "valid",
+        "mutation": "empty-event"
+      },
+      "created": true,
+      "valid": false,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 5,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "empty-origin",
+        "text": "valid",
+        "mutation": "empty-origin"
+      },
+      "created": true,
+      "valid": false,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 5,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "negative-sequence",
+        "text": "valid",
+        "mutation": "negative-sequence"
+      },
+      "created": true,
+      "valid": false,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 5,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "zero-bytes",
+        "text": "valid",
+        "mutation": "zero-bytes"
+      },
+      "created": true,
+      "valid": false,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 0,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "bad-hash",
+        "text": "valid",
+        "mutation": "bad-hash"
+      },
+      "created": true,
+      "valid": false,
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "bytes": 5,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "upper-hash",
+        "text": "valid",
+        "mutation": "upper-hash"
+      },
+      "created": true,
+      "valid": true,
+      "hash": "EC654FAC9599F62E79E2706ABEF23DFB7C07C08185AA86DB4D8695F0B718D1B3",
+      "bytes": 5,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "blank-mime",
+        "text": "valid",
+        "mutation": "blank-mime"
+      },
+      "created": true,
+      "valid": false,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 5,
+      "mime": " ",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "long-mime",
+        "text": "valid",
+        "mutation": "long-mime"
+      },
+      "created": true,
+      "valid": false,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 5,
+      "mime": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "offset",
+        "text": "valid",
+        "mutation": "offset"
+      },
+      "created": true,
+      "valid": false,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 5,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "ancient",
+        "text": "valid",
+        "mutation": "ancient"
+      },
+      "created": true,
+      "valid": true,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 5,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "input": {
+        "name": "opposite-payload",
+        "text": "valid",
+        "mutation": "opposite-payload"
+      },
+      "created": true,
+      "valid": true,
+      "hash": "ec654fac9599f62e79e2706abef23dfb7c07c08185aa86db4d8695f0b718d1b3",
+      "bytes": 5,
+      "mime": "text/plain",
+      "automatic": [
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  ]
+}

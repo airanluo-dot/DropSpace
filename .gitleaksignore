@@ -16,3 +16,11 @@ ddadcbfecb6e72c93c39f0e6c0a08526a40e7f0f:docs/dev/evidence/local-iterations-2026
 727d78547cc85f05a6aa5dba476a03320d5f78aa:docs/dev/evidence/beta4-release-2026-10-18.json:generic-api-key:67
 # Same verified audit log digest in the squash-merged main commit.
 b0f6fbf42b580165306844bc55f782798073357d:docs/dev/evidence/beta4-release-2026-10-18.json:generic-api-key:67
+
+# Mac beta reviewed false positives: SQL column assignment (no credential value),
+# deterministic fixture secret/authentication from scalar keys 1/2, and test key bytes 0...31.
+# Generators: macos/scripts/droplink-fixture.py and generate-share-crypto-fixtures.py.
+70e9cd1767ca831176bc9ad1dfff73da50a9f534:macos/Sources/DropSpaceInfrastructure/DropLinkPeerStore.swift:generic-api-key:48
+70e9cd1767ca831176bc9ad1dfff73da50a9f534:macos/Tests/DropSpaceInfrastructureTests/Fixtures/droplink-v1.json:generic-api-key:30
+70e9cd1767ca831176bc9ad1dfff73da50a9f534:macos/Tests/DropSpaceInfrastructureTests/Fixtures/droplink-v1.json:generic-api-key:34
+70e9cd1767ca831176bc9ad1dfff73da50a9f534:macos/Tests/DropSpaceInfrastructureTests/Fixtures/share-crypto-baseline.json:generic-api-key:2

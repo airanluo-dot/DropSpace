@@ -37,6 +37,12 @@ function isResourceRelease(release) {
     /^dlc-[a-z][a-z0-9.-]{0,79}-\d+\.\d+\.\d+$/.test(tag);
 }
 
+// macOS has independent versioning and artifacts. Exclude it before limiting or
+// sorting the Windows feed; old clients must never select a Mac release.
+function isMacOSRelease(release) {
+  return /^macos-v\d+\.\d+\.\d+(?:-beta\.\d+)?$/.test(String(release.tag_name ?? ""));
+}
+
 function releaseArtifactKind(name) {
   return Object.entries(RELEASE_ARTIFACTS).find(([, artifactName]) => artifactName === name)?.[0] ?? null;
 }
@@ -44,7 +50,7 @@ function releaseArtifactKind(name) {
 export function normalizeGitHubReleases(releases, generatedAt = new Date().toISOString()) {
   if (!Array.isArray(releases)) throw new TypeError("GitHub release payload must be an array.");
   const normalized = releases
-    .filter((release) => !release.draft && !isResourceRelease(release))
+    .filter((release) => !release.draft && !isResourceRelease(release) && !isMacOSRelease(release))
     .slice(0, RELEASE_API_MAX_ITEMS)
     .map((release) => normalizeRelease(release));
   return {
@@ -153,7 +159,7 @@ export function validateLatestChangeApi(payload) {
 
 export function createWebsiteReleaseData(githubPayload, generatedAt = new Date().toISOString()) {
   if (!Array.isArray(githubPayload)) throw new TypeError("GitHub release payload must be an array.");
-  const published = githubPayload.filter((release) => !release.draft && !isResourceRelease(release))
+  const published = githubPayload.filter((release) => !release.draft && !isResourceRelease(release) && !isMacOSRelease(release))
     .sort((a, b) => compareReleaseTags(b.tag_name, a.tag_name));
   const stable = published.find((release) => !release.prerelease);
   if (!stable) throw new TypeError("GitHub Releases did not contain a Stable release in the fetched release window.");

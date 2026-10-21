@@ -1,0 +1,2846 @@
+{
+  "baseline": "1cd4620dd58a67b0963b73487743137813b8864a",
+  "tag": "v0.3.2-beta.7",
+  "files": [
+    {
+      "path": "localization/languages.json",
+      "sha256": "76d3bbc52831ed249874ccd7a7f43b5102bc376601d8a058a4883916b1eec922",
+      "bytes": 3388
+    },
+    {
+      "path": "localization/policy.json",
+      "sha256": "2017a8285947980ae74041df7087d3a6c5aa271ed0bf69e25ee34b74b9d35ee0",
+      "bytes": 23070
+    },
+    {
+      "path": "localization/reviews/app/de-DE.json",
+      "sha256": "b47bb62c4a253615b9711705075f412c91cff7ec664c11157c25e297fcf8b269",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/app/es-ES.json",
+      "sha256": "362058c2b00bf96313b29e46e16dbf66132f6e15ecba679a7425cc10f5f57b4a",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/app/fr-FR.json",
+      "sha256": "5186de5d08c7b2d9ffab011cd912148704bde9e4158b8825b2e544fb2564c748",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/app/ja-JP.json",
+      "sha256": "f56150eb889b23a4c754991a10f0eb4bfcd09167c5c541725c82bba305e07999",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/app/ko-KR.json",
+      "sha256": "9c9e642a09a139d9607aab12f7efe615f859b7a94f2b8c391c02312322f7e553",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/app/pt-BR.json",
+      "sha256": "12f67f422a7e94b20b6f5e8bbd51d1c3c7c5cac49392b345868bf5a2a338ae73",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/app/ru-RU.json",
+      "sha256": "c6fb3dbd37e1d8d6989b03df9b477b744944f26c9e019e0b7aa2bcf015c6f7a5",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/app/zh-CN.json",
+      "sha256": "4080252a1215c705f4b6757ad1c0ca457a99a8b32b7031429d123757482c1d64",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/app/zh-TW.json",
+      "sha256": "4f581014e77e5f1313b49897767576d543c040ba8553eba2c65a9305c4267d11",
+      "bytes": 177618
+    },
+    {
+      "path": "localization/reviews/website/de-DE.json",
+      "sha256": "a9cff4c05048f3ba047115048578ce6d1e7cc5548090bf98c4fd063dbb08cdc9",
+      "bytes": 48672
+    },
+    {
+      "path": "localization/reviews/website/es-ES.json",
+      "sha256": "9bdd9e2082e9a65da8dd2683ad185f2d7ee965f4021a07f80d46396cc21f971a",
+      "bytes": 48582
+    },
+    {
+      "path": "localization/reviews/website/fr-FR.json",
+      "sha256": "5d1e3f723beaa8be71afe97d4e905dca4b09d8652cbad2d2308d00ec67e86926",
+      "bytes": 48582
+    },
+    {
+      "path": "localization/reviews/website/ja-JP.json",
+      "sha256": "897b5b181c02e5035e1a720d96de7aae8f416d35386115c6f0823b42f6a7a1d8",
+      "bytes": 48668
+    },
+    {
+      "path": "localization/reviews/website/ko-KR.json",
+      "sha256": "f9292f9cc605c7dc37424eec7515967da6fb8fae931d469fd0a7e917d63bb086",
+      "bytes": 48668
+    },
+    {
+      "path": "localization/reviews/website/pt-BR.json",
+      "sha256": "4e5a3cd84138dfa73831029b3f211ec7754ff63d82f8ee83e28bfd782a311776",
+      "bytes": 48668
+    },
+    {
+      "path": "localization/reviews/website/ru-RU.json",
+      "sha256": "b9cda9ab2be7e6824af0d7b1c007eb4f7155a8bd46292f35c9475a9921f3b437",
+      "bytes": 48668
+    },
+    {
+      "path": "localization/reviews/website/zh-CN.json",
+      "sha256": "365bcef98838ce8de6e377e0f342fd7ebb09c670d0a7ac04ba66248eaf8dde2b",
+      "bytes": 48632
+    },
+    {
+      "path": "localization/reviews/website/zh-TW.json",
+      "sha256": "abeb35520f1cf6f928eaffc588a7ab3a42f4bcd92b1a07a0f28ee32630bd0dbb",
+      "bytes": 48632
+    },
+    {
+      "path": "modules/catalog.json",
+      "sha256": "b9200584d618aaed7cb9a01d2f7a36c73f8562af6733cddb93f5ca791410901b",
+      "bytes": 43
+    },
+    {
+      "path": "modules/check-module-resources.mjs",
+      "sha256": "c6017c015a3954be5b3e13ee66ab2244e8617d5f684f1647a02aec676c0c4d38",
+      "bytes": 5724
+    },
+    {
+      "path": "modules/sample/Build-Package.ps1",
+      "sha256": "5e271101766ca236175f6978046641f52c47d20adce145efdae1e9ad2428d819",
+      "bytes": 390
+    },
+    {
+      "path": "modules/sample/DropSpace.Module.Sample.csproj",
+      "sha256": "65d28885a3eb9fd616a6516e7e88904c0dbb0f01d0ca379e9b121dfcd07178ed",
+      "bytes": 846
+    },
+    {
+      "path": "modules/sample/README.md",
+      "sha256": "da961bf81846c31ee16e28f2c74455403ae48a0976936ac4ec4c7bd4e71df83d",
+      "bytes": 1413
+    },
+    {
+      "path": "modules/sample/fixture-catalog.json",
+      "sha256": "2a8fc541c1c676af1b8e33476195a8172f79730372fd0d0b786eae162291b839",
+      "bytes": 362
+    },
+    {
+      "path": "modules/sample/packages.lock.json",
+      "sha256": "153f51ffde15bc97f21f1e93b6bbc0bcdea4148ec4777f18ea50f063f04c238d",
+      "bytes": 346
+    },
+    {
+      "path": "modules/templates/worker/Build-Package.ps1",
+      "sha256": "5c748c51fb214339c2292362d067547ad44565bb16a0e0fea8ce54befda4c982",
+      "bytes": 4143
+    },
+    {
+      "path": "modules/templates/worker/DropSpace.Module.Worker.csproj",
+      "sha256": "dd270e2f84e8c515529f7212c15ef4b697d8bc857946285fd8950b4e8f12d4ab",
+      "bytes": 784
+    },
+    {
+      "path": "modules/templates/worker/ModuleIdentity.cs",
+      "sha256": "016e6f94922ea3e8ca7d1747fe2151b872f86a0d687637328330171a17e1a601",
+      "bytes": 213
+    },
+    {
+      "path": "modules/templates/worker/Program.cs",
+      "sha256": "6f927080962059709f4aced1f8b73967a4c7cb785a2231436e0456d68cb1f22c",
+      "bytes": 6348
+    },
+    {
+      "path": "modules/templates/worker/README.md",
+      "sha256": "48c900202e432dac1aa3dbd5e1168f1f79ce0fffb01bc0236561d9a5a60251d4",
+      "bytes": 7558
+    },
+    {
+      "path": "modules/templates/worker/localization-reviews.json",
+      "sha256": "e6fe92cf51d741b4430e24156ba9b5b8ac9594adf64119765a8b8ea48a91676a",
+      "bytes": 30840
+    },
+    {
+      "path": "modules/templates/worker/module.template.json",
+      "sha256": "d48508dedc0f63dd24a60e3e3732263c35a3ad52bbbb1f7ccba11a081c596719",
+      "bytes": 6106
+    },
+    {
+      "path": "modules/templates/worker/packages.lock.json",
+      "sha256": "153f51ffde15bc97f21f1e93b6bbc0bcdea4148ec4777f18ea50f063f04c238d",
+      "bytes": 346
+    },
+    {
+      "path": "src/DropSpace.App/App.xaml",
+      "sha256": "3c92263374f3ebcc0b38ce51f94605e35b663cee1a16499c4843ac033d413445",
+      "bytes": 977
+    },
+    {
+      "path": "src/DropSpace.App/App.xaml.cs",
+      "sha256": "bc01763a4c1dd173f5fa7129928c23ffbbdc719ac6354aa9aea260e8652196fc",
+      "bytes": 57787
+    },
+    {
+      "path": "src/DropSpace.App/Assets/AppIcon.ico",
+      "sha256": "cd7a2a3fa2875f173a7e2880ac96ddbaafdde5ba28b44cff717d4ddef2a7405e",
+      "bytes": 51668
+    },
+    {
+      "path": "src/DropSpace.App/Assets/LockScreenLogo.scale-200.png",
+      "sha256": "fa1ecab08bb8e0cee727782ce1a15cecc8bb85a413818d5dd253423124969046",
+      "bytes": 1933
+    },
+    {
+      "path": "src/DropSpace.App/Assets/SplashScreen.scale-100.png",
+      "sha256": "ba6c121314786bcd6971627ab4e625607d205c9d9224df29281aeaf5ce9de34f",
+      "bytes": 25845
+    },
+    {
+      "path": "src/DropSpace.App/Assets/SplashScreen.scale-125.png",
+      "sha256": "ad9ea9a4ca4525e59176fce3143c1fbb5977ae0eb1000f251ef88f2fc16d9168",
+      "bytes": 38181
+    },
+    {
+      "path": "src/DropSpace.App/Assets/SplashScreen.scale-150.png",
+      "sha256": "ec396f543a168127bbe40e09de8e00a68859b2a27410e3d203af040f6b31154d",
+      "bytes": 52320
+    },
+    {
+      "path": "src/DropSpace.App/Assets/SplashScreen.scale-200.png",
+      "sha256": "29728fd7caf4c86a18643d4426b0fd4f60a8a5df7d7238f8aeeab6b720fe1d8b",
+      "bytes": 86001
+    },
+    {
+      "path": "src/DropSpace.App/Assets/SplashScreen.scale-400.png",
+      "sha256": "a9cb257f8d75a465ab672b400af23c5baf40fa50b5aa3d77afd8b38fbb5d86ad",
+      "bytes": 281972
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square150x150Logo.scale-100.png",
+      "sha256": "fdae8b2c2c37805fc359775249f4e00e122924f4fcd00152ab5dd4102c3bc67e",
+      "bytes": 13005
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square150x150Logo.scale-125.png",
+      "sha256": "c02d12a8c2a7e948b8c6ce36fadd43629112d00794a49a5ed0c871b444a4f976",
+      "bytes": 19107
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square150x150Logo.scale-150.png",
+      "sha256": "ef1d2b8a59449fb7ff98f7164b66205eb6ad557a150bed4269b5631a0437ce80",
+      "bytes": 25976
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square150x150Logo.scale-200.png",
+      "sha256": "0bd3713085ec326b17ebbb8cd6da76e91a41a6a12302728517c15756c624f659",
+      "bytes": 42726
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square150x150Logo.scale-400.png",
+      "sha256": "44800784ad4161ce8d4628fa5e3a1c21d033a977600d10b70d92e4e0686e1d4e",
+      "bytes": 140068
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.scale-100.png",
+      "sha256": "7f4c6332d0ea3786ad0c1c5b04b9fbad81019d39b7f01afb433bd955601c849e",
+      "bytes": 1697
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.scale-125.png",
+      "sha256": "e1d7da464d884e27b33895ef2f501bd0c5ddc5b039fdaa432c6798943bec9b27",
+      "bytes": 2389
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.scale-150.png",
+      "sha256": "805f27348087bb658450f24d9f074777516de5d0bce1878c412c64bcdca57226",
+      "bytes": 3336
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.scale-200.png",
+      "sha256": "c73a12f4693a2e51414c9d517555fe8a9725f19cbf36420dddf8f2e80ed1d099",
+      "bytes": 5387
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.scale-400.png",
+      "sha256": "ff9fd2ad8b22e04bd80ff50338658e067524f818c3cacbe2039adcf24c69c746",
+      "bytes": 17131
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-16_altform-unplated.png",
+      "sha256": "3207c8f144b818d6c7303291c9acba05c5b766e22042c30159054908efe4eedd",
+      "bytes": 366
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-20_altform-unplated.png",
+      "sha256": "38cbc8ca0108efa5e318dd38965b63a716e2658b5bae8c03d3e4a81c7edaa2d4",
+      "bytes": 474
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-24_altform-unplated.png",
+      "sha256": "bf98886f6975d61670619ebd2bcc62e361ea8f0dc1b63d986fe8478107e993c2",
+      "bytes": 628
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-256_altform-unplated.png",
+      "sha256": "17eab182ebf1105221c6b3b04f580f7abb2158c5f1827bc0161991a0679b7050",
+      "bytes": 32556
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-30_altform-unplated.png",
+      "sha256": "6b71233ecf5ee6c25fea7666d3c4a7ad0eb9266c64bbf47668e3dad77631f94a",
+      "bytes": 879
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-32_altform-unplated.png",
+      "sha256": "b379ce55375d3f624792752eb091f33a435618ceca122eb7a18d118d34803840",
+      "bytes": 1008
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-36_altform-unplated.png",
+      "sha256": "b1fcd840ebb2bcb0de6e9bc7339c89c148cb1f867157c226e560272577640002",
+      "bytes": 1175
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-40_altform-unplated.png",
+      "sha256": "9a40238c630d831de3d845ed9644ca810c48b6bba83156c6dbe375428ceee8d9",
+      "bytes": 1398
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-44_altform-unplated.png",
+      "sha256": "7f4c6332d0ea3786ad0c1c5b04b9fbad81019d39b7f01afb433bd955601c849e",
+      "bytes": 1697
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-48_altform-unplated.png",
+      "sha256": "fa1ecab08bb8e0cee727782ce1a15cecc8bb85a413818d5dd253423124969046",
+      "bytes": 1933
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-60_altform-unplated.png",
+      "sha256": "03cbe3f15b65a849f7df4ab2ee21f4e6b9fc910ca50b1e74bde8877897684a11",
+      "bytes": 2843
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-64_altform-unplated.png",
+      "sha256": "52b9a8a6891367a7d6234f2694f098becc082d2a325314c00c5c35586c60e995",
+      "bytes": 3177
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-72_altform-unplated.png",
+      "sha256": "6d46d128aaa08e24b358f6beb812abcefc75005e8d8c0ca723b2a9153f69a57a",
+      "bytes": 3930
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-80_altform-unplated.png",
+      "sha256": "0b6fcbe1245e37ff77d02b1dafd6eaeadcc073ca82e792edc4cac08ef0dd6f61",
+      "bytes": 4557
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Square44x44Logo.targetsize-96_altform-unplated.png",
+      "sha256": "edbf8f18942614aced2d86ce57856887c8e4e838a67a4b98a237367ca13599b4",
+      "bytes": 6188
+    },
+    {
+      "path": "src/DropSpace.App/Assets/StoreLogo.png",
+      "sha256": "b4662a91974adc956efe6205317f45ada3485ed700021c454f30354e7cd03474",
+      "bytes": 2047
+    },
+    {
+      "path": "src/DropSpace.App/Assets/StoreLogo.scale-100.png",
+      "sha256": "b4662a91974adc956efe6205317f45ada3485ed700021c454f30354e7cd03474",
+      "bytes": 2047
+    },
+    {
+      "path": "src/DropSpace.App/Assets/StoreLogo.scale-125.png",
+      "sha256": "5f70331035a9191f6bebc1840738e992c77217c3126563c74af3645dfea3b243",
+      "bytes": 3104
+    },
+    {
+      "path": "src/DropSpace.App/Assets/StoreLogo.scale-150.png",
+      "sha256": "9a813923ce5129738115c6abf41aa5b8d2142189e4788e294e11d3064f90c234",
+      "bytes": 4160
+    },
+    {
+      "path": "src/DropSpace.App/Assets/StoreLogo.scale-200.png",
+      "sha256": "15c487e58e445df1ccfedc6da548be81ec02c76290cea41c745a020c2f79866e",
+      "bytes": 6598
+    },
+    {
+      "path": "src/DropSpace.App/Assets/StoreLogo.scale-400.png",
+      "sha256": "873fa12550d1c4ba0cf39816e5bf439ba4711bef470d4f9a3ffce4c4f6a03aee",
+      "bytes": 21306
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Wide310x150Logo.scale-100.png",
+      "sha256": "c265cef3523cd288a831b22b2e549e9d6d7e036ea03411b29cae8ab01f9418ca",
+      "bytes": 7865
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Wide310x150Logo.scale-125.png",
+      "sha256": "d59a5d37163abe6296ec123fc4c9b38d39faf00590824b806d9fb135f240de55",
+      "bytes": 11613
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Wide310x150Logo.scale-150.png",
+      "sha256": "c9f50be080b6f2569db363dbe4ace9ba44ccd5171ed4ca12c6fc5893cbea91c6",
+      "bytes": 15786
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Wide310x150Logo.scale-200.png",
+      "sha256": "ba6c121314786bcd6971627ab4e625607d205c9d9224df29281aeaf5ce9de34f",
+      "bytes": 25845
+    },
+    {
+      "path": "src/DropSpace.App/Assets/Wide310x150Logo.scale-400.png",
+      "sha256": "29728fd7caf4c86a18643d4426b0fd4f60a8a5df7d7238f8aeeab6b720fe1d8b",
+      "bytes": 86001
+    },
+    {
+      "path": "src/DropSpace.App/Converters/BoolToVisibilityConverter.cs",
+      "sha256": "660813b963ff3bd0863a2aa943d6e10c8e842966a6b3522b585af8acbf972b9b",
+      "bytes": 632
+    },
+    {
+      "path": "src/DropSpace.App/Converters/NullToVisibilityConverter.cs",
+      "sha256": "a8c82528a091c643fd650be327c6434b41c8b91d1ae3b1e8a97abf7fc588d4aa",
+      "bytes": 636
+    },
+    {
+      "path": "src/DropSpace.App/DropSpace.App.csproj",
+      "sha256": "392f25df8bbc95e7cce12aeb30a3a829e742385a75a6aca190d875cfb425d17d",
+      "bytes": 12878
+    },
+    {
+      "path": "src/DropSpace.App/DropSpace.rc",
+      "sha256": "4c37a172f139a20690c365917e64c25ea3356999eea300cc7260f9a1d60fd69f",
+      "bytes": 784
+    },
+    {
+      "path": "src/DropSpace.App/MainWindow.xaml",
+      "sha256": "efa595598d36de118c39c95c4bc1ab8c844074bba70e477fa73594e1ea929945",
+      "bytes": 836
+    },
+    {
+      "path": "src/DropSpace.App/MainWindow.xaml.cs",
+      "sha256": "745c62191a1a98f1b13aa383dbd3f73c330dce70031bdf547a6e70fa438e1e05",
+      "bytes": 17222
+    },
+    {
+      "path": "src/DropSpace.App/OverlayWindow.Diagnostics.cs",
+      "sha256": "992733305c01796b91dd5c2ff837cde56e71bfd537be40bcf34a31d67f5abddc",
+      "bytes": 1347
+    },
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml",
+      "sha256": "f4dce12eadd8101e976b3b437e963ff83cc82f4d0498a0d80addf7c2b4e1e673",
+      "bytes": 17015
+    },
+    {
+      "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+      "sha256": "eaebc9a16dcde7e5594a902edf49c017bb04dfc74b2e70f3f3cc1c517094d9ed",
+      "bytes": 119244
+    },
+    {
+      "path": "src/DropSpace.App/Package.appxmanifest",
+      "sha256": "1a07cc78da9ac4c38995b2ee16370b09a8b4c0a48bf5bdbc3ef17c385b7e474c",
+      "bytes": 2742
+    },
+    {
+      "path": "src/DropSpace.App/Properties/AssemblyInfo.cs",
+      "sha256": "8647d4c00aaae79d348ed88db01462778689e59aa705ab5801f04e6d49a50362",
+      "bytes": 94
+    },
+    {
+      "path": "src/DropSpace.App/Properties/launchSettings.json",
+      "sha256": "16a3cf64e158f5a83f59cbd046cf5782c0553f8bc63662202e590f470bb7d1bf",
+      "bytes": 94
+    },
+    {
+      "path": "src/DropSpace.App/Services/AcrylicCoverageBackdropTarget.cs",
+      "sha256": "e192484a1aa1b9c6f3c3ad7530660b62bd9c5baaafcff356021df2d50baae592",
+      "bytes": 5857
+    },
+    {
+      "path": "src/DropSpace.App/Services/AcrylicCoverageMask.cs",
+      "sha256": "c83fd49143debc8dccae9a2abf91b61a4e64b7a7fade25860f8c73bdcafdab4f",
+      "bytes": 11797
+    },
+    {
+      "path": "src/DropSpace.App/Services/AcrylicShutterBlur.cs",
+      "sha256": "263d60c797fa008a911bad61d67b3e1b273ca020c4eaf1c47747f7192830da89",
+      "bytes": 10179
+    },
+    {
+      "path": "src/DropSpace.App/Services/AppLanguageService.cs",
+      "sha256": "1037c5a15963e090ee1d805ae42a42dc39a58e2fc0844c888bd903260407d3d5",
+      "bytes": 1999
+    },
+    {
+      "path": "src/DropSpace.App/Services/Audio/ProcessLoopbackInterop.cs",
+      "sha256": "4b11a56c7bc4a9e6966737a8cbf6bfe350bd2fa10582a4cf7526f03588d0720e",
+      "bytes": 3377
+    },
+    {
+      "path": "src/DropSpace.App/Services/Audio/WindowsProcessLoopbackService.cs",
+      "sha256": "ec4338e989f12d00c992753050cde23d0f1a6f975fe3184438b4335c785313ec",
+      "bytes": 10376
+    },
+    {
+      "path": "src/DropSpace.App/Services/AuthenticodeTrustedUpdateVerifier.cs",
+      "sha256": "e911203dc0bf29017f04a1a9c1d620d9484f755ef44d5a2b79da5e1093d441bf",
+      "bytes": 5164
+    },
+    {
+      "path": "src/DropSpace.App/Services/BackdropLifetimeSmoke.cs",
+      "sha256": "42a48cb3d6352db10917a3f9c34ebecaaf1983573b932893c0f02b4165efdb4c",
+      "bytes": 2423
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardAccessPolicy.cs",
+      "sha256": "6d487e19b50161114346ebeceb85b80b51cd7c8bbe70931e2c241cde091982d2",
+      "bytes": 1466
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardCaptureDiagnostics.cs",
+      "sha256": "22eea4d77d7f65c7923e1e0617ff5b5dff29619de2c6b613a3c4902ed0af6797",
+      "bytes": 12058
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardCaptureService.cs",
+      "sha256": "4cdb91b0b594ed798201abcf0974a64d8ce9556be4874b4d60b8e7e69badc67e",
+      "bytes": 85286
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardImageReadLifetime.cs",
+      "sha256": "62bc199832891a2ab97f0a2af31f5745d33940f2cdfa7c995670b02c6234ba81",
+      "bytes": 3957
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardIntegrationSmoke.cs",
+      "sha256": "a05dbde09ddbed351101baa412ec412b2a8e3db1970d4f1c7a2dd121d8b711d5",
+      "bytes": 20527
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardNotificationService.cs",
+      "sha256": "e84dc9991f4b89064dcafda34bd94100eead6a461979474c46cf9f2427997756",
+      "bytes": 6191
+    },
+    {
+      "path": "src/DropSpace.App/Services/ClipboardProviderReadLifetime.cs",
+      "sha256": "b18070add544050d2d36d589240b0665f8bd189ca2b5ce1d8e9d3189368aeac1",
+      "bytes": 2170
+    },
+    {
+      "path": "src/DropSpace.App/Services/CompositionEffectDescriptions.cs",
+      "sha256": "3bbed9238739bf4c3246d61c96e1db1c68a3865b5ae5c798b7b519c316842c8c",
+      "bytes": 14898
+    },
+    {
+      "path": "src/DropSpace.App/Services/CrashDiagnosticsService.cs",
+      "sha256": "c2ef8415be01929e7b516053d340a0ec4b58da9c4b974dea5d299d46dfc25204",
+      "bytes": 2741
+    },
+    {
+      "path": "src/DropSpace.App/Services/CrossDeviceClipboardService.cs",
+      "sha256": "93b42f5eed0adc8bb2da5bffe473f382b30fdc806c4f35917eceef4a60a6a442",
+      "bytes": 15060
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeploymentModeService.cs",
+      "sha256": "1075fb92db1ed5e27ba370bfa099123d8a8a5bee0dfc5282428a87773d310e3e",
+      "bytes": 1681
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffSendLifetime.cs",
+      "sha256": "23ce43c0e0b03d40348d513b4430809bb6c5d766dc2317f399853795677d68c1",
+      "bytes": 9637
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffSendTracker.cs",
+      "sha256": "d7e9b695b403b1a431ac72303e34e74f2835f76aebb86c3ff5a64681daf020da",
+      "bytes": 12698
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffService.cs",
+      "sha256": "ea33c56118f4b6a8ca1cfcdaa1f04baaa4cc21ab8dd3ae45e904dcd7553f0442",
+      "bytes": 15110
+    },
+    {
+      "path": "src/DropSpace.App/Services/DeviceHandoffUseCase.cs",
+      "sha256": "c665b345903365747673f0db360b74a60af0cfa7011f7be0ea1f8c97c7b37343",
+      "bytes": 2959
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.DesktopEvidence.cs",
+      "sha256": "060962ec21f44efb108595151cb5fb09b9e725409a23e1fa3d80c7a56aefab1e",
+      "bytes": 22209
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Evidence.cs",
+      "sha256": "8cf060fcffff8f0f604e6d292e6a1ef5a931243bf33f927a089647d46ad29785",
+      "bytes": 13293
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.Fixture.cs",
+      "sha256": "bd8777c8dd98d9174fcdbf93636c68eef9acee40eb0cb759e26593f5c9f7f08f",
+      "bytes": 5408
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.OverlayLifecycle.cs",
+      "sha256": "9483316583a9a61a0d5cbd766533a45e67a2017e187409ac8d226615d6b652f6",
+      "bytes": 15922
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.TimerVisual.cs",
+      "sha256": "48495dfd6facc4132bceaa6d57a14af0d4ff754681a996721bf03298be75762b",
+      "bytes": 16462
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/BetaUiDiagnostics.cs",
+      "sha256": "db8168509a45242f38d823c8179067815dc14524000d5285b95917f4347cb64a",
+      "bytes": 30614
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/FeatureModuleUiSmoke.cs",
+      "sha256": "a082c23bd5a16e6b3069030f0ab99665b5d6d7bd36cd7d1a7c8ba595cc04d80f",
+      "bytes": 19702
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/FeatureModuleUiSmokeFixture.cs",
+      "sha256": "f9629404c3a93dc467a0e7fa0c453e6fd0102fe52aec594802f819e59672194a",
+      "bytes": 8355
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/LyricsLanguageSmoke.cs",
+      "sha256": "51caac16618b9d3fd4f17998ae80d73a192b1e9ce0485d87ddaeb2a5c0ef1818",
+      "bytes": 4341
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+      "sha256": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a",
+      "bytes": 46426
+    },
+    {
+      "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs",
+      "sha256": "e45c11ec1c0e3b952cbb038c55bdfa96b87e3a812e437e5154aa52469eb51cb4",
+      "bytes": 3325
+    },
+    {
+      "path": "src/DropSpace.App/Services/DispatcherQueueExtensions.cs",
+      "sha256": "6dba755f3e123eb9f53b3a349797894c6cea51308d93faea6c3b9aa54c964a6c",
+      "bytes": 1805
+    },
+    {
+      "path": "src/DropSpace.App/Services/DisplayIdentityService.cs",
+      "sha256": "187ed0921f88225db00789783ec34885b9296afed46005c87a88bbc08580d71b",
+      "bytes": 9308
+    },
+    {
+      "path": "src/DropSpace.App/Services/DisplayTopologyWatcher.cs",
+      "sha256": "fed7a68e54191aee7550f5b6685bb466fd7e43ab7268bddae55b2d4faa48d1d4",
+      "bytes": 5318
+    },
+    {
+      "path": "src/DropSpace.App/Services/Dlc/AiModelDlcProvider.cs",
+      "sha256": "882cb7c11c7cb51b56ae6b214765828d4d4e7ec136b6fbf7ce9362b183ce1701",
+      "bytes": 2248
+    },
+    {
+      "path": "src/DropSpace.App/Services/Dlc/CudaRuntimeDlcProvider.cs",
+      "sha256": "6c8aa29ee808778f394d931a5cb19d161215128d218f31f053fd167c22af7793",
+      "bytes": 2455
+    },
+    {
+      "path": "src/DropSpace.App/Services/Dlc/DlcManagerService.cs",
+      "sha256": "7a383904c83961eb85c82916ffb616fbe1fa7e4ae929b91b40b691c7ba756cf9",
+      "bytes": 16092
+    },
+    {
+      "path": "src/DropSpace.App/Services/Dlc/DlcProgressPresentation.cs",
+      "sha256": "d44973b5072629a02ca3413e81f426001ccc9a5d4a02d816d774ee29385fae24",
+      "bytes": 1092
+    },
+    {
+      "path": "src/DropSpace.App/Services/Dlc/FeatureModuleRuntime.cs",
+      "sha256": "c380ff86cf70c4e8ecc7b0faa0324ba2b5d41ab7b033ff78903ec0bc61416db9",
+      "bytes": 38576
+    },
+    {
+      "path": "src/DropSpace.App/Services/Dlc/NeteaseComponentsDlcProvider.cs",
+      "sha256": "2415854f842acaf2679b881ce9dd1c4e2dbecff55fb8d3d468ef28e072af25a3",
+      "bytes": 6816
+    },
+    {
+      "path": "src/DropSpace.App/Services/DragSessionDetector.cs",
+      "sha256": "f38c3df0ab60a6d7cfb2a8006618a298a29f3ab70de5d483b14a4c9794302b50",
+      "bytes": 75325
+    },
+    {
+      "path": "src/DropSpace.App/Services/DragStorageItemService.cs",
+      "sha256": "9b2581483ad7188b25404b34749b6f29940e544f2e2a7a8d27dfdd641f0578a0",
+      "bytes": 2268
+    },
+    {
+      "path": "src/DropSpace.App/Services/ForegroundWindowMonitor.cs",
+      "sha256": "f1cf9ba0416bd521f7196ffd3e995fbc869affabc90d70bdabb0d0048a1cd6a8",
+      "bytes": 2483
+    },
+    {
+      "path": "src/DropSpace.App/Services/GlobalQuickPanelHotkeyService.cs",
+      "sha256": "04a64e7ea703fc7fc0424470924880911f409e0f07fc981f03bd1743faec70de",
+      "bytes": 12682
+    },
+    {
+      "path": "src/DropSpace.App/Services/HandoffSendUnavailableException.cs",
+      "sha256": "b3402dc4e7d59ef7e345695e82e128c69f5396ef3835fd00a2516fa4de414b27",
+      "bytes": 477
+    },
+    {
+      "path": "src/DropSpace.App/Services/ImageDecoderPreflight.cs",
+      "sha256": "66c0d2141fc4862cb3fc8707ca4bd703461bb0540c730205716a9f95874c7f24",
+      "bytes": 1080
+    },
+    {
+      "path": "src/DropSpace.App/Services/InnoUpdateInstallerLauncher.cs",
+      "sha256": "b8d01439b61c3dec3828ca0c45210a1a431701c1341d588261d46b8af0dd35d2",
+      "bytes": 901
+    },
+    {
+      "path": "src/DropSpace.App/Services/IslandAcrylicBackdrop.cs",
+      "sha256": "66e3ca8d86bf6e53c310ce08412c7c797be4132b4aabb5d6b5e035ce83a7288f",
+      "bytes": 5662
+    },
+    {
+      "path": "src/DropSpace.App/Services/IslandGlowController.cs",
+      "sha256": "b9404ecb5f9a933d12f0748f22d04588ab995f41e4c492500071e0c2a4e0abbf",
+      "bytes": 8376
+    },
+    {
+      "path": "src/DropSpace.App/Services/IslandGlowRasterizer.cs",
+      "sha256": "41677f57440f04ddf55b9ddc37f3385acad028ed331e0080137d3ca65d3cb303",
+      "bytes": 17101
+    },
+    {
+      "path": "src/DropSpace.App/Services/IslandGlowWindow.cs",
+      "sha256": "f6527c0538021334d35761d0d6068afaebca1b03adaa65486ecf8dc87f219631",
+      "bytes": 8903
+    },
+    {
+      "path": "src/DropSpace.App/Services/IslandMotionBlurPolicy.cs",
+      "sha256": "14defadc16bb939ea49a1e6bbfb5e4dc6d88f7429de8b98cc5b4756726a5c789",
+      "bytes": 6986
+    },
+    {
+      "path": "src/DropSpace.App/Services/IslandTransparentBackdrop.cs",
+      "sha256": "bc8e35eb4c4325eecb7ef79aeca67af38a4a46f510b305105899030de27c473d",
+      "bytes": 1595
+    },
+    {
+      "path": "src/DropSpace.App/Services/ItemAssetWorkLifetime.cs",
+      "sha256": "7b930bb4d5fbff9e0e5ce63480c9738b71de95fdbb6f26c8706c51e863ab8d32",
+      "bytes": 980
+    },
+    {
+      "path": "src/DropSpace.App/Services/ItemProjectionService.cs",
+      "sha256": "3c06a8e427f7a3181c7b201688f242ead10359cffe1798d1f8b762c86401a68a",
+      "bytes": 1527
+    },
+    {
+      "path": "src/DropSpace.App/Services/ItemSharingService.cs",
+      "sha256": "6c80e4707904786651236e57efd822ee29dc217e73b96f74557989a3799104ba",
+      "bytes": 9564
+    },
+    {
+      "path": "src/DropSpace.App/Services/MaintenanceShutdownService.cs",
+      "sha256": "326f5a9b4ef0bce73e0e6aa55824cf9763749693fe398b2ab112f5bfa3d8aae4",
+      "bytes": 4375
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
+      "sha256": "d65f91dbf3c41173434f79977040086c93705fddd4213db6db326b26ee8b4f82",
+      "bytes": 29376
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/BoundedMediaOperation.cs",
+      "sha256": "4a8f1c56f7fef06b5b58719913e63f9942634290506f576a50c8cf3afe9a43d4",
+      "bytes": 4245
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/LyricsRapidSkipDiagnostic.cs",
+      "sha256": "7f81dcca008945017a48291cd262c301982d10ebe314c78a0773e40e529cf282",
+      "bytes": 4653
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaApplicationIconService.cs",
+      "sha256": "7798b0845782508ad258d82befb65b0d66a5de976c08db356ff7b86f6cf8aee4",
+      "bytes": 2722
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaArtworkService.cs",
+      "sha256": "a9cc757f3ed9f7a9c71edd6f84e7b0a02942923959467ff219c8a99fbb769265",
+      "bytes": 1832
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaEventSubscription.cs",
+      "sha256": "3cb7d11831aaef8ab03fb12c9ba949f1ec62abd355cda68707d1a37d597b66a7",
+      "bytes": 1825
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
+      "sha256": "ed9ea509aef0691fcad4cf338bf861936eb973e7473a3a8b11d96a5b725c1b85",
+      "bytes": 48679
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaLyricsRefreshRequest.cs",
+      "sha256": "0d6bc2e1359d38f2e7ca430c45f2620927dba33edcd467147fdcede3b9eb524b",
+      "bytes": 741
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaNativeContext.cs",
+      "sha256": "aaaa4885d80c08c63c9ed9e4fb607500c439e4a1456fa43efb76954d2bb9f18b",
+      "bytes": 4603
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaProcessResolver.cs",
+      "sha256": "0fadb045c28a95ad8d8d7c43bb8a25a953bb5d3a3d3a30e57b1cf3e8eca2c677",
+      "bytes": 3547
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaSessionOwner.cs",
+      "sha256": "8dfbb3fdd23900f0466561aa39dccfaab7ddccaf07a924a329ea052d585535d9",
+      "bytes": 1954
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs",
+      "sha256": "bb330e48706e3554b6890c365e04d55f2e8da3b6f67ff7f221f1c858d6d905be",
+      "bytes": 2714
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs",
+      "sha256": "1d0d14afed57efdca4e25a9c5cc5cd601398c2289a6b491247d3633dbcd3bd1f",
+      "bytes": 852
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/QqMusicLoginService.cs",
+      "sha256": "b6b13edf42ee0492cb916820009aa319eb173f8feaab703b5f17e1d1d178c2f5",
+      "bytes": 12432
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/RetirableMediaWork.cs",
+      "sha256": "11fa91ce1d6aba31bf8e0617fdc42fa8116b9b05887f142374c3885860ac2a36",
+      "bytes": 4521
+    },
+    {
+      "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
+      "sha256": "6058384952759f25cbe6b27a3a311fd896dedd02c18b05d0254163fcc8c57474",
+      "bytes": 57687
+    },
+    {
+      "path": "src/DropSpace.App/Services/MonitorLayoutService.cs",
+      "sha256": "df85efc35ad32b1a2a6c474b1be21e0573f1615fc50de90a5c4c7e3e21c5571a",
+      "bytes": 11109
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeApplicationIcon.cs",
+      "sha256": "4589c9a20cc1f0c5dfbab2c880f8a18eecb727d404b7d75c031bb20d1179a291",
+      "bytes": 3185
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+      "sha256": "8d5c9312eb6f074785414a37127d8d1d72fe44cd487a581e420e11984251006d",
+      "bytes": 2264
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeFolderPickerService.cs",
+      "sha256": "c419495da0d6660cfff7899b71bb502db218fcc2196828f34dc79ad4e0d19134",
+      "bytes": 1574
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeSubscriberNotification.cs",
+      "sha256": "830e72ee8d0f81b547f4b4d12cac2c70ab53bb292708fb8dd2e3fb89b255b635",
+      "bytes": 1107
+    },
+    {
+      "path": "src/DropSpace.App/Services/NativeTrayService.cs",
+      "sha256": "0c166050b97963c55ad4ed203f2c17b6f282dd159b1ecc28476b266f0da951f5",
+      "bytes": 11791
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/BetterNcmProbe.cs",
+      "sha256": "7bfaf4690de0c59fa6639e38d133491a25d4e2973ecf7ed327e95f37f0f05d17",
+      "bytes": 1463
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.IO.cs",
+      "sha256": "b76278ba80dd888b750e73bdb17952c6c19387e0f33d0f44a4cf94d7a28c9f26",
+      "bytes": 16247
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.Packages.cs",
+      "sha256": "42b7bcbc01b604111ec2eae5c5c6ae45999813404b525dd65e17c87591e516d5",
+      "bytes": 10627
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.cs",
+      "sha256": "7c311e6fe9b56548c63a0daf221f5c0757fd14038996adf5f23b54fce826b375",
+      "bytes": 14993
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/NeteaseEnhancementService.cs",
+      "sha256": "4104fc6d673167c573362aa18bd1e4ac8bd65a6e14015c6275674ed5098ff109",
+      "bytes": 14457
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/NeteaseInstallationProbe.cs",
+      "sha256": "0123744aae1521a6c9367ce060138870d54c8250a9e3211f30164c7118849028",
+      "bytes": 4315
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/NeteaseRuntimeInstaller.cs",
+      "sha256": "1efb17453192714a35bf56c3b659adf1a3cc532ffd64c9f0003b6b5b01db0067",
+      "bytes": 4862
+    },
+    {
+      "path": "src/DropSpace.App/Services/NeteaseEnhancement/NeteaseSmtcVerifier.cs",
+      "sha256": "5514805e54427b133eb4a1310bf798230ed6d9809ae9621b309ad4f9d9d4172d",
+      "bytes": 43375
+    },
+    {
+      "path": "src/DropSpace.App/Services/Notifications/WindowsNotificationActivityService.cs",
+      "sha256": "592d282664c130d7d5e4ba61925bb9521b739e4d6db267d4fb5f19b729f16b68",
+      "bytes": 6808
+    },
+    {
+      "path": "src/DropSpace.App/Services/Ole/EphemeralOleDragProbe.cs",
+      "sha256": "09624b07028f77f921592fa1ff414840de9457929c73099639a25e918296b596",
+      "bytes": 27879
+    },
+    {
+      "path": "src/DropSpace.App/Services/Ole/OleDropTargetNative.cs",
+      "sha256": "0e6a25fef2330080c603aec31e8c4599fc6e77b5a9ec6866e2b23c4a20fea83f",
+      "bytes": 965
+    },
+    {
+      "path": "src/DropSpace.App/Services/Ole/OleFileDataClassifier.cs",
+      "sha256": "ea0955201f989d8b82da49f84a6776c0a35b23e565b7c9fe0d55ef3a356a7310",
+      "bytes": 14485
+    },
+    {
+      "path": "src/DropSpace.App/Services/Ole/QueryOnlyDataObject.cs",
+      "sha256": "af620bd8028bb82d3681cf41560a8f02973638d4f25d917a4517ed44aae51346",
+      "bytes": 2484
+    },
+    {
+      "path": "src/DropSpace.App/Services/Ole/SmartDragProbeOptions.cs",
+      "sha256": "264b06eeea9d91324e424db2422ed4caf1249d322ee4970ef206060ff60fe170",
+      "bytes": 2060
+    },
+    {
+      "path": "src/DropSpace.App/Services/Ole/SmartDragRuntimePolicy.cs",
+      "sha256": "97f25570115a1ca547e2c997399f7f3c53de2d2813a7b27f4dbf2743f7771fdf",
+      "bytes": 1693
+    },
+    {
+      "path": "src/DropSpace.App/Services/Ole/VirtualFileMaterializer.cs",
+      "sha256": "380e6266a57057cd2c4168e178d4ea2ce30872ca58d6649c6f5e210988550d5b",
+      "bytes": 27448
+    },
+    {
+      "path": "src/DropSpace.App/Services/OleDragDropService.cs",
+      "sha256": "3cd27d1dd7d07d96c8e249b25e9482abe7e03ed2ebed5eef4994e80b159c6d0f",
+      "bytes": 52694
+    },
+    {
+      "path": "src/DropSpace.App/Services/OverlayCompositionAnimator.cs",
+      "sha256": "673e3ea1a1b23aca4e09cfa2cc70d4a41268ba683660da6e09e1d84200a1e752",
+      "bytes": 4662
+    },
+    {
+      "path": "src/DropSpace.App/Services/OverlayMaterialController.cs",
+      "sha256": "6d1b94ee083fc28428140023ad05077c97d04d3560d973842cab15622c6fd16d",
+      "bytes": 4704
+    },
+    {
+      "path": "src/DropSpace.App/Services/OverlayMotionOrchestrator.cs",
+      "sha256": "4555c2408bb2c222c913b088120d3ea55242e2bceb4cc684d2023a16311b0dd2",
+      "bytes": 2795
+    },
+    {
+      "path": "src/DropSpace.App/Services/OverlayNativeRegionController.cs",
+      "sha256": "17254d9026b13625345107d48112a97c4b6f7e68a97c5b80131deed44d3d29ba",
+      "bytes": 2116
+    },
+    {
+      "path": "src/DropSpace.App/Services/OverlayTransparentHostController.cs",
+      "sha256": "cf30451385a332314c82cb79aa6de5c18ebc41d1d08747c082ff6e54330e7a4b",
+      "bytes": 3720
+    },
+    {
+      "path": "src/DropSpace.App/Services/OverlayWindowInterop.cs",
+      "sha256": "fd7984f6f14173d93f1a29584efe3aee496623009d1777a02ebc82de48435299",
+      "bytes": 26354
+    },
+    {
+      "path": "src/DropSpace.App/Services/OverlayWindowService.cs",
+      "sha256": "b361e84295f78a12bfd936d70d549bb2c40994b6e3e4d1b19b8a0a51986ebcea",
+      "bytes": 69321
+    },
+    {
+      "path": "src/DropSpace.App/Services/PdfPreviewLifetime.cs",
+      "sha256": "b99e718ebe5b453334d5b745ae4b7f032ec0baffd98fca0be81ffd4d77e7a235",
+      "bytes": 6412
+    },
+    {
+      "path": "src/DropSpace.App/Services/PinItemsUseCase.cs",
+      "sha256": "bd646b5e796cbd4caa6d389ae4370f6ea0f040809e3dd57377a1dc33c8f0b814",
+      "bytes": 1174
+    },
+    {
+      "path": "src/DropSpace.App/Services/QuickActionDialogService.cs",
+      "sha256": "0d2a117561d7887c84edbf283a0ae8741dc1cd62038192fb1ed39730b5c20fdc",
+      "bytes": 16979
+    },
+    {
+      "path": "src/DropSpace.App/Services/QuickPreviewService.cs",
+      "sha256": "eee20ae2260b47dcc09292fac5bd98f42bccaa0542749e1d6f9169a4d7d9716e",
+      "bytes": 2429
+    },
+    {
+      "path": "src/DropSpace.App/Services/ReleaseBuildInfo.cs",
+      "sha256": "f2fa1d5539920be6d52682c77904bc376100f527ff127c87be869d4661d81f9c",
+      "bytes": 667
+    },
+    {
+      "path": "src/DropSpace.App/Services/ResourceStringLocalizer.cs",
+      "sha256": "d2fd4d5b18254f5b662cc4ffdb7ce4101b46dac7923437ea6882a0b46bbc1762",
+      "bytes": 4570
+    },
+    {
+      "path": "src/DropSpace.App/Services/SecureInternetShareService.cs",
+      "sha256": "1b9a23f3a6caf20574eb7200ca509536da0e0ae42b4c8a54e024d4ebeb84ba16",
+      "bytes": 7184
+    },
+    {
+      "path": "src/DropSpace.App/Services/SettingsApplicationCoordinator.cs",
+      "sha256": "3bb77468e289966a1913e05195a39cdeb0317e1ad75f1d812f84e345f5b3de14",
+      "bytes": 13094
+    },
+    {
+      "path": "src/DropSpace.App/Services/SettingsTransactionRollbackCoordinator.cs",
+      "sha256": "e4b689858fd157a66d8e94b8ae98c10fc48fc19b9d9ee84cecc9bfa7a6536c5a",
+      "bytes": 954
+    },
+    {
+      "path": "src/DropSpace.App/Services/SettingsUpdateException.cs",
+      "sha256": "d6c737a1c9727f48c58baef6d3fd523df78912e1252440d5035ed8bb4c89fe30",
+      "bytes": 340
+    },
+    {
+      "path": "src/DropSpace.App/Services/ShareFolderEnumeration.cs",
+      "sha256": "d19c66b104b3f917b45ec20263a83243bdd3468a852ed73b02a39c61fd910ebb",
+      "bytes": 1941
+    },
+    {
+      "path": "src/DropSpace.App/Services/ShareTargetActivationService.cs",
+      "sha256": "dc9d3e55d42905226090f5e80d68ea86197aaee5c84805e1aa59ac957de342f3",
+      "bytes": 9411
+    },
+    {
+      "path": "src/DropSpace.App/Services/SharingUseCase.cs",
+      "sha256": "2bb119796b0c447c067612d939423eb042174fc6a3305d1f80af65c41f7e4a86",
+      "bytes": 1688
+    },
+    {
+      "path": "src/DropSpace.App/Services/ShellActionService.cs",
+      "sha256": "0a41eb4cec8015675235c7489670bfc11ca4e2617ed6485b8f152a3c4c9dfced",
+      "bytes": 4572
+    },
+    {
+      "path": "src/DropSpace.App/Services/ShellIntakeActivationService.cs",
+      "sha256": "ad68ad53b853e715efca07cce694aad0def13c0d5a90fbe0c42be1321f615d21",
+      "bytes": 4077
+    },
+    {
+      "path": "src/DropSpace.App/Services/StartupRegistrationService.cs",
+      "sha256": "5ce196e5ec188725eeefe5edb68462ce297fb32db3c2e46c5ce37ad47fcb896d",
+      "bytes": 1958
+    },
+    {
+      "path": "src/DropSpace.App/Services/SystemActivityExperienceService.cs",
+      "sha256": "bc3dbbc557ad6ba92aca2ab5f437e2e81c7cbe7e702231a6d4c98e262866fbbd",
+      "bytes": 5566
+    },
+    {
+      "path": "src/DropSpace.App/Services/SystemVisualPreferenceService.cs",
+      "sha256": "c333faa265ae7efb2a2be6c79af280a1721a9320024fff8e13e8048415d6beb3",
+      "bytes": 7563
+    },
+    {
+      "path": "src/DropSpace.App/Services/ThumbnailService.cs",
+      "sha256": "a4ed5a66b5ea3efda5475e0b4d50d6f3d133adbbae401da2829b5ab02320ab4b",
+      "bytes": 4902
+    },
+    {
+      "path": "src/DropSpace.App/Services/TrustedPublisherIdentityPolicy.cs",
+      "sha256": "3c09bca91a90a09b01c0428e7e345a5f50322bd6dc27d5aaeeeedbc72d65dcbe",
+      "bytes": 5407
+    },
+    {
+      "path": "src/DropSpace.App/Services/UndoCoordinator.cs",
+      "sha256": "bd1aa712664d6578c7c249913ce7a0389e21cb8203e8dbafcac5ed697abbd21d",
+      "bytes": 18082
+    },
+    {
+      "path": "src/DropSpace.App/Services/Volume/VolumeInterop.cs",
+      "sha256": "1a5bff1632c327104da87cf42c4a14e9036b54da4f32287b10b5cf10efcf8796",
+      "bytes": 3439
+    },
+    {
+      "path": "src/DropSpace.App/Services/Volume/WindowsVolumeActivityService.cs",
+      "sha256": "3e563fc154bbb77e8825ce84f4b4d68458e42526dad7b76935478f7856a8f2dd",
+      "bytes": 8566
+    },
+    {
+      "path": "src/DropSpace.App/Services/Widgets/NativeWidgetDataService.cs",
+      "sha256": "6befbb2e9d9003483133851ecb7bfec6bbbc0c02a250607ec96e2c037d57e410",
+      "bytes": 5593
+    },
+    {
+      "path": "src/DropSpace.App/Services/Widgets/NativeWidgetIcons.cs",
+      "sha256": "a92860b953b986673e37e61ee4ed17db2f99e181db9ae13ba5b35dd722ba3c54",
+      "bytes": 1365
+    },
+    {
+      "path": "src/DropSpace.App/Services/WindowsCompatibilityService.cs",
+      "sha256": "280b13aadca0c3743e5b5a0a1f5c5cbf6a8773af5cfc89d7b9292d67ef20fc98",
+      "bytes": 15408
+    },
+    {
+      "path": "src/DropSpace.App/Services/WindowsImageCodecPreflight.cs",
+      "sha256": "1e7e41a3fef4cb4308ed89b527e211547cdec184899d6a1fd943757f15769d4c",
+      "bytes": 6383
+    },
+    {
+      "path": "src/DropSpace.App/Services/WindowsImageTransformService.cs",
+      "sha256": "80dd8a43b71be196756f4ace09bbf89964805b5f6ee670618bb94001693e2545",
+      "bytes": 17715
+    },
+    {
+      "path": "src/DropSpace.App/Services/WindowsShareIntegrationService.cs",
+      "sha256": "11a71b68c28a1dbd2ff03480029ae0da9dc51595b79d97a8f24553887efcc2bf",
+      "bytes": 2306
+    },
+    {
+      "path": "src/DropSpace.App/Services/WorkspaceMutationUseCase.cs",
+      "sha256": "5dd12184c82c54bbe7f1a120f9dad42e47e4b44aaa058dbeca96ed73272a2050",
+      "bytes": 1157
+    },
+    {
+      "path": "src/DropSpace.App/Services/XamlResourceOverride.cs",
+      "sha256": "dc08467f7836ad8e3c2b660ad2ce2556545d4ba7b7bb20f340824ce9d47f280e",
+      "bytes": 4359
+    },
+    {
+      "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
+      "sha256": "14819b8df7ea2af03577b13ba9cafaf6f27be83ee11257db9c24040f0845598e",
+      "bytes": 122929
+    },
+    {
+      "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+      "sha256": "8374b93a8be03bb75c009ba86dc6a677735d8d6bb319f0c0869a7d7245e5e897",
+      "bytes": 110915
+    },
+    {
+      "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
+      "sha256": "366cb3a46ff249fb1b8ad8b5278f06f639729d9d66056a0f664f81e70bb77552",
+      "bytes": 120287
+    },
+    {
+      "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
+      "sha256": "952ea7055eaf6a000b466374fd359beda85774e19584ea3ecc63507f4d0a2e47",
+      "bytes": 123298
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
+      "sha256": "ea73359ee66591a300eaecbfbd698c9f1e2fc92bf38cca4908d2f5c057e5e629",
+      "bytes": 132528
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
+      "sha256": "7f740a3d8be9b56d9da5a19323794e75888f6bc273f8c0fc723f665a330b4cbd",
+      "bytes": 122373
+    },
+    {
+      "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
+      "sha256": "87ddff3506de9fe7973baa686dc163547c8c7716603d8309e2b648bb73bb051b",
+      "bytes": 119566
+    },
+    {
+      "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
+      "sha256": "717a62288a15a62d43e978a8be07c24d58cfa7411803ce9cb806267f4f0ab384",
+      "bytes": 150559
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+      "sha256": "020c5cb3c6d56b1e52743eb01ba8d7a030117b60d944bb0d79633044360bdf2c",
+      "bytes": 108375
+    },
+    {
+      "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
+      "sha256": "8dd36e5d3c461eb8bdf2db6c1d793df9841c00020624c74dd36747abb33461cd",
+      "bytes": 109105
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/ClipboardIslandViewModel.cs",
+      "sha256": "3ddbdaa5e8117a09aacf0664adefea20226a6ec47688acb58e235979eab82872",
+      "bytes": 9486
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/ItemCardViewModel.cs",
+      "sha256": "4ceb7317e7cb6035a184db6eaefb7307e64e511308d659f5ca418baeb2fecb43",
+      "bytes": 9121
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MainViewModel.ItemSelection.cs",
+      "sha256": "d97a9b5ad40d6a85be0b24867880cd452d44ac4864fdc85bb3617f55831842e7",
+      "bytes": 2669
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs",
+      "sha256": "3cb8a1c72b62d62a12c72e80651a04bd0e1ccad895a335701e3936168c59e75c",
+      "bytes": 10383
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+      "sha256": "e4abda02b0870092dc638d2b6a9dd9ebf65aaccbcfb0af4030985f8f0ae2beb2",
+      "bytes": 73493
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+      "sha256": "63254870ef2001a8c1088136e1b43af5003f056fecc4afb5d6a4b9a82aefc959",
+      "bytes": 16350
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/NativeSettingsEditor.cs",
+      "sha256": "5b2c0de7b872648d46662b4d952a2bb6715a07c7ce8540cbdbb52da032162382",
+      "bytes": 8272
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/NeteaseEnhancementViewModel.cs",
+      "sha256": "8deb1d99fb8db88f4fc8c6f64dfed2d5c5f2f4b60d1b865a71e5be11fe448937",
+      "bytes": 3118
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/OverlayViewModel.cs",
+      "sha256": "b6e7630b215910faf58e888d760e1684b466412ac3bb57fe568c03214e398640",
+      "bytes": 20745
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/QuickActionButtonViewModel.cs",
+      "sha256": "edc65d3304fafdda858f3a3aee1707d9c0c239f91b9a623f104dd462443e2039",
+      "bytes": 1157
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/SystemActivityViewModel.cs",
+      "sha256": "e665a172fe08ec4056063850224fe6c8d733a7a87db5a1f4d1c72fb7eb8a6704",
+      "bytes": 1592
+    },
+    {
+      "path": "src/DropSpace.App/ViewModels/WidgetViewModel.cs",
+      "sha256": "08f5e8a671dbfa92a31cf0a21da504f4bc574f1230a2a145ded59721a6fdb23d",
+      "bytes": 6847
+    },
+    {
+      "path": "src/DropSpace.App/Views/ContentDialogLifetime.cs",
+      "sha256": "048bad99b10c742473c8d5e7d501efe49dc330d5b21ae775220ef081127d2dc1",
+      "bytes": 3917
+    },
+    {
+      "path": "src/DropSpace.App/Views/DesignTokens.xaml",
+      "sha256": "a9cd5062afdb5e8dbfda8d8e36fe407f28f01801d465e1ade2b61d1e6bb1c26c",
+      "bytes": 7491
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/ClipboardIslandView.xaml",
+      "sha256": "e3f4e1f925691aa85123d6eaaef75a651cd90df55eea4a628e6034b8881854b3",
+      "bytes": 3072
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/ClipboardIslandView.xaml.cs",
+      "sha256": "0dbcdddb52c826497bd67d09a9022f5d42c937df421a59b455342d376fc84f1e",
+      "bytes": 1327
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml",
+      "sha256": "5744ac7b1f26a7774b49d16c942eb6f48b508948285dc12d95ca6b5ca5eea7b9",
+      "bytes": 5935
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+      "sha256": "b7453331191fd58da051bd39ebc7b97eff8ffa94b919e51dbaefcf3f00b35f23",
+      "bytes": 15432
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml",
+      "sha256": "1552008af4be0eab614447fd27052652cffff73a368ef21c360e3260c483e255",
+      "bytes": 4249
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+      "sha256": "dac77256edd7aab918201bc7df46af038d30cacd806ed326802aa2de466281e9",
+      "bytes": 22016
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml",
+      "sha256": "075de51e3758511b2d0c6d836ef42f5195afd328015d63fb9ac8569d9b0f7d9c",
+      "bytes": 4809
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs",
+      "sha256": "2dd8d4790d4ed93bcfa7c791cf8cc964905d9036e2ca9f0d49274a2fb1b6d75c",
+      "bytes": 14475
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+      "sha256": "8f31ba6ae95a66cf5f6a802e372915f0f5bf09794ee9e31118a5f65a30b33943",
+      "bytes": 1296
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.Diagnostics.cs",
+      "sha256": "78bf8cf6225873cb3d8844c60b7a976baf0becc3a3ebd01650ad74eadbcb6922",
+      "bytes": 1157
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml",
+      "sha256": "6c07edc8c818310bbacbd0075fc02cd56a561d9a9b46c72f613fac977f75e5f9",
+      "bytes": 874
+    },
+    {
+      "path": "src/DropSpace.App/Views/Island/WidgetsExpandedView.xaml.cs",
+      "sha256": "ea5d005fea8e8cf122c191864fddb9a7cfef82413f8cedd500123afc5d9fde61",
+      "bytes": 25981
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.Diagnostics.cs",
+      "sha256": "fc6cedc8b109fa2eb04fa261ce379dcb2d7a656abf520176733d8bda44d49e5e",
+      "bytes": 1320
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.Hotkeys.cs",
+      "sha256": "f1ade8aff9b397abaebc8f1330f7f87cd3e6be0d81c9869d60f3ec3d68249f1e",
+      "bytes": 9434
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.Modules.cs",
+      "sha256": "e0cae144e8d7604b7da8cbeb3c083a516f25886c1ac66834d0205630688782e3",
+      "bytes": 5340
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.Settings.cs",
+      "sha256": "707d4e637c43497b3e364a3b76c345eee48c02ba6f7bdcaf83afab3b5474b823",
+      "bytes": 10639
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.Shares.cs",
+      "sha256": "0006609022a225a542377fe0a879895e66221f452de6223b55d862bf03c717bc",
+      "bytes": 17013
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.Transfers.cs",
+      "sha256": "f31e37b2925eb7a0aca42f3a19e5e11f2541b72c8cdf35f602f6b17bc18755c7",
+      "bytes": 11883
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml",
+      "sha256": "97e77a319de5ba560750836244c7b9582b763ef6094f48a6d48035da4c6c6d2f",
+      "bytes": 51880
+    },
+    {
+      "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+      "sha256": "1c8f259cdfce0c5b2c121614bed631e0f355d35acdf4b6005c05a8a1eb3f02c9",
+      "bytes": 111759
+    },
+    {
+      "path": "src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs",
+      "sha256": "11b641b36baec649871b4c948c8ed8d4a4c6e52ae841533981ec0a8a1ef4ae7e",
+      "bytes": 30607
+    },
+    {
+      "path": "src/DropSpace.App/Views/Music/LyricsFontSizeControl.cs",
+      "sha256": "44f94d084cd12a490c21e6b74d28ba5174714a60f960a5891be1cc792ba1092b",
+      "bytes": 10430
+    },
+    {
+      "path": "src/DropSpace.App/Views/Music/LyricsFontSizeEditSession.cs",
+      "sha256": "059e2b7a2c6167e8632752f772fd53ae374a637c69584276a6e72c708781a74e",
+      "bytes": 4451
+    },
+    {
+      "path": "src/DropSpace.App/Views/Music/LyricsGlowModeControl.cs",
+      "sha256": "ecd26274e5feb503ddfa9407fbd2888ff5e5626594b49ad4fe6d73d08960163d",
+      "bytes": 1477
+    },
+    {
+      "path": "src/DropSpace.App/Views/Music/LyricsRowCollection.cs",
+      "sha256": "7ad337a9a62a955bbecf5e9211fcb090fa6c7b33180535054a302a0161debfc8",
+      "bytes": 2703
+    },
+    {
+      "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
+      "sha256": "d04d991d253f8f8428a93c1381dffaae173c53200e3d3602243caeb369b5b7d2",
+      "bytes": 28306
+    },
+    {
+      "path": "src/DropSpace.App/Views/Music/NeteaseEnhancementCard.cs",
+      "sha256": "72b0bebd44c042b98b6ee583e61a7efc303e0371009a74280124b1f99e870765",
+      "bytes": 7883
+    },
+    {
+      "path": "src/DropSpace.App/Views/Music/QqMusicLoginCard.cs",
+      "sha256": "45e67132641eb3d916edcc92f3d8838dc6eaada39f7afca5474e3a35da8b529d",
+      "bytes": 4007
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/DlcPage.cs",
+      "sha256": "ee0e4d58e5ee737ea32c2447faa72903e054bf30cc64d324ae791c2417ae9dcb",
+      "bytes": 16350
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/DownloadActionPanel.cs",
+      "sha256": "a66c562ded8ca097db6cad39b8124dad4e53c4e4cc09cd344e29b05a2b94383d",
+      "bytes": 4087
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/DownloadPanel.cs",
+      "sha256": "9a828a3196890e6b49e8c854a28816c129655a5a85c370a108ae64993871ccab",
+      "bytes": 21295
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/FeatureModuleInventoryView.cs",
+      "sha256": "876435dc81f0b8bf29d8eca4d651b61aaa6c728fd51a35ec86d500143f45a863",
+      "bytes": 10710
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/FeatureModulePage.cs",
+      "sha256": "1065297a4fe32b9e8c21ae0fdc6783e55aeb813fcb869bca0b09a6a103d3826b",
+      "bytes": 7613
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/SettingsEditBehavior.cs",
+      "sha256": "f0d286faa5cc09a3d52ff99fc56ddeddd1139b2801fe207dc2d185546b41984c",
+      "bytes": 2392
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/SettingsForm.cs",
+      "sha256": "ead2ad44703eb9eea53b65c48a68b6ac1f283fb07f899bc478c000b9336853e5",
+      "bytes": 8175
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/SettingsValueSlider.cs",
+      "sha256": "54810aa20b7cf58419c4561d0f0010eb86a6d95c477de662684ea4243f89179e",
+      "bytes": 5295
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/WidgetEditorView.Layout.cs",
+      "sha256": "580599f2163b7ee0f8d3886c92c449880424fc4924b05e2d2d0e740eb27a31c7",
+      "bytes": 5103
+    },
+    {
+      "path": "src/DropSpace.App/Views/Settings/WidgetEditorView.cs",
+      "sha256": "5856025c50e7f2d4d5969bb62543fbf4f1bec106649506a89baa3a3243bcdf61",
+      "bytes": 20696
+    },
+    {
+      "path": "src/DropSpace.App/app.manifest",
+      "sha256": "550994253b50082aad572f7ea4d1ef589880e452c9837223b33fd1acd6f11cd1",
+      "bytes": 921
+    },
+    {
+      "path": "src/DropSpace.App/packages.lock.json",
+      "sha256": "02c409bbbee46ff3de9011917c3ce861460f3c7d56ff288204317e0046ce3542",
+      "bytes": 14291
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IAppStringLocalizer.cs",
+      "sha256": "e6a7e9e1e4c462c06c3456b03fa73e52552c6ba23b2ba016b954e4ef9fee5f20",
+      "bytes": 1529
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IDlcPackageProvider.cs",
+      "sha256": "e0892e1035dde47bce5d115054ce1a76bb0433e5596b7b0acd040557732a0014",
+      "bytes": 2996
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IFileReferenceService.cs",
+      "sha256": "26ccaf00dfea38d4994ff8d61c8117159ab0103ed1ccf5f1001e7975c421525d",
+      "bytes": 357
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IItemRepository.cs",
+      "sha256": "2e18c159a5d237e47f3cf46d2d7b3092ca055f540da26dfe27fcb20258d53739",
+      "bytes": 6100
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/ILocalStorageMetrics.cs",
+      "sha256": "ef62bcb80bc6d26453769e5f9be9df53b245e17e127f64c2981e237909a7c661",
+      "bytes": 195
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IPayloadCleanupCoordinator.cs",
+      "sha256": "4c50634024787183aca8f2c6d9fdb92fe40f55e6f4cca257d22d6c033a437911",
+      "bytes": 237
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IPayloadCleanupRepository.cs",
+      "sha256": "658afb2dd32e600542ca5655a871c7ad442a8134b77b87b8e684c1afaafc0ede",
+      "bytes": 927
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IPayloadStore.cs",
+      "sha256": "694a253d17beb3e915e0944606dd8621c8b000b34d9b50eba22d1783d1085e16",
+      "bytes": 841
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/ISettingsService.cs",
+      "sha256": "18487938967d1c774b20bfbcc1c90760496e87a743980c31833dc8f476af757c",
+      "bytes": 799
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IStartupRegistrationService.cs",
+      "sha256": "ec0af2e1f2be7cc5fc2c82350c25b82a975c6b621c2a43790eec45e8418fd094",
+      "bytes": 205
+    },
+    {
+      "path": "src/DropSpace.Core/Abstractions/IUpdateServices.cs",
+      "sha256": "1011a9c2c82a5d3a285b3086c23a61baab883abd9ec69e68275699faf02f89ad",
+      "bytes": 2113
+    },
+    {
+      "path": "src/DropSpace.Core/Actions/ActionModels.cs",
+      "sha256": "9cc9a9c9ab61393c524def01e8f0818216eaece8b19ff07dc8d68b75f9dde46d",
+      "bytes": 3989
+    },
+    {
+      "path": "src/DropSpace.Core/Actions/ImageSizePresetPolicy.cs",
+      "sha256": "58d1c304b10ab57d530de809228eeb7f674b398f2b660ea74ba781cb23924f6d",
+      "bytes": 653
+    },
+    {
+      "path": "src/DropSpace.Core/Actions/ItemSelectionResolver.cs",
+      "sha256": "6a490c630c91076578ebccf1b7c6db42de9cdb48ec0db39d744868f0320dfbef",
+      "bytes": 743
+    },
+    {
+      "path": "src/DropSpace.Core/Actions/QuickActionPreferencePolicy.cs",
+      "sha256": "78269f2d0b043cc5ecd68a1e66d9b4df5aaf85d1a8778d058e33851da4412a3f",
+      "bytes": 6100
+    },
+    {
+      "path": "src/DropSpace.Core/Collections/ProjectionCollection.cs",
+      "sha256": "74b1b64f9447a06dedcd5e7203c4c191a40e180eb5acf96984e34138994405aa",
+      "bytes": 2787
+    },
+    {
+      "path": "src/DropSpace.Core/Collections/SerializedProjectionRefreshCoordinator.cs",
+      "sha256": "b3304a5a1cf7061402fdbb5022b73b8f2ec2d88be6172ba22417923ac57f959d",
+      "bytes": 6710
+    },
+    {
+      "path": "src/DropSpace.Core/Compatibility/WindowsCompatibility.cs",
+      "sha256": "fbd1579b3785b7f7bea0633e51277e44cbaab79443537bb26907331354649370",
+      "bytes": 2477
+    },
+    {
+      "path": "src/DropSpace.Core/Content/ItemContentModels.cs",
+      "sha256": "3db81eee471ebca4de4d5fa0e75c1789f93111ee27923a36800b590110ba1fce",
+      "bytes": 826
+    },
+    {
+      "path": "src/DropSpace.Core/Content/ItemContentPolicy.cs",
+      "sha256": "0ca6e7bd58774081da862ca9db78b59a827efb60c82609a7a0524202774e6f36",
+      "bytes": 2669
+    },
+    {
+      "path": "src/DropSpace.Core/Diagnostics/OperationCorrelation.cs",
+      "sha256": "cac927f1437d9949dc731c9de3991c4f398173cc27255becfbe5a6119629d210",
+      "bytes": 148
+    },
+    {
+      "path": "src/DropSpace.Core/Displays/DisplayIdentity.cs",
+      "sha256": "07d3b8b7b341a0f8cce74b1d5277783ca1f1c73f2f7b1c15c855b120bedb3b4a",
+      "bytes": 1390
+    },
+    {
+      "path": "src/DropSpace.Core/Dlc/ModuleContracts.cs",
+      "sha256": "d46b0af97cf95a82dba333b90ce8e1179575f1d63bfe5bca510e0d75010a5105",
+      "bytes": 9296
+    },
+    {
+      "path": "src/DropSpace.Core/Downloads/DownloadModels.cs",
+      "sha256": "466ea3a43894813bbd93a065434350d85bc7ec6732b732a3796f26beccad7242",
+      "bytes": 3446
+    },
+    {
+      "path": "src/DropSpace.Core/DragDrop/DragEvidence.cs",
+      "sha256": "99d89f576fd1f75c86bef99921ada621b3c16efc2d1ca37b5230f2b980e6592c",
+      "bytes": 1330
+    },
+    {
+      "path": "src/DropSpace.Core/DragDrop/DragSessionPolicy.cs",
+      "sha256": "035b6d913e423ba9987597fa689c686a7d82da3ba0f3d166d4689aa02fc4b6ec",
+      "bytes": 11491
+    },
+    {
+      "path": "src/DropSpace.Core/DragDrop/DragSignalQueue.cs",
+      "sha256": "23040dce40a53f40a7b83cc8b738f80069a73427eadca7e183b05d56a64615b4",
+      "bytes": 2305
+    },
+    {
+      "path": "src/DropSpace.Core/DragDrop/OleFileDataKind.cs",
+      "sha256": "3fb06e4bb24cdc9566f481a5049aa1f275aaceed9634c1a03372865679a7f8cd",
+      "bytes": 1195
+    },
+    {
+      "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+      "sha256": "3bfd5315e0ea3ede9cf5ef8c30c0878addea31f714a00310cce0a66fc78344fb",
+      "bytes": 464
+    },
+    {
+      "path": "src/DropSpace.Core/Island/IslandContentSelectionPolicy.cs",
+      "sha256": "71f2c9ba4ece4b0fbbaf4cc265c1036bfe5d7f5eee2d5c324eff25fa0426eab1",
+      "bytes": 687
+    },
+    {
+      "path": "src/DropSpace.Core/Island/IslandExperienceCoordinator.cs",
+      "sha256": "a0e323ba1d9496ae1ff34c16efde047ed6518426e781ab084b2d0afa40de8ab0",
+      "bytes": 9831
+    },
+    {
+      "path": "src/DropSpace.Core/Island/IslandGeometry.cs",
+      "sha256": "47f8ff607d3e37a28c7fe3ced273a02e0c8ce5616be58503ef47a73cd6f3a0ef",
+      "bytes": 1365
+    },
+    {
+      "path": "src/DropSpace.Core/Island/IslandPageTransition.cs",
+      "sha256": "0efe1111eff6ec9a2b75490651265f74b0c90f16a10fda41279683fdc5465dd3",
+      "bytes": 1333
+    },
+    {
+      "path": "src/DropSpace.Core/Island/IslandPresencePolicy.cs",
+      "sha256": "2ca4e1524c4c4682d29b5ac84333f942a1191843e868d09554eb42a7ecec1206",
+      "bytes": 2324
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/AiLyricsModelCatalog.cs",
+      "sha256": "a99ef8da7562142a2fa60a3092f2b63426a3a1f6968fb715bfda5ddb1f9cb956",
+      "bytes": 3095
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/AiLyricsSelectionModelCatalog.cs",
+      "sha256": "74d863e65d2621dc6effaeac446287c14e5c86686461b21dcee1758dc0f76daf",
+      "bytes": 1506
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/ArtistCreditOrthography.cs",
+      "sha256": "05f45431c87f7a2b54649d9a1889a905efbe27071650b5205815ede125e8fd8b",
+      "bytes": 1757
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/Data/OpenCC-LICENSE.txt",
+      "sha256": "b534e465949558eec2597b04f5092b5e161236a68dfbfd04d547592ac3964308",
+      "bytes": 9165
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/Data/README.md",
+      "sha256": "7f4e90e042d152cfc52aeb0021ed8bde2f3ed8a34cf2b2b517c296551038edc2",
+      "bytes": 708
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/Data/TSCharacters.txt",
+      "sha256": "9ff46a7d30e5765375eb13d33f2b03a34d298913caf2b120380679f33ae1642d",
+      "bytes": 104520
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsBodyQualityPolicy.cs",
+      "sha256": "053ff016394ed63f9c7caeb74ca0aa442e79174798b74166c1c68403bc798a05",
+      "bytes": 2028
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsCandidateSelection.cs",
+      "sha256": "2e34887d24e1d0da71c431db617a151268ce80c3f0091234d3fbfb2add854d64",
+      "bytes": 11785
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsDisplayPolicy.cs",
+      "sha256": "cd06ac6bcbed3e2d43e9422bc9b7c9ef9441c6c32e0467dda9a0aa151b706e15",
+      "bytes": 4870
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsGlowAudioResponse.cs",
+      "sha256": "4947f7b75f2eb5402148c19422c4c610f0ec819d50f512026bf365501ee29f9a",
+      "bytes": 1673
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsGlowEnvelope.cs",
+      "sha256": "85a9c97142ca350ba3015d8a6683f89162af66b9f61d5ce42414b9f515df66e5",
+      "bytes": 3521
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsGlowHandoff.cs",
+      "sha256": "839bc0d97a849d6e8919bf030246cb168f25cd8fc936c2555ab816c17544ef69",
+      "bytes": 975
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsGlowPolicy.cs",
+      "sha256": "a3c0c88075c0752ed15f4b56847fbc84e9d024a4988b9231152d533e3b26e960",
+      "bytes": 1010
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsInferenceCircuit.cs",
+      "sha256": "70f61804bf9411804a694216a45e3baada4a9734014e42a6c65f5e3f0b3d5340",
+      "bytes": 817
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs",
+      "sha256": "802ff6c072323845c4c039dfb07dff7845eae7ca76333f320d3480bbde337be7",
+      "bytes": 21168
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsMarqueePolicy.cs",
+      "sha256": "bd5294ac4cb5240c95b447526db2581394b2830d926a63e093b19797d9518796",
+      "bytes": 1884
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsMatcher.cs",
+      "sha256": "6cd8fc197f9a9168b129d64b11c11bf9e888406eb9f1af0cd4dad4e14d86dd8c",
+      "bytes": 26371
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsModels.cs",
+      "sha256": "c52e214590dbd88dca34ccc6095b5cb5ba6898b59267a3cfce3e64361ba5b271",
+      "bytes": 6849
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsParser.cs",
+      "sha256": "7ad37ee05747f77e319401f88161432d862737423b6abb583361d58cfed9a2fe",
+      "bytes": 23242
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsPreviewPolicy.cs",
+      "sha256": "c9b75a00df9bfde841a4a4bc05a6463bd22b4ff5b58760db879d0d3d7f3374ae",
+      "bytes": 2172
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsReloadPolicy.cs",
+      "sha256": "72a461d7c06cb62a3bfd379fa60291342b806b9ae9b474afa9a1e8d9850bb70d",
+      "bytes": 952
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs",
+      "sha256": "b3a51f5f4a6d4d5e348210fdae738f6ae1716326ffa065586057104d82d0c253",
+      "bytes": 9691
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPolicy.cs",
+      "sha256": "fc1fd8b281f148c298a31a34e4000b82130f737ae2a3991bf173af57c1644d95",
+      "bytes": 4820
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs",
+      "sha256": "1d24912a036399be0f4ebbab525108323af4458db749f57a5af860fc55f000db",
+      "bytes": 6638
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/LyricsWholeTrackAdmission.cs",
+      "sha256": "7fef2f74394c39081892e2da6568fdf62e36b24293eae1ec4d9fe6274ef96631",
+      "bytes": 1302
+    },
+    {
+      "path": "src/DropSpace.Core/Lyrics/PlainHyLyricsProtocol.cs",
+      "sha256": "97c6e7645060a31d778a14ef098167ec1a56ee2df83950740cc6ee2554e2803d",
+      "bytes": 5426
+    },
+    {
+      "path": "src/DropSpace.Core/Media/AudioCaptureRecoveryPolicy.cs",
+      "sha256": "7239ed545c2666391fa631253e899e75d73425c39e48a068cd509ece5eea2e4b",
+      "bytes": 455
+    },
+    {
+      "path": "src/DropSpace.Core/Media/MediaModels.cs",
+      "sha256": "4ae8432a783801e97e3c1ef44feaa9a588ee33c88fd405964fdfc465299b80b0",
+      "bytes": 3282
+    },
+    {
+      "path": "src/DropSpace.Core/Media/MediaPlaybackClock.cs",
+      "sha256": "9aba066552d82505ed4e23a102c85fa5c85db12968861f660cd78ef1311e03be",
+      "bytes": 5830
+    },
+    {
+      "path": "src/DropSpace.Core/Media/MediaProcessIdentityPolicy.cs",
+      "sha256": "2b1683c3949a389e6d8dcfbf754e064db5c527a44094cdfe277c1c0a21ce700c",
+      "bytes": 989
+    },
+    {
+      "path": "src/DropSpace.Core/Media/NeteaseEnhancementModels.cs",
+      "sha256": "e28aa3a99634d7caf60322fe10c24ff1a1704eb3059e1cb4be6b64e45350e863",
+      "bytes": 1692
+    },
+    {
+      "path": "src/DropSpace.Core/Media/SpectrumAnalyzer.cs",
+      "sha256": "bceabe7bbb659cf2b6af95979daca96f7c84c5f1f50597f6ab68be98c542c061",
+      "bytes": 3094
+    },
+    {
+      "path": "src/DropSpace.Core/Media/SpectrumFreshnessPolicy.cs",
+      "sha256": "8468d993a2a64da98d4ef3757d5ea058e04f42893d5d6f307a87e3e23fd3b569",
+      "bytes": 1061
+    },
+    {
+      "path": "src/DropSpace.Core/Models/AppSettings.cs",
+      "sha256": "1bf73686296fc95d1c3d79f916278e22c13d77051ab3b990ba44a0560077ad18",
+      "bytes": 13986
+    },
+    {
+      "path": "src/DropSpace.Core/Models/AppUiMessage.cs",
+      "sha256": "baf8c3d616cc8c46e53b94af5f0481021f6407180de4c40a703892da64c46b14",
+      "bytes": 2655
+    },
+    {
+      "path": "src/DropSpace.Core/Models/Capabilities.cs",
+      "sha256": "b12ce7058d61f72e5130f99312c60b705813567f26665e1304378a3f38b8de03",
+      "bytes": 974
+    },
+    {
+      "path": "src/DropSpace.Core/Models/DomainModels.cs",
+      "sha256": "7b07dd7a1556962595800eadc98532f438d9707f8145c3b53d0918b5b8b7b105",
+      "bytes": 4634
+    },
+    {
+      "path": "src/DropSpace.Core/Models/IslandAppearanceMigration.cs",
+      "sha256": "32b3e7406d150b0e18a550dd964fadee8eb5ae83a2999130ecb759a4b9bb16bf",
+      "bytes": 1091
+    },
+    {
+      "path": "src/DropSpace.Core/Models/KeyboardShortcutPolicy.cs",
+      "sha256": "8e3417daa0f29e2b3c80ac82b22b3a5b919e95da3e67c4fb85b1cd7fe61db5f4",
+      "bytes": 2020
+    },
+    {
+      "path": "src/DropSpace.Core/Models/NativeIslandSettings.cs",
+      "sha256": "e156195f519e436ab4f108bce2fc9a9ac3442fa91f5cf5acfae01768bcb694ff",
+      "bytes": 4154
+    },
+    {
+      "path": "src/DropSpace.Core/Models/NativeIslandSettingsPolicy.cs",
+      "sha256": "216bc5c8cfbf1cf859d261d31e4dfb0e804285628ebd0a75dd055846b5abd236",
+      "bytes": 4336
+    },
+    {
+      "path": "src/DropSpace.Core/Models/OverlayPlacementEditSession.cs",
+      "sha256": "425c41312120bfd2d632f4b0b9c03d9710373750a2fbb9f3fcd4726ef63480ff",
+      "bytes": 3539
+    },
+    {
+      "path": "src/DropSpace.Core/Models/SettingsChangePolicy.cs",
+      "sha256": "e6bbdbbdf1a9268b2c50e892abd860c2871a26f3df8534de1ae2f58930554ed6",
+      "bytes": 10051
+    },
+    {
+      "path": "src/DropSpace.Core/Models/SettingsMigration14.cs",
+      "sha256": "16435df396281e1037b111d1c756c1638cc91640fd5e09a067d3bb83fb57fab5",
+      "bytes": 570
+    },
+    {
+      "path": "src/DropSpace.Core/Models/SettingsMigration15.cs",
+      "sha256": "565450684a390cdbdfacfd11e8b48958d640b9b71af1a6335203e8bbcf46fab3",
+      "bytes": 1626
+    },
+    {
+      "path": "src/DropSpace.Core/Models/SettingsValidationPolicy.cs",
+      "sha256": "bb90e5e7d851ba8e9ebb06b8308fdb1a0a7ed8b67880e41d88cf934af1ee7e3b",
+      "bytes": 3275
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/FullscreenOverlayPolicy.cs",
+      "sha256": "1aa6b034c64b997cc6454b5f400a2b1d173674dcc1a1a2261cdbadfd60d0b252",
+      "bytes": 1391
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/FullscreenWindowClassifier.cs",
+      "sha256": "89acf3a35b7ffbbb9263746e9e7307451d821e195f41d8a06455570b2d78f0c9",
+      "bytes": 1344
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/OverlayContentPose.cs",
+      "sha256": "f259185f35f0488a17fb291dd0d2ade069a556db495f22a2e694f93cc3c0d98f",
+      "bytes": 606
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/OverlayFrameGeometry.cs",
+      "sha256": "0c55a84dfb3ac767b9a24ab32dbcb5480bfafc1e5567bdea2c611285a50e8e46",
+      "bytes": 2426
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/OverlayFramePacer.cs",
+      "sha256": "e83e85ae1817f4db0fce43baea39ba79ba1dff67196ee24a056e229102d2d108",
+      "bytes": 2737
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/OverlayMotionController.cs",
+      "sha256": "4d93a6066ec9b8012d9a7fe24fa01ba380d768ca55619b469ffb8aafb7ad3b30",
+      "bytes": 11797
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/OverlayMotionProfiles.cs",
+      "sha256": "65c25147b0e29faba3fad8a5e220b17cea4b9fb51f31c67b7e4c68acdc02b82a",
+      "bytes": 8854
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/OverlayPlacementPolicy.cs",
+      "sha256": "9f18ba34a290a5f68ec99686235e10d37de1e014f17d78923910e720b22d2fc7",
+      "bytes": 6599
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/OverlayRegionSignature.cs",
+      "sha256": "bb47b8ff817b6c7802e5657c6664fc95f6e21f82188bc658c95a8eb8fd26f4cb",
+      "bytes": 3296
+    },
+    {
+      "path": "src/DropSpace.Core/Overlay/OverlayStateMachine.cs",
+      "sha256": "f9e3dd043a1d69f49389f5f009feedc9ed35697340699ad8496a453973fac072",
+      "bytes": 7192
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/AppLanguageCatalog.cs",
+      "sha256": "7b084d3dca3c9094807f0ba36f4f3c88aa562bc40d9d9a5c731e0b63bac0500b",
+      "bytes": 3901
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/AppLanguagePolicy.cs",
+      "sha256": "723f23303621d07504796c1ce0475123928801bd91c7aab39dd6030d1ced6a47",
+      "bytes": 846
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/ConsecutiveClipboardCaptureCoordinator.cs",
+      "sha256": "642c7fd66891d1bf851c409fbfebb7a9b5c67d81dbfd5ff8a4028ac0942cc89e",
+      "bytes": 2999
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/ContentClassifier.cs",
+      "sha256": "ad3a8890735087d7add3eb38428c707d15f3fbf50ee7063b460030dd667364e7",
+      "bytes": 7571
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/FingerprintService.cs",
+      "sha256": "ab612a15c14de605d5b14232681a3e956d8b44fdb87b9aa04e4bebc534cf32b9",
+      "bytes": 515
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/LogRedactor.cs",
+      "sha256": "c936bcc81dff894a29e6e484c595e25569dbedfa133cea02c20ad18e40f23b7f",
+      "bytes": 1457
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/LyricsTranslationTargetPolicy.cs",
+      "sha256": "4354c46c7762cb58a8b4a520261081f43cc180029cc7b33e17d7d3747fd1779c",
+      "bytes": 978
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/PayloadPathPolicy.cs",
+      "sha256": "3b20a0195e1f139f14b34dbac94bbf07ed667f6103d617ee08018192fefbb945",
+      "bytes": 1369
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/RetentionPolicy.cs",
+      "sha256": "7e93ae1a77f9df461769cde4f61e8bfba8211f6e748baa35b09a570da4779981",
+      "bytes": 791
+    },
+    {
+      "path": "src/DropSpace.Core/Policies/SearchNormalizer.cs",
+      "sha256": "f4ecd6b44eac4831fd3b64d6d9c208412d7679bbe169680d258fe4c64205d11e",
+      "bytes": 1602
+    },
+    {
+      "path": "src/DropSpace.Core/Preview/PreviewModels.cs",
+      "sha256": "77c841213acc4d4a9a597134f3a0a8a5c38a01d8e441154f7ca3062911d49663",
+      "bytes": 4480
+    },
+    {
+      "path": "src/DropSpace.Core/Shell/ShellIntakeModels.cs",
+      "sha256": "5cd926524bde3ed43d337595e41768a17fe0a8682ab4f0c628b288a9a5e947e9",
+      "bytes": 4541
+    },
+    {
+      "path": "src/DropSpace.Core/SystemActivities/SystemActivityModels.cs",
+      "sha256": "d36da9be93b15396069601c67fce7ce7df4010fa47c2881782b5868b81c1bd1a",
+      "bytes": 580
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/ClipboardImageBudgetPolicy.cs",
+      "sha256": "243f4b3e1dbb11430dc812ad595f7df0d6af7c47bc4fdfbd079af882287d0e9c",
+      "bytes": 3898
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/ClipboardLoopGuard.cs",
+      "sha256": "29ea3c98bb15e6dcc89d1e6e0a3c6759bf8f5017a3bec22d06c2d623fbc564df",
+      "bytes": 3748
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/ClipboardPausedException.cs",
+      "sha256": "b12427abdb8ef5e9f80f218d582fddd5cc4af77198c6f8df7f5794d7406852a9",
+      "bytes": 215
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/ClipboardPropagationQueue.cs",
+      "sha256": "465bb872c49d106b493cd4c675710b8d4b173b6fdc09b09ec2d6ba912ba1b712",
+      "bytes": 2699
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/ClipboardReceiverUnavailableException.cs",
+      "sha256": "654c740c254af508bc31766931e288493097588cd9b4172a953efe656875788c",
+      "bytes": 351
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/HandoffMessagePolicy.cs",
+      "sha256": "d14398310e921b7aa3fa43a7a0574b6e9ba46bc230c42a363b43402f90e8f5f9",
+      "bytes": 5226
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/TransferModels.cs",
+      "sha256": "e374b62de4b031e2d15b7631112dc9705e0be06526331c7440f670495cdd7ae1",
+      "bytes": 7180
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/TransferPolicies.cs",
+      "sha256": "dc7323a74a22bdda23161954ee2cb7a2d893bfe3079e90166c4ae4e8642dbbf8",
+      "bytes": 10605
+    },
+    {
+      "path": "src/DropSpace.Core/Transfer/TransferPreparationLimitException.cs",
+      "sha256": "22765eb5254d8982d427666604cf69777997839fac99793449ce49cd55557119",
+      "bytes": 1265
+    },
+    {
+      "path": "src/DropSpace.Core/Undo/UndoModels.cs",
+      "sha256": "c9a46513fcd25c8e67df4e9c4b1103a6e5883230dc29a863b4778fa1c3e99520",
+      "bytes": 313
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/DeploymentModeResolver.cs",
+      "sha256": "6b2fb6ccc18595f84e36563923f41e24513a06f5d89c640022d73ff4338c8d09",
+      "bytes": 828
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/ReleaseVersion.cs",
+      "sha256": "e507b575d225680f30a69ec8856daa2dbe9daeb614f420ce5cfef6ac72dbaff8",
+      "bytes": 3752
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/UpdateChannelJsonConverter.cs",
+      "sha256": "459aefea95ba5a2ceae216cf04bf45fadd8e2d57d64c37ddd67c3b15687d607c",
+      "bytes": 1375
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/UpdateInstallerArguments.cs",
+      "sha256": "1e7d168f51ff8251c1e5992517596511aad0447d59d021629b23d6d06f1585f7",
+      "bytes": 566
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/UpdateModels.cs",
+      "sha256": "03c0df570d4966ec3db999e4ef475a2b98182da68030f12a9529d86dff9f92c2",
+      "bytes": 2352
+    },
+    {
+      "path": "src/DropSpace.Core/Updates/UpdateReleaseSelector.cs",
+      "sha256": "2290b5f017331b5e2c1a4697948e0e1d5fcf4a1b40325137aef91117c5737897",
+      "bytes": 1405
+    },
+    {
+      "path": "src/DropSpace.Core/Widgets/WidgetCatalog.cs",
+      "sha256": "b38f7008655999878361623f937ad0ad0b8092718213e5e3f56411bf6df1c485",
+      "bytes": 1292
+    },
+    {
+      "path": "src/DropSpace.Core/Widgets/WidgetCountdown.cs",
+      "sha256": "b1fee715a7779ce2e84042c3d1ec35112f93ac64d9a244a1cff8e5bf25bc20f4",
+      "bytes": 1975
+    },
+    {
+      "path": "src/DropSpace.Core/Widgets/WidgetDataSnapshot.cs",
+      "sha256": "9df4431fc8bf88cc45ef8e0a8bcc56234df54d7ac0ccd7bfc0c766e6c78ec86f",
+      "bytes": 287
+    },
+    {
+      "path": "src/DropSpace.Core/Widgets/WidgetModels.cs",
+      "sha256": "e2e60e4fda6c08733d9de75978a79662ad765cab4c3272e963287db0e1287066",
+      "bytes": 7976
+    },
+    {
+      "path": "src/DropSpace.Core/packages.lock.json",
+      "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46",
+      "bytes": 61
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Actions/ActionOutputPolicy.cs",
+      "sha256": "ffb9156a9443fea25a90e35408e36a32924a4e33dce8b22d10da3ddfbf7ec653",
+      "bytes": 5054
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Actions/HashActionService.cs",
+      "sha256": "cbd56524847eae99b8cd4dd4ccaf1360be2c7b17c191aef68cb992712fefa20e",
+      "bytes": 2927
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Actions/ItemActionRegistry.cs",
+      "sha256": "4c5d8b3da285fa314a2daebc58848b631c505b362f1299ecc09cff81c1de942d",
+      "bytes": 3819
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Actions/QrCodeActionService.cs",
+      "sha256": "eb26518cf7e2e94e1b84c2dba917806cb858daac20d31bdc25566223b95276f1",
+      "bytes": 2973
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Actions/ZipActionService.cs",
+      "sha256": "47f6b484fb6b0b8a07dac017a647aab49d43408c42c0375655b5b30a2f87cc30",
+      "bytes": 8192
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Content/ItemContentResolver.cs",
+      "sha256": "ef88db75f67f61510d6928982fbe1ee39b127c391e0abca710d5a13b4d757d11",
+      "bytes": 4314
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/DatabaseExceptions.cs",
+      "sha256": "e92778290acdaeb20182f0dc4921b1b1315a0a3ef727ad796cf45e8b23b5a66b",
+      "bytes": 521
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteDatabase.cs",
+      "sha256": "f609b41d20c24d3b9613a6c68445e1ca53d7ce5ee00f19f1e816bf44968f736e",
+      "bytes": 33410
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Data/SqliteItemRepository.cs",
+      "sha256": "0510532ce59eff3f9563700b84a3b7cf18de03eb7d410dd1b6a07722e8964b25",
+      "bytes": 86186
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/ModulePackageStore.cs",
+      "sha256": "b885733755f92adbe3c14d0d76bb9abce7e6ac03e27aa83daa77c9435353f2d8",
+      "bytes": 29457
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/ModuleProcessJob.cs",
+      "sha256": "330898f49601495e41b866136aae7fb871d4de17b0425349b59d647aa25ba7a7",
+      "bytes": 2458
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/ModuleWorkerClient.cs",
+      "sha256": "9f5b21daf448239def7f7e2b0195b6be8b402974f8563eb8d151399abbb0b0da",
+      "bytes": 11815
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/OfficialModuleCatalog.cs",
+      "sha256": "e8eac8d2bc27ca14675c296a1ba7d889d9686bdde544eea7b965a27796e1ebdf",
+      "bytes": 7872
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Dlc/official-modules.json",
+      "sha256": "b9200584d618aaed7cb9a01d2f7a36c73f8562af6733cddb93f5ca791410901b",
+      "bytes": 43
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/AdaptiveDownloadScheduler.cs",
+      "sha256": "065793d1d24c50c60cbef22bec655243a49898eb0072c1d0dc25786c8fddfd20",
+      "bytes": 1912
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DirectFileRequestFactory.cs",
+      "sha256": "6f596823e4e85e3945dbe70b6905198474e55aa7ceb77d54b7c889fc293d7d7f",
+      "bytes": 1472
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadBandwidthLimiter.cs",
+      "sha256": "2fa0264697d9deac17a3d8f8de8d56d79c83d9ddef9eac6fc785b944a8e57be1",
+      "bytes": 2508
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadConnectionBudget.cs",
+      "sha256": "b2f4a046ff956ad636793c807c9d4133f69b2c0ca3a49e9e7524c4aa08930937",
+      "bytes": 1882
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+      "sha256": "7cc153ddb1c8e803d086253d76e201daf2b753d5a7963fa2434fd4e7180e978c",
+      "bytes": 31040
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadPersistenceQueue.cs",
+      "sha256": "a9988e20f0c51f452a6e6c97472ad981b063d15aecfc058a10f1c6e8cbb88dfe",
+      "bytes": 8805
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadRequestPolicy.cs",
+      "sha256": "3889471e0963c1f590733b8d0902934493aaadd1ca634d6b4beff78eb5952b01",
+      "bytes": 2212
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadStorage.cs",
+      "sha256": "9f351e34bd4280cdef3c6797d7c5d965519efafcd6c8cc07e8dec54494ea7b6f",
+      "bytes": 3768
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadTaskRepository.cs",
+      "sha256": "60a9d69897461b10825092654f5a7e801e22ba1179bffb0c03af973b877d67d4",
+      "bytes": 3301
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/DownloadTransferBudget.cs",
+      "sha256": "69b81c09a2770bcec178e35ee65b624e2f22d5d13a6502daf1fe968a83e898f7",
+      "bytes": 808
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/FileNameSanitizer.cs",
+      "sha256": "5dbf84d617e890a541640c3e4cb387a11513a5b406a26af3610f9e3589c88626",
+      "bytes": 2140
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/HttpByteRangePlanner.cs",
+      "sha256": "10e24a3cc6e2f68c7e292efe32b936d182796b3c64984159dc5b59ed780d4b17",
+      "bytes": 1198
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/HttpRangeDownloader.cs",
+      "sha256": "f1523226b6800f1de20bf4bbab3b1b4297fbc62b27165ebe90caaedc577c7ede",
+      "bytes": 12750
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/HttpTransferDeadline.cs",
+      "sha256": "cfd357850e2588a0989e9ed35eaf90db837860bed7df74f279b27da718269410",
+      "bytes": 1038
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/OutputReservationService.cs",
+      "sha256": "b4facea3badd7bb700228f47305ceb345f45e857b6117b0dc5ddade2b96ae249",
+      "bytes": 10442
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/ParallelHttpFileDownloader.cs",
+      "sha256": "f4d2182808addb07d51f085352ab5710397a4ca899f15c50f9647c5af29c017f",
+      "bytes": 13964
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Downloads/RetryExecutor.cs",
+      "sha256": "db190701a25846dd648c776aad3bd68a568c313e841ec80b9dfa77e96449183c",
+      "bytes": 2890
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj",
+      "sha256": "4e4ff65594ee26d572af334ed11ea258eef762ac55ce89f325cad15d05b994df",
+      "bytes": 1056
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Logging/RedactingFileLoggerProvider.cs",
+      "sha256": "9c6eabb73f3f6fcf75952b9b4fff0fadbdf11d1bdfd50581b0b42ec9ee345232",
+      "bytes": 12429
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsBackend.cs",
+      "sha256": "ec337d32b1a5a027aa3d054b40d898458075fa197ce07005ac1157db41b863eb",
+      "bytes": 4702
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsCache.cs",
+      "sha256": "f5ce794a363a41b5de5b4b4c57c4c6f99a407de85f5678ef36c68127a52d4247",
+      "bytes": 2843
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsRuntimePackage.cs",
+      "sha256": "0bf8cdf790a37561eeac508e96ed520d573bdc495d0ba2b07ec6ead490e292d5",
+      "bytes": 11157
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsWorkLifetime.cs",
+      "sha256": "6ae1e536891528df21c46c0b17276d2c78a269919a6b36799601b9908e5fbf93",
+      "bytes": 4273
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/AiModelDeliveryManifest.cs",
+      "sha256": "0128867a4671e61fb1b1650cec667046176b665c87fedbe9ca5cf05afbb58003",
+      "bytes": 3519
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs",
+      "sha256": "8b9ccdaa4bf6e1f3b041260365364871c27b729b3b77278cf1d08febb8e2b7a1",
+      "bytes": 17291
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs",
+      "sha256": "cc5a81069c3b625fbbbc580c48d1945bad1482d5d1ce24170c30011884f31464",
+      "bytes": 9897
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/CpuInferenceMemoryPolicy.cs",
+      "sha256": "7d8289c0d766a03c6a5afedf60699f1850f4c435374617151ffc977046130023",
+      "bytes": 3132
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/Ct2HelperAdapter.cs",
+      "sha256": "f4fd65e217b42b94deee427e976ad8de49924e64ecae9cef0ed262251bc80bb1",
+      "bytes": 15396
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/Ct2LyricsPipeline.cs",
+      "sha256": "d9c8d3300cffc30d1fe432dae9ea087cb3c791252226e66238dcd89b6fc20a4b",
+      "bytes": 14227
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/Ct2PackageInstaller.cs",
+      "sha256": "26f7bc0565d915dc3d18716602cf3ba5b66cd60dab4645583d12e323b04ed481",
+      "bytes": 13882
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/Ct2PrivatePackage.cs",
+      "sha256": "0dfc24cb09e7f4aa50203138f20fa13035d46bee78673f4b9c1eb622abd4f68d",
+      "bytes": 12753
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/CudaDriverAvailability.cs",
+      "sha256": "2182830054e2ad7507b589643a5e0a84e5104750b02733fe856fad46d64bab87",
+      "bytes": 2728
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+      "sha256": "618ac87ec3f5a38eebd89aad6b12c245847de50f27bc62b9bf5b0c8cadbb026d",
+      "bytes": 29746
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/CudaPlainHyLyricsBackend.cs",
+      "sha256": "49ca82b52517b9dff58ad94943cb60ff26c3a7d00402bcb6cf72b2fd8777b822",
+      "bytes": 4682
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/FastTextLanguageIdentifier.cs",
+      "sha256": "54259347ccd94d44ec97105be4e6b5a91d292e0f81a3e4945fb80e8450f4d53d",
+      "bytes": 17076
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/ILyricsSelectionRuntime.cs",
+      "sha256": "d5654152147d1591edcfa39983afb8df93db380233ac600ee8fdd9c8f379e7b2",
+      "bytes": 755
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/InferenceResourcesUnavailableException.cs",
+      "sha256": "2409bfbfdf1e371b1dcf2167c6f96fa18808375ec383b05ee0ccfc440d101ba1",
+      "bytes": 405
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/KugouKrcParser.cs",
+      "sha256": "39729cc90ad5470fb3d6da4db4a5e188c992b814778bea71bf98a0c417bc9963",
+      "bytes": 9030
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs",
+      "sha256": "21e9796f3e8dc8ef511de3b2522a69e951055e90cd99054d711a58ec75460c7d",
+      "bytes": 11032
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/KugouResponseStatus.cs",
+      "sha256": "91045e8a36dd5045f10405d9404fdadf267e59ad5a2e3df56f2529ce4ee2a221",
+      "bytes": 412
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LlamaCompletionRunner.cs",
+      "sha256": "9aaf88d56167f03d133a63274185de80049e78b947e1892c5019baa1c1b2c1ea",
+      "bytes": 20682
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs",
+      "sha256": "258977ce2dce7cc02fba23431acde5c6a8e6bb133e361b46b2294b44938ae0a3",
+      "bytes": 385
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs",
+      "sha256": "e89dc5270af046a8c5d70c6957ec7a882fc386a0688b0b69b08eb1c19cc282c7",
+      "bytes": 5047
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LocalLrcLyricsProvider.cs",
+      "sha256": "b862e5c91bca348bb467231589dbbbd26a253abf70a79be056d480f8dda81b26",
+      "bytes": 5466
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs",
+      "sha256": "cf8576165d1565c0f2b1c14aab7aa20c19d586f3a8667beeaef4ebae034fffe4",
+      "bytes": 8287
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCache.cs",
+      "sha256": "583b464cffff6aec76efd93d4916cdd249ce32dfbcba600dca80b01f544fc4de",
+      "bytes": 15510
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateRequests.cs",
+      "sha256": "87f6700da5b62f847da4b4b4d39a7c1d37a7049948ccffe86f7ce570f1bba178",
+      "bytes": 1744
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateSelector.cs",
+      "sha256": "732663e515e405836d59159f05d63252681596dc2ae2f39c5dcb7a48e816b222",
+      "bytes": 6932
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsDiagnostic.cs",
+      "sha256": "8d42fc2accf236af213e15971440d1f5dfd9019f6fde5252da9bcdb625258f4c",
+      "bytes": 1932
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs",
+      "sha256": "bbf31eb2f31aa28d7a50162f322c1a27477a03c5a8b40bdf3866d778588834c5",
+      "bytes": 15703
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs",
+      "sha256": "4030c6d5d76f17294eff5b03af76ab79d1e6f145cde16bab6b30de03aff6e055",
+      "bytes": 1218
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsRequestTrace.cs",
+      "sha256": "40ac494c2ba6fcf2a427d5723c72ab1c8e88af06d488f0055ba8e56ed1f43509",
+      "bytes": 4863
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
+      "sha256": "d739176570a748f1cccec24a28db369d7abca1e4f5f8b3780754e698585e2c00",
+      "bytes": 48078
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs",
+      "sha256": "d928079fcd41ff8eaa8cd243d07fe6aa7be8809575796a260546477a98094394",
+      "bytes": 9489
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationProgress.cs",
+      "sha256": "e8ca386d0414c8239510a37d084bd85a6d648f4e82fd46821fd735ac26ce76be",
+      "bytes": 2290
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/Manifests/fasttext-lid176-bin-v1.json",
+      "sha256": "920dc52e6fcbad9754628f4bb889f59479777c502c1eed5f0ac21513e13bc75f",
+      "bytes": 1307
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/Manifests/models-hy-mt2-q8-v1.json",
+      "sha256": "2da82e004022c52dc4315b8f6414273d13802c6c5202668e5be26a08ba6c0ef9",
+      "bytes": 4785
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs",
+      "sha256": "b8bd91a84a08a453c2b2aed938d2a5ca25538cc2167d0aae4dd7baa1090329ce",
+      "bytes": 11809
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseResponseCache.cs",
+      "sha256": "d98643823ca2cf8e80fe62c3d16dd07ff04b0db6a36333ff4dbe986ad2183dec",
+      "bytes": 10401
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/PersistentPlainLyricsRunner.cs",
+      "sha256": "66338b1ff5a34576e369e2f4a3200d654fd25e62219eb66227aadcd6e5d1e188",
+      "bytes": 44851
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs",
+      "sha256": "5c9b7ae261d18c3a3c18b69b289a71e852d3c086a47169a566bcce63c43d3161",
+      "bytes": 24032
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsExecutionStatus.cs",
+      "sha256": "9247a9e7b9e2d5c98576db7e8ea78f3d4ca3596f1b27e2611a77e07b9c9ecb13",
+      "bytes": 1012
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsMetrics.cs",
+      "sha256": "b19ba041dba1f97636ab0c8acbf59197e24dd4bda11a4196cc2093b6d60dc3a6",
+      "bytes": 2466
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsSegmentMemo.cs",
+      "sha256": "9a5d5bac0c4fd44de75eeef745f772bc47e9edbec122de8ff65bb96c3fa9b25f",
+      "bytes": 2005
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs",
+      "sha256": "33dbce0d383507a3be82452406f82fb87efcb03655ea0c641704882003738aa0",
+      "bytes": 14922
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicSession.cs",
+      "sha256": "421cf5e52ef709528b0e22c84048c650c3a51d62c310a7c27d462423a6dfbdcb",
+      "bytes": 11898
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/ResidentInferenceMemoryPolicy.cs",
+      "sha256": "d1624f5ccc972ea7aa02882c9930b17af6da357fd8cf9243bc5da50dee740041",
+      "bytes": 870
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs",
+      "sha256": "e863496cc3a2f7e53270f1d9923f0bb0b539ede959ca202b419ac10703991e67",
+      "bytes": 17770
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DeviceIdentityStore.cs",
+      "sha256": "6a5499247030618f82dff64cc9747c076e6edfa2ffa3e871b1bd52b8df1757c2",
+      "bytes": 7747
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DeviceSecretStore.cs",
+      "sha256": "3d43a3e8b47c1ebed03525bc1a9931a077a8caf8f1f2dd16c4a17dae11f0fdc2",
+      "bytes": 4382
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkAuthenticationMiddleware.cs",
+      "sha256": "21b624699df0ec8b8fae2be80910700c79399bb28508c9a96108cad7c6702993",
+      "bytes": 8051
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkChunkLedger.cs",
+      "sha256": "cd960820e58c95941bd62b68d3cdafa803ed28f4addae89c9e511b4744017a80",
+      "bytes": 1530
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkClient.cs",
+      "sha256": "7d928d99742356fdc0d3fd0f27659e2f810543f4651241f6b01e886ef9b8830f",
+      "bytes": 27366
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkDtos.cs",
+      "sha256": "5b6fc61ebba007caaeff835ae4a017cb316b99335a8fabb5f011da44272bcfda",
+      "bytes": 1427
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkHost.cs",
+      "sha256": "d14102d5f866981af19ff40739a8e69423f7f6a695926bc1c7aaf6845654e5ae",
+      "bytes": 62258
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkNonceCache.cs",
+      "sha256": "d77d26f30ed51d70354172458602602b46a3a16a5f382fee0f50955f86b090b4",
+      "bytes": 2126
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkPairingService.cs",
+      "sha256": "683fa8eed8fb0c7b733bb8521c3e1ad3609a3c7c7de98f1570f9f25d699d03a3",
+      "bytes": 18908
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkProtocolContract.cs",
+      "sha256": "b0efc9a56dfcd286b083603922c3ea916660ddc11d915a8f988f86867b1d1082",
+      "bytes": 7384
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkReplayCache.cs",
+      "sha256": "2bbe38c11055a58a1aac466be5d2e7c815c4b06ac149c8bf6dd499e12bcd81d5",
+      "bytes": 2131
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/DropLinkSingleFlight.cs",
+      "sha256": "894386d041b022e7ad0c766570830a761b44fc5bbd58501b9311a23f8038edfc",
+      "bytes": 628
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/FirewallCapabilityService.cs",
+      "sha256": "6f4e982008381c8665793d8508885867a6a6544af44601a75a5049579089f53b",
+      "bytes": 1584
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/LocalNetworkInterfaceResolver.cs",
+      "sha256": "ece4e9875a81bf3dd8ace245281d45835820605618cbe752f1e94b993848dea0",
+      "bytes": 2230
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/ReparseSafeDirectoryEnumerator.cs",
+      "sha256": "ce0edd15af8fd9ea12c4720d12e9226d3b2626cc1937c9f6b28d671d2e08a21a",
+      "bytes": 7430
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/TransferRepository.cs",
+      "sha256": "1fe2de3ef4cc440f295a161f148cffd61ecc7734565601643ec1efe9105cdb63",
+      "bytes": 14872
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/TransferTraversalBudget.cs",
+      "sha256": "da1a6d0f0c954872381b74c5c51e383f1f3dee202fc1c452c412395dbdfb5327",
+      "bytes": 1253
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Network/WindowsDnsSdDiscoveryService.cs",
+      "sha256": "fc7b424d9966c7513e4e8d1dd7334e7ac64a9ac50df9f28ea3f7afd27d757ff2",
+      "bytes": 25257
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/FilePreviewCache.cs",
+      "sha256": "012e68cd119a09d6f7aa95358d67b534b3f607b3da664e4fad8aad340d5f00df",
+      "bytes": 8349
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/FilePreviewProviderBase.cs",
+      "sha256": "7bd547c49d5c79e5f385e4bc81e0feefee7bda891ddcc01c8ecc267588ae7eed",
+      "bytes": 3313
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/ImagePreviewProvider.cs",
+      "sha256": "933bdc68dc048ce282927bffa8bdea4a076fa8d1b4fbba9566a064ec980438db",
+      "bytes": 6974
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/MediaPreviewProvider.cs",
+      "sha256": "44b65e0cb01c3cff73a0a4c2d9b1af8f069956d74b57655d13de8f51f8df1da6",
+      "bytes": 2483
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/PdfPreviewProvider.cs",
+      "sha256": "7e97d25a27ce86e84c2386da0f523ec4cc2238d07fc391941ba7ea2c42d6ea9e",
+      "bytes": 2011
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/PreviewProviderRegistry.cs",
+      "sha256": "cbc1a030480d159849705d7016891f0f4eaaa3f89d1757d85fa08f79de90faa9",
+      "bytes": 5929
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/TextPreviewProvider.cs",
+      "sha256": "12d593b10df3ad048c0636cdd49b83e6cbd81d54539ebe1804cd60abe45e368c",
+      "bytes": 3868
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/UnknownPreviewProvider.cs",
+      "sha256": "11fea71ea8df4e14ac5a1ef16abbe08d9dac056e5b62de379929f5afa097cde6",
+      "bytes": 1424
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Preview/UrlPreviewProvider.cs",
+      "sha256": "acc89df72c4897c3b1c6f48d3ac7bcce59e9fe34ba2fb8ba1a4820028e73656a",
+      "bytes": 1471
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Properties/AssemblyInfo.cs",
+      "sha256": "49326c9c258a05e15978179ae7815e61bf44e0546f6bf4357a49def10577588f",
+      "bytes": 105
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs",
+      "sha256": "50b20ff48879a13a80f0c02d38c0de256e44c120353bab8477865c77e788b842",
+      "bytes": 16237
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Settings/SettingsIoPolicy.cs",
+      "sha256": "f20395394d5cd27f6a74b976a81a6578f05148f60d17b49fa29692661523b869",
+      "bytes": 4187
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Sharing/InternetShareRevokeStore.cs",
+      "sha256": "fe9be61bbe71d4d867c261053ca7ac71dc3f9f32cf74c9cfac9383c3548d16f7",
+      "bytes": 14862
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Sharing/NearbyShareServer.cs",
+      "sha256": "ce8094df07dd32534c66258e3e628df921aae227325550ea9e27f61e08dc2dd8",
+      "bytes": 30381
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Sharing/ShareCryptoService.cs",
+      "sha256": "ead6a7df542342037353b6dd7bdb73e6dda29d796e94a60ec406b19d9f100bd5",
+      "bytes": 11202
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Sharing/ShareUploadCoordinator.cs",
+      "sha256": "527ce2fb1f3440feba8871699cfa3fd11020b4aa67e7a7693887ab99f45b1ab2",
+      "bytes": 19951
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/AppStoragePaths.cs",
+      "sha256": "0e618892db4934ad583e147139c6e539f0cf7b9f16874afce093fbcb524eb0b2",
+      "bytes": 2612
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/FilePayloadStore.cs",
+      "sha256": "729705a0e9516adef5ccc2c6f1cb5a9734bfc0bf6f6a9e152c5d33a04323ea22",
+      "bytes": 16018
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/LocalFileReferenceService.cs",
+      "sha256": "ae892178f0c17f168333b554370a57f1d775df28b9000ec6157072372a1b6916",
+      "bytes": 10879
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/LocalStorageMetrics.cs",
+      "sha256": "5d7466d797d7260f688de9432ca289cc041d85935150e1cd38acd08aa3d9e6c9",
+      "bytes": 1401
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/OwnedPayloadReconciler.cs",
+      "sha256": "889b7d7039a9241606fea3783c6ff3dbd6e078146d53ec4725fe2cb258bd436e",
+      "bytes": 6514
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/PayloadCleanupCoordinator.cs",
+      "sha256": "6bfd094906581e248868622ddf31cb303043ec7fce60a990713da2e4d815af25",
+      "bytes": 3703
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/ReparseSafeFileOpen.cs",
+      "sha256": "e59c08f0fc77bcca386fbe5257bff68be5e9909c40d5e5178f3ccc96d855762b",
+      "bytes": 3830
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/ReparseSafePathPolicy.cs",
+      "sha256": "bb7df02f73bf5ce8da7ca44f7dd40d6f52d6252590f7615902a823be93452d4b",
+      "bytes": 5549
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/StagedFileImportService.cs",
+      "sha256": "df5abb84d399389f43225502efb8fd15c4541d27de208e98eefcbb5a53338020",
+      "bytes": 8761
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Storage/StagingLeaseStore.cs",
+      "sha256": "b8b8fa3fa24cf2c382cbef6977c0fc146345c915d1ae3afa7b937e66c12b3078",
+      "bytes": 18181
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/GitHubReleaseUpdateSource.cs",
+      "sha256": "23da99d48f6bda299bfcec7d1c66b2abe8d0ff811b7860e18ad8706ef3a1c1bb",
+      "bytes": 5293
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/HttpUpdateDownloader.cs",
+      "sha256": "9bd993f58ded814067044af3f94c281db04e7a83dd02632e82c145f2b2f2ecf9",
+      "bytes": 5896
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/OfficialWebsiteReleaseUpdateSource.cs",
+      "sha256": "e73181b484032b2d41c831be551ed633658f1088ef38e1e5548c42b909e849e5",
+      "bytes": 7504
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/ResilientUpdateSource.cs",
+      "sha256": "e1c3df9acf3d6fb9e69371bd40028ff8479afb21c56bff2048f4b67d436348a9",
+      "bytes": 5084
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateFileVerifier.cs",
+      "sha256": "7b034e1463105e56e540c41f4a9b5801ee7a3fccd53e379b595d3f58c5deea1a",
+      "bytes": 1608
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateManifestParser.cs",
+      "sha256": "a3afdb2819a15553f2d20987e79313162f49e979c69ced1e7f501d8f298a8c09",
+      "bytes": 6903
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateMetadataReader.cs",
+      "sha256": "ca2ef194d5f067b38d8efd03e0031848d13bc3527e3d99b3cca550142d148ae4",
+      "bytes": 1174
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateService.cs",
+      "sha256": "aadc838238c7d8d5beb400e5cd78908146dfbfa3a2fe700044f7f564f8417a11",
+      "bytes": 35162
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/Updates/UpdateStateStore.cs",
+      "sha256": "5e94fd8891b9f6b098f130991a213ebed1188844dc51d80ed60adea4fcadfc6c",
+      "bytes": 11471
+    },
+    {
+      "path": "src/DropSpace.Infrastructure/packages.lock.json",
+      "sha256": "8f761b37e85feefe097241a8dfe04b91a1d27ff1a218d1d0db613d757513a75c",
+      "bytes": 2757
+    },
+    {
+      "path": "tools/cuda-lyrics-helper/.gitignore",
+      "sha256": "32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b",
+      "bytes": 13
+    },
+    {
+      "path": "tools/cuda-lyrics-helper/CMakeLists.txt",
+      "sha256": "cf5ed074d797997b083ca26b3c658717d0264c5931acfb0372ffc97a9eeb9e63",
+      "bytes": 3106
+    },
+    {
+      "path": "tools/cuda-lyrics-helper/adapt_worker.py",
+      "sha256": "dbdf8350791dbd67ad44e90678078bd2146a874acd82b61bed8f2ad4d7446393",
+      "bytes": 2754
+    },
+    {
+      "path": "tools/cuda-lyrics-helper/cuda-device.h",
+      "sha256": "ad871f2848ba0730427f563b83079c837caa9e830045996f739498a3b8f8b782",
+      "bytes": 1933
+    },
+    {
+      "path": "tools/cuda-lyrics-helper/test_contract.py",
+      "sha256": "3d601def84c2ed262b73672a0677f11f2aa21c50023f7196f3be0e4d9b5997a1",
+      "bytes": 2582
+    },
+    {
+      "path": "tools/plain-lyrics-helper/CMakeLists.txt",
+      "sha256": "b4abd81cfb2fe6504c74a3ed8eb3adc91e688e2911bf8d44ef461d860dbbccbe",
+      "bytes": 1114
+    },
+    {
+      "path": "tools/plain-lyrics-helper/PREFIX-EXPERIMENT.md",
+      "sha256": "5bb55e0993a34ecb0b16838996416d0352deda265ac323eb451096154aaf0a27",
+      "bytes": 8258
+    },
+    {
+      "path": "tools/plain-lyrics-helper/README.md",
+      "sha256": "601b5a83f485da5e59f1115a4935ce081ac8a8076f6a56dd55323d108a269975",
+      "bytes": 13440
+    },
+    {
+      "path": "tools/plain-lyrics-helper/benchmark_prefix.py",
+      "sha256": "3128e62ec3db6b67331d7a9b5f351583009539b732c0472977293d84f93ed537",
+      "bytes": 7427
+    },
+    {
+      "path": "tools/plain-lyrics-helper/check_prefix_isolation.py",
+      "sha256": "42c9eea453685eb0387c526e006bad3219171d2e2f5bb4911c5a7aad63caf5eb",
+      "bytes": 4662
+    },
+    {
+      "path": "tools/plain-lyrics-helper/gpu-policy.h",
+      "sha256": "c7a2259aae2e623e268d44167862797d3e3f726b3ee3abcb43cccb02aa586130",
+      "bytes": 2253
+    },
+    {
+      "path": "tools/plain-lyrics-helper/main.cpp",
+      "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698",
+      "bytes": 20466
+    },
+    {
+      "path": "tools/plain-lyrics-helper/test_gpu_policy.cpp",
+      "sha256": "3f03a1d365a1e4bc4f3ccbd246c276bbf7fd11b4b5c6e2572addf82b89f5130a",
+      "bytes": 3906
+    },
+    {
+      "path": "tools/plain-lyrics-helper/test_prefix_policy.cpp",
+      "sha256": "4517a0bd67f2e7b281054dc4d2ce8910694aaca0060481f2a482225887bf1657",
+      "bytes": 2289
+    },
+    {
+      "path": "tools/plain-lyrics-helper/test_prefix_state.cpp",
+      "sha256": "153701855e369b19be87ee918e320c8fd6541e969316f4edf9c245c192d6523e",
+      "bytes": 3487
+    }
+  ]
+}

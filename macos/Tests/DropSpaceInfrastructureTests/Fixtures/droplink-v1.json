@@ -1,0 +1,35 @@
+{
+  "provenance": "Independent Python vector transcribed from pinned Windows source; Windows runtime execution pending",
+  "local": {
+    "protocol": {
+      "major": 1,
+      "minor": 0
+    },
+    "deviceId": "00000000-0000-0000-0000-000000000001",
+    "displayName": "Fixture",
+    "platform": 1,
+    "capabilities": 127,
+    "identityFingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+    "publicKeyBase64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9Q==",
+    "nonceBase64": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+  },
+  "remote": {
+    "protocol": {
+      "major": 1,
+      "minor": 0
+    },
+    "deviceId": "00000000-0000-0000-0000-000000000002",
+    "displayName": "Fixture",
+    "platform": 2,
+    "capabilities": 127,
+    "identityFingerprint": "2222222222222222222222222222222222222222222222222222222222222222",
+    "publicKeyBase64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEfPJ7GI0DT36KUjgDBLUaw8CJaeJ38hs1pgtI/EdmmXgHd1UQ247QQCk9msafdDDbun2t5jzpgimeBLedInhz0Q==",
+    "nonceBase64": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
+  },
+  "privateKey1": "0000000000000000000000000000000000000000000000000000000000000001",
+  "secret": "1ba528aa9d76093b3b26ec3ace93880991c55b3ba7c29888ddc3949b38e65ed9",
+  "sas": 434913,
+  "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYX",
+  "bodyHash": "c69686c62f7e553b5d4cc4db3a6f2228b18ed4d2f745675369cde8f3a8a806a4",
+  "authentication": "RT91BXD6xJGa/gHnV5bhhuCSjYGlydUwezN4vtqwFx0="
+}

@@ -1,0 +1,160 @@
+{
+  "baseline": "1cd4620dd58a67b0963b73487743137813b8864a",
+  "sdk": "10.0.401",
+  "cases": [
+    {
+      "kind": 1,
+      "payload": "line 1\r\nline 2\rlast",
+      "accepted": true,
+      "normalized": "line 1\nline 2\nlast",
+      "bytes": 18,
+      "hash": "725512c59a4298a3c927bb01c4b1822f55aea4342be034d89583b780f316412b"
+    },
+    {
+      "kind": 1,
+      "payload": "​",
+      "accepted": true,
+      "normalized": "​",
+      "bytes": 3,
+      "hash": "f4e48e664a603543865edc77bbc76dd1dd53dc9d0c30f651bbad7c8231091348"
+    },
+    {
+      "kind": 1,
+      "payload": "",
+      "accepted": false,
+      "error": "ArgumentException"
+    },
+    {
+      "kind": 1,
+      "payload": "a\u0000b",
+      "accepted": true,
+      "normalized": "a\u0000b",
+      "bytes": 3,
+      "hash": "59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/path#fragment",
+      "accepted": true,
+      "normalized": "https://example.test/path#fragment",
+      "bytes": 34,
+      "hash": "568d1b3d4db468758858f8b0c9724781e7fa98330cae94dd0b4a5b7f7aaa4e62"
+    },
+    {
+      "kind": 2,
+      "payload": "HTTPS://EXAMPLE.TEST:443",
+      "accepted": true,
+      "normalized": "https://example.test/",
+      "bytes": 21,
+      "hash": "1648707b9f8d7b3a543fb75342c44ccc4e680cc222c5249b21454b2f1ca36109"
+    },
+    {
+      "kind": 2,
+      "payload": "http://EXAMPLE.test:80/a/../b/./c?x=%7E#key",
+      "accepted": true,
+      "normalized": "http://example.test/b/c?x=~#key",
+      "bytes": 31,
+      "hash": "4ac1ffe381528eb8746cfb66921ad51173a42a1c1b34db9c0ec461c7870e54f5"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/%7e/%41/%2f/%2e%2e/b",
+      "accepted": true,
+      "normalized": "https://example.test/~/A/b",
+      "bytes": 26,
+      "hash": "66aa80c9e3062439d50ec1cce928ccd784958c041bbfecc9d60ae0ef3719df2e"
+    },
+    {
+      "kind": 2,
+      "payload": "https://例子.测试/路径?q=你好#密钥",
+      "accepted": true,
+      "normalized": "https://例子.测试/%E8%B7%AF%E5%BE%84?q=%E4%BD%A0%E5%A5%BD#%E5%AF%86%E9%92%A5",
+      "bytes": 80,
+      "hash": "206dea703c7bf8b0036701ed8c404b51d3b29d123f1315ae852a092dc8a18f2d"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/a\\b",
+      "accepted": true,
+      "normalized": "https://example.test/a/b",
+      "bytes": 24,
+      "hash": "36f7e78b99627e8d0d637e46a9388b93babef8805d167bbbfbbd0e2cd699f676"
+    },
+    {
+      "kind": 2,
+      "payload": "http://127.1",
+      "accepted": true,
+      "normalized": "http://127.0.0.1/",
+      "bytes": 17,
+      "hash": "d5541dbe8037a6433e94e9804ab331995630fa2a1794ba3b374d5e2429693891"
+    },
+    {
+      "kind": 2,
+      "payload": "http://[::1]:80/a",
+      "accepted": true,
+      "normalized": "http://[::1]/a",
+      "bytes": 14,
+      "hash": "ff18f417fb58ad1d58986f5c4da3426b50c419ca29f3f47098244ac58cc387c5"
+    },
+    {
+      "kind": 2,
+      "payload": "http://user:p%40ss@EXAMPLE.test",
+      "accepted": true,
+      "normalized": "http://user:p%40ss@example.test/",
+      "bytes": 32,
+      "hash": "2caf228508ac9899e31d66530fa4b88c44e754d4b7d277facbc8edbbb966977b"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/a%zz",
+      "accepted": true,
+      "normalized": "https://example.test/a%25zz",
+      "bytes": 27,
+      "hash": "3fa010260318ee793038861b284ec4922eea79ffb11bc5f882759883a092e535"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/a b",
+      "accepted": false,
+      "error": "InvalidDataException"
+    },
+    {
+      "kind": 2,
+      "payload": "mailto:a@example.test",
+      "accepted": false,
+      "error": "InvalidDataException"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/%F0%9F%98%80#%7E",
+      "accepted": true,
+      "normalized": "https://example.test/%F0%9F%98%80#~",
+      "bytes": 35,
+      "hash": "8cf9be56b62ebfb7fad2204d007ff0e36b8520b5aea47416b2e320af7fb108bc"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/é/é",
+      "accepted": true,
+      "normalized": "https://example.test/%C3%A9/e%CC%81",
+      "bytes": 35,
+      "hash": "f909bae569b5283eb73e1ec7f4cdf451d9061e2520878ed33efc46411f1ecf57"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/a?x=1&x=2#k+/=",
+      "accepted": true,
+      "normalized": "https://example.test/a?x=1&x=2#k+/=",
+      "bytes": 35,
+      "hash": "827816a328b51e5141a441b21e22fcabd0285d5be6d514ad2b83a439f31d8489"
+    },
+    {
+      "kind": 2,
+      "payload": "https://example.test/a\u0000b",
+      "accepted": true,
+      "normalized": "https://example.test/a%00b",
+      "bytes": 26,
+      "hash": "a5c585c6709f65a94aac6a61f72816a1cce561af4691fcf5c370a625f3510a84"
+    }
+  ]
+}

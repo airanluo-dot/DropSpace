@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createWebsiteReleaseData, validateWebsiteReleaseData, OFFICIAL_RELEASES_API } from "./release-contract.mjs";
+import { createMacReleaseData, fetchMacManifests } from "./macos-release-contract.mjs";
 const DEFAULT_OUTPUT = fileURLToPath(new URL("../data/releases.json", import.meta.url));
 
 export async function syncAuthoritativeReleases({
@@ -23,7 +24,22 @@ export async function syncAuthoritativeReleases({
   });
   if (!response.ok) throw new Error(`GitHub Releases API returned HTTP ${response.status}.`);
 
-  const data = createWebsiteReleaseData(await response.json());
+  const releases = await response.json();
+  if (!Array.isArray(releases)) throw new TypeError("GitHub release payload must be an array.");
+  // Page through the authoritative list before platform selection. A busy Mac or
+  // component channel must not push the current Windows Stable out of the window.
+  let link = response.headers?.get?.("link");
+  for (let page = 2; /rel="next"/.test(link ?? ""); page++) {
+    if (page > 20) throw new RangeError("Release pagination exceeded the bounded window.");
+    const nextURL = new URL(apiUrl); nextURL.searchParams.set("page", String(page));
+    const next = await fetchImpl(nextURL.href, { headers, signal: AbortSignal.timeout(12000) });
+    if (!next.ok) throw new Error(`GitHub Releases page returned HTTP ${next.status}.`);
+    const entries = await next.json();
+    if (!Array.isArray(entries)) throw new TypeError("Invalid GitHub release page.");
+    releases.push(...entries); link = next.headers?.get?.("link");
+  }
+  const data = createWebsiteReleaseData(releases);
+  data.macos = createMacReleaseData(releases, await fetchMacManifests(releases, fetchImpl), data.syncedAt);
   await writeFile(output, `${JSON.stringify(data, null, 2)}\n`);
   return data;
 }
