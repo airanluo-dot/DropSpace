@@ -51,8 +51,7 @@ local unquarantined launch does not validate a browser-downloaded first install.
 `spctl` policy rejection is expected for this distribution identity and must not
 be relabeled as a passing Gatekeeper check. Record the actual warning, per-app
 exception, copied location, launch, restart and update behavior on each tested
-system. As of this policy change, the final downloaded installation experience
-has **not been tested**.
+system. The policy initially had no downloaded-install evidence. On 2026-10-21, the public Beta 1 DMG was downloaded with Chrome quarantine, copied using Finder, and opened through the documented per-app Open Anyway flow with owner administrator authentication on macOS27.0.1. The welcome window and subsequent isolated workspace launch were observed; no global protection was disabled. Other OS versions remain unverified.
 
 The 2026-10-21 owner-approved [Beta 1 release gate](BETA1-RELEASE.md) governs acceptance. Basic daily workflows and package/download integrity must pass; advanced differences are disclosed in known issues without individual approval. This is not a complete 1:1 port. Use `macos-v…` Git tags and `/api/macos/v1/` feeds; leave Windows `v…` tags, assets and `/api/v1/` feeds intact.
 

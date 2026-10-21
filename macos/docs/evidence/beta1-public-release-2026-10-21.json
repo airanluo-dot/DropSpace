@@ -1,0 +1,50 @@
+{
+  "publishedAt": "2026-10-21T02:55:44Z",
+  "releaseTag": "macos-v0.1.0-beta.1",
+  "sourcePR": 133,
+  "mergedCommit": "f08a3f76f94b215bd570ead31af23eae90427439",
+  "websiteDeploymentRun": 39535913942,
+  "tagDeploymentRejectedRun": 39535730074,
+  "windowsFeedUnchangedExcludingGeneratedAt": true,
+  "publicDownloads": {
+    "tag": "macos-v0.1.0-beta.1",
+    "website": "https://airanluo-dot.github.io/DropSpace/macos/",
+    "downloaded": [
+      {
+        "name": "DropSpace-macOS-arm64.zip",
+        "size": 136370360,
+        "sha256": "e55d5bcdb08785493b04b541c278cd1a0658183f932cb953a3242ac9c0c8f374"
+      },
+      {
+        "name": "DropSpace-macOS-arm64.dmg",
+        "size": 139603062,
+        "sha256": "b3e4eed87f7ed7206e35ed3f591e9b2ccaac5f9059097eba199052aa3236ddbf"
+      }
+    ],
+    "signing": "ad-hoc",
+    "notarized": false,
+    "scope": "Actual public HTTP downloads and platform isolation. Does not establish installation, launch, Gatekeeper or update acceptance."
+  },
+  "installation": {
+    "version": "v0.1.0 Beta 1",
+    "os": "macOS 27.0.1 arm64",
+    "browser": "Chrome",
+    "browserDownloadQuarantined": true,
+    "sha256": "b3e4eed87f7ed7206e35ed3f591e9b2ccaac5f9059097eba199052aa3236ddbf",
+    "finderCopy": true,
+    "dmgEjectedBeforeLaunch": true,
+    "gatekeeperWarningObserved": true,
+    "openAnywayConfirmed": true,
+    "administratorAuthenticatedByUser": true,
+    "welcomeUIObserved": true,
+    "isolatedWorkspaceRelaunched": true,
+    "manualReplacement": "Same-version public bundle replacement; previous bundle retained",
+    "fileReferencesRetained": 2,
+    "pinnedFileRetained": true,
+    "settingsUnchanged": true,
+    "sourceBytesUnchanged": true,
+    "normalQuit": true,
+    "futureVersionMigration": false,
+    "automaticUpdate": false
+  }
+}
