@@ -15,6 +15,53 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class UpdateReadyRecoveryTests
 {
     [TestMethod]
+    [DataRow(true, false)]
+    [DataRow(true, true)]
+    [DataRow(false, false)]
+    public async Task AutomaticInstallUsesOfficialManifestAndIntegrityWithoutRequiringSignature(bool enabled, bool corrupt)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-automatic-install", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new AppStoragePaths(root);
+            var parser = new UpdateManifestParser();
+            var packet = CreatePacket("1.0.0", [1, 2, 3], parser);
+            var source = new ControlledSource(); source.Serve(packet);
+            var effects = new AutomaticInstallEffects(paths, packet.Payload, corrupt);
+            await using var service = new UpdateService(ReleaseVersion.Parse("0.3.2-beta.7"), source, parser,
+                effects, new UpdateFileVerifier(paths), effects, effects, new InstallerMode(), new UpdateStateStore(paths),
+                IdentityAppStringLocalizer.Instance, NullLogger<UpdateService>.Instance);
+            var result = await service.CheckAtStartupAsync(new AppSettings
+                { AutoCheckForUpdates = true, AutoDownloadUpdates = true, AutoInstallUpdates = enabled });
+            Assert.AreEqual(enabled && !corrupt ? 1 : 0, effects.LaunchCalls);
+            Assert.AreEqual(corrupt ? UpdateState.Failed : enabled ? UpdateState.Installing : UpdateState.ReadyToInstall, result.State);
+            Assert.IsFalse(result.TrustedAutoInstallAvailable, "An official unsigned payload must never be labeled Authenticode-trusted.");
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private sealed class AutomaticInstallEffects(AppStoragePaths paths, byte[] payload, bool corrupt)
+        : IUpdateDownloader, ITrustedUpdateVerifier, IUpdateInstallerLauncher
+    {
+        public int LaunchCalls { get; private set; }
+        public async Task<DownloadedUpdate> DownloadAsync(UpdateCandidate candidate, IProgress<UpdateDownloadProgress>? progress = null, CancellationToken cancellationToken = default)
+        {
+            var directory = Path.Combine(paths.Updates, candidate.Manifest.Version.ToString());
+            Directory.CreateDirectory(directory);
+            var file = Path.Combine(directory, candidate.SelectedAsset.Name);
+            await File.WriteAllBytesAsync(file, corrupt ? [9, 9, 9] : payload, cancellationToken);
+            return new(candidate, file, payload.LongLength, candidate.Manifest.Installer.Sha256, Path.Combine(directory, "install.log"));
+        }
+        public Task<TrustedUpdateVerification> VerifyPublisherAsync(string filePath, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new TrustedUpdateVerification(false, "Unsigned fixture"));
+        public Task<bool> LaunchAsync(DownloadedUpdate update, CancellationToken cancellationToken = default)
+        {
+            LaunchCalls++;
+            return Task.FromResult(true);
+        }
+    }
+
+    [TestMethod]
     public async Task RecoveredPayloadSurvivesChecksWithoutReuseAcrossPayloadOrChannelChanges()
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-ready-update-" + Guid.NewGuid().ToString("N"));

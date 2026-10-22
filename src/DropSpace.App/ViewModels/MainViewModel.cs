@@ -554,6 +554,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
                 OnPropertyChanged(nameof(CanOpenUpdateLocation));
                 OnPropertyChanged(nameof(CanViewReleaseNotes));
                 OnPropertyChanged(nameof(TrustedAutoInstallAvailable));
+                OnPropertyChanged(nameof(CanAutoInstallUpdates));
                 OnPropertyChanged(nameof(DeploymentModeText));
                 OnPropertyChanged(nameof(LastUpdateCheckText));
                 OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
@@ -585,6 +586,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
     public bool CanViewReleaseNotes => UpdateStatus.Candidate is not null;
 
     public bool TrustedAutoInstallAvailable => UpdateStatus.TrustedAutoInstallAvailable;
+
+    public bool CanAutoInstallUpdates => UpdateStatus.DeploymentMode == DeploymentMode.Installer;
 
     public string DeploymentModeText => UpdateStatus.DeploymentMode switch
     {
@@ -1837,7 +1840,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
         _ => null,
     };
 
-    private async Task RefreshStorageSummaryAsync(CancellationToken cancellationToken)
+    public async Task RefreshStorageSummaryAsync(CancellationToken cancellationToken)
     {
         try
         {

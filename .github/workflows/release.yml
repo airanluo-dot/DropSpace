@@ -276,6 +276,8 @@ jobs:
       - name: Derive Stable or Beta release metadata
         id: version
         shell: pwsh
+        env:
+          SIGNING_CONFIGURED: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' && secrets.ARTIFACT_SIGNING_ENDPOINT != '' && secrets.ARTIFACT_SIGNING_ACCOUNT != '' && secrets.ARTIFACT_SIGNING_PROFILE != '' }}
         run: |
           . ./scripts/ReleaseVersion.ps1
           $info = Assert-DropSpaceNewReleaseVersion ((Get-Content RELEASE_VERSION -Raw).Trim())
@@ -287,7 +289,10 @@ jobs:
           "channel=$($info.Channel)" >> $env:GITHUB_OUTPUT
           "prerelease=$($info.GitHubPrerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "make_latest=$($info.MakeLatest.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
-          "signing_required=$($($info.Channel -eq 'Stable').ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          # The owner-authorized 1.0 release keeps the documented unsigned distribution.
+          # Use signing when configured; other Stable releases retain their signing gate.
+          $signingRequired = $info.Channel -eq 'Stable' -and ($info.Tag -cne 'v1.0.0' -or $env:SIGNING_CONFIGURED -eq 'true')
+          "signing_required=$($signingRequired.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           $newBeta = (& node --input-type=module -e "import {isNextBetaRelease} from './scripts/next-beta-release-validation.mjs'; console.log(isNextBetaRelease(process.argv[1]));" $info.Tag).Trim()
           if ($LASTEXITCODE -ne 0) { throw 'Cannot classify the isolated Beta release route.' }
           "next_beta=$newBeta" >> $env:GITHUB_OUTPUT

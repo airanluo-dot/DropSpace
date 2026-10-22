@@ -182,7 +182,9 @@ public sealed class UpdateCoordinatorTests
     }
 
     [TestMethod]
-    public async Task ManualInstallerInstall_AllowsUnsignedPreviewAfterIntegrityVerification()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task InstallerInstall_AllowsUnsignedOfficialReleaseAfterIntegrityVerification(bool unattended)
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
         _roots.Add(root);
@@ -207,7 +209,7 @@ public sealed class UpdateCoordinatorTests
             NullLogger<UpdateService>.Instance);
 
         await service.RecoverPendingAsync();
-        var result = await service.InstallAsync(unattended: false);
+        var result = await service.InstallAsync(unattended);
 
         Assert.IsTrue(launcher.Started);
         Assert.AreEqual(UpdateState.Installing, result.State);

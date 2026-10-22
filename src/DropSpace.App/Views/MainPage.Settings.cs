@@ -5,6 +5,9 @@ using DropSpace.App.Views.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using DropSpace.Core.SystemActivities;
 
 namespace DropSpace.App.Views;
 
@@ -96,10 +99,24 @@ public sealed partial class MainPage
         activities.AddToggle("ActivitiesNotifications", s => s.SystemActivities.ShowWindowsNotifications, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowWindowsNotifications = v } }, editor.CheckNotificationAccessAsync);
         activities.AddToggle("ActivitiesVolume", s => s.SystemActivities.ShowVolumeChanges, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowVolumeChanges = v } });
         groups["SystemActivities"].Children.Add(activities);
-        var version = new TextBlock { FontSize = 22 };
+        var about = groups["About"];
+        about.HorizontalAlignment = HorizontalAlignment.Center;
+        about.Spacing = 12;
+        about.Margin = new(0, 32, 0, 32);
+        var logo = new Image
+        {
+            Source = new BitmapImage(new Uri("ms-appx:///Assets/Square44x44Logo.targetsize-256_altform-unplated.png")),
+            Width = 112, Height = 112, Stretch = Stretch.Uniform,
+            HorizontalAlignment = HorizontalAlignment.Center, Margin = new(0, 0, 0, 12),
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAccessibilityView(logo, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
+        about.Children.Add(logo);
+        var version = new TextBlock { FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center };
         version.SetBinding(TextBlock.TextProperty, new Binding { Source = _viewModel, Path = new PropertyPath(nameof(MainViewModel.CurrentVersionDisplayText)) });
         groups["About"].Children.Add(version);
-        var deployment = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        var deployment = new TextBlock { TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] };
         deployment.SetBinding(TextBlock.TextProperty, new Binding { Source = _viewModel, Path = new PropertyPath(nameof(MainViewModel.DeploymentModeText)) });
         groups["About"].Children.Add(deployment);
         var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(24, 0, 24, 0) };
@@ -109,10 +126,12 @@ public sealed partial class MainPage
         var body = new Grid(); body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new());
         body.Children.Add(error); Grid.SetRow(pageHost, 1); body.Children.Add(pageHost); navigation.Content = body;
         var pages = groups.ToDictionary(pair => pair.Key, pair => new ScrollViewer { Content = pair.Value, Padding = new(24), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        pages["About"].VerticalContentAlignment = VerticalAlignment.Center;
         foreach (var page in pages.Values) SettingsEditBehavior.Attach(page, this);
         foreach (var (key, page) in pages) page.SizeChanged += (_, _) => groups[key].Width = Math.Clamp(page.ActualWidth - 48, 0, 780);
         foreach (var key in groups.Keys)
         {
+            if (key == "SystemActivities" && !SystemActivityPolicy.IsAvailable) continue;
             var resourceKey = key switch
             {
                 "General" => "SettingsPageGeneral", "Island" => "SettingsPageIsland", "Shortcuts" => "SettingsPageShortcuts",
@@ -121,11 +140,12 @@ public sealed partial class MainPage
             };
             navigation.MenuItems.Add(new NavigationViewItem { Content = _strings.Get(resourceKey), Tag = key });
         }
-        navigation.SelectionChanged += (_, args) =>
+        navigation.SelectionChanged += (sender, args) =>
         {
             if (args.SelectedItem is not NavigationViewItem { Tag: string key }) return;
             _selectedSettingsPage = key;
             if (key == "Shortcuts") RefreshKeyboardShortcuts();
+            if (key == "General") _ = _viewModel.RefreshStorageSummaryAsync(_dialogLifetime.Token);
             UpdatePresentationActivity();
             pageHost.Content = pages[key];
         };

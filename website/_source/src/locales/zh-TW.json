@@ -249,11 +249,11 @@
   "ui.september.short": "9月",
   "ui.uptime.example": "2小時18分鐘",
   "meta.mac.title": "DropSpace macOS 版本",
-  "meta.mac.description": "適用於 Apple 晶片的原生 DropSpace：下載、系統需求、安裝方式與 Mac 更新紀錄。",
-  "mac.nav": "Mac 版本",
+  "meta.mac.description": "DropSpace macOS 版適用於 Apple 晶片，目前為早期測試版，極度不穩定。提供下載、安裝說明與版本紀錄。",
+  "mac.nav": "Mac 早期測試版",
   "mac.intro": "專為 Mac 打造的原生工作區。",
   "mac.requirements": "需要 macOS 26 或以上版本與 Apple 晶片。不支援 Intel Mac。",
-  "mac.baseline": "Mac v0.1.0 Beta 1 是供日常使用的原生公開測試版，以 Windows v0.3.2 Beta 7 為功能參考，並非完整 1:1 移植。版本與更新管道獨立。",
+  "mac.baseline": "原生 macOS 早期測試版，功能與更新獨立於 Windows 版。",
   "mac.integrity": "未經 Apple 公證，沒有 Developer ID 簽章。使用本機 ad-hoc 簽章檢查套件完整性，不代表開發者身分驗證。",
   "mac.features": "原生工作區",
   "mac.features.body": "透過 SwiftUI 與 AppKit 在 macOS 提供檔案參照、剪貼簿記錄、搜尋、預覽及本機檔案操作。各版本說明列出實際提供的功能與平台差異。",
@@ -266,5 +266,9 @@
   "mac.step4": "不要關閉 Gatekeeper、SIP 或全域安全防護。受管理的 Mac 可能不允許此例外；若系統提示惡意軟體或檔案損毀，請停止開啟。",
   "mac.history": "Mac 更新紀錄",
   "mac.platformHint": "Windows 與 Mac 下載入口均保留。瀏覽器偵測只推薦平台，無法可靠確認晶片或系統版本。",
-  "mac.appleGuide": "Apple 官方開啟說明"
+  "mac.appleGuide": "Apple 官方開啟說明",
+  "mac.warning": "早期測試版，極度不穩定。",
+  "mac.archive": "下載 ZIP",
+  "mac.downloadTitle": "下載 Mac 版",
+  "mac.requirementsVersion": "需要 macOS {version} 或以上版本及 Apple 晶片，不支援 Intel Mac。"
 }

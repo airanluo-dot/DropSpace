@@ -113,7 +113,7 @@
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace konnte den Start nicht abschließen. Einige Hintergrunddienste werden möglicherweise noch ausgeführt. Beenden Sie die App, bevor Sie ihr Datenverzeichnis überprüfen oder wiederherstellen, und überprüfen Sie das lokale Diagnoseprotokoll.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace konnte nicht sicher gestartet werden</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Berechnen…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>Verwendung: {0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>Cachebelegung: {0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>Nicht verfügbar</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>Verlauf der Zwischenablage löschen …</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Beenden</value></data>
@@ -260,7 +260,7 @@
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>Prüft höchstens einmal pro DropSpace Prozessstart; Es läuft kein Hintergrund-Timer.</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>Laden Sie Updates automatisch herunter</value></data>
   <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>Lädt nur in den eigenen Cache von DropSpace herunter und installiert erst nach Größen- und SHA-256-Überprüfung.</value></data>
-  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Unbeaufsichtigte automatische Installation</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Updates automatisch installieren</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Nur verfügbar, wenn das Update die Überprüfung durch den vertrauenswürdigen Authenticode-Herausgeber besteht. Für nicht signierte Builds bleibt es deaktiviert.</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Updatekanal</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable erhält nur Release-Versionen. Beta erhält stabile und Vorabversionen, sortiert nach Release-Nummer.</value></data>
@@ -271,7 +271,7 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Jetzt aktualisieren</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>Öffnen Sie den Download-Speicherort</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>Versionshinweise anzeigen</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>Lokale Daten</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>Cachebelegung</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>Speicherort</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>Letzte Stunde löschen</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>Heutigen Verlauf löschen</value></data>
@@ -951,4 +951,5 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Tastenkombination drücken</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>Speichern</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Tastenkombination nicht verfügbar oder bereits belegt. Bitte eine andere wählen.</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>DLC-Gesamtbelegung: {0}</value></data>
 </root>

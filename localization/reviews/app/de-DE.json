@@ -452,8 +452,8 @@
       "c40d7722eae453bb35d3ddefe137c10f4da306909cd09ddcf623aa73d8000512"
     ],
     "StorageSummary": [
-      "d44876ad3b143915bc5e9fe8a75f466b9fe404f44a8f7a1173325b977f45b820",
-      "7d92aa614d30ea3db4a2e6f2d3da218233420585bff324c408f9cd44c008f8ff"
+      "10fef6a3bfbeb36fefdd8fa6aea1989d928648242bb97ac5f927efd74bd1bf52",
+      "c63e2f490ca970fd17a59a4c2e8ac2070c8ee261149bf9d8f4e307ce81f4f4a9"
     ],
     "StorageUnavailable": [
       "ca184496974204a0bd3fd4925e0540bc4b0df6fcc232994d29754272b7183812",
@@ -1040,8 +1040,8 @@
       "929948678f8a99171f4b7cdbbe6f58f5b07511801142ab80704494cde7bf11f8"
     ],
     "AutoInstallUpdatesTitle.Text": [
-      "3993a874308e56894d73e07e3854683af3b687ed488157f9dcb7f8a2b56fd615",
-      "a05d985fb608b7bc09b6c414a5013da98ad705fe8d2b6e584829d64fb06b8628"
+      "291fc4545a24fb98bf8b23ddcba8f9cb84aaea5f28581d8fec5518d192e91f59",
+      "4245497ae6807455b59e8a428aae3bfc3b72f93ef74d69777f4fc45cf10ce4a7"
     ],
     "AutoInstallUpdatesDescription.Text": [
       "90f50d708ac8b8b0f5e30df26d88db24a784b3a294a55ea5b9b6e84709ac8eee",
@@ -1084,8 +1084,8 @@
       "c909d9f0a6c6d53b3284cadbac712e3c6cc6f2cab679020380b9c05c074816c5"
     ],
     "LocalDataSection.Text": [
-      "4a186dd7a70775e1c9f69e9ba69c739cef9b36e1959810073339a5489464a2b4",
-      "df28457dfc9af497f833f43abd2d6f70ae49d57f0ea579d3b6a3e0dc8004e566"
+      "222e5641c34487e3fc16d3066c0ee2b3619edab5bedeec283ed100419e0fe496",
+      "8963402fcf3dc7b861d3bf7515bac8eb974b86827dbfb7313d7c7716a6ca0572"
     ],
     "StorageLocationTitle.Text": [
       "a59e289477fe678fc83004fa3aedea5488f52993c3e9d4af683dc2da0a6b9eed",
@@ -3794,16 +3794,23 @@
     "HotkeyUnavailable": [
       "19b71cdfa7707dff61e0ee4a6f2ebae27c4ad3256a3c43a9ed18262c6555f138",
       "578ff1acd69e14d63351031ff15e98ad3c69624311c119c503159ececc355a87"
+    ],
+    "DlcStorageSummary": [
+      "a5806f0f95ded3ab4c34cbd9759e144101875f1a1e5f7be4c5230eb0ed364cdc",
+      "fbd215bbd710748d24a7cc67346605623330053561e85cb2588f343fbc0fbea3"
     ]
   },
-  "reviewedBy": "Codex: shortened recorder prompt without changing meaning",
-  "reviewedAt": "2026-10-19T18:56:23.194Z",
+  "reviewedBy": "Codex: reviewed cache/DLC usage and automatic installation labels",
+  "reviewedAt": "2026-10-22T10:32:51.255Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "HotkeyRecordPrompt"
+      "LocalDataSection.Text",
+      "StorageSummary",
+      "AutoInstallUpdatesTitle.Text",
+      "DlcStorageSummary"
     ],
-    "reviewedBy": "Codex: shortened recorder prompt without changing meaning",
-    "reviewedAt": "2026-10-19T18:56:23.194Z"
+    "reviewedBy": "Codex: reviewed cache/DLC usage and automatic installation labels",
+    "reviewedAt": "2026-10-22T10:32:51.255Z"
   }
 }

@@ -1004,12 +1004,12 @@
       "b92997a48877c26f058f1ab62b347aadb7b2e95c249bc3453ef582e145fab51c"
     ],
     "meta.mac.description": [
-      "ebcb3e71df1c7d2081befc701dc0aa8f353e23e2bbd3f729dc754fb7ceda9d88",
-      "b5867fd4c621f219a803f7a042be9974f477e9c3c5a70d78d8b1dfded3614e4f"
+      "5984382f115808e0f9aa8859a088a0bfbb55dc9616dd090022e317624b066d06",
+      "c8d25b03537a3b84aac2df47cb2bdf61665f6d5395bc4f732b12bb195646da79"
     ],
     "mac.nav": [
-      "87d27dd0d37b70ddc26eacb7c981214146d4601a3241226a128a3d72cb0b2c73",
-      "27e7ad44e485e4788e8694bed1d5dc0599ce66b51bd44038704df83ec533bc91"
+      "52a4dc3d8fb43950577e975fbd522dc96c1019475f75202e3d43de542515b1f9",
+      "cabda939d1e8f1f0147bc549fb92386fe6ef87405b8fcf8379fbf8e0cb3c22cf"
     ],
     "mac.intro": [
       "3ec4186706c422f4b4913ebbb587f349f916df0384a713f74a25629eaf01c7eb",
@@ -1020,8 +1020,8 @@
       "7ca60ed9bfdc40ebfc87805a75a41401a96fa97b3a914d841a6a4e8a9decff94"
     ],
     "mac.baseline": [
-      "fbabd2342113622142aa052eb1f1c67c0f08fca3e6ca16d751627c494d7a1eb8",
-      "5452a50663803e72241d8c537026b98e592ad3f84fd98de248a1b013f2325355"
+      "129997077329b435a5cc3c15dd2cf1b7c5e44081bcf941b7a928a1d68aa25d8a",
+      "82d0133f6d4607221055c9b2696c8a783583248523587a29548082deea6f4716"
     ],
     "mac.integrity": [
       "f3d737a08586a33bba567a56ab4d071288d272837281a074706da98b44fdef78",
@@ -1074,16 +1074,38 @@
     "mac.appleGuide": [
       "9a26e01d989a15fb27eca951662ec8da6ccec6f1f1c7b13a9b3126d4f53b30af",
       "86155a82bbba84c0500780ae18bb999155cb8087859f7cfcc4e6ca31ea0762c8"
+    ],
+    "mac.warning": [
+      "e9572846e5aa4e4d1710535772fd0a72b96539cef35b120dd70d5a1d2a8412bf",
+      "eef26b8b0ae9425ff3dc18ea70145f4ead858e420df495c7df216f47eb0b3e24"
+    ],
+    "mac.archive": [
+      "cd839ccf8c731c61e87c4daddd40d0b5b61a61b349e43bc94cdb09e2711736df",
+      "49d5dd63118dc470773b071400b84a7784c6b375372dcdb0e196516e5d400bbe"
+    ],
+    "mac.downloadTitle": [
+      "eb7c9ff37e3641e647d64e649087cfe7ea8ec6db7f0184f45680f5ef9fa2b24f",
+      "05cbc2e6f0fba0e1ef63025c43b1f138d5e4d9963fa840ad56b580fabd24908d"
+    ],
+    "mac.requirementsVersion": [
+      "58b360f295faccbd3b0e7045b080b69340ddc3e356342be3d42d82baeaf29c5b",
+      "e65fff54580ae5dab5ab42c1a5520b1182b87f7c2ec0f447bea3eeea8f5eafeb"
     ]
   },
-  "reviewedBy": "Codex: Beta 1 scope sentence reviewed; no full human locale certification",
-  "reviewedAt": "2026-10-20T16:36:22.901Z",
+  "reviewedBy": "Codex: reviewed Mac early-test warning, downloads and requirements",
+  "reviewedAt": "2026-10-22T10:32:53.840Z",
   "initialReviewMethod": "app_language: individually translated/reviewed 249 website UI IDs",
   "latestReviewScope": {
     "ids": [
-      "mac.baseline"
+      "mac.nav",
+      "mac.baseline",
+      "mac.warning",
+      "mac.archive",
+      "mac.downloadTitle",
+      "mac.requirementsVersion",
+      "meta.mac.description"
     ],
-    "reviewedBy": "Codex: Beta 1 scope sentence reviewed; no full human locale certification",
-    "reviewedAt": "2026-10-20T16:36:22.901Z"
+    "reviewedBy": "Codex: reviewed Mac early-test warning, downloads and requirements",
+    "reviewedAt": "2026-10-22T10:32:53.840Z"
   }
 }

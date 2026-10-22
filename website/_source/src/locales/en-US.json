@@ -249,11 +249,11 @@
   "ui.september.short": "SEP",
   "ui.uptime.example": "2h 18m",
   "meta.mac.title": "DropSpace for macOS",
-  "meta.mac.description": "Native DropSpace for Apple Silicon: downloads, requirements, installation and Mac release history.",
-  "mac.nav": "Mac version",
+  "meta.mac.description": "DropSpace for macOS is an early, extremely unstable test version for Apple Silicon. Downloads, installation and release history.",
+  "mac.nav": "Mac early beta",
   "mac.intro": "A native workspace for your Mac.",
   "mac.requirements": "Requires macOS 26 or later and Apple Silicon. Intel Macs are not supported.",
-  "mac.baseline": "Mac v0.1.0 Beta 1 is a native public beta for everyday use, with Windows v0.3.2 Beta 7 as a functional reference, not a complete 1:1 port. Versions and updates are separate.",
+  "mac.baseline": "An early native macOS test version. Features and updates are separate from Windows.",
   "mac.integrity": "Not notarized by Apple. No Developer ID signature. Locally ad-hoc signed for bundle integrity; this does not authenticate the developer.",
   "mac.features": "Native workspace",
   "mac.features.body": "SwiftUI and AppKit bring file references, clipboard history, search, previews and local file actions to macOS. Each release documents its delivered capabilities and platform differences.",
@@ -266,5 +266,9 @@
   "mac.step4": "Do not disable Gatekeeper, SIP or global security protections. A managed Mac may disallow this exception. Stop if macOS reports malware or damaged software.",
   "mac.history": "Mac release history",
   "mac.platformHint": "Both platform downloads remain available. Browser detection suggests a platform but cannot reliably confirm your chip or system version.",
-  "mac.appleGuide": "Apple’s opening instructions"
+  "mac.appleGuide": "Apple’s opening instructions",
+  "mac.warning": "Early test version. Extremely unstable.",
+  "mac.archive": "Download ZIP",
+  "mac.downloadTitle": "Download for Mac",
+  "mac.requirementsVersion": "Requires macOS {version} or later and Apple Silicon. Intel Macs are not supported."
 }

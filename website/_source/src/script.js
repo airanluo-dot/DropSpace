@@ -63,11 +63,10 @@ if (systemCheck) {
 // contains the last successfully deployed, validated snapshot; failed production syncs are not deployed.
 const isGitHubPages = location.hostname.endsWith("github.io");
 const isLocalPreview = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
-const releaseApiPaths = isGitHubPages
-  ? [`/${location.pathname.split("/").filter(Boolean)[0]}/api/v1/releases.json`]
-  : isLocalPreview
-    ? ["/api/v1/releases.json"]
-    : ["/api/v1/releases.json", "https://airanluo-dot.github.io/DropSpace/api/v1/releases.json"];
+const localReleaseApi = new URL("../api/v1/releases.json", import.meta.url).pathname;
+const releaseApiPaths = isGitHubPages || isLocalPreview
+  ? [localReleaseApi]
+  : [localReleaseApi, "https://airanluo-dot.github.io/DropSpace/api/v1/releases.json"];
 let currentStable;
 addEventListener("dropspace-language-change", () => { if (currentStable) updateRequirementText(currentStable); });
 function updateRequirementText(stable) { document.querySelectorAll("[data-stable-requirements]").forEach(node => { node.textContent = stableRequirements(stable, i18n.language); }); }

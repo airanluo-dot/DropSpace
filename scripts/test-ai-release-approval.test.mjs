@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { approvalPath, admissionPath, fixturePath, fixtureAdmissionDecision, readScope, readSourceFingerprint, modelDeliverySourcePaths, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, publicationDecision } from './test-ai-release-approval.mjs';
+import { approvalPath, admissionPath, fixturePath, fixtureAdmissionDecision, readScope, readSourceFingerprint, modelDeliverySourcePaths, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, stableHostExperimentalModelsStatus, publicationDecision } from './test-ai-release-approval.mjs';
 import { fileIdentity, writeReleaseBinding } from './ai-runtime-publication.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -298,6 +298,8 @@ test('synthetic current approval with complete bound evidence passes', t => exam
 
 function experimentalExample(t) {
   const x = example(t);
+  x.write('RELEASE_VERSION', experimentalBetaVersion);
+  x.scope.releaseVersion = experimentalBetaVersion;
   x.approval.status = experimentalBetaStatus;
   Object.assign(x.report, {
     kind: experimentalBetaStatus, verdict: experimentalBetaStatus, semanticApproved: false,
@@ -333,6 +335,47 @@ function experimentalExample(t) {
   saveObservation();
   return { ...x, observation, configuration, output, technical, saveObservation };
 }
+
+function stableHostExample(t) {
+  const x = experimentalExample(t);
+  const historical = json(x.report);
+  const previousPath = 'scripts/ai-model-qa/evidence/SYNTHETIC-HISTORICAL-BETA.json';
+  x.write(previousPath, historical);
+  x.write('RELEASE_VERSION', 'v1.0.0');
+  x.scope.releaseVersion = 'v1.0.0';
+  x.approval.status = stableHostExperimentalModelsStatus;
+  const ownerPath = 'scripts/ai-model-qa/evidence/SYNTHETIC-STABLE-REQUEST.md';
+  const ownerText = 'SYNTHETIC TEST ONLY: stable host publication request; no model approval.';
+  x.write(ownerPath, ownerText);
+  Object.assign(x.report, {
+    kind: stableHostExperimentalModelsStatus, verdict: stableHostExperimentalModelsStatus,
+    ownerDecision: { path: ownerPath, sha256: sha256(ownerText) },
+    publicationAuthorization: { releaseVersion: 'v1.0.0', reference: ownerPath },
+    carriedForwardFrom: { path: previousPath, sha256: sha256(historical) },
+  });
+  x.save();
+  return x;
+}
+
+test('stable host authorization preserves experimental models and historical timeouts', t => {
+  const x = stableHostExample(t);
+  assert.deepEqual(publicationDecision(x.root, { now }), {
+    authorized: true, semanticApproved: false, mode: stableHostExperimentalModelsStatus,
+  });
+  assert.equal(x.report.userAcceptance.releaseVersion, experimentalBetaVersion);
+  assert.equal(x.report.models[0].validation[0].status, 'timed-out');
+  assert.equal(x.report.models[1].validation[0].status, 'not-run');
+});
+
+for (const [label, mutate, expected] of [
+  ['future release', x => { x.write('RELEASE_VERSION', 'v1.0.1'); x.scope.releaseVersion = 'v1.0.1'; }, /limited to v1.0.0/],
+  ['new acceptance claim', x => { x.report.userAcceptance.acceptedAt = '2026-10-01T00:00:00Z'; }, /Do not invent/],
+  ['changed model observations', x => { x.report.models[0].validation[0].status = 'complete-unreviewed'; }, /preserve original/],
+  ['removed historical limitation', x => { x.report.acceptedLimitations.pop(); }, /retain experimental limitations/],
+  ['tampered owner request', x => { x.write(x.report.ownerDecision.path, 'changed'); }, /hash mismatch/],
+]) test(`stable host authorization rejects ${label}`, t => {
+  const x = stableHostExample(t); mutate(x); x.save(); assert.throws(() => x.validate(), expected);
+});
 
 test('owner-accepted Beta preserves timeout and unexecuted evidence without semantic approval', t => {
   const x = experimentalExample(t); x.validate();

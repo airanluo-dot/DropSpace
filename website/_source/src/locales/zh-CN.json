@@ -249,11 +249,11 @@
   "ui.september.short": "9月",
   "ui.uptime.example": "2小时18分钟",
   "meta.mac.title": "DropSpace macOS 版",
-  "meta.mac.description": "适用于 Apple 芯片的原生 DropSpace：下载、系统要求、安装方法与 Mac 更新记录。",
-  "mac.nav": "Mac 版本",
+  "meta.mac.description": "DropSpace macOS 版面向 Apple 芯片，处于早期测试阶段，极度不稳定。提供下载、安装说明和版本记录。",
+  "mac.nav": "Mac 早期测试版",
   "mac.intro": "为 Mac 打造的原生工作区。",
   "mac.requirements": "需要 macOS 26 或更高版本及 Apple 芯片。不支持 Intel Mac。",
-  "mac.baseline": "Mac v0.1.0 Beta 1 是面向日常使用的原生公开测试版，以 Windows v0.3.2 Beta 7 为功能参考，并非完整 1:1 移植。版本与更新渠道独立。",
+  "mac.baseline": "原生 macOS 早期测试版，功能和更新独立于 Windows 版。",
   "mac.integrity": "未获 Apple 公证、无 Developer ID 签名。使用本地 ad-hoc 签名校验应用包完整性，不代表开发者身份认证。",
   "mac.features": "原生工作区",
   "mac.features.body": "通过 SwiftUI 与 AppKit 在 macOS 上提供文件引用、剪贴板历史、搜索、预览及本地文件操作。各版本说明列出实际交付能力与平台差异。",
@@ -266,5 +266,9 @@
   "mac.step4": "不要关闭 Gatekeeper、SIP 或全局安全保护。受管理的 Mac 可能不允许此例外；若系统提示恶意软件或文件损坏，请停止打开。",
   "mac.history": "Mac 更新记录",
   "mac.platformHint": "Windows 与 Mac 下载入口均保留。浏览器识别仅推荐平台，不能可靠确认芯片或系统版本。",
-  "mac.appleGuide": "Apple 官方打开指引"
+  "mac.appleGuide": "Apple 官方打开指引",
+  "mac.warning": "早期测试版，极度不稳定。",
+  "mac.archive": "下载 ZIP",
+  "mac.downloadTitle": "下载 Mac 版",
+  "mac.requirementsVersion": "需要 macOS {version} 或更高版本及 Apple 芯片，不支持 Intel Mac。"
 }

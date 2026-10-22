@@ -27,7 +27,11 @@ public sealed partial class MainPage
         if (!DispatcherQueue.TryEnqueue(() =>
         {
             Interlocked.Exchange(ref _moduleRefreshQueued, 0);
-            if (!_dialogLifetime.IsCancellationRequested) RefreshModuleNavigation();
+            if (!_dialogLifetime.IsCancellationRequested)
+            {
+                RefreshModuleNavigation();
+                _dlcSettingsPage?.RefreshStorageSummary();
+            }
         })) Interlocked.Exchange(ref _moduleRefreshQueued, 0);
     }
 

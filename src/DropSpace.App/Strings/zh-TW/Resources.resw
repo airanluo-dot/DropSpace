@@ -113,7 +113,7 @@
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace 無法完成啟動。某些後臺服務可能仍在運作。在檢查或還原其資料目錄之前退出應用程式，並檢查本機診斷記錄檔。</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace 無法安全啟動</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>正在計算...</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>使用：{0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>快取用量：{0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>不可用</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>清除剪貼簿歷史記錄...</value></data>
   <data name="TrayExit" xml:space="preserve"><value>退出</value></data>
@@ -260,7 +260,7 @@
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>每次 DropSpace 程序啟動時最多檢查一次；沒有後臺計時器執行。</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>自動下載更新</value></data>
   <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>僅下載到 DropSpace 自己的快取，並且僅在大小和 SHA-256 驗證後安裝。</value></data>
-  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>無人值守自動安裝</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>自動安裝更新</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>僅當更新通過受信任的 Authenticode 發行者驗證時才可用；未簽署的版本會保持關閉。</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>更新頻道</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>穩定版僅接收發布版本。 Beta 收到穩定版和預發行版，按發行號排序。</value></data>
@@ -271,7 +271,7 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>立即更新</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>開啟下載位置</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>檢視版本說明</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>本機資料</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>快取用量</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>儲存位置</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>清除最近一小時</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>清除今天的記錄</value></data>
@@ -951,4 +951,5 @@
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>請按快速鍵</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>儲存</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>快速鍵無法使用或已被占用，請選擇其他組合。</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>DLC 總用量：{0}</value></data>
 </root>

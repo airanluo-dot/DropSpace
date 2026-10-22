@@ -113,7 +113,7 @@
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace の起動を完了できませんでした。一部のバックグラウンド サービスがまだ実行されている可能性があります。データ ディレクトリを検査または復元する前にアプリを終了し、ローカルの診断ログを確認してください。</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace を安全に開始できませんでした</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>計算中…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>使用量: {0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>キャッシュ使用量：{0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>利用不可</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>クリップボードの履歴をクリア…</value></data>
   <data name="TrayExit" xml:space="preserve"><value>終了</value></data>
@@ -260,7 +260,7 @@
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>DropSpace プロセスの起動ごとに最大 1 回チェックします。バックグラウンドタイマーは実行されません。</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>アップデートを自動的にダウンロードする</value></data>
   <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>DropSpace 自体のキャッシュにのみダウンロードされ、サイズと SHA-256 の検証後にのみインストールされます。</value></data>
-  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>無人自動インストール</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>更新を自動インストール</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>アップデートが信頼できる Authenticode 発行者の検証に合格した場合にのみ使用できます。未署名のビルドではオフのままです。</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>チャンネルを更新する</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>安定版はリリース バージョンのみを受け取ります。ベータ版では、リリース番号順に安定版とプレリリース バージョンが提供されます。</value></data>
@@ -271,7 +271,7 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>今すぐアップデートしてください</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>ダウンロード場所を開く</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>リリースノートを見る</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>ローカルデータ</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>キャッシュ使用量</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>保管場所</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>過去 1 時間をクリア</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>今日の履歴を消去</value></data>
@@ -951,4 +951,5 @@
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>ショートカットを押してください</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>保存</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>このショートカットは使用できないか使用中です。別の組み合わせを選んでください。</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>DLC の合計使用量：{0}</value></data>
 </root>

@@ -113,7 +113,7 @@
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace n'a pas pu terminer le démarrage. Certains services d'arrière-plan peuvent encore être en cours d'exécution. Quittez l'application avant d'inspecter ou de restaurer son répertoire de données et consultez le journal de diagnostic local.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace n'a pas pu démarrer en toute sécurité</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Calcul…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>Utilisation : {0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>Espace du cache : {0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>Indisponible</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>Effacer l’historique du presse-papiers…</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Quitter</value></data>
@@ -260,7 +260,7 @@
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>Vérifie au maximum une fois par lancement de processus DropSpace ; aucune minuterie d'arrière-plan ne s'exécute.</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>Télécharger automatiquement les mises à jour</value></data>
   <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>Télécharge uniquement dans le cache de DropSpace et s'installe uniquement après vérification de la taille et de SHA-256.</value></data>
-  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Installation automatique sans surveillance</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Installer automatiquement les mises à jour</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Disponible uniquement lorsque la mise à jour réussit la vérification de l'éditeur Authenticode de confiance ; il reste désactivé pour les versions non signées.</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Canal de mise à jour</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable reçoit uniquement les versions release. La bêta reçoit des versions stables et préliminaires, classées par numéro de version.</value></data>
@@ -271,7 +271,7 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Mettre à jour maintenant</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>Ouvrir l'emplacement de téléchargement</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>Afficher les notes de version</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>Données locales</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>Espace du cache</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>Lieu de stockage</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>Effacer la dernière heure</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>Effacer l’historique du jour</value></data>
@@ -951,4 +951,5 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Appuyez sur le raccourci</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>Enregistrer</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Raccourci indisponible ou déjà utilisé. Choisissez une autre combinaison.</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>Espace total des DLC : {0}</value></data>
 </root>

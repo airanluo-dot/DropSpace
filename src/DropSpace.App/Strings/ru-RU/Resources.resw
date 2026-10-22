@@ -113,7 +113,7 @@
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace не удалось завершить запуск. Некоторые фоновые службы могут все еще работать. Выйдите из приложения перед проверкой или восстановлением каталога данных и проверьте локальный журнал диагностики.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace не удалось безопасно запустить</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Расчет…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>Занято: {0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>Объём кэша: {0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>Недоступно</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>Очистить историю буфера обмена…</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Выход</value></data>
@@ -260,7 +260,7 @@
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>Проверяется не более одного раза при каждом запуске процесса DropSpace; фоновый таймер не запускается.</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>Загружать обновления автоматически</value></data>
   <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>Загружает только в собственный кэш DropSpace и устанавливает только после проверки размера и SHA-256.</value></data>
-  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Автоматическая установка без присмотра</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Автоматически устанавливать обновления</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Доступно только в том случае, если обновление прошло проверку доверенного издателя Authenticode; он остается отключенным для неподписанных сборок.</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Обновить канал</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Стабильная версия получает только релизные версии. Бета-версия получает стабильную и предварительную версии, упорядоченные по номеру выпуска.</value></data>
@@ -271,7 +271,7 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Обновить сейчас</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>Открыть место загрузки</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>Посмотреть примечания к выпуску</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>Локальные данные</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>Объём кэша</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>Место хранения</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>Очистить в последний час</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>Очистить историю за сегодня</value></data>
@@ -951,4 +951,5 @@
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Нажмите сочетание клавиш</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>Сохранить</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Сочетание недоступно или уже используется. Выберите другое.</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>Общий объём DLC: {0}</value></data>
 </root>

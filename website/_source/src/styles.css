@@ -366,12 +366,39 @@ html:lang(ko) body { font-family:"Malgun Gothic","Apple SD Gothic Neo","Segoe UI
 html:lang(zh) h1,html:lang(zh) h2,html:lang(ja) h1,html:lang(ja) h2,html:lang(ko) h1,html:lang(ko) h2 { line-height:1.25; letter-spacing:0; }
 @media(max-width:680px) { .language-switch { max-width:155px; } .nav-download { margin-left:auto; } .native-tabs button { padding-inline:3px; } }
 /* Platform choices remain visible even when a browser suggestion is available. */
-.download-card[data-suggested="true"] { outline: 2px solid currentColor; outline-offset: 3px; }
-.mac-page { max-width: 980px; }
-.mac-page header p, .mac-detail p, .mac-detail li { max-width: 76ch; line-height: 1.75; }
-.mac-download, .mac-detail { margin-block: 3rem; padding-block: 0; }
-.mac-disclosure { padding: 1.25rem; border: 1px solid currentColor; border-radius: 12px; }
-.mac-detail h2 { margin-bottom: 1rem; }
-.mac-detail ol { padding-left: 1.5rem; }
-.mac-detail li { margin-block: 1rem; }
-.mac-detail .release-body p { white-space: pre-wrap; }
+.download-card[data-suggested="true"] { border-color: var(--blue); }
+.platform-hint { grid-column: 1 / -1; color: var(--muted); font-size: 12px; line-height: 1.7; margin: 0; }
+.mac-page { padding-top: 164px; padding-bottom: 72px; }
+.mac-hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: var(--content-gap); align-items: center; padding-bottom: var(--section-space); }
+.mac-hero h1 { font-size: var(--display-size); line-height: 1.08; font-weight: 640; letter-spacing: -.055em; text-wrap: balance; margin: 0 0 28px; }
+.mac-hero .hero-copy > p { max-width: 52ch; }
+.mac-warning { color: #f6b0c5; font-size: 14px; line-height: 1.6; padding-left: 16px; border-left: 2px solid var(--pink); }
+.mac-download { padding: clamp(24px, 3vw, 44px); border: 1px solid var(--line); border-radius: 20px; background: var(--surface); scroll-margin-top: 110px; min-width: 0; }
+.mac-logo { display: block; margin-bottom: 28px; }
+.mac-download h2 { font-size: 28px; letter-spacing: -.035em; margin: 0 0 16px; }
+.mac-download p { color: var(--muted); font-size: 14px; line-height: 1.8; }
+.mac-download .stable-line { margin: 24px 0 16px; }
+.mac-download .actions { gap: 12px; }
+.mac-release-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 24px; font-size: 12px; color: var(--muted); }
+.mac-release-links a:hover { color: var(--text); }
+.mac-detail { display: grid; grid-template-columns: .8fr 1.2fr; gap: var(--content-gap); border-top: 1px solid var(--line); padding-block: 64px; scroll-margin-top: 90px; }
+.mac-detail > div { min-width: 0; }
+.mac-detail h2,.mac-history h2 { font-size: clamp(28px, 3vw, 42px); line-height: 1.2; letter-spacing: -.035em; margin: 0 0 24px; }
+.mac-detail p,.mac-detail li { color: var(--muted); max-width: 70ch; line-height: 1.8; }
+.mac-disclosure { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 28px; font-size: 13px; }
+.mac-detail ol { padding-left: 1.4rem; margin-top: 0; }
+.mac-detail li { padding-left: 8px; margin-bottom: 20px; }
+.mac-history { border-top: 1px solid var(--line); padding-top: 64px; scroll-margin-top: 90px; }
+.mac-history .release-body p,.mac-history .release-body li { color: var(--muted); line-height: 1.8; }
+.mac-history .release-entry { grid-template-columns: minmax(180px, .65fr) minmax(0, 1.35fr); gap: var(--content-gap); }
+@media (max-width: 980px) {
+  .mac-page { padding-top: 128px; }
+  .mac-hero { grid-template-columns: 1fr; gap: 44px; }
+  .mac-download { max-width: 660px; width: 100%; }
+}
+@media (max-width: 680px) {
+  .mac-detail,.mac-history .release-entry { grid-template-columns: 1fr; gap: 20px; }
+  .mac-hero h1 { font-size: clamp(38px, 10vw, 56px); }
+  .mac-detail { padding-block: 48px; }
+  .mac-download .actions .button { width: 100%; }
+}
