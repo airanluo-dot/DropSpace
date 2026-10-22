@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using DropSpace.Core.SystemActivities;
+using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Views;
 
@@ -105,10 +106,10 @@ public sealed partial class MainPage
         about.Margin = new(0, 32, 0, 32);
         var logo = new Image
         {
-            Source = new BitmapImage(new Uri("ms-appx:///Assets/Square44x44Logo.targetsize-256_altform-unplated.png")),
             Width = 112, Height = 112, Stretch = Stretch.Uniform,
             HorizontalAlignment = HorizontalAlignment.Center, Margin = new(0, 0, 0, 12),
         };
+        logo.Loaded += OnAboutLogoLoaded;
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAccessibilityView(logo, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
         about.Children.Add(logo);
         var version = new TextBlock { FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
@@ -159,6 +160,28 @@ public sealed partial class MainPage
             navigation.SelectedItem = navigation.MenuItems.OfType<NavigationViewItem>().Single(item => Equals(item.Tag, "DLC"));
         };
         SettingsPages.Content = navigation;
+    }
+
+    private async void OnAboutLogoLoaded(object sender, RoutedEventArgs args)
+    {
+        if (sender is not Image { Source: null } logo) return;
+        try
+        {
+            // Read embedded bytes in both packaged and single-file deployments.
+            using var resource = typeof(MainPage).Assembly.GetManifestResourceStream("DropSpace.Brand.AboutLogo.png")
+                ?? throw new InvalidDataException("Embedded About logo is missing.");
+            using var bytes = new MemoryStream(); resource.CopyTo(bytes);
+            using var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+            using (var writer = new Windows.Storage.Streams.DataWriter(stream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(bytes.ToArray()); await writer.StoreAsync(); writer.DetachStream();
+            }
+            stream.Seek(0);
+            var image = new BitmapImage();
+            await image.SetSourceAsync(stream);
+            if (logo.IsLoaded && !_dialogLifetime.IsCancellationRequested) logo.Source = image;
+        }
+        catch (Exception error) { _logger.LogWarning("About logo decode failed ({Category}).", error.GetType().Name); }
     }
     private void UpdateSettingsPresentationActivity(bool active)
     {
