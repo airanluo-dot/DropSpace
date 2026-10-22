@@ -29,10 +29,12 @@ public sealed class DlcManagerService : IAsyncDisposable
     private long? _lastRefresh;
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(30);
     private readonly string _pendingPath;
+    private readonly ILocalStorageMetrics _storageMetrics;
 
     public DlcManagerService(IEnumerable<IDlcPackageProvider> providers, ILogger<DlcManagerService> logger, AppStoragePaths paths)
     {
         _providers = providers.ToArray();
+        _storageMetrics = new LocalStorageMetrics(paths);
         _logger = logger;
         _pendingPath = Path.Combine(paths.Root, "Downloads", "managed-pending.json");
         foreach (var provider in _providers)
@@ -44,6 +46,17 @@ public sealed class DlcManagerService : IAsyncDisposable
     }
 
     public event EventHandler? Changed;
+
+    public async Task<long?> GetStorageBytesAsync(CancellationToken token)
+    {
+        var local = await _storageMetrics.GetDlcByteLengthAsync(token).ConfigureAwait(false);
+        if (local is null) return null;
+        // NetEase's managed DLLs live in the player installation, outside our data
+        // root. The shared Visual C++ runtime is system-owned and is not counted.
+        var enhancement = Packages.FirstOrDefault(item => item.Package.Id == "netease-music-enhancement");
+        if (enhancement?.Installation is null && enhancement is not null) return null;
+        return checked(local.Value + (enhancement?.Installation?.InstalledBytes ?? 0));
+    }
     public async Task RestoreAsync()
     {
         if (!File.Exists(_pendingPath)) return;

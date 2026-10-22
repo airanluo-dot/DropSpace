@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.2-beta.7
+## Release target: v1.0.0
 
-The current Beta target is `v0.3.2-beta.7` (Beta 7).
-v0.3.2-beta.6 is the immediate upgrade baseline for this release.
+The current release target is `v1.0.0` (Stable).
+v0.3.2-beta.7 is the immediate upgrade baseline for this release.
 
-Remove internal sample DLC and duplicate refresh UI, hide downloader working folders, and add a dedicated keyboard shortcuts page with direct recording, scope labels, conflict feedback and persistent main-window bindings. Preserve user data, providers and model/CUDA bytes.
+Separate cache and DLC usage, pause the System Activities experience, center the About page with the logo, enable automatic update installation, and refine the existing website and early Mac page. Preserve user data, providers and model/CUDA bytes.
 
-Use focused interaction and persistence checks, required Windows compilation, exact-main packaging, one isolated installer payload scenario and public release/update verification. See the [release notes](.github/release-notes/v0.3.2-beta.7.md) and [execution record](docs/dev/beta7-settings-shortcuts-2026-10-20.md).
+Use focused interaction and persistence checks, required Windows compilation, exact-main packaging, one isolated installer payload scenario and public release/update verification. See the [release notes](.github/release-notes/v1.0.0.md) and [execution record](docs/dev/v1-release-2026-10-22.md).
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,13 +160,14 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.2-beta.7
-is the current Beta target; published versions remain listed on the official Releases page.
+Version 1.0 is the current Stable target, with v0.3.2-beta.7 as its immediate
+upgrade baseline; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
 two-device transfer, Apple Music/provider, and deployed Worker/browser evidence
-remain recommended Beta follow-up and are unverified where absent. Beta signing
-remains optional; Stable publication is signing-gated.
+remain follow-up and are unverified where absent. The owner-authorized v1.0.0
+release retains documented unsigned distribution when no signing service is
+configured; other Stable versions retain their signing gate.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 

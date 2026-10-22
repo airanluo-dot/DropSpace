@@ -113,7 +113,7 @@
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace could not finish starting. Some background services may still be running. Exit the app before inspecting or restoring its data directory, and check the local diagnostic log.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace could not start safely</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Calculating…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>Using: {0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>Cache usage: {0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>Unavailable</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>Clear clipboard history…</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Exit</value></data>
@@ -262,7 +262,7 @@
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>Checks at most once per DropSpace process launch; no background timer runs.</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>Download updates automatically</value></data>
   <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>Downloads only to DropSpace’s own cache and installs only after size and SHA-256 verification.</value></data>
-  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Unattended automatic installation</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Automatically install updates</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Available only when the update passes trusted Authenticode publisher verification; it remains off for unsigned builds.</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Update channel</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable receives release versions only. Beta receives Stable and prerelease versions, ordered by release number.</value></data>
@@ -273,7 +273,7 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Update now</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>Open download location</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>View release notes</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>Local data</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>Cache usage</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>Storage location</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>Clear last hour</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>Clear today</value></data>
@@ -953,4 +953,5 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Press a shortcut</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>Save</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Shortcut unavailable or already in use. Choose another combination.</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>Total DLC usage: {0}</value></data>
 </root>

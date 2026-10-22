@@ -66,9 +66,13 @@ function Get-DropSpaceLifecycleBaselineVersion
             Select-Object -First 1
         if ($null -eq $latestPrerelease)
         {
-            throw "Stable release $($ReleaseInfo.Tag) has no same-line prerelease lifecycle baseline."
+            # A new major stable version may graduate an earlier Beta series.
+            # Continue below to select the latest actual documented predecessor.
         }
-        return $latestPrerelease.Version
+        else
+        {
+            return $latestPrerelease.Version
+        }
     }
 
     # A first prerelease may follow a prerelease-only series. Select a real,

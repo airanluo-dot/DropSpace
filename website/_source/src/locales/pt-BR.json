@@ -249,11 +249,11 @@
   "ui.september.short": "SET.",
   "ui.uptime.example": "2 h 18 min",
   "meta.mac.title": "DropSpace para macOS",
-  "meta.mac.description": "DropSpace nativo para Apple Silicon: downloads, requisitos, instalação e histórico de versões para Mac.",
-  "mac.nav": "Versão para Mac",
+  "meta.mac.description": "O DropSpace para macOS é uma versão de teste inicial e extremamente instável para chips Apple. Downloads, instalação e histórico de versões.",
+  "mac.nav": "Mac: versão de teste inicial",
   "mac.intro": "Um espaço de trabalho nativo para seu Mac.",
   "mac.requirements": "Requer macOS 26 ou posterior e Apple Silicon. Macs Intel não são compatíveis.",
-  "mac.baseline": "Mac v0.1.0 Beta 1 é uma versão beta pública nativa para uso diário, com Windows v0.3.2 Beta 7 como referência funcional. Não é uma portabilidade completa 1:1. Versões e atualizações são separadas.",
+  "mac.baseline": "Uma versão de teste inicial e nativa para macOS. Os recursos e as atualizações são independentes da versão para Windows.",
   "mac.integrity": "Sem notarização da Apple ou assinatura Developer ID. A assinatura ad hoc local verifica a integridade do pacote, mas não autentica o desenvolvedor.",
   "mac.features": "Espaço de trabalho nativo",
   "mac.features.body": "SwiftUI e AppKit oferecem referências de arquivos, histórico da área de transferência, busca, pré-visualizações e ações locais no macOS. Cada versão documenta suas funções entregues e diferenças de plataforma.",
@@ -266,5 +266,9 @@
   "mac.step4": "Não desative Gatekeeper, SIP nem as proteções globais. Um Mac gerenciado pode proibir essa exceção. Pare se o macOS alertar sobre software malicioso ou danificado.",
   "mac.history": "Histórico de versões para Mac",
   "mac.platformHint": "Os downloads para ambas as plataformas continuam disponíveis. O navegador sugere uma plataforma, mas não confirma com segurança o chip ou a versão do sistema.",
-  "mac.appleGuide": "Instruções da Apple para abrir apps"
+  "mac.appleGuide": "Instruções da Apple para abrir apps",
+  "mac.warning": "Versão de teste inicial. Extremamente instável.",
+  "mac.archive": "Baixar ZIP",
+  "mac.downloadTitle": "Baixar para Mac",
+  "mac.requirementsVersion": "Requer macOS {version} ou posterior e chip Apple. Macs com Intel não são compatíveis."
 }

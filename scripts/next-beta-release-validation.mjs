@@ -17,6 +17,9 @@ const identity = filename => {const {bytes,sha256}=fileIdentity(filename);return
 // Preserve immutable historical routes. New release lines also use this route,
 // including beta.1 of a later semantic version; no next Beta number is hardcoded.
 export function isNextBetaRelease(tag) {
+  // Keep the established artifact/receipt route for the first stable host. Its
+  // release channel is still derived from the tag by ReleaseVersion.ps1.
+  if (tag === 'v1.0.0') return true;
   const match = /^v(\d+)\.(\d+)\.(\d+)-beta\.(\d+)$/.exec(tag);
   if (!match) return false;
   const numbers=match.slice(1).map(Number);
@@ -32,7 +35,7 @@ export function verifyValidation(directory,receipt,expected) {
   assert.equal(receipt.kind,kind);
   for(const key of ['repository','runId','runAttempt','sourceTree','releaseVersion'])
     assert.equal(receipt[key],expected[key],`Validation ${key} mismatch`);
-  assert.ok(isNextBetaRelease(receipt.releaseVersion),'A new Beta release is required');
+  assert.ok(isNextBetaRelease(receipt.releaseVersion),'A supported release candidate is required');
   assert.match(receipt.sourceCommit??'',/^[a-f0-9]{40}$/);
   assert.equal(receipt.appXamlBuild,true,'Complete Windows App/XAML build required');
   assert.deepEqual(receipt.tests,{status:'not-run',executed:0,reason:'PR compilation only; focused functional checks use the project budget'});

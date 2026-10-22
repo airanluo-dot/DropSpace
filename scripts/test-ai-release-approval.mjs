@@ -328,6 +328,7 @@ export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordi
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
+export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -811,7 +812,21 @@ function timestamp(value, label) {
 }
 
 function validateExperimentalBeta(root, report, scope, reviewedAt) {
-  assert.equal(scope.releaseVersion, experimentalBetaVersion, `Owner acceptance is only for ${experimentalBetaVersion}`);
+  const stableHost = report.kind === stableHostExperimentalModelsStatus;
+  assert.equal(scope.releaseVersion, stableHost ? 'v1.0.0' : experimentalBetaVersion, 'Experimental model authorization is release-specific');
+  if (stableHost) {
+    assert.equal(report.publicationAuthorization?.releaseVersion, 'v1.0.0');
+    assert.equal(report.publicationAuthorization?.reference, report.ownerDecision?.path);
+    nonempty(readEvidence(root, report.ownerDecision, 'Stable host publication authorization').toString('utf8'), 'Owner release request');
+    const previous = JSON.parse(readEvidence(root, report.carriedForwardFrom, 'Historical model acceptance').toString('utf8'));
+    assert.equal(previous.scope.releaseVersion, experimentalBetaVersion);
+    assert.equal(previous.kind, experimentalBetaStatus);
+    assert.deepEqual(report.userAcceptance, previous.userAcceptance, 'Do not invent new model acceptance');
+    assert.deepEqual(report.models, previous.models, 'Stable host publication must preserve original model observations');
+    assert.deepEqual(report.acceptedLimitations, previous.acceptedLimitations, 'Stable host publication must retain experimental limitations');
+    for (const key of Object.keys(scope).filter(key => !['releaseVersion', 'sources'].includes(key)))
+      assert.deepEqual(scope[key], previous.scope[key], `Stable host publication cannot change model input ${key}`);
+  }
   assert.equal(report.semanticApproved, false, 'Experimental Beta must not claim semantic approval');
   assert.equal(scope.executionLimits.wholeSongSeconds, 600, 'Owner acceptance covers the 600-second processing ceiling');
   assert.equal(report.userAcceptance?.releaseVersion, experimentalBetaVersion, 'Owner acceptance must name this exact Beta');
@@ -867,15 +882,16 @@ function validateExperimentalBeta(root, report, scope, reviewedAt) {
 export function validateApproval(root, { now = Date.now(), runtimeManifestPath, releaseBundleDirectory, expectedCommit } = {}) {
   const approval = readJson(root, approvalPath);
   assert.equal(approval.schemaVersion, 1, 'Unsupported AI approval schema');
-  const experimental = approval.status === experimentalBetaStatus;
+  const stableHost = approval.status === stableHostExperimentalModelsStatus;
+  const experimental = approval.status === experimentalBetaStatus || stableHost;
   assert.ok(approval.status === 'approved' || experimental, 'AI semantic release approval is pending or absent; structural success is not approval');
   const scope = readScope(root);
   nonempty(scope.releaseVersion, 'Release version');
   assert.deepEqual(approval.scope, scope, 'AI approval is stale: shipping model, runtime, prompt/parser sources, release or fixture changed');
   const report = JSON.parse(readEvidence(root, approval.review, 'Semantic review').toString('utf8'));
   assert.equal(report.schemaVersion, 1, 'Unsupported semantic review schema');
-  assert.equal(report.kind, experimental ? experimentalBetaStatus : 'semantic-review', 'Native diagnostics are not a semantic review or owner acceptance');
-  assert.equal(report.verdict, experimental ? experimentalBetaStatus : 'approved', 'Semantic review has not approved release or owner acceptance is absent');
+  assert.equal(report.kind, experimental ? approval.status : 'semantic-review', 'Native diagnostics are not a semantic review or owner acceptance');
+  assert.equal(report.verdict, experimental ? approval.status : 'approved', 'Semantic review has not approved release or owner acceptance is absent');
   assert.deepEqual(report.scope, scope, 'Semantic review is bound to different release inputs');
   // Accountability metadata within the trusted repository, not identity authentication.
   nonempty(report.reviewedBy, 'Recorded semantic reviewer identity');
@@ -888,7 +904,8 @@ export function validateApproval(root, { now = Date.now(), runtimeManifestPath, 
   assert.ok(Array.isArray(report.openDefects) && report.openDefects.length === 0, 'Known defects must be cleared; accepted Beta limitations are not a bug waiver');
   assert.ok(Array.isArray(report.acceptedLimitations), 'An explicit accepted-limitations list is required');
   if (report.acceptedLimitations.length > 0) {
-    assert.match(scope.releaseVersion, /-beta\.\d+$/, 'Accepted experimental limitations apply only to a Beta release');
+    if (stableHost) assert.equal(scope.releaseVersion, 'v1.0.0', 'Stable host authorization is limited to v1.0.0');
+    else assert.match(scope.releaseVersion, /-beta\.\d+$/, 'Accepted experimental limitations apply only to an authorized release');
     for (const limitation of report.acceptedLimitations) {
       nonempty(limitation.id, 'Accepted limitation ID');
       nonempty(limitation.summary, 'Accepted limitation summary');
@@ -934,7 +951,7 @@ export function readApprovedRuntimeContract(root, options = {}) {
 export function publicationDecision(root, options = {}) {
   validateApproval(root, options);
   const status = readJson(root, approvalPath).status;
-  return { authorized: true, semanticApproved: status === 'approved', mode: status === 'approved' ? 'semantic-approved' : experimentalBetaStatus };
+  return { authorized: true, semanticApproved: status === 'approved', mode: status === 'approved' ? 'semantic-approved' : status };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -957,8 +974,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         });
         if (args[0] === '--github-output') fs.appendFileSync(args[1], `authorized=${decision.authorized}\nsemantic_approved=${decision.semanticApproved}\nmode=${decision.mode}\n`);
       }
-      console.log(readJson(rootDirectory, approvalPath).status === experimentalBetaStatus
-        ? `Owner-accepted experimental ${experimentalBetaVersion} bindings are valid. Model validation remains unverified; no semantic approval is claimed.`
+      console.log(readJson(rootDirectory, approvalPath).status !== 'approved'
+        ? 'Owner-authorized publication bindings are valid. Optional model validation remains unverified; no semantic approval is claimed.'
         : 'AI semantic approval and evidence bindings are valid. The recorded semantic review, not this structural check, establishes quality.');
     }
   } catch (error) {

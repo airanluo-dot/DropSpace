@@ -27,7 +27,7 @@ public sealed class SystemActivityExperienceService(
 
     public void Initialize()
     {
-        if (_initialized || _disposed) return;
+        if (_initialized || _disposed || !SystemActivityPolicy.IsAvailable) return;
         _initialized = true; _settings = main.Settings.SystemActivities;
         main.PropertyChanged += OnSettings;
         notifications.NotificationReceived += OnNotification; volume.Changed += OnVolume;

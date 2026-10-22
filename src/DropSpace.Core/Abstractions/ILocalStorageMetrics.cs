@@ -5,4 +5,6 @@ public interface ILocalStorageMetrics
     string RootPath { get; }
 
     Task<long?> GetByteLengthAsync(CancellationToken cancellationToken = default);
+
+    Task<long?> GetDlcByteLengthAsync(CancellationToken cancellationToken = default) => Task.FromResult<long?>(null);
 }

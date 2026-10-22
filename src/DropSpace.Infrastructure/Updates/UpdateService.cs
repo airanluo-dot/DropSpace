@@ -217,9 +217,8 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             }
             catch (Exception exception) when (IsHandledUpdateException(exception))
             {
-                // Publisher verification is a fail-closed capability check. A manual install can
-                // still be offered after the manifest hash succeeds, while unattended install
-                // remains disabled because trust is unavailable rather than silently assumed.
+                // Keep publisher trust separate from official-source/hash verification.
+                // An unavailable signature check must not claim a trusted signature.
                 _logger.LogWarning(exception, "Update publisher verification was unavailable.");
                 trust = new TrustedUpdateVerification(false, "Publisher verification was unavailable.");
             }
@@ -329,17 +328,11 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             _logger.LogWarning(exception, "Update operation {OperationId} publisher verification was unavailable.", operationId);
             trust = new TrustedUpdateVerification(false, "Publisher verification was unavailable.");
         }
-        // D-035: a manual install is an explicit user action and may install an unsigned Preview
-        // after the manifest/size/hash checks above. Only unattended installation is gated on
-        // publisher trust; Preview builds remain usable without pretending to be signed.
-        if (unattended && !trust.IsTrusted)
-        {
-            return Publish(Status with
-            {
-                MessageIdentity = AppUiMessage.Resource("UpdateUntrustedAutoInstall"),
-                TrustedAutoInstallAvailable = false,
-            });
-        }
+        // The user's automatic-install preference uses the same official-source,
+        // manifest, size and SHA-256 checks as manual installation. Authenticode
+        // remains diagnostic; unsigned official releases are supported too.
+        if (!trust.IsTrusted)
+            _logger.LogInformation("Update operation {OperationId} uses manifest-verified installation (automatic: {Automatic}).", operationId, unattended);
 
         Publish(Status with { State = UpdateState.Installing, MessageIdentity = AppUiMessage.Resource("UpdateInstalling") });
         try
@@ -518,7 +511,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         if (_deploymentMode.Current != DeploymentMode.Packaged && settings.AutoDownloadUpdates)
         {
             var downloaded = await DownloadCoreAsync(cancellationToken).ConfigureAwait(false);
-            if (downloaded.State == UpdateState.ReadyToInstall && settings.AutoInstallUpdates && downloaded.TrustedAutoInstallAvailable)
+            if (downloaded.State == UpdateState.ReadyToInstall && settings.AutoInstallUpdates && _deploymentMode.Current == DeploymentMode.Installer)
             {
                 return await InstallCoreAsync(unattended: true, cancellationToken).ConfigureAwait(false);
             }

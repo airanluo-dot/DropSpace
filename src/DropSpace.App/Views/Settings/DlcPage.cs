@@ -2,6 +2,7 @@ using DropSpace.App.Services;
 using System.Diagnostics;
 using DropSpace.App.Services.Dlc;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Models;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -22,6 +23,8 @@ public sealed class DlcPage : UserControl
     private readonly TextBlock _emptyAvailable;
     private readonly Button _refresh;
     private readonly TextBlock _error = new() { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+    private readonly TextBlock _storage = new() { TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold };
+    private int _storageRevision;
     private readonly Dictionary<string, PackageCard> _cards = new(StringComparer.Ordinal);
     private CancellationTokenSource? _pageStop;
     private bool _confirming;
@@ -36,6 +39,13 @@ public sealed class DlcPage : UserControl
         var body = new StackPanel { Spacing = 18 };
         body.Children.Add(new TextBlock { Text = strings.Get("DlcTitle"), FontSize = 22, FontWeight = FontWeights.SemiBold });
         body.Children.Add(new TextBlock { Text = strings.Get("DlcDescription"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
+        _storage.Text = strings.Format("DlcStorageSummary", strings.Get("StorageCalculating"));
+        AutomationProperties.SetAutomationId(_storage, "DlcStorageSummary");
+        body.Children.Add(new Border
+        {
+            Padding = new(16), CornerRadius = new(8), Child = _storage,
+            Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+        });
         _refresh = new Button { Content = strings.Get("DlcRefresh"), HorizontalAlignment = HorizontalAlignment.Left };
         AutomationProperties.SetName(_refresh, strings.Get("DlcRefresh"));
         AutomationProperties.SetAutomationId(_refresh, "DlcRefresh");
@@ -51,7 +61,7 @@ public sealed class DlcPage : UserControl
             catch (OperationCanceledException) { }
             catch (Exception error) when (error is not OutOfMemoryException)
             { _error.Text = _strings.Get("DlcOperationFailed"); _error.Visibility = Visibility.Visible; }
-            finally { _refresh.IsEnabled = true; }
+            finally { _refresh.IsEnabled = true; RefreshStorageSummary(); }
         };
         body.Children.Add(_refresh);
         AutomationProperties.SetLiveSetting(_error, AutomationLiveSetting.Polite);
@@ -74,6 +84,7 @@ public sealed class DlcPage : UserControl
             _manager.Changed += OnChanged;
             Render();
             await _manager.RefreshAsync();
+            RefreshStorageSummary();
         };
         Unloaded += (_, _) =>
         {
@@ -90,7 +101,26 @@ public sealed class DlcPage : UserControl
     {
         if (_active == active) return;
         _active = active;
-        if (active && _pageStop is not null) Render();
+        if (active && _pageStop is not null) { Render(); RefreshStorageSummary(); }
+    }
+
+    internal async void RefreshStorageSummary()
+    {
+        if (!_active || _pageStop is not { } owner) return;
+        var revision = ++_storageRevision;
+        try
+        {
+            var bytes = await _manager.GetStorageBytesAsync(owner.Token);
+            if (revision != _storageRevision || !ReferenceEquals(owner, _pageStop)) return;
+            _storage.Text = _strings.Format("DlcStorageSummary", bytes is { } size
+                ? AppUiMessage.Bytes(size).Render(_strings) : _strings.Get("StorageUnavailable"));
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or OverflowException)
+        {
+            if (revision == _storageRevision && ReferenceEquals(owner, _pageStop))
+                _storage.Text = _strings.Format("DlcStorageSummary", _strings.Get("StorageUnavailable"));
+        }
     }
 
     private TextBlock Heading(string key) => new()
@@ -108,7 +138,11 @@ public sealed class DlcPage : UserControl
             if (!DispatcherQueue.TryEnqueue(() =>
             {
                 Interlocked.Exchange(ref _renderQueued, 0);
-                if (_active && _pageStop is not null) Render();
+                if (_active && _pageStop is not null)
+                {
+                    Render();
+                    if (!_manager.IsBusy) RefreshStorageSummary();
+                }
             })) Interlocked.Exchange(ref _renderQueued, 0);
         }
         catch (Exception error)

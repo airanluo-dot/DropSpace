@@ -1,253 +1,1105 @@
 {
-  "syncedAt": "2026-10-07T05:41:52.574Z",
+  "syncedAt": "2026-10-22T10:36:28.427Z",
   "source": "github",
   "api": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-07T05:41:52.574Z",
+    "generatedAt": "2026-10-22T10:36:28.427Z",
     "source": "github-releases",
     "releases": [
       {
-        "tagName": "v0.2.0-preview.2",
-        "name": "DropSpace v0.2.0-preview.2",
-        "body": "# DropSpace v0.2.0-preview.2\n\nThis is an experimental Preview hotfix for DropSpace's new **smart file-drag wake** architecture. It is not a replacement for v0.1.0 Stable for important work.\n\nOfficial website: https://airanluo-dot.github.io/DropSpace/\n\n## Smart drag recognition fix\n\n- Fixes a Preview.1 threading defect where Explorer/Desktop source inspection ran on an asynchronous thread without initializing COM on that actual thread. UI Automation therefore commonly rejected every candidate before the Island could appear.\n- Explorer file icons may expose an image or text element under the pointer. Recognition now walks a bounded UI Automation ancestor chain to find the enclosing ListItem/DataItem instead of requiring the deepest element itself to be a file item.\n- The existing safety gates remain: the pointer must begin in a known Explorer/Desktop file view, cross the Windows drag threshold, and the temporary visible OLE target must finally receive a real `CF_HDROP` data object.\n- Hidden idle still owns no top-edge hit-test window. Classic top-edge mode remains an explicit compatibility fallback for unsupported third-party and virtual-file sources.\n\n## Update and website reliability\n\n- Fixes in-app checks that failed when the anonymous GitHub REST API was unavailable or rate-limited on a shared network.\n- Adds the versioned official release contract at `/api/v1/releases.json`. The app tries the official GitHub Pages endpoint, then GitHub REST.\n- The website refreshes Stable downloads and Changelog entries from the same contract at runtime. GitHub Pages serves the versioned contract with complete build-time metadata as an offline-safe fallback.\n- Website metadata cannot redirect DropSpace to an arbitrary executable: every release and asset must still match the official GitHub repository, tag, and asset name. Existing manifest, size, SHA-256, deployment-mode, and unsigned-install safeguards remain unchanged.\n\n## Preview limitations\n\n- Real Explorer/Desktop UI Automation provider behavior, false-positive rate, mixed-DPI placement, and Windows Drop Tray coexistence still require Windows 11 desktop testing.\n- Some third-party apps and virtual-file providers may not expose enough public evidence for Smart mode. Use **Traditional top-edge zone (compatibility mode)** when needed.\n- This Preview is unsigned. Unattended automatic installation remains disabled; verified updates require explicit user action.\n- Preview.1's broken metadata path cannot repair its own installed binary. Preview.1 users must download and install Preview.2 manually once; releases after Preview.2 can use the repaired in-app source chain.\n\nStable-channel users will not receive this Preview. Select the Preview channel only to test experimental builds.\n",
+        "tagName": "v0.3.2-beta.7",
+        "name": "DropSpace v0.3.2-beta.7",
+        "body": "# DropSpace v0.3.2-beta.7 — Cleaner DLC and editable keyboard shortcuts\n\n<!-- update-summary: Adds a dedicated keyboard shortcuts page with direct key recording and conflict feedback, removes internal sample DLC and the duplicate refresh button, and hides downloader working folders. -->\n\nv0.3.2-beta.6 is the immediate upgrade baseline for this release.\n\n- Adds a dedicated Keyboard shortcuts settings page. Global and main-window commands are clearly separated, editable by pressing the desired combination, and saved immediately after confirmation. Fixed context controls are listed separately.\n- Reports unavailable or conflicting global shortcuts instead of silently ignoring registration failure. Cancelling recording restores the previous registration. Main-window shortcut changes persist and take effect without restarting.\n- Removes internal `dropspace.sample` entries from the consumer catalog and UI, including stale catalog records. The DLC page has one refresh action for installed components and official module metadata.\n- Marks `.dropspace-downloads` as a Windows hidden working folder during download and recovery, including an existing default download folder. Resume data stays intact. Windows can still show it when hidden items are enabled.\n\n## Validation scope\n\nFocused Windows interaction checks covered key recording, duplicate rejection, global invocation with the visible Island, main-window rebinding, cancellation restoration and DLC entry counts. Three targeted probes checked persisted shortcuts and legacy defaults, hidden staging with unchanged resume bytes, and stale sample-catalog filtering. A packaged-development launch failed before App initialization because its Windows runtime was not registered; the self-contained development build launched successfully. No broad functional or model suite was run.\n\nPublication uses the existing PR App/XAML build, exact-main packaging, one isolated installer payload scenario and public asset/update verification. Providers, model/CUDA bytes and existing user data remain unchanged. See the [execution record](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta7-settings-shortcuts-2026-10-20.md).\n",
         "isDraft": false,
         "isPrerelease": true,
-        "publishedAt": "2026-08-12T10:47:47Z",
-        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0-preview.2",
+        "publishedAt": "2026-10-19T19:14:15Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.7",
         "assets": [
           {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1997,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/cuda-runtime-manifest.json"
+          },
+          {
             "name": "DropSpace-x64.msix",
-            "size": 32215207,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace-x64.msix",
-            "kind": "msix"
+            "kind": "msix",
+            "size": 187712158,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/DropSpace-x64.msix"
           },
           {
             "name": "DropSpace.exe",
-            "size": 231172785,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace.exe",
-            "kind": "portable"
+            "kind": "portable",
+            "size": 489928046,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/DropSpace.exe"
           },
           {
             "name": "DropSpaceSetup.exe",
-            "size": 63268141,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpaceSetup.exe",
-            "kind": "installer"
+            "kind": "installer",
+            "size": 203949203,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/runtime-publication.json"
           },
           {
             "name": "SHA256SUMS.txt",
-            "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/SHA256SUMS.txt",
-            "kind": "checksums"
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/SHA256SUMS.txt"
           },
           {
             "name": "update-manifest.json",
-            "size": 786,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/update-manifest.json",
-            "kind": "manifest"
+            "kind": "manifest",
+            "size": 759,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/update-manifest.json"
           }
         ]
       },
       {
-        "tagName": "v0.2.0-preview.1",
-        "name": "DropSpace v0.2.0-preview.1",
-        "body": "# DropSpace v0.2.0-preview.1\n\nThis is an experimental Preview of DropSpace's new **smart file-drag wake** architecture. It is not a replacement for the existing v0.1.0 Stable release for important work.\n\nWebsite: https://airanluo-dot.github.io/DropSpace/\n\n## What is being tested\n\n- The default Smart mode no longer leaves an invisible, topmost OLE window at the top of every display while idle.\n- Public UI Automation drag events and a bounded, read-only mouse observer combine with Windows drag thresholds to recognize candidate Explorer/Desktop file drags.\n- A temporary Dynamic Island or Notch appears on the display where the drag was recognized, below the Windows 11 Drop Tray area.\n- The visible Overlay becomes the temporary OLE target; actual acceptance still requires a valid `CF_HDROP` data object and uses the existing Temporary Space pipeline.\n- Left- and right-button Explorer/Desktop file drags are supported by the candidate detector.\n- A new setting switches immediately between Smart mode, the traditional top-edge compatibility zone, and disabled automatic wake.\n\n## Compatibility and known limits\n\n- This Preview may not recognize drags from some third-party apps, virtual-file providers, browser downloads, or software that exposes neither a standard Explorer/Desktop source nor useful UI Automation drag signals.\n- Windows decides whether and how Share Targets appear in Windows Share and Drop Tray surfaces; DropSpace does not modify or fight the Shell.\n- If Smart mode does not recognize a source, switch to **Traditional top-edge zone (compatibility mode)** in Settings. That mode restores the previous invisible top-edge target and can conflict with Windows Drop Tray or top-edge controls.\n- Unsigned builds cannot enable trusted external-location package identity automatically. Standard drag-and-drop remains available.\n- Automated tests validate the state policy, temporary OLE lifetime, hit-test pass-through, settings migration and synthetic `CF_HDROP`; real Explorer/Desktop behavior and visual feel still require Windows 11 desktop testing.\n\n## Safety\n\n- DropSpace never moves or deletes an original file added to Temporary Space.\n- The observer does not inject into Explorer, suppress input, modify Shell settings, read undocumented Drop Tray state, or install a continuous polling/render loop.\n- Diagnostics record signal categories, monitor identity and counts only—not dragged file names or full paths.\n\nStable users will not receive this Preview automatically. Select the Preview update channel only if you want to test experimental builds.\n",
+        "tagName": "v0.3.2-beta.6",
+        "name": "DropSpace v0.3.2-beta.6",
+        "body": "# DropSpace v0.3.2-beta.6 — Steady compact lyrics and a refined transfer icon\n\n<!-- update-summary: Fixes tiny left/right jumps in compact lyrics caused by fractional layout rounding, retains smooth long-line scrolling, and aligns the file-transfer icon with the navigation rail. -->\n\nv0.3.2-beta.5 is the immediate upgrade baseline for this release.\n\n- Uses a centered 20-DIP system transfer icon with balanced spacing and the native subtle-button hover treatment. The existing transfer panel, activity badge and accessible label remain.\n- Keeps compact music layout in consistent fractional DIPs so fitting lyrics are not mistakenly treated as overflowing at fractional display scaling.\n- Retains the preceding lyric's scroll position during timed gaps and avoids resetting unchanged text metrics on unrelated root-size notifications. Real long-line scrolling and island animations remain enabled.\n\n## Validation scope\n\nActual Apple Music playback reproduced the issue on Windows at 125% scaling. A 45-second baseline capture recorded 16 same-line settled-position changes, including six returns to the beginning. The matching repaired capture recorded zero such changes across 10,548 rendered frames. A separate 45-second narrow-viewport playback capture retained real forward scrolling without same-line backward resets over half a DIP. Navigation collapsed, expanded and hover states, plus the existing transfer panel, were checked in the modified executable.\n\nThe temporary frame observer was removed before the final successful local App/XAML build and launch. Release qualification uses the standard PR Release build, exact-main packages, one isolated installer-payload scenario and required resource/runtime/version/hash/update checks. No broad functional suite, model inference suite, multi-monitor/DPI matrix or two-device transfer test is claimed. Existing widget interactions, settings defaults, providers and model/CUDA bytes remain unchanged.\n\nSee the [focused execution record](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta6-nav-lyrics-2026-10-19.md).\n",
         "isDraft": false,
         "isPrerelease": true,
-        "publishedAt": "2026-08-12T09:38:45Z",
-        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0-preview.1",
+        "publishedAt": "2026-10-19T11:56:15Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.6",
         "assets": [
           {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1997,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/cuda-runtime-manifest.json"
+          },
+          {
             "name": "DropSpace-x64.msix",
-            "size": 32207774,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace-x64.msix",
-            "kind": "msix"
+            "kind": "msix",
+            "size": 187711058,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/DropSpace-x64.msix"
           },
           {
             "name": "DropSpace.exe",
-            "size": 231152305,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace.exe",
-            "kind": "portable"
+            "kind": "portable",
+            "size": 489900374,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/DropSpace.exe"
           },
           {
             "name": "DropSpaceSetup.exe",
-            "size": 63253797,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpaceSetup.exe",
-            "kind": "installer"
+            "kind": "installer",
+            "size": 203912155,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/runtime-publication.json"
           },
           {
             "name": "SHA256SUMS.txt",
-            "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/SHA256SUMS.txt",
-            "kind": "checksums"
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/SHA256SUMS.txt"
           },
           {
             "name": "update-manifest.json",
-            "size": 705,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/update-manifest.json",
-            "kind": "manifest"
+            "kind": "manifest",
+            "size": 749,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/update-manifest.json"
           }
         ]
       },
       {
-        "tagName": "v0.1.0-preview.5",
-        "name": "DropSpace v0.1.0-preview.5",
-        "body": "# DropSpace v0.1.0-preview.5\n\nPreview.5 focuses on Windows 11 drag compatibility and Temporary Space stability.\n\n## Highlights\n\n- Visible Compact and Expanded Dynamic Island/Notch surfaces are now direct Explorer/Desktop file drop targets. Compact morphs into Drop Ready; Expanded stays open and displays an in-place drop highlight.\n- The passive top-edge activation HWND yields ownership while a visible Overlay is present, eliminating two OLE targets competing for the same pixels.\n- Temporary Space projections now use one authoritative mutation revision and a serialized/coalesced refresh coordinator. Removing the only item while Main Window and Expanded Overlay are both open no longer starts overlapping `ObservableCollection` resets.\n- Settings explains the Windows 11 Drop Tray conflict and opens the official **Settings → System → Multitasking** page. DropSpace does not probe undocumented feature flags.\n- The packaged app declares a Windows Share Target for `StorageItems`. A stable external-location identity package and signed-installer registration path are included for future trusted Artifact Signing.\n\n## Windows Share limitation in this unsigned Preview\n\nMicrosoft requires a trusted signature before an external-location identity package can be registered on ordinary user PCs. This release does not install a self-signed certificate and therefore does not register the sparse identity from the unsigned recommended Setup. Top-edge drag (when Drop Tray does not own the edge) and direct drag onto a visible DropSpace Island remain available.\n\nOn supported Windows builds, registered Share Targets are available in the Windows Share UI reached from Drop Tray's **More…** action. Windows does not publicly guarantee that every third-party target is directly pinned in the Drop Tray peek; that ordering is system/version/relevance dependent.\n\n## Verification\n\nThe clean Windows release job runs Core and Infrastructure tests, real executable smoke, Win32 clipboard integration, Compact/Expanded `WindowFromPoint` ownership probes, synthetic CF_HDROP drops through both visible Overlay states, 200 alternating Main/Overlay deletion cycles, 1,000 Notch geometry cycles, installer lifecycle/upgrade/uninstall tests, portable publish, MSIX build, identity package validation and SHA-256 generation.\n\n`DropSpaceSetup.exe` remains the recommended download. `DropSpace.exe` is the portable build and `DropSpace-x64.msix` is the alternative unsigned package. Preview binaries are not commercially signed; download only from this official release and verify `SHA256SUMS.txt`.\n",
+        "tagName": "v0.3.2-beta.5",
+        "name": "DropSpace v0.3.2-beta.5",
+        "body": "# DropSpace v0.3.2-beta.5 — Restore widget editing and remove the test DLC listing\n\n<!-- update-summary: Restores drag-based widget layout editing without row/column numeric inputs, preserves queued resize and Undo fixes, and removes the internal sample module from public DLC distribution. -->\n\nv0.3.2-beta.4 is the immediate upgrade baseline for this release.\n\n- Removes the reintroduced widget row/column NumberBoxes and restores the Beta 3 interaction: drag to position, drag back to the library to remove, and shape buttons to resize.\n- Preserves Beta 4 position retention during queued resizing, Undo snapshots and asynchronous error ownership.\n- Removes the internal `dropspace.sample` lifecycle/UI fixture from the online and bundled DLC catalogs and prevents its registration for future public distribution. Its historical Release is retained as a recoverable draft; installed user data and real DLC capabilities are preserved.\n\n## Validation scope\n\nThe preceding repair turn passed two focused source-linked drag/resize scenarios and a targeted editor compilation. Those checks are reused, not rerun. This release requires complete Release App/XAML compilation, exact-main packaging, the existing single installer-payload scenario and required security/resource/runtime/version/hash/update integrity gates. Optional functional, visual, broad and stress tests are skipped.\n\nNative Windows drag input, actual Undo button clicks and full visual/upgrade lifecycle coverage are not claimed. Historical failures and model limitations remain recorded. Settings, update channels, signing/deployment policy and model/CUDA bytes are unchanged; optional AI remains experimental and off by default.\n\nSee the [release record](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta5-release-2026-10-18.md).\n",
         "isDraft": false,
         "isPrerelease": true,
-        "publishedAt": "2026-08-09T14:28:09Z",
-        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.5",
+        "publishedAt": "2026-10-18T04:00:27Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.5",
         "assets": [
           {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1997,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/cuda-runtime-manifest.json"
+          },
+          {
             "name": "DropSpace-x64.msix",
-            "size": 30019355,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace-x64.msix",
-            "kind": "msix"
+            "kind": "msix",
+            "size": 187710885,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/DropSpace-x64.msix"
           },
           {
             "name": "DropSpace.exe",
-            "size": 229135878,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace.exe",
-            "kind": "portable"
+            "kind": "portable",
+            "size": 489900198,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/DropSpace.exe"
           },
           {
             "name": "DropSpaceSetup.exe",
-            "size": 61473311,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpaceSetup.exe",
-            "kind": "installer"
+            "kind": "installer",
+            "size": 203918517,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/runtime-publication.json"
           },
           {
             "name": "SHA256SUMS.txt",
-            "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/SHA256SUMS.txt",
-            "kind": "checksums"
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 755,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/update-manifest.json"
           }
         ]
       },
       {
-        "tagName": "v0.1.0-preview.4",
-        "name": "DropSpace v0.1.0-preview.4",
-        "body": "# DropSpace v0.1.0-preview.4\n\nPreview.4 is a reliability release driven by Windows 11 desktop testing.\n\n## Recommended download\n\nDownload **`DropSpaceSetup.exe`** for the normal per-user Windows installation. It supports a custom install directory, Start Menu/Desktop shortcuts, in-place upgrades, and an independent uninstaller. No administrator rights, .NET installation, Windows App Runtime installation, PowerShell, or certificate installation is required.\n\n`DropSpace.exe` remains the self-contained portable build. `DropSpace-x64.msix` remains an alternative package.\n\n## Fixed and added\n\n- Enlarged the event-driven OLE top-edge activation band and retained one native target from Explorer `DragEnter` through `Drop`, fixing hidden reveal and drop acceptance at the animated edge.\n- Kept the already-visible Island/Notch registered as an OLE target and routed every accepted path through the same Temporary Space repository pipeline as the main window.\n- Added a responsive two-row header below 860 effective pixels so high DPI, text scaling, and narrower windows no longer collapse the title and description into a one-character column.\n- Unified window, taskbar, tray, shortcut, installer, and uninstaller icon loading around the canonical multi-resolution icon embedded in `DropSpace.exe`.\n- Fixed identity-based projection updates so removing or pinning an item from the Overlay immediately updates the main window, and vice versa.\n- Added Clipboard History capture for Explorer file/folder copies, including multiple and mixed selections, without moving or copying original user files.\n- Added configurable image capture, file/folder capture, image byte/pixel limits, file item/per-file/total-known-byte limits, and validation.\n- Added a default-on, user-controllable per-user Windows startup setting. Uninstall removes only DropSpace's own startup value.\n- Preserved the Preview.3 per-user installer, custom path, in-place upgrade, data-preserving uninstall, complete uninstall, settings recovery, Clipboard listener, Notch safety, Portable EXE, and MSIX paths.\n\n## Preview and signature notice\n\nThis Preview is not commercially code-signed. Windows Defender SmartScreen may show an unknown-app warning the first time it runs. Obtain DropSpace only from this official GitHub Release. If SmartScreen appears, review the publisher/file source and use the normal **More info → Run anyway** path only if you trust this download.\n\n## Verification\n\nThe clean Windows release workflow runs unit tests, SQLite/settings tests, WinUI Release build, self-contained Portable smoke (including Win32 clipboard text plus mixed multi-file/folder capture), 100 Overlay lifecycle cycles, 1,000 interruptible Notch geometry switches, icon-chain validation, silent install, running-app in-place upgrade, installed-app smoke, normal uninstall, complete uninstall with external-file sentinel protection, and unsigned MSIX regression before publishing.\n\nExplorer/Desktop drag hit routing, animation feel, taskbar icon caching, responsive layout across physical monitors/scaling combinations, and startup after a real interactive Windows sign-in still require final manual Windows 11 acceptance.\n",
+        "tagName": "v0.3.2-beta.4",
+        "name": "DropSpace v0.3.2-beta.4",
+        "body": "# DropSpace v0.3.2-beta.4 — More reliable island controls and navigation\n\n<!-- update-summary: Adds timer duration controls and keyboard-friendly widget placement, improves island presentation and icons, and protects navigation, clipboard actions and download recovery from stale asynchronous results. -->\n\nv0.3.2-beta.3 is the immediate upgrade baseline for this release.\n\n- Adds timer duration presets and reset actions, accurate pause/resume timing, accessible native controls and consistent Fluent widget icons.\n- Adds one-based widget row/column editing, preserves the latest position during queued resizing, and prevents older layout errors from replacing newer feedback.\n- Improves first island presentation, retires interrupted pointer/hold actions, and lets an ordinary system close dismiss the island while preserving reopening.\n- Protects collection navigation, paging and selection from stale results; collapsed batch members no longer remain actionable through hidden selection. Adds Ctrl+L as a search shortcut.\n- Retains clipboard card identity during refresh, restores failed pin feedback, and suppresses errors from retired presentations. Makes cancelled download restoration retryable.\n\n## Validation scope\n\nFocused development evidence includes controlled race and recovery checks, complete Windows Debug builds, and native timer, selection and window-lifecycle observations. Earlier failures and retries remain recorded. Native lifecycle assertions passed; the diagnostic RenderTargetBitmap opacity predicate remained blocked even though recovered desktop images showed the timer controls. This is not full visual, physical-input or DPI-matrix approval.\n\nPublication requires the full Release App/XAML PR build, identical-tree main packaging, one isolated installer-payload check, and resource/runtime/version/hash/update verification. Already-passed focused checks are reused; no broad suite, stress matrix or new model inference is requested.\n\nExisting settings, data, update channels, deployment/signing policy and model/CUDA bytes are preserved. Optional AI remains experimental and off by default; historical model limitations are unchanged. See the [development evidence](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/local-iterations-2026-10-17.md) and [release record](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta4-release-2026-10-18.md).\n",
         "isDraft": false,
         "isPrerelease": true,
-        "publishedAt": "2026-08-09T12:25:30Z",
-        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.4",
+        "publishedAt": "2026-10-17T21:03:20Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.4",
         "assets": [
           {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1997,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/cuda-runtime-manifest.json"
+          },
+          {
             "name": "DropSpace-x64.msix",
-            "size": 29994082,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace-x64.msix",
-            "kind": "msix"
+            "kind": "msix",
+            "size": 187699958,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/DropSpace-x64.msix"
           },
           {
             "name": "DropSpace.exe",
-            "size": 229052606,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace.exe",
-            "kind": "portable"
+            "kind": "portable",
+            "size": 489904294,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/DropSpace.exe"
           },
           {
             "name": "DropSpaceSetup.exe",
-            "size": 61462506,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpaceSetup.exe",
-            "kind": "installer"
+            "kind": "installer",
+            "size": 203918329,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/runtime-publication.json"
           },
           {
             "name": "SHA256SUMS.txt",
-            "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/SHA256SUMS.txt",
-            "kind": "checksums"
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 776,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/update-manifest.json"
           }
         ]
       },
       {
-        "tagName": "v0.1.0-preview.3",
-        "name": "DropSpace v0.1.0-preview.3",
-        "body": "# DropSpace v0.1.0-preview.3\n\n## 推荐下载：DropSpaceSetup.exe\n\n`DropSpaceSetup.exe` 是本版本推荐给普通用户的标准 Windows 11 x64 安装器。它按用户安装、默认不需要管理员权限，允许自定义安装目录，创建开始菜单入口，并在 Windows“已安装的应用”中注册独立卸载器。以后运行新版 Setup 可原位升级，并保留 `%LOCALAPPDATA%\\DropSpace` 中的数据库、设置和 Payload。\n\nPreview.3 修复了真实 Windows 11 验收中的核心阻断问题：\n\n- Desktop、`Progman`、`WorkerW` 和任务栏等 Shell surface 不再被误判为全屏应用；Temporary Space 有项目时点击桌面仍保持 Compact Island。\n- fullscreen suppress/restore、Drag reveal/leave、最后项目移除继续使用可中断 spring，不再一帧跳变。\n- 移除导致 Explorer/OLE 跳过目标的 `HTTRANSPARENT`。隐藏时使用 960 DIP 宽、仅 1 个物理像素高的可发现热边；真实 `CF_HDROP` 进入后，同一 HWND 扩展到 760 × 112 DIP 并持有到 Drop/Leave。\n- 隐藏激活拖拽与已显示 Compact/Expanded Island 的直接 Drop 拥有明确且不重叠的 HWND target ownership；两者都进入现有 `MainViewModel.AddPathsAsync`，不会移动或删除原文件。\n- 所有 spring frame 输出先投影到 XAML/HRGN 安全范围，圆角不再因 Notch overshoot 变成负值；新增 1000 次中途反向模式压力验证。\n- Overlay/UI 设置改为“先验证并成功应用、再原子持久化”。损坏设置会单独隔离到 quarantine，回退 Dynamic Island/System Motion/Automatic Monitor，不删除 SQLite 或 Temporary Space；也可使用 `--reset-ui-settings` / `--safe-mode`。\n\n## 安装、升级与卸载\n\n- 固定 Inno Setup AppId：`E11EC281-BCE7-4F98-8EEF-2387E202CF0F`\n- 默认目录：`%LOCALAPPDATA%\\Programs\\DropSpace`\n- 运行中升级先请求 DropSpace 正常释放 Overlay、Clipboard、Tray、SQLite、Settings 和 Logs；不会默认 `taskkill /f`\n- 普通卸载保留 `%LOCALAPPDATA%\\DropSpace`\n- “同时删除所有本地数据和设置”只删除 DropSpace 自有目录、注册表和快捷方式；不会读取数据库中的外部路径或删除用户原始文件\n\n## 其他下载\n\n- `DropSpace.exe`：Portable / 免安装、自包含 x64 版本\n- `DropSpace-x64.msix`：Alternative package / 无签名备用包\n- `SHA256SUMS.txt`：全部三个可执行资产的 SHA-256\n\n## 自动验证\n\n- Core / Infrastructure tests、Release WinUI build、unsigned x64 MSIX regression\n- Portable 与安装版启动、Windows App SDK、SQLite、AppData、single-instance、clean exit smoke\n- `AddClipboardFormatListener` / `WM_CLIPBOARDUPDATE` 文本持久化、Pause/Resume、自写入抑制\n- 100 次 Overlay 资源生命周期、1000 次真实 XAML/HRGN Notch 中途反向、零 HRGN failure、无残留 frame callback\n- Activation HWND 的 `WindowFromPoint` 可发现性\n- 静默自定义路径安装、Installed Apps/shortcut/x64 metadata\n- 运行中 graceful maintenance upgrade、自定义路径和用户数据保留\n- 普通卸载保留数据、Complete uninstall 删除 app-owned data、外部 sentinel 原始文件保护\n\n## 仍需真实 Windows 11 人工验收\n\nGitHub Actions 不代替 Explorer 的真实跨进程拖拽与人眼视觉判断。仍需人工确认：Desktop 焦点下 Island 保持、Explorer/Desktop Drag Approaching 与 `CF_HDROP` Drop、直接放到 Compact/Expanded、顶部单像素热边对普通顶栏点击的实际影响、Hidden 零像素、Island/Notch 手感、真实混合 DPI/多显示器、全屏游戏/视频、Installer GUI，以及 Windows Installed Apps 卸载体验。\n\n本 Preview 尚未使用商业可信代码签名。SmartScreen 首次运行可能提示未知应用；请只从本项目官方 GitHub Release 下载并核对 SHA-256，不要关闭 Defender 或修改系统安全策略。\n",
+        "tagName": "v0.3.2-beta.3",
+        "name": "DropSpace v0.3.2-beta.3",
+        "body": "# DropSpace v0.3.2-beta.3 — Stable compact lyrics and aligned download actions\n\n<!-- update-summary: Prevents fitting compact lyrics from briefly scrolling, protects lyric edge glyphs, and aligns native download action icons and state-dependent labels. -->\n\nv0.3.2-beta.2 is the immediate upgrade baseline for this release.\n\n- Measures compact lyrics on their rendered text elements, includes a two-DIP inset\n  at each edge, rounds requested width outward, and limits rounding tolerance to half\n  a physical pixel. Truly overflowing lyrics retain their existing scrolling behavior.\n- Clears old offsets during text/layout changes and waits for the existing island\n  geometry animation and layout to settle before scrolling. Word-highlight prefix\n  measurements are cached for the current line and invalidated with font/DPI changes.\n- Uses consistently centered 16-DIP Fluent icons in download buttons with shared\n  spacing and minimum click areas. Pause/resume/retry and cancel/history labels share\n  measured action slots; progress and file details retain their separate rows.\n\n## Validation scope\n\nThe existing release route requires complete Windows App/XAML compilation, identical-tree\nmain packaging, one isolated installer payload check, and version/resource/hash/update\nmetadata verification. Broad functional, model, browser and stress suites are not requested.\nThis Linux workspace cannot run WinUI: fitting/overflowing lyrics, rapid long/short track\nchanges and native download state visuals remain unverified on Windows.\n\nExisting settings, update channels, deployment/signing rules and model/CUDA bytes are\npreserved. AI remains optional and off by default. No new model inference or semantic\napproval is claimed. See the [execution record](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta3-release-2026-10-17.md).\n",
         "isDraft": false,
         "isPrerelease": true,
-        "publishedAt": "2026-08-09T08:27:20Z",
-        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.3",
+        "publishedAt": "2026-10-17T17:14:33Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.3",
         "assets": [
           {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1997,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/cuda-runtime-manifest.json"
+          },
+          {
             "name": "DropSpace-x64.msix",
-            "size": 29983956,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace-x64.msix",
-            "kind": "msix"
+            "kind": "msix",
+            "size": 187619808,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/DropSpace-x64.msix"
           },
           {
             "name": "DropSpace.exe",
-            "size": 229012518,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace.exe",
-            "kind": "portable"
+            "kind": "portable",
+            "size": 489679854,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/DropSpace.exe"
           },
           {
             "name": "DropSpaceSetup.exe",
-            "size": 61458994,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpaceSetup.exe",
-            "kind": "installer"
+            "kind": "installer",
+            "size": 203906138,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/runtime-publication.json"
           },
           {
             "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 721,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.2-beta.2",
+        "name": "DropSpace v0.3.2-beta.2",
+        "body": "# DropSpace v0.3.2-beta.2 — Media recovery and reliable local workflows\n\n<!-- update-summary: Repairs NetEase media discovery and session ownership; adds device-send progress across page changes and active Nearby-link management; protects clipboard Undo, file operations, previews, downloads and recovered updates across cancellation and lifecycle changes. -->\n\nv0.3.2-beta.1 is the immediate upgrade baseline for this release.\n\n- Repairs media discovery when a session initially lacks its source identity, keeps native\n  media operations and subscriptions on their owning apartment, and retires stale sessions\n  across disconnects and enhancement restarts. Rejected controls trigger fresh discovery\n  without replaying a previous/next command. Targeted command/session diagnostics distinguish\n  installed enhancement files from an actually responsive player.\n- Adds native device-send progress and cancellation that survive closing the management\n  page. Bounded preparation and send ownership remain valid through cancellation and sharing\n  disable/re-enable; finalization reports the actual outcome.\n- Adds management of active Nearby links with copy, QR display, revocation and expiry.\n  Expired or revoked links are withdrawn from both the server and their visible actions.\n- Protects the eight-second unpin Undo window from concurrent clipboard retention, including\n  its owned image payloads. Re-enabled clipboard bridges reject callbacks from older owners,\n  and failed pause changes show the actual capture state.\n- Prevents stale file checks, relinks and card asset work from overwriting newer items;\n  incomplete selected-directory ZIP exports fail clearly. Explicit Quick Panel hotkeys\n  activate the panel and focus its native controls.\n- Retains native clipboard, drag and PDF resources until their actual operations finish.\n  PDF navigation admits one render per host, and closing a preview cannot dispose streams\n  still in use. Image export keeps its exclusively reserved output handle through encoding.\n- Preserves live download owners during recovery, stops output publication after a cancelled\n  or failed checkpoint, and retains a verified ready update through failed metadata checks.\n- Recovers complete installed-module inventory before dependency activation and preserves\n  lyric reload requests across coalesced settings changes. Interface language remains\n  independent of the two lyric translation targets: Simplified Chinese and English.\n\n## Validation scope\n\nThe [local iteration record](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/local-iterations-2026-10-13.md) records each focused\nexecution, failure, correction and retry. Existing passing checks are reused; no broad\nregression, browser or model suite is requested. The release route requires a complete\nWindows App/XAML build, packaging of the identical merged source tree, one isolated installer\npayload check, and source/resource/package/hash/publication verification.\n\nControlled media publishers cover startup and disable/re-enable control paths, including\nplay/pause and track changes. Actual Windows/NetEase interaction is not available in the\nlocal environment and remains unverified. Compilation and package integrity do not establish\nplayer behavior. Windows PDF interaction, Quick Panel focus and other UI-only paths are also\nsubject to the explicit gaps in the iteration record.\n\nExisting settings, data, signing/updater contracts and independent module/CUDA delivery are\npreserved. Model/runtime bytes and historical experimental acceptance are reused unchanged;\nthis release adds no model inference results or semantic approval. AI remains optional and\nis off by default. Earlier releases and their assets remain immutable.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-13T06:50:57Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.2",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1997,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.2/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.2/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 187617959,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.2/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 489675686,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.2/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 203929956,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.2/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.2/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.2/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 832,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.2/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.2-beta.1",
+        "name": "DropSpace v0.3.2-beta.1",
+        "body": "# DropSpace v0.3.2-beta.1 — Official optional feature modules\n\n<!-- update-summary: Adds compatible official optional worker modules, recoverable lifecycle and host-rendered pages/settings/expiring Island content; fixes website language-storage recovery, retained UI message identity, language-policy assertions and installer translation auditing; preserves built-in features and existing component delivery. -->\n\nv0.3.1-beta.19 is the immediate upgrade baseline for this release.\n\n- Adds a separate optional feature-module layer with interface/capability version admission,\n  official-source package integrity checks, bounded process IPC and recoverable installation,\n  activation, disable, stop, update and uninstall states. Existing music, Temporary Space,\n  clipboard and model/CUDA/NetEase package mechanisms remain built in.\n- The host renders declared pages, text/boolean settings and named actions. Module Island content\n  is expiring and constrained to idle resident compact text and Widgets chips/flyouts. Built-in\n  priority, manual page choice, drag/focus, window ownership and animation stay with the host.\n- Supplies a real separate benign module and reusable worker/resource/package template. No new\n  module is installed by default. Future official modules can run on compatible older hosts through\n  manual catalog refresh; installed package records are checked offline.\n- Preserves user module data on uninstall and records locked cleanup honestly. v1 rejects\n  cross-format data migrations. Process/job limits provide fault/lifetime isolation, not a\n  permissions sandbox; this release supports trusted official modules only.\n- Migrates a manual website language from history when storage really becomes writable, preserves\n  higher-priority URL choices/state/query/fragment and keeps recovery hints when writes fail.\n- Stores stable resource identities and raw/nested parameters for retained UI status, rendering\n  in the current language without a rendered-string reverse cache. Lyric/model business rules\n  and the permanent independent Chinese/English lyric targets are unchanged.\n- Aligns invalid-language policy assertions with system-language fallback while retaining strict\n  settings validation. Installer auditing rejects main-script resource overrides and uses the\n  pinned Inno 7.0.2 section-specific percent/newline semantics without changing wizard resources.\n- Adds the actual anonymous Beta19 checksum-list download evidence without modifying historical\n  assets or rerunning the seven old downloads. Rewrites the canonical repository skill around the\n  implemented architecture, localization contracts and truthful focused execution records.\n\n## Validation and publication gate\n\nThe actual baseline and focused executions are recorded in `docs/dev/beta32-baseline.md` and\n`docs/dev/beta32-test-ledger.md`. Builds/source/resource/package checks are production integrity\nchecks and do not establish runtime behavior. Packaging must reuse the exact validated merged\nmain, retain existing signing/updater/component contracts and verify actual Release/Pages/module\nreadback. Any known regression or compatibility failure blocks publication.\n\nFocused local validation has completed 17 scenario executions: twelve passes, five failures and\nfive retries. The passing native lifecycle includes installed navigation/actions, Island manual\npage preservation, withdrawal, re-enable/uninstall, retained data and normal shutdown. Optional\npixel readback did not pass content validation; no visual matrix or model qualification is claimed.\nThe final official sample was also anonymously downloaded, installed, operated and uninstalled\nthrough the actual shared downloader/runtime. Final-main packaging and App public readback\ncompleted as recorded below. Independent module/component Release events are excluded\nfrom App website publication and App release selection; ordinary App releases retain the existing\ndeployment flow. One focused release-selection case covers the actual official sample tag.\n\n\nFinal publication completed from main `461be3d10b72b6ae1b872643fd6d00541e794ef8`. The [final-main producer](https://github.com/airanluo-dot/DropSpace/actions/runs/37740613363) completed its one isolated installer payload installation/uninstall scenario. Total functional executions: **18**, **13 passed**, **5 failed**, with **5 retries included**. No broad suite, model inference or extra functional execution ran during publication. The [release workflow](https://github.com/airanluo-dot/DropSpace/actions/runs/37741534463) promoted the same bytes; [Pages deployment](https://github.com/airanluo-dot/DropSpace/actions/runs/37741759312) verified the public Beta, eight assets, manifests, checksums, release APIs and website. The module catalog matches merged main.\n\nThe installer was actually downloaded once from its anonymous public asset URL after publication, returned HTTP 200 and matched the final producer/uploaded identity: `DropSpaceSetup.exe` (203822790 bytes; SHA-256 `e8b68964b89c2b56f43339775f9525b1b3ca810728e444ce2f6a97208fdc9af4`). The initial anonymous API metadata lookup was rate-limited before any asset request; authenticated metadata supplied the expected identity, while the actual asset download used no token. The optional full portable anonymous readback was stopped after a prolonged transfer and is explicitly **not completed**; no calculated portable download hash is claimed. Portable integrity was verified through the exact final producer, uploaded GitHub digest, checksum list and update manifest. These byte checks do not establish application startup or installation upgrade behavior.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-08T07:09:32Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.1",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1997,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.1/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.1/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 187574297,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.1/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 489485110,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.1/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 203822790,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.1/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.1/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.1/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 894,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.1/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.19",
+        "name": "DropSpace v0.3.1-beta.19",
+        "body": "# DropSpace v0.3.1-beta.19\n\n<!-- update-summary: Add ten interface languages, independent Chinese/English lyric translation settings, one official URL per website page, and fail-closed translation completeness checks. -->\n\n## Changes\n\n- Add English, Simplified Chinese, Traditional Chinese (Taiwan), Japanese, Korean, German, French, Spanish, Brazilian Portuguese and Russian interfaces to the App and official website. Language menus display native names, and automatic selection follows the ordered system or browser language preferences with an English fallback.\n- Save the interface language and the existing Simplified Chinese / English lyric translation target independently. Preserve an existing user's effective target on upgrade. Interface language changes update interface text without restarting lyric translation.\n- Give each official website content page one URL shared by all interface languages. Remember manual language choices, preserve old English and Simplified Chinese links, and retain usable English content without JavaScript.\n- Maintain new release summaries, release notes and website version highlights in English across every interface language.\n- Add a shared language catalog and lightweight completeness gate for App and website resources, including source/translation fingerprints, placeholders, resource references, packaged languages and explicit content exceptions. Document the affected-text update workflow for future releases.\n\n## Scope and validation\n\nLyric sources, matching, language admission, existing translations, AI start/skip conditions, models, prompts, protocols, inference, caches and CPU/GPU acceleration retain their existing behavior. The existing independently delivered CUDA component is reused. This release adds no lyric translation language or AI capability.\n\nValidation is limited to the changed interface, settings, routes, release content and packaged resource risks. Broad regression, model evaluation and a ten-language browser matrix are not run. Translation completeness checks establish structural completeness; they do not establish semantic quality for every translated sentence. Final execution counts and release evidence are recorded in the development audit.\n\n## Compatibility\n\nExisting interface-language enum values retain their meanings. Unknown preferences recover safely. Lyric translation remains permanently limited to Simplified Chinese and English. Existing updater schemas, channels, download identities and independent component contracts are retained. Historical release notes remain unchanged.\n\nv0.3.1-beta.18 is the immediate upgrade baseline for this release. Stable remains v0.2.1.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-07T22:17:52Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.19",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1998,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 187476398,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 489178280,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 203802058,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 739,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.19/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.18",
+        "name": "DropSpace v0.3.1-beta.18",
+        "body": "# DropSpace v0.3.1-beta.18\n\n<!-- update-summary: 新增独立的灵动岛跟随／浅色／深色外观，以及音乐／临时空间内容优先级；保留主动切换和拖放，完成三轮全源码审查修复，并复用独立 CUDA 组件。 -->\n\n## Changes\n\n- Add **Island appearance: Follow / Light / Dark**, default Follow. Follow uses the existing WinUI Windows app-appearance source, including Windows Custom mode. Light and Dark stay fixed. The setting applies immediately, survives restart, and leaves the main settings window, music artwork and glow preferences independent.\n- Add **Island content priority: Music / Temporary Space**, default Music. Compact and expanded presentations share the same default when files and playing music coexist. Available content remains usable alone. User-selected pages survive passive lyric, player and timer refreshes; unavailable content falls back, and changing priority applies immediately. A drag temporarily exposes Files without replacing the user's page choice.\n- Show **No matching lyrics / 无匹配歌词** in the App lyrics card when a completed lookup finds no match, even if another source fails or times out. All-request failures retain the retry message and provider diagnostics.\n- Integrate PR #107's version-neutral bilingual website requirements/FAQ, PR #108's five Ubuntu 26.04 production jobs, and PR #109's immutable Node 24 release-action pin.\n- Preserve old fixed Light/Dark island appearance during upgrade by migrating the former main-window preference once. New installations and old System preferences use Follow.\n- Repair clipboard publication and Undo races, stale lyric/AI ownership, UI-bound native/media and file work, hidden-view rendering, image orientation, drag lifetime/monitor-edge targeting, cache/download ownership and shutdown cleanup. DropLink responses are bounded, and failed multi-file receives retain already-published files instead of risking deletion of a user replacement.\n- Review the entire App, Core and Infrastructure in three sequential rounds after integration. The per-round source manifests, findings and actual fixes are recorded in the [Beta18 review audit](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta18-review/audit.md).\n\n## 中文说明\n\n- 新增“灵动岛外观”：跟随／浅色／深色，默认跟随。跟随沿用 Windows 应用浅深色来源；固定浅色或深色不随系统切换。设置立即生效并保存，紧凑、展开和交互反馈共用主题资源。音乐封面、辉光和设置窗口保持独立。\n- 新增“灵动岛内容优先级”：音乐／临时空间，默认音乐。文件与正在播放的音乐共存时，两种状态均使用所选默认内容；只有一类内容时显示可用内容。主动切换页面会保留，歌词或定时刷新不会反复抢回；拖放临时展示文件目标，内容不可用时回退。\n- App 歌词卡片未匹配到歌词时显示“无匹配歌词”；修复其他歌词源报错／超时掩盖已完成未匹配查询的状态问题。所有请求都失败时继续显示重试提示并保留诊断。\n- 合入官网中英文版本文案、Ubuntu 工作流兼容性和发布 action 固定 SHA 更新；完成集成后的三轮完整源码审查与修复。\n- 修复剪贴板／撤销竞态、歌词与 AI 过期回调、媒体和文件操作阻塞、隐藏视图重复渲染、图片方向、拖放边缘定位、缓存及下载所有权、退出清理等问题；限制设备传输响应缓冲，失败接收保留已发布文件，避免误删用户替换的内容。\n- 升级时一次性保留原来由主窗口固定的浅色／深色灵动岛外观；新用户及原来跟随系统的用户默认“跟随”。\n\n## Validation and remaining limits\n\nThe existing complete solution contains 2,124 statically expanded MSTest cases before this change. This release limits actual test-case executions, including repeats and CI, to 21. Its producer performs full Windows App/XAML compilation, runs only the explicitly selected configuration/state cases, and verifies final package versions, hashes, update metadata and source binding. Actual execution evidence belongs to the final-source Windows Actions receipts and the [verification ledger](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta18-review/verification-ledger.md); skipped suites are not a pass.\n\nActual validation completed: **8 Core + 2 Infrastructure cases passed**, plus one conservatively counted isolated installer/payload/uninstall scenario: **11 total executions, no repeats, 0.518% of the original 2,124-case suite**. The [final-main producer](https://github.com/airanluo-dot/DropSpace/actions/runs/37656714883), [immutable publication](https://github.com/airanluo-dot/DropSpace/actions/runs/37662335914) and [Pages deployment](https://github.com/airanluo-dot/DropSpace/actions/runs/37662657842) succeeded. All eight public assets were fully downloaded anonymously and hash-checked; actual portable/installer PE and MSIX versions are 0.3.1.18. CUDA fixtures were skipped, and the unchanged independent component was not republished.\n\nPhysical Windows theme switching, animation frames and legibility, multi-monitor interactions, Shell drag-in/drag-out, real media players and GPU fallback have no interactive acceptance run in this Linux session. Compilation and managed policy cases do not establish those behaviors. No App-wide speedup or frame-rate measurement is claimed.\n\nThe CPU translation workers, language-identification model and independent CUDA archive are unchanged. Existing Hy-MT2 semantic, latency and hardware qualification remains incomplete; AI is optional and off by default. This release does not renew model-quality approval.\n\n## Compatibility and downloads\n\nSemantic version: 0.3.1-beta.18. PE/MSIX version: 0.3.1.18.\nv0.3.1-beta.17 is the immediate upgrade baseline. Stable remains v0.2.1.\nWindows x64 build 20348 or later remains the Beta baseline. Existing files, settings, download history, models and verified CUDA installations are retained.\n\nUse the Installer, Portable EXE or retained MSIX from this Release. The unchanged CUDA archive remains at the [independent component release](https://github.com/airanluo-dot/DropSpace/releases/tag/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1); this App release includes only its small App-bound descriptor and manifest.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-07T17:53:45Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.18",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1998,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 187334343,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 488330320,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 203608788,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5229,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 769,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.18/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.17",
+        "name": "DropSpace v0.3.1-beta.17",
+        "body": "# DropSpace v0.3.1-beta.17\n\n<!-- update-summary: 减少数据库操作对界面调用线程的占用、音乐岛重复通知与隐藏后的排帧；及时释放下载取消资源，并复用独立 CUDA 组件。 -->\n\n## Changes\n\n- Move paging, database initialization and affected count, pin, file-state and file-intake operations off their calling thread while preserving write admission order, transactions, cancellation and durable commit tails.\n- Coalesce music-island presentation work, stop scheduling frames after the parent surface becomes hidden, prepare current content before first geometry and reuse the current animation-preference snapshot.\n- Notify media-derived properties and commands only when their dependencies change. Keep track/session notifications, pause/resume presentation, lyric identity and language updates.\n- Release each finished download run's cancellation source after its callbacks settle, retaining history, retry behavior, early shutdown cancellation and observable callback failures.\n- Avoid the extra geometry refresh queued during synchronous first-frame preparation. Preserve the existing multi-monitor dismissal reconciliation.\n- Reuse the independently versioned CUDA component `cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1`. Keep exact App descriptor binding, trusted source, archive size/hash, interface checks and verified installed-component reuse. New App releases no longer upload another copy of the same CUDA archive.\n\n## 中文说明\n\n- 减少分页、初始化、计数、置顶、文件状态更新和拖入 SQL 对调用线程的占用；保持数据库写入顺序、事务、取消及持久提交规则。\n- 合并音乐岛高频刷新，父面板真正隐藏后停止排帧，展开前同步准备最新内容和尺寸，复用动画偏好快照。\n- 媒体派生属性和命令按实际依赖变化通知，保留切歌、暂停恢复、歌词身份和语言切换行为。\n- 下载运行结束后及时释放取消源，并保留历史、重试、关闭取消以及取消回调错误的传递。\n- 移除首帧准备产生的额外几何排队，保留双屏隐藏的补偿更新。\n- App 复用固定版本的独立 CUDA 组件；保留下载信任、哈希与大小检查、接口兼容、App 描述文件绑定及安装复用。旧版资源和下载地址保持可用。\n\n## Delivery record / 发布记录\n\nFinal source commit: [00d07b3773dc614587b75fbcf1affd45a136535b](https://github.com/airanluo-dot/DropSpace/commit/00d07b3773dc614587b75fbcf1affd45a136535b).\n\n- Complete Windows App/XAML Release compilation passed with 0 warnings and 0 errors in [PR build 37596780516](https://github.com/airanluo-dot/DropSpace/actions/runs/37596780516).\n- Final-main Portable, MSIX and installer were produced by [37597288222](https://github.com/airanluo-dot/DropSpace/actions/runs/37597288222). Actual embedded runtime inventory, installed payload bytes, source approval, checksums and exact commit binding passed. Publication reuses these unchanged bytes.\n- 按用户最新明确指令，后续单元测试、原生 smoke 和压力测试全部跳过，不把“未运行”写成“通过”。此前完整 Windows 构建及 46+39=85 项受影响测试通过的记录保留，未重跑。\n- The earlier broad portable smoke [37594272314](https://github.com/airanluo-dot/DropSpace/actions/runs/37594272314) failed its drag-wake ownership diagnostic before the thousand-cycle lifecycle run. This failed result is retained and is not a pass. The diagnostic has a baseline hidden-state precondition gap; its combined error does not establish the actual failing branch or a current user-path regression. Native wake ownership and physical Windows smoothness remain unqualified for this delivery.\n\nOptimization reports distinguish caller-thread occupation from total task duration and actual UI experience; they do not claim an App-wide speedup or measured physical Windows frame rate. The [Beta17 audit](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta17-release-audit.md) and [explicit owner test waiver](https://github.com/airanluo-dot/DropSpace/blob/00d07b3773dc614587b75fbcf1affd45a136535b/docs/dev/evidence/beta17-release/owner-test-waiver.json) preserve the evidence boundary.\n\nThe CUDA archive, language-identification model and translation workers are unchanged. No CUDA archive/model-source download, GPU inference or model quality tests are repeated. Existing Hy-MT2 semantic, latency and hardware qualification remains incomplete; no new model approval is claimed.\n\n## Compatibility\n\nSemantic version: 0.3.1-beta.17. PE/MSIX version: 0.3.1.17.\nv0.3.1-beta.16 is the immediate upgrade baseline. Stable remains v0.2.1.\nExisting settings, files, download history, models and verified CUDA installations are retained. AI translation remains optional and off by default. No new DLC framework or Bilibili feature is included. Previous published release assets remain unchanged.\n\nThe CUDA download continues at the [independent component release](https://github.com/airanluo-dot/DropSpace/releases/tag/cuda-llama-cpp-v0.5.0-cuda13-win-x64-v1); only the small App-bound metadata is included with this App release.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-07T09:08:46Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.17",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1998,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.17/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.17/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 187298462,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.17/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 488282216,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.17/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 203582969,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.17/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5241,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.17/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 621,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.17/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 733,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.17/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.16",
+        "name": "DropSpace v0.3.1-beta.16",
+        "body": "# DropSpace v0.3.1-beta.16\n\n<!-- update-summary: 修复已有目标语言歌词译文被 AI 混入的问题；内置离线整首语言识别，原文已为 App 语言或存在任何有效原生目标译文时整首停用 AI，并保留原有空缺。 -->\n\n## Changes\n\n- Add bundled offline whole-track language identification with fastText `lid.176.bin`. The original lyric body is submitted once as a single sample; language identification uses CPU and does not require a separate download.\n- Skip AI when the original is already in the app language. Otherwise, any valid provider translation in the target language disables AI for the entire track, including untranslated gaps.\n- Apply the same decision to model resolution, queueing, progressive results, final display and cache reads/writes. Late provider translations restore provider content and gaps; stale results cannot cross tracks, candidates or app-language changes.\n- Retire the former per-line admission and gap-filling policy. Eligible tracks retain the existing Hy-MT2 models, prompt, sampler and progressive per-line translation.\n\n## 中文说明\n\n- 修复已有目标语言歌词译文被 AI 混入的问题。内置 `lid.176.bin`，离线使用 CPU 对整首原文识别一次，无需首次使用下载或安装额外组件。\n- 按 App 语言确定翻译目标：英文为英语，中文为中文。原文已经是目标语言时整首不翻译；其他原文先检查有界来源查询得到的原生译文。\n- 只要存在任何有效目标译文，即使仅覆盖部分歌词，整首禁止 AI，空缺保持空缺。AI 进行期间晚到的有效原生译文也享有整首优先权。\n- 仅当原文为 Unknown 且没有有效目标译文时，沿用原有用户设置、模型可用性及逐行渐进翻译。其他 Beta15 功能保持原有行为。\n\n## Validation record\n\nThirteen focused controlled cases passed, plus one Windows compatibility session with the actual pinned native engine and official bin. Existing Die For You/her payloads retain all 71/48 provider translations and produce zero eligible AI rows. The final Release portable, installer and unsigned MSIX compiled from `44f89877ae2a01b10a76b740c4cf3d3caf692376`; portable/MSIX static inspection verifies the exact bin, native DLL, three license notices and existing translation-runtime bytes. The installer records the exact inspected portable compiler input. MSIX compilation reports one missing optional symbol-tool warning and no errors.\n\nThe App's default embedded-model/native path passed an explicit smoke check on the first candidate with the same App implementation. After correcting its source-review pointer, the final packages were rebuilt and statically checked; the final executable was not run again. Installation, MSIX activation and real playback/audio were not tested. Details and exact final asset hashes are in [the Beta16 audit](https://github.com/airanluo-dot/DropSpace/blob/main/docs/dev/beta16-lyrics-audit.md).\n\n13 个聚焦受控案例与 1 次真实 Windows 原生引擎/bin 兼容验证通过，Die For You/her 的 71/48 条原生译文完整保留，AI 可翻译行数为零。最终便携版、安装版及未签名 MSIX 已完成 Release 编译与必要静态字节核验；默认内置模型/原生加载入口在相同 App 实现的首候选便携包实测通过。最终包重新构建后未再次执行，也未测试安装生命周期、MSIX 激活或真实播歌/音频。\n\nHistorical Hy-MT2 quality, latency and hardware qualification remain unchanged and incomplete. This release does not claim that every English song is identified correctly, that every lyric line shares the dominant language, or that package size equals model memory use. Full regression suites, a new twenty-song survey and model benchmarks were not run.\n\n## Compatibility\n\nSemantic version: 0.3.1-beta.16. PE/MSIX version: 0.3.1.16.\nv0.3.1-beta.15 is the immediate upgrade baseline. Stable remains v0.2.1.\nExisting settings, files, downloads, model packages and unrelated caches are retained. The versioned AI-lyric cache must pass the new whole-track decision before reuse. Previous published assets remain unchanged.\n\n## Bundled language-identification licenses\n\nThe fastText engine is MIT licensed; the language-identification model is distributed under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Model source and attribution: [fastText language identification](https://fasttext.cc/docs/en/language-identification.html), by Armand Joulin, Edouard Grave, Piotr Bojanowski, Tomas Mikolov and collaborators. The selected .NET wrapper retains its own upstream license. Exact model and native identities are recorded with the final build, independently of Hy-MT2 qualification.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-06T12:40:40Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.16",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1867,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.16.zip",
+            "kind": null,
+            "size": 540873572,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/DropSpace-CUDA-win-x64-v0.3.1-beta.16.zip"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 186724604,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 488249448,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 203573736,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5235,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 730,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 772,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.16/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.15",
+        "name": "DropSpace v0.3.1-beta.15",
+        "body": "# DropSpace v0.3.1-beta.15\n\n<!-- update-summary: 保护已有歌词源译文，改进中英逐行补译与录音匹配；稳定设置滑块，保留暂停后的音乐内容，恢复自动隐藏动画及操作确认文字，完善缓存停用、下载清理与模型交付指纹。 -->\n\n## Changes\n\nThe fifteen requested items and three directly related supplements are complete\nin code. This release retains the Beta14 features and installed user data.\n\n- Preserve valid native target-language translations at admission and cache/progress/final publication boundaries. Frozen AI output must still match the current source version and repeated row occurrence.\n- Improve contextual Chinese/English row admission without changing the fixed model prompt, and retain full performer and recording identity safeguards.\n- Stabilize slider readout columns and edit ownership, use independent lyric-width unlimited wording, and apply zero-byte cache policy immediately after successful settings persistence.\n- Retain paused music content through the saved hide deadline. Finish the existing hide animation before native hiding, retire stale completion callbacks, obey the idle Logo preference and restore independent two-second file-operation acknowledgements.\n- Preserve confirmed instrumental fallback evidence. Separate completed-download cleanup from transfer failures and retain retry ownership when download history is removed.\n- Bind model delivery code, the exact embedded manifest bytes and project resource declarations into the source approval fingerprint, including reused artifacts.\n- Retain successful/native row progress when a private worker deadline expires, finish file dismissal independently of island visibility, and keep ordinary album words from fabricating version conflicts.\n\n## Validation record\n\nThe first Beta15 development candidate\n`f603e403` compiled and was exercised through Apple Music and the real App. `her` retained\nall 48 native translations and supplemented five genuine gaps; `this is what\nfalling in love feels like` retained all 24 native rows, including return-to-track\nand refresh. Installed CUDA successfully returned production App-chain results\nwithout CPU fallback. Actual paused-music dismissal completed the configured wait\nand existing rendered animation before releasing the native region. The empty\ncapsule also expanded and collapsed with idle Logo disabled, then completed its\nsaved hide wait and original animation. The confirmed `DAISIES` recording\nretained 29 native rows with no AI admission.\n\nFour focused fingerprint, eleven initial Infrastructure host, six deadline and\ntwo album checks passed. The later nine-case coordinator run includes its\noriginal five cases. Four Apple Music credit, five QQ credit and seven local\nlanguage-context checks also passed at their recorded source stages; five\ntranslation-boundary cases passed before the final untimed-boundary correction,\nfollowed by one current v12 host snapshot regeneration. These host checks are\nseparate from actual model execution. The captured Chinese `风的来信` source has\n38 ordinary rows; v12 admits all 38 for English and excludes its 14 metadata rows.\nThe first candidate's ten ordinary admission misses are not counted as successful\ntranslations.\n\nThe corrected final App compiled from `734e0a96366fcffae4d3e8361745e4ba549ebf06`,\nPE version `0.3.1.15`. Its actual Apple Music playback preserved all 45 native\n`My City` rows plus one real AI gap and all 29 native `DAISIES` rows. For the\nChinese `风的来信` recording, a Chinese target correctly started no AI; a temporary\nEnglish target produced all 38 ordinary translations with zero failed/pending\nrows and excluded all 14 metadata rows. The production CUDA worker completed\nthat real request without CPU fallback and had recorded GPU memory allocation.\nThe final empty-panel observation completed its file state independently,\nretained the idle Logo preference and finished the existing island animation\nafter the saved wait, before native region release. The English `风的来信`\nrecording rejected Chinese vocal-credit evidence and correctly reports no\nsafe matching lyric body for that attempt.\n\n| Verified scope | Evidence / boundary |\n| --- | --- |\n| Native preservation | First candidate: `her` 48 and `falling` 24, including return and refresh. Final source: `My City` 45 plus one AI gap and `DAISIES` 29, with exact native row identity/text/provenance preserved. |\n| Actual translation and CUDA | Final Chinese `风的来信`: Chinese→Chinese skips 38 ordinary rows; Chinese→English completes 38/38 through the production CUDA worker with GPU allocation and no CPU fallback. |\n| Actual island behavior | Paused music stays visible through the saved wait; empty-panel file completion is independent. Actual frames settle before native region release; idle Logo remains off. |\n| Builds and artifact validation | Final portable EXE, standard installer and MSIX compiled; source/runtime publication binding, approval metadata gate and strict update-manifest validation passed. Installer was not executed. |\n| Remaining limits | English `风的来信` has no safe matching source body in the observed attempt. Held-drag beyond debounce, hide-wait clicks, physical animation reversal/reduced-motion, actual LRCLIB instrumental playback, install/upgrade lifecycle and broad song/hardware matrices remain unverified. |\n\nAn earlier combined host diagnostic had 25 failed assertions among 58 cases.\nThe three initial new-class assertions were corrected and its seven focused\ncases passed; older expectations were not changed or rerun. This is not an\noverall green-suite claim. Exact source-stage results and evidence are in\n`docs/dev/beta15-fix-audit.md`; historical model qualification remains unchanged.\n\n## Build and delivery\n\nProduction App source: `734e0a96366fcffae4d3e8361745e4ba549ebf06`.\nCompiled and validated; the new Beta15 assets are attached to this release.\n\n| Package | Bytes | SHA256 |\n| --- | --- | --- |\n| `DropSpace.exe` | 356,373,112 | `a62bded3520f6e7940cbb06d023bb85bce2c593c61b6ab305a6546e55f378517` |\n| `DropSpaceSetup.exe` | 82,339,856 | `e18a5b61082da0ddbb24a83a931d16d608b9dcac89bc2d622ace80545c950fab` |\n| `DropSpace-x64.msix` | 63,522,044 | `2b07c7b0df36b696efa317e56887d79a2626ea6cdf2cf37ca7c4107fed7c6e64` |\n\nMSIX reported zero errors and one known symbols warning; this delivery does not\nproduce symbols. The CUDA payload preserves its reviewed byte identity under a\nnew Beta15 asset name. The nine assets include runtime/update manifests and\n`SHA256SUMS.txt`; previous Beta14 assets are unchanged. Compilation and package\ninspection do not imply install/uninstall lifecycle testing.\n\n## Compatibility\n\nSemantic version: 0.3.1-beta.15. PE/MSIX version: 0.3.1.15.\nv0.3.1-beta.14 is the immediate upgrade baseline. Stable remains v0.2.1.\nExisting settings, files, models and components are retained. Previous published\nassets remain unchanged.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-06T10:07:38Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.15",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1867,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.15.zip",
+            "kind": null,
+            "size": 540873572,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/DropSpace-CUDA-win-x64-v0.3.1-beta.15.zip"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 63522044,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 356373112,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 82339856,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5212,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 730,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 801,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.15/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.14",
+        "name": "DropSpace v0.3.1-beta.14",
+        "body": "# DropSpace v0.3.1-beta.14\n\n<!-- update-summary: 修复空闲胶囊点击展开与置顶，恢复文件 Logo 和下箭头；新增空闲 Logo 开关及八项滑块，改进暂停隐藏、编辑焦点、歌词版本匹配与中英逐行补译。 -->\n\n## Improvements\n\n- Visible idle capsules open Files immediately, including empty workspaces. A new manual open retires stale hide deadlines and dismissal callbacks.\n- File capsules show the official transparent logo, centered filename or item count and the original chevron. A separate saved idle-logo toggle defaults to off.\n- Visible islands maintain topmost placement over ordinary desktop windows without stealing focus. Hidden windows are not awakened by this recovery.\n- Eight native sliders retain their documented limits and units. Lyric width has a separate unlimited mode and monitor/DPI bounds; zero GB disables disk-cache reads and writes while retaining existing files and live translations.\n- Pausing uses the shared hide deadline; repeating pause does not extend it. Settings editing respects Enter, blank clicks, Escape and IME composition, and shortcuts no longer leave a page tooltip behind.\n- Recording matches retain canonical titles, full performer credits and version safeguards. Chinese/English translation fills eligible missing rows, reuses completed work and preserves native translations without changing the model prompt.\n\n## Validation\n\nEight focused host cases passed across the initial run and directly related fixture/boundary reruns. Controlled inference is not native model or CUDA evidence. Release portable publish, MSIX packaging and Inno Setup compilation passed. Isolated UI observations confirmed the idle logo, empty-panel opening and corrected slider readouts.\n\nNo full regression, installer execution, model download, full-song semantic qualification or hardware matrix ran. Historical provider/recording and inference failures remain unproven; upstream availability is not guaranteed. Detailed evidence and limitations are recorded in `docs/dev/beta14-implementation.md`.\n\n## 中文说明\n\n- 可见空闲胶囊点击立即打开文件面板，零文件也能展开；手动操作中止旧隐藏倒计时，迟到刷新和消失回调不撤销新展开。保留原有 0–10 秒延迟与全屏偏好。\n- 文件紧凑态恢复左侧官方透明 Logo、中间文件名或项目数、右侧原版 ∨。长文件名省略，移除重复副标题。\n- 新增“空闲时显示 Logo”原生开关，默认关闭并保存；文件 Logo 不受此开关影响。\n- 可见灵动岛在复用窗口及前台变化时维护置顶，不靠重启，也不抢焦点；隐藏窗口不会因此唤醒。\n- 八项数值设置使用原生滑块。歌词最大宽度 80–600，另设“无限制”档并保留数值；解除整体 460 宽度上限，按工作区、DPI 和缩放限制实际宽度。歌词缓存 0–10 十进制 GB，默认 1 GB；0 停用磁盘读写和迟到写入，保留旧文件及显式清理。\n- 图片、像素、项目数、单文件、总量及歌词偏移保持原边界；大小准确标为 MiB。大范围采用非线性拖动，方向键精调 1 MiB。旧缓存字节值不会因打开设置自动取整。\n- 非常驻时暂停播放进入统一隐藏等待；重复暂停不续期，恢复播放取消旧截止时间。手动面板及其他显示理由仍有效。\n- 关闭页面级默认快捷键提示呈现，保留 Ctrl+1 等快捷键；单行输入可通过 Enter 或空白点击结束编辑，X/Y 先提交再应用，保留 Escape、IME 和多行语义。\n- 歌词先校验规范标题、完整演唱者、版本、专辑及长度，再选择译文；网易云别名不再替换规范标题。新缓存身份与读取校验防止错误版本复用。\n- 中英双向 AI 补译逐行判断：短句和重复句使用可信上下文，明确外语证据优先；已有目标译文只跳过对应行。保留完成行、渐进展示及待处理/已译/跳过/失败原因，不增加模型提示词。\n\n## 验证与边界\n\n已运行本轮八项集中宿主检查，涵盖旧隐藏回调、零文件展开、缓存停用与恢复、版本误匹配、短句/重复句/99% 混合语言、原生部分译文补齐与重播、失败后保留进度，以及现有冻结语言样例。缓存样例的身份错误修正后仅复核该项。检查中的推理使用受控返回值，不能当作真实模型或 CUDA 成功证据。\n\n必要的 Release 编译、安装包和 MSIX 打包结果随本次发布记录。未运行全量回归、重复模型下载、多硬件矩阵或长时间压测。原截图对应上游来源、实际录音和推理终止原因没有完整运行证据；不将防御性改动写成已还原全部历史故障，也不保证源平台始终可用。详细记录见 `docs/dev/beta14-implementation.md`。\n\n## Compatibility\n\nSemantic version: 0.3.1-beta.14. PE/MSIX version: 0.3.1.14.\nUpgrade baseline: v0.3.1-beta.13. Stable remains v0.2.1.\nExisting settings, files, models and optional components are retained. Previous release assets remain unchanged.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-06T07:37:34Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.14",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1867,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.14.zip",
+            "kind": null,
+            "size": 540873572,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/DropSpace-CUDA-win-x64-v0.3.1-beta.14.zip"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 63492932,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 356315608,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 82363954,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5095,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 722,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 765,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.14/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.13",
+        "name": "DropSpace v0.3.1-beta.13",
+        "body": "# DropSpace v0.3.1-beta.13\n\n<!-- update-summary: 新增独立下载页；改进灵动岛显示、缩放和全屏开关，修复下载恢复、模型分卷、歌词匹配及撤销状态。 -->\n\n## 功能与修复\n\n- 设置新增“下载”页，位于 DLC 与系统活动之间，统一放置自定义下载、任务列表和下载设置。DLC 页只管理组件；切换页面不会中断下载。\n- 灵动岛使用统一的显示理由和隐藏计时，支持常驻、强制全屏显示、整数秒隐藏延迟，以及紧凑和展开内容缩放。全屏设置保留一个开关，不区分游戏来源或游戏窗口。旧设置按迁移规则保留。\n- 空闲与等待隐藏时显示纯灰胶囊；文件紧凑态使用透明官方图标、文件名或项目数量，移除重复副标题。\n- 修复下载日志中单条损坏影响其他任务恢复、目录比较、探测阶段重试、空间预算，以及最终文件已提交却被清理异常标记失败的问题。\n- 排队等待与传输超时分别计算；QQ 单次请求拒绝不再误判为登录失效。下载任务采用增量显示与有界历史列表，统一操作按钮高度和换行。\n- AI 模型支持受校验清单约束的分卷下载、单卷恢复和最终完整哈希检查。已有同哈希模型直接复用，不重复下载；下载、合并、校验与安装状态分别显示。\n- AI 翻译在宿主层判断语言；同语不翻译，无法可靠识别时暂不推理。保留原有翻译提示词，不向模型增加跳过标记或额外判断任务。\n- 修复部分艺人署名和别名导致的歌词漏匹配；占位文本不再作为有效歌词或纯音乐证明，前面的空候选不会挡住后面的有效候选。\n- 修复撤销中数据库已经提交或没有实际恢复记录时的错误成功状态；网络地址变化后共享链接按当前网络重新建立。\n\n## 已验证与边界\n\n开发版已完成必要编译和与改动直接相关的小型检查。实机验证了独立下载页、8 MiB 文件下载及暂停继续、灵动岛单文件/多文件展示和五项设置重启保存。Apple Music 的《Die For You》（Abel Tesfaye / The Weeknd，Starboy）与《Kaiju》（鱼韵 / Sakanaction）均取得并显示网易云原文和中文译文。\n\n已安装 1.8B 模型通过 App 调用链完成最小 CUDA 中文翻译，并记录对应 worker 的 GPU 活动；这不代表其他显卡、7B 模型或全部翻译质量已验证。未重复模型下载、运行全量回归、加密共享测试、多硬件矩阵或大型压力测试。物理网络切换、不同全屏设备及原报告中约一分钟的模型下载停顿仍无完整实机结论。详细证据和限制见 `docs/dev/beta13-implementation.md`。\n\n## Compatibility\n\nSemantic version: 0.3.1-beta.13. PE/MSIX version: 0.3.1.13. v0.3.1-beta.12 is the immediate upgrade baseline. Stable remains v0.2.1. Existing settings, models, components and user files are retained. Beta12 release assets are unchanged.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-06T05:26:44Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.13",
+        "assets": [
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1867,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.13.zip",
+            "kind": null,
+            "size": 540873572,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/DropSpace-CUDA-win-x64-v0.3.1-beta.13.zip"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 63473916,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 356282256,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 82335091,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5095,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 730,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 708,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.13/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.12",
+        "name": "DropSpace v0.3.1-beta.12",
+        "body": "# DropSpace v0.3.1-beta.12\r\n\r\n<!-- update-summary: DLC 页新增自定义文件下载和统一下载设置；普通文件、App 更新与可选组件共享分段下载、连接上限和总限速。 -->\r\n\r\n## 功能与修复\r\n\r\n- App 内更新、网易云增强组件及微软运行库下载接入统一引擎，共享分段并行、排队和限速；保留更新哈希、组件来源与签名校验。网易云增强和运行库纳入 DLC 列表，App 更新仍位于更新页面。\r\n- 修复开发包误带旧版 CUDA 清单导致组件消失、CUDA 选项不可用的问题；构建时强制检查版本和提交绑定，保留既有安装及完整性校验。\r\n\r\n- 合并播放器分批更新的歌曲信息，减少快速切歌时的重复歌词搜索；暂停、继续及进度更新不重新查询。已经取得的有效译文立即刷新，不再等待其他慢来源结束。\r\n- 修复酷狗成功码误判和录音版本后缀遗漏，恢复《Happier》《Shake It Off (Taylor's Version)》等歌曲的平台中文译文；优化完整艺人署名搜索，保留版本和同录音校验。网易云增加请求间隔与分类冷却，限制或失败不会被当作“无歌词”。\r\n- 音乐歌词设置新增 QQ 音乐官方网页登录，登录状态加密保存并支持重启恢复；过期时提示重新登录。登录后显示“已登录”，登录窗口保存成功后自动关闭。适配 QQ 当前搜索和歌词接口，修复旧接口丢失译文及 `//` 占位符显示；已实测登录后获取《Happier》的 QQ 原生中文译文并显示到歌词页，未使用 AI 回退。匿名请求仍受上游限制，长期会话续期未实测。\r\n- 优化 DLC 状态检查：启动时后台核对文件、大小和 CUDA 清单，展示状态不再完整读取模型与组件计算哈希。短时间重复打开页面复用结果，手动刷新和组件变更立即更新；驱动探测也移到后台。下载完成和实际加载前的完整性校验保留。\r\n\r\n- 在设置 → DLC 的“未下载”分区下新增“下载自定义文件”和“下载设置”，支持 HTTP/HTTPS 直链、可编辑保存目录及文件名、任务卡片、暂停/继续、取消、重试和打开文件夹。\r\n- 直接复用 NovaClip v1.0.0-beta.8（b798c571dad1cae03c16129e4b4c43b85b428d7a）的普通文件分段核心，适配 DropSpace 的类型、任务日志、设置事务和应用生命周期。未引入视频解析、登录、播放器或 FFmpeg。\r\n- 普通文件、模型和 CUDA 共享 1–256 连接预算（默认 64）、总限速（默认不限速）；同时下载数量可设置为 1–3 项，默认 2 项。连接按实际进展渐进增加；并发需通过 Range、206、Content-Range、强 ETag 和 identity 编码检查。不满足条件时安全使用单连接，更多连接不保证更快。\r\n- 限速统一使用 MiB/s，1 MiB/s = 1,048,576 字节/秒，0 表示不限速。默认目录取 Windows Downloads 已知文件夹，只影响新建普通任务。\r\n- 入队持久化、应用退出等待传输停止、重启后保留暂停任务；分片规划不随连接滑块改变。用户文件安全重命名，完成后原子保存。未知长度不显示虚假百分比。\r\n- 模型仍安装到现有 Models 目录，CUDA 仍使用现有 Runtime 管理结构。保留可信来源及重定向限制、大小和 SHA256、CUDA 精确清单/解压预算/许可证/版本绑定与安全维护机制。已安装模型和 CUDA 文件不迁移。\r\n- 原模型连续 `.partial` 在缺少新验证元数据时重新下载；完整旧文件只有通过尺寸与 SHA256 才可直接接纳。新分片、元数据和排队意图纳入 DLC 残留占用及清理。\r\n- AI 歌词页进入时重新读取已加载设置；歌词设置逐字段合并，避免旧快照覆盖 AI 开关或其他偏好。配置恢复使用可见提示，删除模型保留用户的 AI 启用偏好。\r\n- 区分选择后端、当前执行、缓存命中、等待执行和上次成功后端。GPU 失败保留原请求、时间、简短原因及退出码，显示 CPU 回退并支持下次推理重试；不再因旧失败永久锁定 CPU。\r\n- 修复本机真实复现的 CUDA 1.8B 模型加载失败：旧 CPU 通用的 3 GiB 进程提交内存上限会触发 Windows 拒绝分配、退出 67 和 CPU 回退。CUDA 1.8B 改为独立有界的 5 GiB 宿主预算，并在启动前检查可用物理内存和提交空间；显存、驱动及完整性检查保持原样。\r\n- 经用户追加授权，使用已安装模型/组件和 App 生产翻译调用链完成了最小 CUDA 翻译验证：无 CPU 回退或缓存命中，同一 CUDA 进程有实际 GPU 内存及引擎活动，并返回有效中文译文。诊断不记录用户歌词或完整敏感命令行。\r\n\r\n## 验证边界\r\n\r\n本地 WinUI Debug 编译成功（0 警告、0 错误）。最终 Release 便携版、安装包及 MSIX 均已构建成功；MSIX 有一项缺少可选符号工具的警告，不影响程序包。最终包的 CUDA 生产检查成功识别本机已有安装。所有发布文件已绑定实际构建提交 b1a40a9f699f7104c4fc8e9ff87a40d4ae02445b 与 SHA256。最终发布按用户追加授权执行。经用户明确授权，执行三次单句 CUDA 请求：复现失败、取得该失败的 Windows 内存限制证据、修复后成功验证。后续按追加要求进行了 Apple Music 与网易云音乐真实快速切歌、同曲前后对照、返回歌曲、暂停/继续和设置恢复后的重启检查，以及 5 个直接覆盖发现问题的小型检查；详见 `docs/dev/beta12-lyrics-live-investigation.md`。未运行全量回归、中英文重复构建、模型下载、加密共享测试或真实大文件/256 连接压测。新增下载链已通过 12 项针对性检查，官网附件校验的 5 项小型检查通过；远端已重新下载并核对全部 7 个发布文件和运行库绑定，没有重复编译或运行全量测试；实际升级安装、跨重启下载恢复、深浅色与缩放交互仍未实测；其他显卡及 7B CUDA 推理未验证。QQ 登录后的真实搜索、译文显示与重启恢复已验证，详见 `docs/dev/beta12-qq-login.md`；长期会话续期和网易云具体限制机制仍未确定。\r\n\r\n沿用 Beta11 的原生 CPU/Vulkan/CUDA 实际产物，修复位于 Beta12 宿主内存策略。验证不代表普遍硬件兼容性或性能结论。Beta11 发布资产及本机安装保持原样。详见 `docs/dev/beta12-runtime-fixes.md`。\r\n\r\n## Compatibility\r\n\r\nSemantic version: 0.3.1-beta.12. PE/MSIX version: 0.3.1.12. v0.3.1-beta.11 is the immediate upgrade baseline. Stable remains v0.2.1. Existing settings, models, components and data are retained. Publication authorized by the owner after final source review and necessary compilation; the limited validation scope above remains explicit.\r\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-05T18:37:30Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.12",
+        "assets": [
+          {
+            "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.12.zip",
+            "kind": null,
+            "size": 540873572,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.12/DropSpace-CUDA-win-x64-v0.3.1-beta.12.zip"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 63456659,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.12/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 356196112,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.12/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 82339539,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.12/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5095,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.12/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 542,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.12/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 716,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.12/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.11",
+        "name": "DropSpace v0.3.1-beta.11",
+        "body": "# DropSpace v0.3.1-beta.11\n\n## 中文\n\n### 功能与修复\n\n- 修复同语言原文缓存迁移及 A→B→A 切歌后的重新加载；完善完整艺人署名、别名、歌曲版本和时长匹配。\n- 网易云正确复用原文；QQ 修正原生译文与业务码处理；酷狗支持 KRC 原生译文、逐字时间及同录音 LRC 回退；AMLL 对接实际 API/TTML，采用有界搜索和缓存；LRCLIB 严格校验响应，不虚构译文。\n- 移除两个生产 AI 歌曲筛选选项，保留常规歌词匹配、原生译文优先及现有 HyMT2 1.8B Q8／7B Q8 翻译模型，冻结翻译提示不变。\n- 同次歌曲翻译中有界复用完全相同且已接纳的成功片段，每行重新映射；失败、取消和请求失效后清理。增加宿主耗时与复用指标，不记录歌词正文。\n- 修复原生异步资源过早释放：取消后保留资源，直到原生操作和取消回调完成。尚不能确认所有崩溃根因。\n- 设置新增 DLC 一级页面，位于“小组件”和“系统活动”之间。上方已安装、下方可下载；卡片展示名称、用途、下载大小、占用和状态，支持下载、取消、重试、移除，模型和 CUDA 共用管理状态。\n- GPU 关闭使用 CPU；开启提供自动／Vulkan／CUDA。自动模式在兼容 NVIDIA 且组件可用时优先 CUDA，其他显卡使用 Vulkan；非 NVIDIA 禁选 CUDA。组件缺失时先提示下载，不静默下载大文件，不重复下载模型，实际后端与回退状态如实显示。\n- CUDA 13.4.1 组件独立按需下载，基础 App 不内嵌大组件。下载包 540,873,572 字节（515.82 MiB），运行组件展开 681,964,256 字节（650.37 MiB）。\n- 中英文 Windows CI 合并为一个作业，永久移除加密共享测试。\n- 前缀 KV 与原生 timing 保留为默认关闭的代码实验，没有 App 开关或正式运行入口。Q4、邻句上下文、CT2、Gemma、Qwen 研究未上线为生产模型。\n\n### 验证范围与兼容性\n\n按维护者要求跳过额外功能测试和启动 smoke，只执行发布所需编译、打包及产物身份核对。未执行模型请求，CUDA 实际推理、完整 Windows/GPU 体验及全部闪退根因仍未验证。编译或哈希通过不代表功能／性能测试通过。\n\n版本为 0.3.1-beta.11，PE/MSIX 版本号为 0.3.1.11；直接升级基线 v0.3.1-beta.10，稳定版仍为 v0.2.1。保留现有设置、模型、数据和隐私说明。发布二进制未应用代码签名；最终提供的资产以本页实际附件为准。\n\n## English\n\n### Features and fixes\n\n- Fixed same-language original-lyric cache migration and reloads after A→B→A track switching. Improved full artist credits, aliases, recording-version and duration matching.\n- NetEase correctly reuses originals; QQ fixes provider translations and business codes; Kugou supports native KRC translations, word timing and same-recording LRC fallback; AMLL uses its actual API/TTML with bounded search and caching; LRCLIB strictly validates responses without inventing translations.\n- Removed both production AI song-selection options. Conventional matching, preference for provider translations, existing HyMT2 1.8B Q8/7B Q8 models and frozen translation prompts remain.\n- Added bounded reuse of identical, successfully accepted segments within one song request, remapping results to each line. Failed, cancelled or invalidated requests are cleared. Host timing and reuse metrics do not record lyric text.\n- Fixed premature native asynchronous resource disposal: resources survive until native operations and cancellation callbacks finish. This does not establish every reported crash's root cause.\n- Added a top-level DLC settings page between Widgets and System Activity. Installed items appear above available downloads. Cards show name, purpose, download size, disk usage and state, with download, cancel, retry and remove controls. Models and CUDA share package management.\n- GPU off uses CPU. GPU on offers Auto/Vulkan/CUDA. Auto prefers available CUDA on compatible NVIDIA hardware and Vulkan elsewhere; CUDA cannot be selected on non-NVIDIA devices. Missing components prompt before download, without silent large downloads or re-downloading models. Actual backend and fallback state are reported honestly.\n- CUDA 13.4.1 is a separate on-demand component, not embedded in the base app. Download: 540,873,572 bytes (515.82 MiB). Extracted runtime components: 681,964,256 bytes (650.37 MiB).\n- Consolidated English/Chinese Windows CI into one job and permanently removed the encrypted-sharing test.\n- Prefix KV caching and native timing remain disabled code experiments with no app toggle or production entry point. Q4, neighboring-line context, CT2, Gemma and Qwen research is not offered as production models.\n\n### Verification scope and compatibility\n\nAt the maintainer's request, additional functional tests and startup smoke tests were skipped. Only compilation, packaging and artifact-identity work required for publication was performed. No model requests were run. Actual CUDA inference, complete Windows/GPU behavior and all crash root causes remain unverified. A successful build or matching hash is not a functional/performance test pass.\n\nSemantic version: 0.3.1-beta.11; PE/MSIX version: 0.3.1.11. Immediate upgrade baseline: v0.3.1-beta.10. Stable remains v0.2.1. Existing settings, models, data and privacy documentation are retained. Release binaries are unsigned; available assets are exactly those attached to this release.\n\n## 发布产物与校验 / Release artifacts and checksums\n\n应用实际构建与发布标签 / Actual app build and release tag: `3e094dc35999372187bf6ecebe738f8700dc7ad6`.\n\n正常 PR 合并 / Normal PR integration: [#90](https://github.com/airanluo-dot/DropSpace/pull/90), `4fd46fdb8b7452768936c5dcf4fd44e6b9efd004`. 合并包含上述构建提交；两者仅 CI 路由文件不同，应用输入未变。 / The merged history contains the actual build commit; only CI routing differs and application inputs are unchanged.\n\n实际编译打包 / Actual compilation and packaging: [37311548061](https://github.com/airanluo-dot/DropSpace/actions/runs/37311548061). PR 发布核验 / PR publication verification: [37314779458](https://github.com/airanluo-dot/DropSpace/actions/runs/37314779458), verifying the same immutable packages without repeating compilation or tests. 复用相同产物，未重复编译或测试。\n\nCUDA 原生组件源码 / Native CUDA component source: `806f3e3e40c11a6e7d3d50648a9de8708b16b4ac`.\n\n| 资产 / Asset | 字节 / Bytes | SHA256 |\n|---|---:|---|\n| [DropSpaceSetup.exe](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/DropSpaceSetup.exe) | 82,254,670 | `b6c6a393f8d53909c975279043a6d01eff10afd89717f2e4bb44510a7931e9ea` |\n| [DropSpace.exe](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/DropSpace.exe) | 355,908,376 | `3e419b1b53996d1ecf1471bdefbd7a8b0fc2f8f879f7cf4570d10d619fc5433b` |\n| [DropSpace-x64.msix](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/DropSpace-x64.msix) | 63,371,061 | `61082d1ccf33b3eed5bad6af3bd062bf49befe6b9b081ae0be26931e82e39796` |\n| [update-manifest.json](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/update-manifest.json) | 682 | `f6dbb88b9cb45d5fd5cd359dbf96409e686e38b64f0da7e1fc0d8539888f52ab` |\n| [runtime-publication.json](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/runtime-publication.json) | 5,189 | `ab625f7415a647f43aee99e6c0a4ab5c0361a4f451eb4700aece8941ab40519c` |\n| [ci-release-receipt.json](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/ci-release-receipt.json) | 1,003 | `81860f6ee6cc0af7e6cf59c9ecf1a7dd1b86c8c2021fed4ebf7c877074e9ffc6` |\n| [DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip) | 540,873,572 | `79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b` |\n| [cuda-runtime-download.json](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/cuda-runtime-download.json) | 1,867 | `0711ad4a16706f4db55468b1a6fedd9c5c450dade66aee698702c07ddbb459c7` |\n| [cuda-runtime-manifest.json](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/cuda-runtime-manifest.json) | 1,815 | `da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a` |\n| [SHA256SUMS.txt](https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/SHA256SUMS.txt) | 821 | `8205276b7ba8af31e406af8552d871581b1a692c81461f05777f59c796f7439f` |\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-05T13:14:31Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.11",
+        "assets": [
+          {
+            "name": "ci-release-receipt.json",
+            "kind": null,
+            "size": 1003,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/ci-release-receipt.json"
+          },
+          {
+            "name": "cuda-runtime-download.json",
+            "kind": null,
+            "size": 1867,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/cuda-runtime-download.json"
+          },
+          {
+            "name": "cuda-runtime-manifest.json",
+            "kind": null,
+            "size": 1815,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/cuda-runtime-manifest.json"
+          },
+          {
+            "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip",
+            "kind": null,
+            "size": 540873572,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip"
+          },
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 63371061,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 355908376,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 82254670,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/DropSpaceSetup.exe"
+          },
+          {
+            "name": "runtime-publication.json",
+            "kind": null,
+            "size": 5189,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/runtime-publication.json"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
+            "size": 821,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 682,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.11/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.3.1-beta.10",
+        "name": "DropSpace v0.3.1-beta.10",
+        "body": "# DropSpace v0.3.1-beta.10\n\n<!-- update-summary: 修复快速切歌时重复歌词请求、译文缓存恢复及补充来源调度。 -->\n\n## 修复\n\n- 相同网易云请求的并发等待者共享本次响应或错误，避免同一次拒绝引发多次重复请求；上游拒绝仍被尊重。\n- 合法空译文字段不再阻止成功响应复用；增加有界成功响应复用覆盖，减少回访歌曲时重复查询。\n- 避免原文缓存和首选源临时失败时的备用结果永久阻止后续译文恢复。\n- 调整补充译文请求的启动和取消，保留来源选择顺序及找到原文后的三秒总预算。\n- 快速切歌的短暂播放信息变化先进行可取消的 150 毫秒合并，手动刷新不受此延迟影响。\n\n## 验证边界\n\n修复来自完整调用链阅读及少量聚焦检查；按用户要求跳过绝大多数功能、启动与安装验收，保留必要编译、打包和发布文件身份核对。云端没有使用用户笔记本，也未进行真实播放器快速切歌验收。不能保证消除网易云自身的限流或为所有歌曲提供译文。模型、提示词、隐私说明及 reviewed-source override 未改。\n\n## Compatibility\n\nSemantic version: 0.3.1-beta.10. PE/MSIX version: 0.3.1.10. v0.3.1-beta.9 is the immediate upgrade baseline. Stable remains v0.2.1. Existing settings, models and data are retained.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-10-04T18:16:34Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.10",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "kind": "msix",
+            "size": 63243128,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.10/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "kind": "portable",
+            "size": 355613696,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.10/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 82188278,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.10/DropSpaceSetup.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "kind": "checksums",
             "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/SHA256SUMS.txt",
-            "kind": "checksums"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.10/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 654,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.10/update-manifest.json"
           }
         ]
       },
       {
-        "tagName": "v0.1.0-preview.2",
-        "name": "DropSpace v0.1.0-preview.2",
-        "body": "# DropSpace v0.1.0-preview.2\n\n## 推荐下载：DropSpace.exe\n\n`DropSpace.exe` 是面向普通用户的免安装、自包含 Windows 11 x64 版本。下载后直接双击运行；不需要 Visual Studio、单独安装 .NET Runtime 或 Windows App SDK Runtime，也不需要 PowerShell、证书或管理员权限。\n\nPreview.2 是针对 Preview.1 真机阻断缺陷的修复版：\n\n- 剪贴板通知改为 Windows 桌面标准的 `AddClipboardFormatListener` / `WM_CLIPBOARDUPDATE`，增加有限重试、序列号去重、Pause/Resume、自写入抑制和监听健康诊断。\n- 顶部视觉 Overlay 与文件拖拽 Activation Host 完全分离。Temporary Space 为空时视觉 HWND 真正隐藏，不再用 3 像素 XAML 窗口冒充 Hidden。\n- 每个显示器使用独立、零 Alpha、无焦点的 Win32/OLE `IDropTarget` 激活区域；Explorer/Desktop 文件通过 `CF_HDROP` 进入现有 Temporary Space 添加流程，原文件不会被移动或删除。\n- 移除 XAML 白边，并清除 HWND/DWM border、frame、shadow 痕迹；Hidden 时清空窗口 region 后 `SW_HIDE`。\n- Width、Height、Top Offset、上下圆角、Opacity、内容 Reveal 和 Drop Feedback 改为可中断的真实时间 spring 目标，不再先跳到最终矩形后只做 Scale。\n- 新增显示器拓扑变化后的 per-monitor Host/Overlay 重建，以及不含剪贴板内容和完整文件路径的分层诊断。\n\n### 自动验证\n\n- Core / Infrastructure 自动测试、Release WinUI build\n- clean checkout 的 win-x64 unpackaged、自包含、single-file publish\n- `DropSpace.exe` 启动、Windows App SDK、SQLite、AppData、第二实例和正常退出 smoke\n- 真实 Windows clipboard listener smoke：系统写入两段唯一文本、收到 `WM_CLIPBOARDUPDATE`、读取并写入 SQLite、Pause、Resume、自写入抑制与测试数据清理\n- 每显示器 Activation Host 创建/注册检查\n- 100 次 Overlay reveal/dismiss、compact/expanded、mode transition 资源生命周期与无残留 frame subscription 检查\n- unsigned x64 MSIX 回归构建、版本信息与 SHA-256 清单\n\n### 仍需真实桌面人工验收\n\nGitHub Actions 无法替代真实 Explorer 指针路径和人眼判断。请在 Windows 11 上最终确认：空状态顶部零残留像素、Activation Host 不阻挡普通点击、Explorer/Desktop 拖入和放下、Expanded 拖出、Dynamic Island/Notch 动画手感、混合 DPI 多显示器以及全屏应用行为。\n\n### Preview 安全说明\n\n本版本尚未使用商业可信代码签名。Windows Defender SmartScreen 首次运行时可能提示未知应用；请只从本项目官方 GitHub Release 获取并核对 `SHA256SUMS.txt`。不要关闭 Defender 或修改系统安全策略。\n\n`DropSpace-x64.msix` 同时提供为备用无签名安装包。\n",
+        "tagName": "v0.3.1-beta.9",
+        "name": "DropSpace v0.3.1-beta.9",
+        "body": "# DropSpace v0.3.1-beta.9\n\n<!-- update-summary: 减少重复歌词请求，修复译文被返回速度抢占、小组件取消拖动后点击失效，以及未来版本测试的版本标记。 -->\n\n## 修复\n\n- 同一首歌的完整、缺项播放信息和同时查询复用相同网易云请求；成功响应最多短暂复用十秒，减少重复搜索与取词。刷新、清缓存和取消均保留独立处理。\n- 增加有数量上限、不记录歌名或歌词的故障诊断，区分接口拒绝、超时、取消和无匹配；不绕过歌词源限流。\n\n- 译文选择统一遵守首选、备用、其余来源的优先关系；其余来源仍按匹配评分及稳定顺序选择。并行查找的快慢不会抢占最终结果，超时保留的候选也使用相同规则。\n- 保留找到原歌词后的三秒共享预算、来源开关、歌曲身份核验、原歌词保留和 AI 回退。目标译文缓存升级一次，避免旧的抢占结果继续命中。\n- 小组件拖动被取消或失去指针捕获时，及时清除点击抑制标记，避免下一次正常点击被吞掉。\n- “未来 Beta”测试从当前版本自动计算下一版，不再把当前版本误当未来版本。\n\n## 验证边界\n\n针对译文抢占、备用来源顺序和取消拖动清理增加回归检查。指针事件检查属于代码结构回归，不替代 Windows 实际拖动验收。请求复用补丁已通过 99 项针对性检查；合并前的译文选择等检查已通过。按用户要求，本版本跳过重复功能测试、实际启动及完整安装升级验收，仅保留编译、打包和文件身份核对。未进行最终完整实机验收，也不保证消除上游服务的所有限流。模型、提示词、音频采集和隐私说明均不在本次改动范围。\n\n## Compatibility\n\nSemantic version: 0.3.1-beta.9. PE/MSIX version: 0.3.1.9. v0.3.1-beta.8 is the immediate upgrade baseline. Stable remains v0.2.1. Existing settings, models and data are retained.\n",
         "isDraft": false,
         "isPrerelease": true,
-        "publishedAt": "2026-08-09T02:11:31Z",
-        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.2",
+        "publishedAt": "2026-10-04T17:39:50Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.9",
         "assets": [
           {
             "name": "DropSpace-x64.msix",
-            "size": 29969777,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace-x64.msix",
-            "kind": "msix"
+            "kind": "msix",
+            "size": 63239728,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.9/DropSpace-x64.msix"
           },
           {
             "name": "DropSpace.exe",
-            "size": 228979750,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace.exe",
-            "kind": "portable"
+            "kind": "portable",
+            "size": 355605495,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.9/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 82192707,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.9/DropSpaceSetup.exe"
           },
           {
             "name": "SHA256SUMS.txt",
-            "size": 167,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/SHA256SUMS.txt",
-            "kind": "checksums"
+            "kind": "checksums",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.9/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 713,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.9/update-manifest.json"
           }
         ]
       },
       {
-        "tagName": "v0.1.0-preview.1",
-        "name": "DropSpace v0.1.0-preview.1",
-        "body": "# DropSpace v0.1.0-preview.1\n\n## 推荐下载：DropSpace.exe\n\n`DropSpace.exe` 是推荐给普通用户的免安装、自包含 Windows 11 x64 版本。下载后直接双击运行；不需要 Visual Studio、.NET Runtime、Windows App SDK Runtime、PowerShell、证书安装或管理员权限。\n\n这是首个 Preview 版本，包含完整 Temporary Space、Clipboard History、Pinned、Search、Settings、系统托盘，以及可在“灵动岛 / 刘海”之间即时切换的顶部拖放界面。Temporary Space 为空时顶部界面隐藏；拖动 Explorer 或 Desktop 中的文件到屏幕顶部中央即可唤醒；添加项目后保持 Compact，点击可展开最近项目和快速操作。\n\n### 备用下载\n\n`DropSpace-x64.msix` 是保留的无签名 MSIX 备用包。Preview 阶段推荐使用 `DropSpace.exe`。\n\n### Preview 安全说明\n\n本版本尚未使用商业可信代码签名。Windows Defender SmartScreen 首次运行时可能提示未知应用；请只从本项目官方 GitHub Release 下载，并核对 `SHA256SUMS.txt`。系统允许时可通过“更多信息 → 仍要运行”继续。DropSpace 不会要求关闭 Defender、修改 SmartScreen 或获取管理员权限。\n\n### 自动验证\n\n- Clean checkout restore、Release build、Core/Infrastructure tests\n- win-x64 unpackaged、自包含、single-file publish\n- 启动、Windows App SDK、SQLite、AppData 写入、第二实例重定向和正常退出 smoke test\n- 100 次真实 Overlay 状态/窗口动画循环，检查 HWND/GDI/USER/private-bytes 增长和残留 frame subscription\n- unsigned x64 MSIX build\n- 版本元数据、文件存在性与 SHA-256 校验\n\nExplorer 真实拖入/拖出、混合 DPI、多显示器几何、动画手感、托盘恢复、全屏游戏/视频行为仍需在真实 Windows 11 桌面做最终人工目视验收。\n",
+        "tagName": "v0.3.1-beta.8",
+        "name": "DropSpace v0.3.1-beta.8",
+        "body": "# DropSpace v0.3.1-beta.8\n\n<!-- update-summary: 修复译文查找被首选源耗尽时间的问题；补充音频采集中断恢复，并修正空音频包和短暂读包异常处理。 -->\n\n## 修复\n\n- 找到可用原歌词后，允许的备用及其余歌词源立即并行查找译文，不再等待首选源搜完所有候选，避免三秒预算耗尽前其他来源完全没有启动。仍遵守来源选择、同曲核验、取消和三秒总预算。\n- AMLL 在第一份原文缺少目标译文时继续检查允许的同曲候选，并把已找到的原文交给统一三秒预算保留。\n- 歌词源译文搜索不再误用本地 AI 的 500 行处理限制；LRCLIB 精确条目损坏时继续走其他候选和搜索。\n- 同一播放器切歌不再重新识别并拆除健康采集，避免一次临时进程识别失败使音频条消失；补齐网易云已支持的 SMTC 名称映射。\n- 播放器仍在播放时，采集失效或长期不再收到音频包会按间隔重新识别并连接，避免音频计量条和音乐光效一直失去响应。暂停或不需要显示音频时停止恢复计时，正常静音包不会触发重连。\n- Windows 返回空音频包时不再错误释放未取得的缓冲区；短暂的缓冲区读取错误按接口约定等待下一轮，重复错误仍进入失败和恢复路径。\n- 日志新增采集停止/恢复条件及具体原生操作阶段，便于区分进程识别失败、音频接口失效和主动停止。\n\n## 验证边界\n\n译文调度缺陷已用失败用例复现，并通过针对性回归。用户当次歌曲名称尚未取得，已收到的日志没有记录本次原生音频错误，不能将上述代码修复视为该实机触发原因已经确认。模型与 AI 引擎不变。\n用户明确要求跳过后续功能测试、启动和安装验收，直接编译打包发布；已完成的 82 项译文相关检查和 7 项音频策略检查通过，不代表实机问题均已验收。\n\n## Compatibility\n\nSemantic version: 0.3.1-beta.8. PE/MSIX version: 0.3.1.8. v0.3.1-beta.7 is the immediate upgrade baseline. Stable remains v0.2.1. Existing settings, models and data are retained.\n",
         "isDraft": false,
         "isPrerelease": true,
-        "publishedAt": "2026-08-08T15:12:05Z",
-        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.1",
+        "publishedAt": "2026-10-04T14:53:04Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.1-beta.8",
         "assets": [
           {
             "name": "DropSpace-x64.msix",
-            "size": 29951757,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace-x64.msix",
-            "kind": "msix"
+            "kind": "msix",
+            "size": 63227853,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.8/DropSpace-x64.msix"
           },
           {
             "name": "DropSpace.exe",
-            "size": 228926494,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace.exe",
-            "kind": "portable"
+            "kind": "portable",
+            "size": 355585015,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.8/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "kind": "installer",
+            "size": 82154020,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.8/DropSpaceSetup.exe"
           },
           {
             "name": "SHA256SUMS.txt",
-            "size": 167,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/SHA256SUMS.txt",
-            "kind": "checksums"
+            "kind": "checksums",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.8/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "kind": "manifest",
+            "size": 707,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.1-beta.8/update-manifest.json"
           }
         ]
       },
@@ -316,104 +1168,167 @@
   },
   "prereleases": [
     {
-      "tag": "v0.2.0-preview.2",
-      "name": "DropSpace v0.2.0-preview.2",
-      "title": "DropSpace v0.2.0-preview.2",
-      "publishedAt": "2026-08-12T10:47:47Z",
-      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0-preview.2",
+      "tag": "v0.3.2-beta.7",
+      "name": "DropSpace v0.3.2-beta.7",
+      "title": "Cleaner DLC and editable keyboard shortcuts",
+      "publishedAt": "2026-10-19T19:14:15Z",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.7",
       "summary": [
-        "Fixes a Preview.1 threading defect where Explorer/Desktop source inspection ran on an asynchronous thread without initializing COM on that actual thread. UI Automation therefore commonly rejected every candidate before the Island could appear.",
-        "Explorer file icons may expose an image or text element under the pointer. Recognition now walks a bounded UI Automation ancestor chain to find the enclosing ListItem/DataItem instead of requiring the deepest element itself to be a file item.",
-        "The existing safety gates remain: the pointer must begin in a known Explorer/Desktop file view, cross the Windows drag threshold, and the temporary visible OLE target must finally receive a real CFHDROP data object.",
-        "Hidden idle still owns no top-edge hit-test window. Classic top-edge mode remains an explicit compatibility fallback for unsupported third-party and virtual-file sources.",
-        "Fixes in-app checks that failed when the anonymous GitHub REST API was unavailable or rate-limited on a shared network."
+        "Adds a dedicated Keyboard shortcuts settings page. Global and main-window commands are clearly separated, editable by pressing the desired combination, and saved immediately after confirmation. Fixed context controls are listed separately.",
+        "Reports unavailable or conflicting global shortcuts instead of silently ignoring registration failure. Cancelling recording restores the previous registration. Main-window shortcut changes persist and take effect without restarting.",
+        "Removes internal dropspace.sample entries from the consumer catalog and UI, including stale catalog records. The DLC page has one refresh action for installed components and official module metadata.",
+        "Marks .dropspace-downloads as a Windows hidden working folder during download and recovery, including an existing default download folder. Resume data stays intact. Windows can still show it when hidden items are enabled."
       ],
       "assets": {
-        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpaceSetup.exe",
-        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace.exe",
-        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace-x64.msix",
-        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/SHA256SUMS.txt"
+        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/DropSpaceSetup.exe",
+        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/DropSpace.exe",
+        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/DropSpace-x64.msix",
+        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.7/SHA256SUMS.txt"
       }
     },
     {
-      "tag": "v0.2.0-preview.1",
-      "name": "DropSpace v0.2.0-preview.1",
-      "title": "DropSpace v0.2.0-preview.1",
-      "publishedAt": "2026-08-12T09:38:45Z",
-      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0-preview.1",
+      "tag": "v0.3.2-beta.6",
+      "name": "DropSpace v0.3.2-beta.6",
+      "title": "Steady compact lyrics and a refined transfer icon",
+      "publishedAt": "2026-10-19T11:56:15Z",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.6",
       "summary": [
-        "The default Smart mode no longer leaves an invisible, topmost OLE window at the top of every display while idle.",
-        "Public UI Automation drag events and a bounded, read-only mouse observer combine with Windows drag thresholds to recognize candidate Explorer/Desktop file drags.",
-        "A temporary Dynamic Island or Notch appears on the display where the drag was recognized, below the Windows 11 Drop Tray area.",
-        "The visible Overlay becomes the temporary OLE target; actual acceptance still requires a valid CFHDROP data object and uses the existing Temporary Space pipeline.",
-        "Left- and right-button Explorer/Desktop file drags are supported by the candidate detector."
+        "Uses a centered 20-DIP system transfer icon with balanced spacing and the native subtle-button hover treatment. The existing transfer panel, activity badge and accessible label remain.",
+        "Keeps compact music layout in consistent fractional DIPs so fitting lyrics are not mistakenly treated as overflowing at fractional display scaling.",
+        "Retains the preceding lyric's scroll position during timed gaps and avoids resetting unchanged text metrics on unrelated root-size notifications. Real long-line scrolling and island animations remain enabled."
       ],
       "assets": {
-        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpaceSetup.exe",
-        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace.exe",
-        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace-x64.msix",
-        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/SHA256SUMS.txt"
+        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/DropSpaceSetup.exe",
+        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/DropSpace.exe",
+        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/DropSpace-x64.msix",
+        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.6/SHA256SUMS.txt"
       }
     },
     {
-      "tag": "v0.1.0-preview.5",
-      "name": "DropSpace v0.1.0-preview.5",
-      "title": "DropSpace v0.1.0-preview.5",
-      "publishedAt": "2026-08-09T14:28:09Z",
-      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.5",
+      "tag": "v0.3.2-beta.5",
+      "name": "DropSpace v0.3.2-beta.5",
+      "title": "Restore widget editing and remove the test DLC listing",
+      "publishedAt": "2026-10-18T04:00:27Z",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.5",
       "summary": [
-        "Visible Compact and Expanded Dynamic Island/Notch surfaces are now direct Explorer/Desktop file drop targets. Compact morphs into Drop Ready; Expanded stays open and displays an in-place drop highlight.",
-        "The passive top-edge activation HWND yields ownership while a visible Overlay is present, eliminating two OLE targets competing for the same pixels.",
-        "Temporary Space projections now use one authoritative mutation revision and a serialized/coalesced refresh coordinator. Removing the only item while Main Window and Expanded Overlay are both open no longer starts overlapping ObservableCollection resets.",
-        "Settings explains the Windows 11 Drop Tray conflict and opens the official Settings → System → Multitasking page. DropSpace does not probe undocumented feature flags.",
-        "The packaged app declares a Windows Share Target for StorageItems. A stable external-location identity package and signed-installer registration path are included for future trusted Artifact Signing."
+        "Removes the reintroduced widget row/column NumberBoxes and restores the Beta 3 interaction: drag to position, drag back to the library to remove, and shape buttons to resize.",
+        "Preserves Beta 4 position retention during queued resizing, Undo snapshots and asynchronous error ownership.",
+        "Removes the internal dropspace.sample lifecycle/UI fixture from the online and bundled DLC catalogs and prevents its registration for future public distribution. Its historical Release is retained as a recoverable draft; installed user data and real DLC capabilities are preserved."
       ],
       "assets": {
-        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpaceSetup.exe",
-        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace.exe",
-        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace-x64.msix",
-        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/SHA256SUMS.txt"
+        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/DropSpaceSetup.exe",
+        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/DropSpace.exe",
+        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/DropSpace-x64.msix",
+        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.5/SHA256SUMS.txt"
       }
     },
     {
-      "tag": "v0.1.0-preview.4",
-      "name": "DropSpace v0.1.0-preview.4",
-      "title": "DropSpace v0.1.0-preview.4",
-      "publishedAt": "2026-08-09T12:25:30Z",
-      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.4",
+      "tag": "v0.3.2-beta.4",
+      "name": "DropSpace v0.3.2-beta.4",
+      "title": "More reliable island controls and navigation",
+      "publishedAt": "2026-10-17T21:03:20Z",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.4",
       "summary": [
-        "Enlarged the event-driven OLE top-edge activation band and retained one native target from Explorer DragEnter through Drop, fixing hidden reveal and drop acceptance at the animated edge.",
-        "Kept the already-visible Island/Notch registered as an OLE target and routed every accepted path through the same Temporary Space repository pipeline as the main window.",
-        "Added a responsive two-row header below 860 effective pixels so high DPI, text scaling, and narrower windows no longer collapse the title and description into a one-character column.",
-        "Unified window, taskbar, tray, shortcut, installer, and uninstaller icon loading around the canonical multi-resolution icon embedded in DropSpace.exe.",
-        "Fixed identity-based projection updates so removing or pinning an item from the Overlay immediately updates the main window, and vice versa."
+        "Adds timer duration presets and reset actions, accurate pause/resume timing, accessible native controls and consistent Fluent widget icons.",
+        "Adds one-based widget row/column editing, preserves the latest position during queued resizing, and prevents older layout errors from replacing newer feedback.",
+        "Improves first island presentation, retires interrupted pointer/hold actions, and lets an ordinary system close dismiss the island while preserving reopening.",
+        "Protects collection navigation, paging and selection from stale results; collapsed batch members no longer remain actionable through hidden selection. Adds Ctrl+L as a search shortcut.",
+        "Retains clipboard card identity during refresh, restores failed pin feedback, and suppresses errors from retired presentations. Makes cancelled download restoration retryable."
       ],
       "assets": {
-        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpaceSetup.exe",
-        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace.exe",
-        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace-x64.msix",
-        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/SHA256SUMS.txt"
+        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/DropSpaceSetup.exe",
+        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/DropSpace.exe",
+        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/DropSpace-x64.msix",
+        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.4/SHA256SUMS.txt"
       }
     },
     {
-      "tag": "v0.1.0-preview.3",
-      "name": "DropSpace v0.1.0-preview.3",
-      "title": "DropSpace v0.1.0-preview.3",
-      "publishedAt": "2026-08-09T08:27:20Z",
-      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.3",
+      "tag": "v0.3.2-beta.3",
+      "name": "DropSpace v0.3.2-beta.3",
+      "title": "Stable compact lyrics and aligned download actions",
+      "publishedAt": "2026-10-17T17:14:33Z",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.3",
       "summary": [
-        "Desktop、Progman、WorkerW 和任务栏等 Shell surface 不再被误判为全屏应用；Temporary Space 有项目时点击桌面仍保持 Compact Island。",
-        "fullscreen suppress/restore、Drag reveal/leave、最后项目移除继续使用可中断 spring，不再一帧跳变。",
-        "移除导致 Explorer/OLE 跳过目标的 HTTRANSPARENT。隐藏时使用 960 DIP 宽、仅 1 个物理像素高的可发现热边；真实 CFHDROP 进入后，同一 HWND 扩展到 760 × 112 DIP 并持有到 Drop/Leave。",
-        "隐藏激活拖拽与已显示 Compact/Expanded Island 的直接 Drop 拥有明确且不重叠的 HWND target ownership；两者都进入现有 MainViewModel.AddPathsAsync，不会移动或删除原文件。",
-        "所有 spring frame 输出先投影到 XAML/HRGN 安全范围，圆角不再因 Notch overshoot 变成负值；新增 1000 次中途反向模式压力验证。"
+        "Measures compact lyrics on their rendered text elements, includes a two-DIP inset",
+        "Clears old offsets during text/layout changes and waits for the existing island",
+        "Uses consistently centered 16-DIP Fluent icons in download buttons with shared"
       ],
       "assets": {
-        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpaceSetup.exe",
-        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace.exe",
-        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace-x64.msix",
-        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/SHA256SUMS.txt"
+        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/DropSpaceSetup.exe",
+        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/DropSpace.exe",
+        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/DropSpace-x64.msix",
+        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.2-beta.3/SHA256SUMS.txt"
       }
     }
-  ]
+  ],
+  "macos": {
+    "schemaVersion": 1,
+    "platform": "macos",
+    "generatedAt": "2026-10-22T10:36:28.427Z",
+    "releases": [
+      {
+        "publishedAt": "2026-10-21T02:55:44Z",
+        "manifest": {
+          "schemaVersion": 1,
+          "platform": "macos",
+          "architecture": "arm64",
+          "tag": "macos-v0.1.0-beta.1",
+          "channel": "beta",
+          "bundleID": "io.github.airanluo-dot.DropSpace.macOS",
+          "bundleVersion": "1",
+          "minimumOS": "26.0",
+          "windowsBaseline": "v0.3.2-beta.7",
+          "signing": "ad-hoc",
+          "notarized": false,
+          "archive": {
+            "name": "DropSpace-macOS-arm64.zip",
+            "url": "https://github.com/airanluo-dot/DropSpace/releases/download/macos-v0.1.0-beta.1/DropSpace-macOS-arm64.zip",
+            "size": 136370360,
+            "sha256": "e55d5bcdb08785493b04b541c278cd1a0658183f932cb953a3242ac9c0c8f374"
+          },
+          "installer": {
+            "name": "DropSpace-macOS-arm64.dmg",
+            "url": "https://github.com/airanluo-dot/DropSpace/releases/download/macos-v0.1.0-beta.1/DropSpace-macOS-arm64.dmg",
+            "size": 139603062,
+            "sha256": "b3e4eed87f7ed7206e35ed3f591e9b2ccaac5f9059097eba199052aa3236ddbf"
+          },
+          "releaseNotes": "# DropSpace for macOS v0.1.0 Beta 1\n\nA native SwiftUI/AppKit public beta for everyday use, using Windows v0.3.2 Beta 7 as a functional reference. This is not a complete 1:1 port.\n\nRequires macOS 26 or later on Apple Silicon. Intel Macs are not supported. Current runtime validation is on macOS 27.0.1; macOS 26 has not been exercised on a physical machine.\n\n## Everyday workflows\n\n- Temporary Space stores references to files and folders, with preview, open, copy, reveal, pin, remove and undo. Removing a reference does not delete its source.\n- Clipboard history supports text, links and images, pause/resume, search and cleanup.\n- Native main window, menu bar and expandable Island with saved preferences.\n- Apple Music integration, timed lyrics and optional local Hy-MT2 1.8B translation using CPU or Metal. Translation requires downloading the model; it is not included in the installer.\n- Resumable downloads, component management, local file actions and nearby sharing.\n\n## Known limitations\n\n- QQ Music login is deferred. Other players expose only the capabilities their public interfaces support.\n- DropLink cross-device interoperability and automatic installation of updates are experimental. Physical Windows interoperability is not validated.\n- Internet sharing requires a configured service; no hosted service is included.\n- 7B inference is not validated on the 16 GiB test Mac. Use the 1.8B model.\n- Clipboard polling can miss intermediate rapid changes. Grant requested permissions only for features you use.\n- Ad-hoc updates may require renewed per-app Automation or Accessibility permissions.\n- Full display/system coverage and comprehensive human review of all ten languages are deferred.\n\n## Installation and updates\n\n**Not notarized by Apple. No Developer ID signature. Locally ad-hoc signed for bundle integrity.**\n\nDownload the Mac DMG and compare its SHA-256 with `SHA256SUMS-macos.txt`. Copy DropSpace to Applications, eject the DMG and open the copied app. If blocked and you trust this download, use System Settings → Privacy & Security → Open Anyway, then confirm Open. A managed Mac may disallow this exception. Stop if macOS reports malware or damaged software.\n\nDo not disable Gatekeeper, SIP or global security protections. See [Apple's guidance](https://support.apple.com/en-us/102445).\n\nFor updates, download the newer **Mac** DMG, quit DropSpace, replace only the app bundle and reopen it. Preserve its separate application-support data directory. Windows and Mac packages, versions and update feeds are separate. Automatic updates are not advertised as verified.\n",
+          "releaseURL": "https://github.com/airanluo-dot/DropSpace/releases/tag/macos-v0.1.0-beta.1"
+        },
+        "checksumsURL": "https://github.com/airanluo-dot/DropSpace/releases/download/macos-v0.1.0-beta.1/SHA256SUMS-macos.txt"
+      }
+    ],
+    "stable": null,
+    "beta": {
+      "publishedAt": "2026-10-21T02:55:44Z",
+      "manifest": {
+        "schemaVersion": 1,
+        "platform": "macos",
+        "architecture": "arm64",
+        "tag": "macos-v0.1.0-beta.1",
+        "channel": "beta",
+        "bundleID": "io.github.airanluo-dot.DropSpace.macOS",
+        "bundleVersion": "1",
+        "minimumOS": "26.0",
+        "windowsBaseline": "v0.3.2-beta.7",
+        "signing": "ad-hoc",
+        "notarized": false,
+        "archive": {
+          "name": "DropSpace-macOS-arm64.zip",
+          "url": "https://github.com/airanluo-dot/DropSpace/releases/download/macos-v0.1.0-beta.1/DropSpace-macOS-arm64.zip",
+          "size": 136370360,
+          "sha256": "e55d5bcdb08785493b04b541c278cd1a0658183f932cb953a3242ac9c0c8f374"
+        },
+        "installer": {
+          "name": "DropSpace-macOS-arm64.dmg",
+          "url": "https://github.com/airanluo-dot/DropSpace/releases/download/macos-v0.1.0-beta.1/DropSpace-macOS-arm64.dmg",
+          "size": 139603062,
+          "sha256": "b3e4eed87f7ed7206e35ed3f591e9b2ccaac5f9059097eba199052aa3236ddbf"
+        },
+        "releaseNotes": "# DropSpace for macOS v0.1.0 Beta 1\n\nA native SwiftUI/AppKit public beta for everyday use, using Windows v0.3.2 Beta 7 as a functional reference. This is not a complete 1:1 port.\n\nRequires macOS 26 or later on Apple Silicon. Intel Macs are not supported. Current runtime validation is on macOS 27.0.1; macOS 26 has not been exercised on a physical machine.\n\n## Everyday workflows\n\n- Temporary Space stores references to files and folders, with preview, open, copy, reveal, pin, remove and undo. Removing a reference does not delete its source.\n- Clipboard history supports text, links and images, pause/resume, search and cleanup.\n- Native main window, menu bar and expandable Island with saved preferences.\n- Apple Music integration, timed lyrics and optional local Hy-MT2 1.8B translation using CPU or Metal. Translation requires downloading the model; it is not included in the installer.\n- Resumable downloads, component management, local file actions and nearby sharing.\n\n## Known limitations\n\n- QQ Music login is deferred. Other players expose only the capabilities their public interfaces support.\n- DropLink cross-device interoperability and automatic installation of updates are experimental. Physical Windows interoperability is not validated.\n- Internet sharing requires a configured service; no hosted service is included.\n- 7B inference is not validated on the 16 GiB test Mac. Use the 1.8B model.\n- Clipboard polling can miss intermediate rapid changes. Grant requested permissions only for features you use.\n- Ad-hoc updates may require renewed per-app Automation or Accessibility permissions.\n- Full display/system coverage and comprehensive human review of all ten languages are deferred.\n\n## Installation and updates\n\n**Not notarized by Apple. No Developer ID signature. Locally ad-hoc signed for bundle integrity.**\n\nDownload the Mac DMG and compare its SHA-256 with `SHA256SUMS-macos.txt`. Copy DropSpace to Applications, eject the DMG and open the copied app. If blocked and you trust this download, use System Settings → Privacy & Security → Open Anyway, then confirm Open. A managed Mac may disallow this exception. Stop if macOS reports malware or damaged software.\n\nDo not disable Gatekeeper, SIP or global security protections. See [Apple's guidance](https://support.apple.com/en-us/102445).\n\nFor updates, download the newer **Mac** DMG, quit DropSpace, replace only the app bundle and reopen it. Preserve its separate application-support data directory. Windows and Mac packages, versions and update feeds are separate. Automatic updates are not advertised as verified.\n",
+        "releaseURL": "https://github.com/airanluo-dot/DropSpace/releases/tag/macos-v0.1.0-beta.1"
+      },
+      "checksumsURL": "https://github.com/airanluo-dot/DropSpace/releases/download/macos-v0.1.0-beta.1/SHA256SUMS-macos.txt"
+    }
+  }
 }

@@ -3,28 +3,36 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DropSpace for macOS</title>
   <meta name="description" content="Native DropSpace for Apple Silicon: downloads, requirements, installation and Mac release history.">
+  <meta name="theme-color" content="#050506">
+  <meta property="og:type" content="website"><meta property="og:title" content="DropSpace for macOS">
+  <meta property="og:description" content="DropSpace for macOS — Early Beta."><meta property="og:url" content="https://airanluo-dot.github.io/DropSpace/macos/">
+  <meta property="og:image" content="../assets/og-image.png"><meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DropSpace for macOS"><meta name="twitter:description" content="DropSpace for macOS — Early Beta."><meta name="twitter:image" content="../assets/og-image.png">
   <link rel="canonical" href="https://airanluo-dot.github.io/DropSpace/macos/">
   <link rel="icon" href="../assets/favicon.png"><link rel="stylesheet" href="../styles.css">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"DropSpace for macOS","url":"https://airanluo-dot.github.io/DropSpace/macos/"}</script>
 </head><body>
   <a class="skip-link" href="#main" data-i18n="ui.skip.to.content">Skip to content</a>
   <header class="site-header scrolled"><nav class="nav shell" data-i18n-attrs='{"aria-label":"ui.primary.navigation"}'>
-    <a class="brand" href="../index.html"><img src="../assets/dropspace-logo.png" width="42" height="42" alt=""><span data-i18n-exempt="fixed-or-sample">DropSpace</span></a>
-    <div class="nav-links"><a href="../index.html#download" data-i18n="ui.download.for.windows">Download for Windows</a><a href="#install" data-i18n="mac.install">Install on your Mac</a><a href="#history" data-i18n="mac.history">Mac release history</a></div>
+    <a class="brand" href="../index.html" data-i18n-attrs='{"aria-label":"ui.dropspace.home"}'><img src="../assets/dropspace-logo.png" width="42" height="42" alt=""><span data-i18n-exempt="fixed-or-sample">DropSpace</span></a>
+    <div class="nav-links"><a href="../index.html" data-i18n="ui.download.for.windows">Download for Windows</a><a href="#install" data-i18n="mac.install">Install on your Mac</a><a href="#history" data-i18n="mac.history">Mac release history</a></div>
     <select class="language-switch" data-language-selector data-i18n-attrs='{"aria-label":"ui.interface.language"}'></select>
+    <a class="button button-small button-primary nav-download" href="#download" data-i18n="ui.download">Download</a>
   </nav></header>
-  <main class="changelog-page shell mac-page" id="main">
-    <header><p class="section-index" data-i18n="mac.nav">Mac version</p><h1 data-i18n="mac.intro">A native workspace for your Mac.</h1><p data-i18n="mac.requirements">Requires macOS 26 or later and Apple Silicon. Intel Macs are not supported.</p><p data-i18n="mac.baseline">Mac v0.1.0 Beta 1 is a native public beta for everyday use, with Windows v0.3.2 Beta 7 as a functional reference, not a complete 1:1 port. Versions and updates are separate.</p></header>
-    <section class="mac-download" id="download" data-mac-release></section>
-    <p class="mac-disclosure" data-i18n="mac.integrity">Not notarized by Apple. No Developer ID signature. Locally ad-hoc signed for bundle integrity; this does not authenticate the developer.</p>
-    <section class="mac-detail"><h2 data-i18n="mac.features">Native workspace</h2><p data-i18n="mac.features.body">SwiftUI and AppKit bring file references, clipboard history, search, previews and local file actions to macOS. Each release documents its delivered capabilities and platform differences.</p></section>
-    <section class="mac-detail" id="install"><h2 data-i18n="mac.install">Install on your Mac</h2><ol>
+  <main class="shell mac-page" id="main">
+    <header class="mac-hero">
+      <div class="hero-copy"><p class="section-index" data-i18n="mac.nav">Mac early beta</p><h1 data-i18n="mac.intro">A native workspace for your Mac.</h1><p data-i18n="mac.baseline">An early native macOS test version. Features and updates are separate from Windows.</p><p class="mac-warning" data-i18n="mac.warning">Early beta. Extremely unstable.</p><a class="button button-ghost" href="#install" data-i18n="mac.install">Install on your Mac</a></div>
+      <div class="mac-download" id="download"><img class="mac-logo" src="../assets/dropspace-logo.png" width="112" height="112" alt=""><h2 data-i18n="mac.downloadTitle">Download for Mac</h2><p data-mac-requirements data-i18n="mac.requirementsVersion" data-i18n-args='{"version":"26.0"}'>Requires macOS 26.0 or later and Apple Silicon. Intel Macs are not supported.</p><div data-mac-release></div></div>
+    </header>
+    <section class="mac-detail"><div><p class="section-index" data-i18n-exempt="fixed-or-sample">01</p><h2 data-i18n="mac.features">Native workspace</h2></div><div><p data-i18n="mac.features.body">SwiftUI and AppKit bring file references, clipboard history, search, previews and local file actions to macOS. Each release documents its delivered capabilities and platform differences.</p><p class="mac-disclosure" data-i18n="mac.integrity">Not notarized by Apple. No Developer ID signature. Locally ad-hoc signed for bundle integrity; this does not authenticate the developer.</p></div></section>
+    <section class="mac-detail" id="install"><div><p class="section-index" data-i18n-exempt="fixed-or-sample">02</p><h2 data-i18n="mac.install">Install on your Mac</h2></div><div><ol>
       <li data-i18n="mac.step1">Download the DMG from this page or its linked GitHub Release. The release includes SHA-256 checksums for verifying download integrity.</li>
       <li data-i18n="mac.step2">Open the DMG, drag DropSpace into Applications, eject the disk image, then open the copied app.</li>
       <li data-i18n="mac.step3">If macOS blocks the first launch and you trust this download, open System Settings → Privacy &amp; Security → Open Anyway, then confirm Open.</li>
       <li data-i18n="mac.step4">Do not disable Gatekeeper, SIP or global security protections. A managed Mac may disallow this exception. Stop if macOS reports malware or damaged software.</li>
-    </ol><a href="https://support.apple.com/en-us/102445" rel="noopener noreferrer" data-i18n="mac.appleGuide">Apple’s opening instructions</a></section>
-    <section class="mac-detail" id="history"><h2 data-i18n="mac.history">Mac release history</h2><div data-mac-history></div></section>
+    </ol><a class="button button-ghost" href="https://support.apple.com/en-us/102445" rel="noopener noreferrer" data-i18n="mac.appleGuide">Apple’s opening instructions</a></div></section>
+    <section class="mac-history" id="history"><p class="section-index" data-i18n-exempt="fixed-or-sample">03</p><h2 data-i18n="mac.history">Mac release history</h2><div data-mac-history></div></section>
   </main>
+  <footer class="site-footer"><div class="shell footer-inner"><a class="brand" href="../index.html"><img src="../assets/dropspace-logo.png" width="42" height="42" alt=""><span data-i18n-exempt="fixed-or-sample">DropSpace</span></a><nav><a href="../index.html" data-i18n="ui.download.for.windows">Download for Windows</a><a href="#history" data-i18n="mac.history">Mac release history</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/PRIVACY.md" data-i18n="ui.privacy">Privacy</a></nav><p data-i18n-exempt="fixed-or-sample">© 2026 Airan Luo.</p></div></footer>
   <script type="module" src="../platform.js"></script>
 </body></html>

@@ -159,7 +159,7 @@ publish an old failure into the current list. Current operation errors remain vi
 
 Settings exposes automatic check/download toggles, Stable/Beta channel, current version, last check, state, manual check, download, install/open-location, and release-notes actions. Automatic checking belongs to the process lifetime and runs at most once after normal Tray/Clipboard/Overlay/database startup; reopening a window never checks again. A failed startup check is quiet and visible only as status. Manual checks can repeat and share an in-flight request.
 
-Stable accepts only final releases. Beta accepts prereleases and final releases and chooses the highest SemVer above the running build, so a Beta user receives a newer Stable and never downgrades after switching channels. Historical Preview tags and settings remain readable for compatibility. Unsigned builds disable unattended installation. Portable shows a verified-download workflow; Package/MSIX says Windows manages updates.
+Stable accepts only final releases. Beta accepts prereleases and final releases and chooses the highest SemVer above the running build, so a Beta user receives a newer Stable and never downgrades after switching channels. Historical Preview tags and settings remain readable for compatibility. Installer users can enable automatic installation of verified official updates, including unsigned releases; it is off by default. Portable shows a verified-download workflow; Package/MSIX says Windows manages updates.
 
 ## Main window
 

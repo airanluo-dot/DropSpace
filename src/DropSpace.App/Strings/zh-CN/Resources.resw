@@ -113,7 +113,7 @@
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace 未能完成启动，部分后台服务可能仍在运行。请先退出应用，再检查或恢复数据目录，并查看本地诊断日志。</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace 无法安全启动</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>正在计算…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>当前占用：{0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>缓存占用：{0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>暂时无法计算</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>清除剪贴板历史…</value></data>
   <data name="TrayExit" xml:space="preserve"><value>退出</value></data>
@@ -262,7 +262,7 @@
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>每次 DropSpace 进程启动最多检查一次；不会运行后台定时器。</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>自动下载更新</value></data>
   <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>仅下载到 DropSpace 自有缓存，完成大小与 SHA-256 验证后才可安装。</value></data>
-  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>无人值守自动安装</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>自动安装更新</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>只有更新通过可信 Authenticode 发布者验证时才可用；当前未签名构建保持关闭。</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>更新通道</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable 只接收正式版；Beta 接收正式版和测试版，并按数字版本顺序选择更新。</value></data>
@@ -273,7 +273,7 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>立即更新</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>打开下载位置</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>查看更新内容</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>本地数据</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>缓存占用</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>存储位置</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>清除最近一小时</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>清除今天</value></data>
@@ -953,4 +953,5 @@
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>请按快捷键</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>保存</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>快捷键不可用或已被占用，请换一个组合。</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>DLC 总占用：{0}</value></data>
 </root>

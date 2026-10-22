@@ -249,11 +249,11 @@
   "ui.september.short": "9月",
   "ui.uptime.example": "2時間18分",
   "meta.mac.title": "DropSpace macOS 版",
-  "meta.mac.description": "Apple シリコン向けのネイティブ DropSpace。ダウンロード、動作環境、インストール方法、Mac 版の更新履歴。",
-  "mac.nav": "Mac 版",
+  "meta.mac.description": "Apple シリコン向け DropSpace macOS 版は、極めて不安定な初期テスト版です。ダウンロード、インストール方法、リリース履歴を掲載しています。",
+  "mac.nav": "Mac 初期テスト版",
   "mac.intro": "Mac のためのネイティブなワークスペース。",
   "mac.requirements": "macOS 26 以降と Apple シリコンが必要です。Intel Mac には対応していません。",
-  "mac.baseline": "Mac v0.1.0 Beta 1 は日常利用向けのネイティブ公開ベータ版です。Windows v0.3.2 Beta 7 を機能の参考としていますが、完全な 1:1 移植ではありません。バージョンと更新は独立しています。",
+  "mac.baseline": "ネイティブ macOS アプリの初期テスト版です。機能と更新は Windows 版とは独立しています。",
   "mac.integrity": "Apple の公証および Developer ID 署名はありません。ローカルの ad-hoc 署名はアプリの整合性を確認するもので、開発者の身元を認証するものではありません。",
   "mac.features": "ネイティブなワークスペース",
   "mac.features.body": "SwiftUI と AppKit により、ファイル参照、クリップボード履歴、検索、プレビュー、ローカルファイル操作を macOS で提供します。実装済みの機能とプラットフォームの違いは各リリースに記載します。",
@@ -266,5 +266,9 @@
   "mac.step4": "Gatekeeper、SIP、システム全体の保護機能を無効にしないでください。管理対象の Mac では例外が禁止される場合があります。マルウェアや破損の警告が出た場合は中止してください。",
   "mac.history": "Mac 版の更新履歴",
   "mac.platformHint": "両プラットフォームのダウンロードを選べます。ブラウザの判定は候補を示すだけで、チップや OS のバージョンを確実に確認することはできません。",
-  "mac.appleGuide": "Apple の起動手順"
+  "mac.appleGuide": "Apple の起動手順",
+  "mac.warning": "初期テスト版です。動作は極めて不安定です。",
+  "mac.archive": "ZIP をダウンロード",
+  "mac.downloadTitle": "Mac 版をダウンロード",
+  "mac.requirementsVersion": "macOS {version} 以降と Apple シリコンが必要です。Intel Mac には対応していません。"
 }

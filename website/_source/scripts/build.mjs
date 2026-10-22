@@ -8,6 +8,7 @@ import { checkLocalization, checkBuiltWebsite } from "../../../scripts/check-loc
 import { createLatestChangeApi, validateWebsiteReleaseData } from "./release-contract.mjs";
 import { createMacReleaseData, validateMacReleaseData, macChannelFeed } from "./macos-release-contract.mjs";
 import { releaseRequirementsHint, stableRequirements } from "../src/release-requirements.js";
+import { macReleaseMarkup, macHistoryMarkup } from "../src/platform.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 await checkLocalization({ root: path.resolve(root, "../.."), scopes: ["website"] });
@@ -128,7 +129,7 @@ function applyMetadata(document, kind) {
   const publicOg = new URL(assetUrls.og, publicOrigin).href;
   document.querySelector('meta[property="og:image"]')?.setAttribute("content", publicOg);
   document.querySelector('meta[name="twitter:title"]')?.setAttribute("content", pageMeta.title);
-  document.querySelector('meta[name="twitter:description"]')?.setAttribute("content", kind === "changelog" ? pageMeta.description : text("meta.home.ogDescription"));
+  document.querySelector('meta[name="twitter:description"]')?.setAttribute("content", kind !== "home" ? pageMeta.description : text("meta.home.ogDescription"));
   document.querySelector('meta[name="twitter:image"]')?.setAttribute("content", publicOg);
 
   for (const link of document.querySelectorAll('link[rel="alternate"]')) link.remove();
@@ -190,24 +191,23 @@ async function render(templatePath, kind) {
   if (kind === 'home') {
     const option = document.createElement('a'); option.className = 'download-card'; option.href = macPageURL;
     option.dataset.platformOption = 'macos';
-    option.innerHTML = `<div><strong data-i18n="mac.nav">${text('mac.nav')}</strong><span data-i18n="mac.requirements">${text('mac.requirements')}</span></div><b>→</b>`;
+    option.innerHTML = `<div><strong data-i18n="mac.nav">${text('mac.nav')}</strong><span data-i18n="mac.requirements">${text('mac.requirements')}</span><small data-i18n="mac.warning">${text('mac.warning')}</small></div><b aria-hidden="true">→</b>`;
     document.querySelector('.download-options')?.append(option);
     document.querySelector('.download-options [data-download="installer"]')?.setAttribute('data-platform-option', 'windows');
     const navDownload = document.querySelector('.nav-download');
     if (navDownload) { navDownload.dataset.platformPrimary = ''; navDownload.dataset.macUrl = macPageURL; }
     const hint = document.createElement('p'); hint.dataset.i18n = 'mac.platformHint'; hint.textContent = text('mac.platformHint');
-    document.querySelector('#download')?.append(hint);
+    hint.className = 'platform-hint'; document.querySelector('.download-options')?.append(hint);
     const script = document.createElement('script'); script.type = 'module'; script.src = assetUrls.platformJs; document.body.append(script);
   }
   if (kind === 'mac') {
     const selected = macReleases.stable ?? macReleases.beta;
     const download = document.querySelector('[data-mac-release]');
-    if (selected) {
-      download.innerHTML = `<p>${escapeHtml(selected.manifest.tag)}</p><a class="button button-primary" data-i18n="${selected.manifest.channel === 'beta' ? 'mac.download' : 'ui.download'}" href="${escapeHtml(selected.manifest.installer.url)}">${text(selected.manifest.channel === 'beta' ? 'mac.download' : 'ui.download')}</a> <a data-i18n="ui.sha.256.checksums" href="${escapeHtml(selected.checksumsURL)}">${text('ui.sha.256.checksums')}</a>`;
-    } else {
-      download.innerHTML = `<p data-i18n="mac.unreleased">${text('mac.unreleased')}</p>`;
-    }
-    document.querySelector('[data-mac-history]').innerHTML = macReleases.releases.map(entry => `<article class="release-entry"><strong>${escapeHtml(entry.manifest.tag)}</strong><div class="release-body"><p lang="en" data-i18n-exempt="release-body">${escapeHtml(entry.manifest.releaseNotes)}</p><a data-i18n="release.notes" href="${escapeHtml(entry.manifest.releaseURL)}">${text('release.notes')}</a> <a data-i18n="ui.download" href="${escapeHtml(entry.manifest.installer.url)}">${text('ui.download')}</a></div></article>`).join('');
+    download.innerHTML = macReleaseMarkup(selected, text);
+    document.querySelector('[data-mac-history]').innerHTML = macHistoryMarkup(macReleases.releases, text, date => formatDate(date, 'en-US'));
+    document.querySelectorAll('[data-mac-requirements]').forEach(node => {
+      node.dataset.i18nArgs = JSON.stringify({version: selected?.manifest.minimumOS ?? '26.0'});
+    });
   }
   for (const selector of document.querySelectorAll('[data-language-selector]')) for (const item of languageCatalog.languages) {
     const option = document.createElement('option'); option.value = item.code; option.textContent = item.nativeName; selector.append(option);

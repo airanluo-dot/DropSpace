@@ -771,12 +771,11 @@
               </Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock services:XamlResourceOverride.Uid="AutoInstallUpdatesTitle" />
-                <TextBlock services:XamlResourceOverride.Uid="AutoInstallUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch
                 x:Name="AutoInstallUpdatesToggle"
                 Grid.Column="1"
-                IsEnabled="{Binding TrustedAutoInstallAvailable}"
+                IsEnabled="{Binding CanAutoInstallUpdates}"
                 Toggled="OnAutoInstallUpdatesToggled" />
             </Grid>
             <Grid ColumnSpacing="20">

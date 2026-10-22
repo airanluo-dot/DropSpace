@@ -249,11 +249,11 @@
   "ui.september.short": "SEP",
   "ui.uptime.example": "2 Std. 18 Min.",
   "meta.mac.title": "DropSpace für macOS",
-  "meta.mac.description": "Natives DropSpace für Apple Silicon: Downloads, Voraussetzungen, Installation und Mac-Versionsverlauf.",
-  "mac.nav": "Mac-Version",
+  "meta.mac.description": "DropSpace für macOS ist eine frühe, äußerst instabile Testversion für Apple Silicon. Downloads, Installation und Versionsverlauf.",
+  "mac.nav": "Mac: frühe Testversion",
   "mac.intro": "Ein nativer Arbeitsbereich für deinen Mac.",
   "mac.requirements": "Erfordert macOS 26 oder neuer und Apple Silicon. Intel-Macs werden nicht unterstützt.",
-  "mac.baseline": "Mac v0.1.0 Beta 1 ist eine native öffentliche Beta für den Alltag. Windows v0.3.2 Beta 7 dient als funktionale Referenz; dies ist keine vollständige 1:1-Portierung. Versionen und Updates sind getrennt.",
+  "mac.baseline": "Eine frühe native Testversion für macOS. Funktionen und Updates sind von der Windows-Version unabhängig.",
   "mac.integrity": "Nicht von Apple notarisiert. Keine Developer-ID-Signatur. Die lokale Ad-hoc-Signatur prüft die Paketintegrität, bestätigt aber nicht die Identität des Entwicklers.",
   "mac.features": "Nativer Arbeitsbereich",
   "mac.features.body": "SwiftUI und AppKit bieten Dateiverweise, Zwischenablageverlauf, Suche, Vorschau und lokale Dateiaktionen unter macOS. Jede Version nennt ihre tatsächlich verfügbaren Funktionen und Plattformunterschiede.",
@@ -266,5 +266,9 @@
   "mac.step4": "Deaktiviere weder Gatekeeper noch SIP oder globale Schutzfunktionen. Verwaltete Macs können Ausnahmen verbieten. Brich bei Warnungen vor Schadsoftware oder beschädigter Software ab.",
   "mac.history": "Mac-Versionsverlauf",
   "mac.platformHint": "Downloads für beide Plattformen bleiben verfügbar. Die Browsererkennung schlägt eine Plattform vor, kann Chip und Systemversion aber nicht zuverlässig bestätigen.",
-  "mac.appleGuide": "Anleitung von Apple zum Öffnen"
+  "mac.appleGuide": "Anleitung von Apple zum Öffnen",
+  "mac.warning": "Frühe Testversion. Äußerst instabil.",
+  "mac.archive": "ZIP herunterladen",
+  "mac.downloadTitle": "Download für Mac",
+  "mac.requirementsVersion": "Erfordert macOS {version} oder neuer und Apple Silicon. Intel-Macs werden nicht unterstützt."
 }
