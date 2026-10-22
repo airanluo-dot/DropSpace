@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "owner-authorized-stable-host-experimental-models",
-  "reason": "Owner-authorized stable host release. Optional experimental model inputs and historical observations are unchanged; no new model acceptance or semantic approval is claimed.",
+  "reason": "Owner-authorized logo-only in-place v1.0.0 patch; all tests explicitly skipped. Optional experimental model inputs and historical observations remain unchanged. No new functional or semantic acceptance is claimed.",
   "scope": {
     "releaseVersion": "v1.0.0",
     "shippingModels": [
@@ -293,7 +293,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.Settings.cs",
-          "sha256": "42ddd84f9740565d991a83ce6b4d5d5bb1befaf4c6c018c731c2cc06d9f63f3e"
+          "sha256": "25e628c50dbe19c2420f6b31ec61091187352378111fdb6ef71424a0d19a28fb"
         },
         {
           "path": "src/DropSpace.App/MainWindow.xaml.cs",
@@ -1061,7 +1061,7 @@
         },
         {
           "path": "src/DropSpace.App/DropSpace.App.csproj",
-          "sha256": "392f25df8bbc95e7cce12aeb30a3a829e742385a75a6aca190d875cfb425d17d"
+          "sha256": "903ff214575944651a37f2735f1a244f2f59388511ef2a2bd1087ce0ef4f5c1e"
         },
         {
           "path": "scripts/Build-PortableExe.ps1",
@@ -1265,7 +1265,7 @@
         },
         {
           "path": "scripts/ai-runtime-publication.mjs",
-          "sha256": "e7f118da87248db63eaea86931ba76b85c66831076a84e13d2fcce2b7e16bbb5"
+          "sha256": "36cd46b655d66930f6e90e49bbd09d81c01b663bb663c09c3defff9e3f181a91"
         },
         {
           "path": "tools/plain-lyrics-helper/CMakeLists.txt",
@@ -1280,7 +1280,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "a611e7c0d5687e84a2ac6ba266940e5555e24962e58633f29564ce3c9b847c48"
+      "sha256": "ba21bedbf6896962be14e0295c803be69c9c1598654010b8cd10d9435abd3a8c"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2723,7 +2723,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v1.0.0-stable-host-review-2.json",
-    "sha256": "464c1cc33454ac5deb7eb540680e7dae2e7ecc850f443ddd1633877b0793d529"
+    "path": "scripts/ai-model-qa/evidence/v1.0.0-logo-hotfix-review.json",
+    "sha256": "60d9d6970e7ba5152e27870ca13c0174e54b3638280f906b7e63679574109ec2"
   }
 }
