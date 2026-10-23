@@ -33,6 +33,7 @@ public sealed class AppStoragePaths
         StagingLeases = Path.Combine(Staging, "leases");
         Database = Path.Combine(Data, "dropspace.db");
         Settings = Path.Combine(Data, "settings.json");
+        Agent = Path.Combine(Root, "Agent");
     }
 
     public string Root { get; }
@@ -64,6 +65,7 @@ public sealed class AppStoragePaths
     public string Database { get; }
 
     public string Settings { get; }
+    public string Agent { get; }
 
     public void EnsureCreated()
     {

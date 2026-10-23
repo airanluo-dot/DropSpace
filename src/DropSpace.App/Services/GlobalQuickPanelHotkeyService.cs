@@ -6,7 +6,8 @@ namespace DropSpace.App.Services;
 /// <summary>Owns a process-lifetime RegisterHotKey message thread for the Dynamic Island Quick Panel.</summary>
 public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposable
 {
-    private const int HotkeyId = 0x4453;
+    private readonly int _hotkeyId;
+    private readonly string _threadName;
     private const uint WindowMessageHotkey = 0x0312;
     private const uint WindowMessageQuit = 0x0012;
     private const uint ModifierAlt = 0x0001;
@@ -27,8 +28,11 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
     private int _isRegistered;
     private bool _disposed;
 
-    public GlobalQuickPanelHotkeyService(ILogger<GlobalQuickPanelHotkeyService> logger) =>
-        _logger = logger;
+    public GlobalQuickPanelHotkeyService(ILogger<GlobalQuickPanelHotkeyService> logger)
+        : this(logger,0x4453,"DropSpace Quick Panel hotkey") { }
+
+    internal GlobalQuickPanelHotkeyService(ILogger<GlobalQuickPanelHotkeyService> logger,int hotkeyId,string threadName)
+    { _logger=logger; _hotkeyId=hotkeyId; _threadName=threadName; }
 
     public event EventHandler? Invoked;
 
@@ -42,7 +46,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
         {
             return true;
         }
-        const int probeId = HotkeyId + 1;
+        var probeId = _hotkeyId + 1;
         if (!RegisterHotKey(nint.Zero, probeId, definition.Modifiers | ModifierNoRepeat, definition.VirtualKey))
         {
             return false;
@@ -126,7 +130,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
         _thread = new Thread(MessageThreadMain)
         {
             IsBackground = true,
-            Name = "DropSpace Quick Panel hotkey",
+            Name = _threadName,
         };
         _thread.Start();
     }
@@ -136,7 +140,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
         await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await StopCoreAsync(cancellationToken).ConfigureAwait(false);
+            if (await StopCoreAsync(cancellationToken).ConfigureAwait(false)) _gesture = null;
         }
         finally
         {
@@ -179,7 +183,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
             Volatile.Write(ref _threadId, GetCurrentThreadId());
             if (!RegisterHotKey(
                 nint.Zero,
-                HotkeyId,
+                _hotkeyId,
                 _definition.Modifiers | ModifierNoRepeat,
                 _definition.VirtualKey))
             {
@@ -194,7 +198,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
             _logger.LogInformation("Quick Panel global hotkey registered without logging the configured key sequence.");
             while (GetMessage(out var message, nint.Zero, 0, 0) > 0)
             {
-                if (message.Message == WindowMessageHotkey && message.WParam.ToInt32() == HotkeyId)
+                if (message.Message == WindowMessageHotkey && message.WParam.ToInt32() == _hotkeyId)
                 {
                     NativeSubscriberNotification.Invoke(Invoked, this, _logger);
                 }
@@ -206,7 +210,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
         }
         finally
         {
-            _ = UnregisterHotKey(nint.Zero, HotkeyId);
+            _ = UnregisterHotKey(nint.Zero, _hotkeyId);
             Volatile.Write(ref _isRegistered, 0);
             _readySignal?.TrySetResult(false);
             _exitSignal?.TrySetResult(null);

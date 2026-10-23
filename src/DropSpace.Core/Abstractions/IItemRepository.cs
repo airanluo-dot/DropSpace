@@ -6,6 +6,18 @@ public interface IItemRepository
 {
     Task InitializeAsync(CancellationToken cancellationToken = default);
 
+    Task<DropItem> UpsertRecentFileAsync(FileCandidate candidate, RecentItemMetadata metadata, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    Task<DropItem?> FindRecentFileByPathAsync(string normalizedPath, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    Task RetainRecentAsync(Guid id, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    Task<int> ApplyRecentRetentionAsync(DateTimeOffset ageCutoffUtc, int countLimit, IReadOnlyCollection<Guid> protectedIds, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
     Task<DropItem> AddFileAsync(FileCandidate candidate, CancellationToken cancellationToken = default);
 
     Task<DropItem> AddSpaceFileAsync(

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ResourceDictionary
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:services="using:DropSpace.App.Services">
   <!-- Per-theme island resources keep simultaneous main/island appearances independent. -->
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
@@ -55,6 +56,30 @@
   <x:Double x:Key="DropSpaceOverlayCompactHeight">64</x:Double>
   <CornerRadius x:Key="DropSpaceOverlayRadius">32</CornerRadius>
   <!-- ThemeResource setters resolve for the destination control, including window theme overrides. -->
+  <Style x:Key="DropSpaceActionIconStyle" TargetType="FontIcon">
+    <Setter Property="FontFamily" Value="{ThemeResource SymbolThemeFontFamily}" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="IsTextScaleFactorEnabled" Value="False" />
+    <Setter Property="AutomationProperties.AccessibilityView" Value="Raw" />
+  </Style>
+  <Style x:Key="DropSpaceIconButtonStyle" TargetType="Button" BasedOn="{StaticResource SubtleButtonStyle}">
+    <Setter Property="MinWidth" Value="36" />
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="services:IconButtonAssist.UseAccessibleToolTip" Value="True" />
+  </Style>
+  <Style x:Key="DropSpaceIconToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+    <Setter Property="MinWidth" Value="36" />
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="services:IconButtonAssist.UseAccessibleToolTip" Value="True" />
+  </Style>
   <Style x:Key="DropSpaceCardStyle" TargetType="Border">
     <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
     <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />

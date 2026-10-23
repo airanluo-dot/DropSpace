@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Data;
 
-public sealed class SqliteItemRepository(
+public sealed partial class SqliteItemRepository(
     SqliteDatabase database,
     ILogger<SqliteItemRepository> logger) : IItemRepository, IPayloadCleanupRepository
 {
@@ -831,6 +831,10 @@ public sealed class SqliteItemRepository(
                 itemCommand.CommandText = """
                     UPDATE items
                     SET title = @title, kind = @kind, status = @status, search_text = @search_text,
+                        created_at_utc = CASE WHEN source = @recent_source AND @status = @available_status AND
+                            (status <> @available_status OR EXISTS (SELECT 1 FROM file_references WHERE item_id = @id AND
+                                (known_size IS NOT @replacement_size OR known_modified_at_utc IS NOT @replacement_modified)))
+                            THEN @refreshed_at ELSE created_at_utc END,
                         payload_id = CASE WHEN @detach_payload = 1 THEN NULL ELSE payload_id END,
                         revision = revision + 1
                     WHERE id = @id AND pending_delete_token IS NULL
@@ -842,6 +846,11 @@ public sealed class SqliteItemRepository(
                 itemCommand.Parameters.AddWithValue("@search_text", ContentClassifier.BuildSearchText(replacement.Title, replacement.OriginalPath));
                 itemCommand.Parameters.AddWithValue("@id", ToBytes(id));
                 itemCommand.Parameters.AddWithValue("@detach_payload", detachPayload ? 1 : 0);
+                itemCommand.Parameters.AddWithValue("@recent_source", (int)ItemSource.Recent);
+                itemCommand.Parameters.AddWithValue("@available_status", (int)ItemStatus.Available);
+                itemCommand.Parameters.AddWithValue("@replacement_size", DbValue(replacement.KnownSize));
+                itemCommand.Parameters.AddWithValue("@replacement_modified", DbTimestamp(replacement.KnownModifiedAtUtc));
+                itemCommand.Parameters.AddWithValue("@refreshed_at", ToTimestamp(DateTimeOffset.UtcNow));
                 await itemCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 

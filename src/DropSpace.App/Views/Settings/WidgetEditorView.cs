@@ -209,7 +209,7 @@ public sealed partial class WidgetEditorView : UserControl
     private Button CreateDragButton(NativeWidgetId id, string label)
     {
         var content = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-        var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(id), FontSize = 18 };
+        var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(id), Style = (Style)Application.Current.Resources["DropSpaceActionIconStyle"] };
         AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
         content.Children.Add(icon);
         content.Children.Add(new TextBlock { Text = label, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });

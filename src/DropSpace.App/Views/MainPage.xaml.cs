@@ -57,6 +57,7 @@ public sealed partial class MainPage : Page
     private readonly SemaphoreSlim _dialogGate = new(1, 1);
     private CancellationTokenSource _dialogLifetime = new();
     private readonly GlobalQuickPanelHotkeyService _hotkey;
+    private readonly GlobalMusicWindowHotkeyService _musicHotkey;
     private bool _syncingNavigation;
     private bool _syncingSettings;
     private bool _quickActionsSettingsBuilt;
@@ -86,7 +87,9 @@ public sealed partial class MainPage : Page
         NeteaseEnhancementViewModel enhancement,
         Services.Dlc.DlcManagerService dlc,
         Services.Dlc.FeatureModuleRuntime modules,
-        GlobalQuickPanelHotkeyService hotkey)
+        GlobalQuickPanelHotkeyService hotkey,
+        GlobalMusicWindowHotkeyService musicHotkey,
+        Services.Media.MusicWindowService musicWindow)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
@@ -104,6 +107,7 @@ public sealed partial class MainPage : Page
         _sharing = sharing;
         _modules = modules;
         _hotkey = hotkey;
+        _musicHotkey = musicHotkey;
         try
         {
             InitializeComponent();
@@ -123,7 +127,7 @@ public sealed partial class MainPage : Page
             MaxClipboardFileMegabytesNumber, MaxClipboardFileTotalMegabytesNumber, MaxClipboardFileItemsNumber })
             slider.InteractionCompleted += async (_, _) => await _settingsEditor.FlushEditsAsync();
         DataContext = viewModel;
-        _musicPage = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings);
+        _musicPage = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings, musicWindow.Open);
         MusicContent.Content = _musicPage;
         BuildSettingsPages(settingsEditor, dlc);
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;

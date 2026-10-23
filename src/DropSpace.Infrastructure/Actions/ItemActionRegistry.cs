@@ -1,13 +1,19 @@
 using DropSpace.Core.Actions;
+using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Actions;
 
 public sealed class ItemActionRegistry(
     IEnumerable<IItemAction> actions,
-    ILogger<ItemActionRegistry>? logger = null) : IItemActionRegistry
+    ILogger<ItemActionRegistry>? logger = null,
+    IRecentItemsService? recent = null) : IItemActionRegistry, IAsyncDisposable
 {
     private readonly ILogger<ItemActionRegistry>? _logger = logger;
+    private readonly object _lifetimeGate = new();
+    private readonly TaskCompletionSource _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _activeExecutions;
+    private bool _stopping;
     private readonly IReadOnlyDictionary<ItemActionId, IItemAction> _byId = actions
         .GroupBy(action => action.Descriptor.Id)
         .ToDictionary(group => group.Key, group => group.OrderByDescending(action => action.Descriptor.Order).First());
@@ -36,6 +42,41 @@ public sealed class ItemActionRegistry(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        lock (_lifetimeGate)
+        {
+            if (_stopping) return ItemActionResult.Failure("cancelled", "ActionCancelled");
+            _activeExecutions++;
+        }
+        try { return await ExecuteCoreAsync(actionId, context, cancellationToken).ConfigureAwait(false); }
+        finally
+        {
+            lock (_lifetimeGate)
+            {
+                _activeExecutions--;
+                if (_stopping && _activeExecutions == 0) _drained.TrySetResult();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stop new actions and drain owners through final-output registration. The UI first cancels
+    /// its action tokens; already committed files are still registered before recent storage closes.
+    /// </summary>
+    public Task ShutdownAsync()
+    {
+        lock (_lifetimeGate)
+        {
+            _stopping = true;
+            if (_activeExecutions == 0) _drained.TrySetResult();
+            return _drained.Task;
+        }
+    }
+
+    public ValueTask DisposeAsync() => new(ShutdownAsync());
+
+    private async Task<ItemActionResult> ExecuteCoreAsync(
+        ItemActionId actionId, ItemActionContext context, CancellationToken cancellationToken)
+    {
         if (!_byId.TryGetValue(actionId, out var action))
         {
             return ItemActionResult.Failure("unknown-action", "ActionUnavailable");
@@ -43,7 +84,35 @@ public sealed class ItemActionRegistry(
 
         try
         {
-            return await action.ExecuteAsync(context, cancellationToken).ConfigureAwait(false);
+            var result = await action.ExecuteAsync(context, cancellationToken).ConfigureAwait(false);
+            if (recent is null || (!result.Succeeded && !result.IsPartial) || result.OutputPaths.Count == 0)
+                return result;
+
+            var ids = new List<Guid>(result.OutputItemIds);
+            var registrationFailed = false;
+            // The action has returned after closing its output streams. A cancelled or failed
+            // action never reaches this path; a late dialog cancellation cannot hide committed work.
+            foreach (var path in result.OutputPaths.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var item = await recent.RegisterOutputAsync(path, actionId.ToString(), result.IsPartial,
+                        CancellationToken.None).ConfigureAwait(false);
+                    if (item is not null) ids.Add(item.Id);
+                    else registrationFailed = true;
+                }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                {
+                    registrationFailed = true;
+                    _logger?.LogWarning(error, "Completed action {ActionId} could not register an output.", actionId);
+                }
+            }
+            return result with
+            {
+                OutputItemIds = ids.Distinct().ToArray(),
+                MessageResourceKey = registrationFailed ? "ActionOutputRegistrationFailed" :
+                    result.IsPartial ? "ActionPartiallyCompleted" : result.MessageResourceKey,
+            };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

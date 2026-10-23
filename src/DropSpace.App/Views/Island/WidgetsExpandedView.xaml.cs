@@ -223,7 +223,7 @@ public sealed partial class WidgetsExpandedView : UserControl
                 var busy = false;
                 var button = new Button { Content = content, MinWidth = 0, MinHeight = 0, Padding = new(4), HorizontalContentAlignment = HorizontalAlignment.Stretch, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                 AutomationProperties.SetName(button, view.Text("Widget" + placement.Id + ".Text"));
-                var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id), FontSize = 18 };
+                var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id), Style = (Style)Application.Current.Resources["DropSpaceActionIconStyle"] };
                 AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
                 AutomationProperties.SetLiveSetting(value, AutomationLiveSetting.Polite);
                 value.TextWrapping = TextWrapping.NoWrap;
@@ -311,7 +311,7 @@ public sealed partial class WidgetsExpandedView : UserControl
             }
             else if (placement.Id == NativeWidgetId.Settings)
             {
-                var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id) };
+                var icon = new FontIcon { Glyph = NativeWidgetIcons.Glyph(placement.Id), Style = (Style)Application.Current.Resources["DropSpaceActionIconStyle"], FontSize = 20 };
                 AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
                 var button = new Button { Content = icon, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                 XamlResourceOverride.Apply(button, "WidgetSettingsAction");
@@ -326,8 +326,8 @@ public sealed partial class WidgetsExpandedView : UserControl
                     content.Children.Clear();
                     var timerButton = new Button
                     {
-                        Content = new FontIcon { FontSize = 16 },
-                        Padding = new(4), Width = 32, MinWidth = 32, MinHeight = 32,
+                        Content = new FontIcon { Style = (Style)Application.Current.Resources["DropSpaceActionIconStyle"] },
+                        Style = (Style)Application.Current.Resources["DropSpaceIconButtonStyle"], Width = 36, Height = 36,
                     };
                     timerButton.Click += (_, _) => view.ToggleTimer(placement.Id);
                     _timerButtons[placement.Id] = timerButton;
@@ -388,7 +388,7 @@ public sealed partial class WidgetsExpandedView : UserControl
                 }
                 if (placement.Id == NativeWidgetId.ClipboardPause)
                 {
-                    _clipboardButton = new Button { Command = _view.ClipboardPauseCommand, Content = new FontIcon { Glyph = "\uE77F", FontSize = 18 }, Padding = new(4), HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+                    _clipboardButton = new Button { Command = _view.ClipboardPauseCommand, Content = new FontIcon { Glyph = "\uE77F", Style = (Style)Application.Current.Resources["DropSpaceActionIconStyle"], FontSize = 20 }, Padding = new(4), HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                     tile = _clipboardButton;
                 }
                 else tile = new Border { CornerRadius = new(14), Padding = new(placement.ColumnSpan == 1 ? 4 : 8), Style = (Style)Application.Current.Resources["DropSpaceOverlayWidgetTileStyle"], Child = content };

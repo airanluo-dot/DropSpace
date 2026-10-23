@@ -99,6 +99,7 @@ public sealed record AppSettings
     public long DownloadSpeedLimitBytesPerSecond { get; init; }
     // Empty in old configurations: the Windows adapter resolves FOLDERID_Downloads at startup.
     public string DefaultDownloadDirectory { get; init; } = string.Empty;
+    public RecentFileSettings RecentFiles { get; init; } = new();
 
     public bool PrivacyChoicesCompleted { get; init; }
     public bool ClipboardPaused { get; init; }
@@ -157,6 +158,8 @@ public sealed record AppSettings
         QuickActionPreferencePolicy.CreateAutomaticPreferences();
 
     public string QuickPanelHotkey { get; init; } = "Win+Shift+Space";
+    // Optional global action. Older settings omit it and preserve an unbound default.
+    public string MusicWindowHotkey { get; init; } = string.Empty;
 
     public Dictionary<string, string> KeyboardShortcuts { get; init; } = [];
 
@@ -357,7 +360,12 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(LastUpdateCheckUtc), "Update timestamps must be stored in UTC.");
         }
 
-        return NativeIslandSettingsPolicy.Normalize(QuickPanelHotkey == normalizedHotkey ? this : this with { QuickPanelHotkey = normalizedHotkey });
+        return NativeIslandSettingsPolicy.Normalize(this with
+        {
+            QuickPanelHotkey = normalizedHotkey,
+            MusicWindowHotkey = string.IsNullOrWhiteSpace(MusicWindowHotkey) ? string.Empty : SettingsValidationPolicy.CanonicalizeHotkey(MusicWindowHotkey)!,
+            RecentFiles = (RecentFiles ?? new RecentFileSettings()).Validate(),
+        });
     }
 
 }

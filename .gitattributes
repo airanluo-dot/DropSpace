@@ -35,3 +35,8 @@ docs/dev/evidence/ten-language/beta19-SHA256SUMS.txt -text whitespace=cr-at-eol
 
 # Pinned third-party orthography data/license retain upstream bytes.
 src/DropSpace.Core/Lyrics/Data/*.txt -text
+
+# Bundled upstream music licenses and original vector sources retain exact bytes.
+docs/licenses/fluent-system-icons-MIT.txt -text
+src/DropSpace.MusicBackground/ThirdParty/Lyricify/LICENSE.txt -text
+src/DropSpace.App/Assets/MusicIcons/*.svg -text

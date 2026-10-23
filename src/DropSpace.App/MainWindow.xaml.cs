@@ -5,6 +5,7 @@ using DropSpace.Core.Actions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Network;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -31,6 +32,9 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     private readonly CancellationTokenSource _closeExplanationCancellation = new();
     private Task? _closeExplanationTask;
     private Task<AppSettings?>? _privacyChoicesTask;
+    private bool _applyingMinimumSize;
+    internal const int MinimumWidthDip = 860;
+    internal const int MinimumHeightDip = 600;
 
     public MainWindow(
         MainViewModel viewModel,
@@ -53,7 +57,9 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         NeteaseEnhancementViewModel enhancement,
         Services.Dlc.DlcManagerService dlc,
         Services.Dlc.FeatureModuleRuntime modules,
-        GlobalQuickPanelHotkeyService hotkey)
+        GlobalQuickPanelHotkeyService hotkey,
+        GlobalMusicWindowHotkeyService musicHotkey,
+        Services.Media.MusicWindowService musicWindow)
     {
         _viewModel = viewModel;
         _media = media;
@@ -110,11 +116,12 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             crossDeviceClipboard,
             dropLinkHost,
             sharing,
-            settingsEditor, media, sessions, mediaExperience, mediaIcons, enhancement, dlc, modules, hotkey);
+            settingsEditor, media, sessions, mediaExperience, mediaIcons, enhancement, dlc, modules, hotkey, musicHotkey, musicWindow);
         _mainPage = _createMainPage();
         _mainPage.ModulePresentationChanged += OnModulePresentationChanged;
         RootContent.Content = _mainPage;
         AppWindow.Changed += OnWindowPresentationChanged;
+        ApplyMinimumWindowSize();
         _viewModel.PropertyChanged += OnMediaSectionChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateMediaVisibility();
@@ -123,7 +130,34 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     public event EventHandler? ExitRequested;
     internal Views.MainPage DiagnosticPage => _mainPage;
 
-    private void OnWindowPresentationChanged(AppWindow sender, AppWindowChangedEventArgs args) => UpdateMediaVisibility();
+    private void OnWindowPresentationChanged(AppWindow sender, AppWindowChangedEventArgs args)
+    {
+        ApplyMinimumWindowSize();
+        UpdateMediaVisibility();
+    }
+
+    // AppWindow sizes are physical pixels. Recalculate on monitor/DPI and size changes,
+    // while allowing a smaller work area to remain usable at unusually large text scaling.
+    private void ApplyMinimumWindowSize()
+    {
+        if (_applyingMinimumSize || _allowClose || AppWindow.Presenter is not OverlappedPresenter presenter) return;
+        _applyingMinimumSize = true;
+        try
+        {
+            var scale = Math.Max(96u, GetDpiForWindow(WindowNative.GetWindowHandle(this))) / 96d;
+            var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest)?.WorkArea;
+            var minimumWidth = Math.Min((int)Math.Ceiling(MinimumWidthDip * scale), area?.Width ?? int.MaxValue);
+            var minimumHeight = Math.Min((int)Math.Ceiling(MinimumHeightDip * scale), area?.Height ?? int.MaxValue);
+            presenter.PreferredMinimumWidth = minimumWidth;
+            presenter.PreferredMinimumHeight = minimumHeight;
+            if (presenter.State == OverlappedPresenterState.Restored &&
+                (AppWindow.Size.Width < minimumWidth || AppWindow.Size.Height < minimumHeight))
+                AppWindow.Resize(new SizeInt32(Math.Max(minimumWidth, AppWindow.Size.Width), Math.Max(minimumHeight, AppWindow.Size.Height)));
+        }
+        finally { _applyingMinimumSize = false; }
+    }
+
+    [DllImport("user32.dll", ExactSpelling = true)] private static extern uint GetDpiForWindow(nint window);
     private void OnMediaSectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
         if (args.PropertyName == nameof(MainViewModel.CurrentSection)) UpdateMediaVisibility();

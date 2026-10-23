@@ -55,9 +55,14 @@ public sealed class ItemCardViewModel : ObservableObject
             ? string.Empty
             : _strings.Format("ImagePreview", Item.Image.PixelWidth, Item.Image.PixelHeight, FormatBytes(Item.Image.EncodedBytes)));
 
-    public string SourceLabel => Item.Source == ItemSource.Space
-        ? _strings.Get("ItemSourceSpace")
-        : _strings.Get("ItemSourceClipboard");
+    public string SourceLabel => RecentItemMetadata.Read(Item.MetadataJson) is { IsOutput: true } output
+        ? _strings.Get(output.IsPartial ? "ItemSourcePartialOutput" : "ItemSourceOutput")
+        : _strings.Get(Item.Source switch
+        {
+            ItemSource.Space => "ItemSourceSpace",
+            ItemSource.Recent => "ItemSourceRecent",
+            _ => "ItemSourceClipboard",
+        });
 
     public string KindLabel => Item.Kind switch
     {
@@ -73,10 +78,11 @@ public sealed class ItemCardViewModel : ObservableObject
 
     public string StatusLabel => Item.Status switch
     {
-        ItemStatus.Available => string.Empty,
+        ItemStatus.Available => Item.Source == ItemSource.Recent ? _strings.Get("ItemStatusCurrent") : string.Empty,
         ItemStatus.Missing => _strings.Get("ItemStatusMissing"),
         ItemStatus.Unavailable => _strings.Get("ItemStatusUnavailable"),
-        ItemStatus.Processing => _strings.Get("ItemStatusProcessing"),
+        ItemStatus.Processing => _strings.Get(Item.Source == ItemSource.Recent || RecentItemMetadata.Read(Item.MetadataJson) is not null
+            ? "ItemStatusWaiting" : "ItemStatusProcessing"),
         ItemStatus.Error => _strings.Get("ItemStatusError"),
         _ => string.Empty,
     };

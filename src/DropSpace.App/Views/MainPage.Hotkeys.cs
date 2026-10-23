@@ -13,6 +13,7 @@ public sealed partial class MainPage
 {
     private readonly Dictionary<string, Button> _shortcutButtons = [];
     private TextBlock? _hotkeyStatus;
+    private TextBlock? _musicHotkeyStatus;
     private bool _recordingShortcut;
 
     private void BuildKeyboardShortcutsPage(StackPanel page)
@@ -40,6 +41,9 @@ public sealed partial class MainPage
         Row("QuickPanel", "ShortcutOpenIsland");
         _hotkeyStatus = new TextBlock { TextWrapping = TextWrapping.Wrap };
         page.Children.Add(_hotkeyStatus);
+        Row("MusicWindow", "ShortcutOpenMusicWindow");
+        _musicHotkeyStatus = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        page.Children.Add(_musicHotkeyStatus);
         Heading("ShortcutMainWindow");
         foreach (var id in KeyboardShortcutPolicy.Defaults.Keys) Row(id, "Shortcut" + id);
         Heading("ShortcutContext");
@@ -58,11 +62,22 @@ public sealed partial class MainPage
     {
         if (_recordingShortcut) return;
         foreach (var (id, button) in _shortcutButtons)
-            button.Content = id == "QuickPanel" ? _viewModel.QuickPanelHotkey : KeyboardShortcutPolicy.Get(_viewModel.Settings, id);
+            button.Content = id switch
+            {
+                "QuickPanel" => _viewModel.QuickPanelHotkey,
+                "MusicWindow" => string.IsNullOrWhiteSpace(_viewModel.Settings.MusicWindowHotkey) ? _strings.Get("ShortcutUnassigned") : _viewModel.Settings.MusicWindowHotkey,
+                _ => KeyboardShortcutPolicy.Get(_viewModel.Settings,id),
+            };
         if (_hotkeyStatus is not null)
         {
             _hotkeyStatus.Text = _hotkey.IsRegistered ? "" : _strings.Get("HotkeyUnavailable");
             _hotkeyStatus.Visibility = _hotkey.IsRegistered ? Visibility.Collapsed : Visibility.Visible;
+        }
+        if (_musicHotkeyStatus is not null)
+        {
+            var unavailable=!string.IsNullOrWhiteSpace(_viewModel.Settings.MusicWindowHotkey) && !_musicHotkey.IsRegistered;
+            _musicHotkeyStatus.Text=unavailable ? _strings.Get("HotkeyUnavailable") : string.Empty;
+            _musicHotkeyStatus.Visibility=unavailable ? Visibility.Visible : Visibility.Collapsed;
         }
         KeyboardAccelerators.Clear();
         foreach (var id in KeyboardShortcutPolicy.Defaults.Keys)
@@ -98,6 +113,7 @@ public sealed partial class MainPage
             try
             {
                 await _hotkey.StopAsync(_dialogLifetime.Token);
+                await _musicHotkey.StopAsync(_dialogLifetime.Token);
                 foreach (var accelerator in KeyboardAccelerators) accelerator.IsEnabled = false;
                 string? candidate = null;
                 var recorded = new Button { Content = _strings.Get("HotkeyRecordPrompt"), HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -110,9 +126,20 @@ public sealed partial class MainPage
                     PrimaryButtonText = _strings.Get("HotkeySave"), CloseButtonText = _strings.Get("CommonCancel"),
                     IsPrimaryButtonEnabled = false, DefaultButton = ContentDialogButton.None,
                 };
-                AppSettings CandidateSettings(string gesture) => id == "QuickPanel"
-                    ? _viewModel.Settings with { QuickPanelHotkey = gesture }
-                    : _viewModel.Settings with { KeyboardShortcuts = new(_viewModel.Settings.KeyboardShortcuts) { [id] = gesture } };
+                AppSettings CandidateSettings(string gesture) => id switch
+                {
+                    "QuickPanel" => _viewModel.Settings with { QuickPanelHotkey=gesture },
+                    "MusicWindow" => _viewModel.Settings with { MusicWindowHotkey=gesture },
+                    _ => _viewModel.Settings with { KeyboardShortcuts=new(_viewModel.Settings.KeyboardShortcuts) { [id]=gesture } },
+                };
+                if(id=="MusicWindow")
+                {
+                    var clear=new Button { Content=_strings.Get("HotkeyClearBinding") };
+                    AutomationProperties.SetName(clear,_strings.Get("HotkeyClearBinding"));
+                    AutomationProperties.SetAutomationId(clear,"MusicWindowShortcutClear");
+                    clear.Click+=(_,_)=>{candidate=string.Empty;recorded.Content=_strings.Get("ShortcutUnassigned");status.Text=string.Empty;dialog.IsPrimaryButtonEnabled=true;};
+                    content.Children.Add(clear);
+                }
                 recorded.PreviewKeyDown += (_, e) =>
                 {
                     if (e.Key is VirtualKey.Tab or VirtualKey.Escape) return;
@@ -133,6 +160,7 @@ public sealed partial class MainPage
                         try { KeyboardShortcutPolicy.Validate(CandidateSettings(candidate!), includeGlobal: true); }
                         catch (ArgumentException) { valid = false; }
                         if (valid && id == "QuickPanel") valid = _hotkey.CanRegister(candidate!);
+                        if (valid && id == "MusicWindow") valid = _musicHotkey.CanRegister(candidate!);
                     }
                     dialog.IsPrimaryButtonEnabled = valid;
                     status.Text = candidate is null ? _strings.Get("HotkeyRecordPrompt") : valid ? "" : _strings.Get("HotkeyUnavailable");
@@ -146,19 +174,19 @@ public sealed partial class MainPage
                         if (candidate is null) { e.Cancel = true; return; }
                         var next = CandidateSettings(candidate);
                         KeyboardShortcutPolicy.Validate(next, includeGlobal: true);
-                        if (id == "QuickPanel" && !await _hotkey.TryStartAsync(candidate, _dialogLifetime.Token))
-                        { e.Cancel = true; status.Text = _strings.Get("HotkeyUnavailable"); return; }
+                        // SettingsApplicationCoordinator owns real registration plus
+                        // persistence and rollback for both global actions.
                         await _viewModel.UpdateSettingsAsync(next);
                     }
                     catch (Exception error) when (error is not OutOfMemoryException)
-                    { e.Cancel = true; status.Text = _strings.Get("HotkeyUnavailable"); await _hotkey.StopAsync(); }
+                    { e.Cancel = true; status.Text = _strings.Get("HotkeyUnavailable"); try { await _hotkey.StopAsync(); } finally { await _musicHotkey.StopAsync(); } }
                     finally { deferral.Complete(); }
                 };
                 await ShowOwnedDialogAsync(dialog);
             }
             finally
             {
-                try { await _hotkey.StartAsync(_viewModel.QuickPanelHotkey); }
+                try { try { await _hotkey.StartAsync(_viewModel.QuickPanelHotkey); } finally { await _musicHotkey.StartAsync(_viewModel.Settings.MusicWindowHotkey); } }
                 finally { _recordingShortcut = false; _dialogGate.Release(); RefreshKeyboardShortcuts(); }
             }
         });

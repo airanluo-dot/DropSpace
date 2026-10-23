@@ -168,6 +168,7 @@ public sealed partial class OverlayWindow : Window
         WidgetViewModel widgetViewModel,
         ClipboardIslandViewModel clipboardViewModel,
         SystemActivityViewModel systemActivityViewModel,
+        IslandRetrievalViewModel retrievalViewModel,
         Services.Dlc.FeatureModuleRuntime? modules = null)
     {
         _logger = logger;
@@ -205,6 +206,7 @@ public sealed partial class OverlayWindow : Window
 
             XamlResourceOverride.Apply(this, "OverlayWindow");
             Root.DataContext = viewModel;
+            RetrievalView.Initialize(retrievalViewModel, strings);
             _ = LoadBrandLogoAsync();
             _rightHoldTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
             _rightHoldTimer.Interval = OverlayPlacementEditSession.HoldDuration;
@@ -598,13 +600,15 @@ public sealed partial class OverlayWindow : Window
         if (_closing) return;
         if (!_mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove) CancelRightHold();
         _presentationSnapshot = snapshot;
+        if (snapshot.State != OverlayState.Expanded && _retrievalVisible) CloseRetrieval();
         var page = _experience.Current.Page;
         _pageReducedMotion = IsReducedMotion();
         _pageTransition.Select(page, _pageReducedMotion || snapshot.State != OverlayState.Expanded || _motion.Current.ExpandedContent < 0.01);
         ApplyPageTransition();
         PreviousPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Collapsed : Visibility.Visible;
         NextPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Clipboard ? Visibility.Collapsed : Visibility.Visible;
-        OtherPageCollapse.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Collapsed : Visibility.Visible;
+        OtherPageCollapse.Visibility = Visibility.Visible;
+        ApplyRetrievalVisibility();
         var mediaCompact = _experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music;
         var activityCompact = _experience.Current.CompactContent is DropSpace.Core.Island.IslandContentKind.Notification or DropSpace.Core.Island.IslandContentKind.Volume;
         ActivityCompact.Visibility = activityCompact ? Visibility.Visible : Visibility.Collapsed;
@@ -799,6 +803,7 @@ public sealed partial class OverlayWindow : Window
             Cleanup("window closing observer", () => AppWindow.Closing -= OnAppWindowClosing);
         }
         Cleanup("Quick Panel focus request", CancelQuickPanelFocus);
+        Cleanup("Retrieval projection", () => RetrievalView.Shutdown());
         _presentationSnapshot = null;
         Cleanup("right-hold gesture", CancelRightHold);
         if (_visualPreferences is { } preferences)
@@ -965,8 +970,11 @@ public sealed partial class OverlayWindow : Window
     private void OnCompactPanelVisibilityChanged(DependencyObject sender, DependencyProperty property) =>
         MusicCompact.SetActive(!_closing && CompactPanel.Visibility == Visibility.Visible);
 
-    private void OnExpandedPanelVisibilityChanged(DependencyObject sender, DependencyProperty property) =>
+    private void OnExpandedPanelVisibilityChanged(DependencyObject sender, DependencyProperty property)
+    {
         MusicExpanded.SetActive(!_closing && ExpandedPanel.Visibility == Visibility.Visible);
+        RetrievalView.SetActive(!_closing && _retrievalVisible && ExpandedPanel.Visibility == Visibility.Visible);
+    }
 
     private void EnsureVisualHostShown(bool allowActivation)
     {
@@ -1566,6 +1574,7 @@ public sealed partial class OverlayWindow : Window
 
     private void ApplyPage(FrameworkElement element, IslandPage page)
     {
+        if (_retrievalVisible) { element.Visibility = Visibility.Collapsed; element.IsHitTestVisible = false; return; }
         var progress = _pageTransition.Progress(page);
         element.Opacity = progress;
         element.Visibility = progress > 0 || page == _pageTransition.Target ? Visibility.Visible : Visibility.Collapsed;
@@ -2047,9 +2056,10 @@ public sealed partial class OverlayWindow : Window
         _placementEditActive = false;
     }
 
-    internal bool TryActivateQuickPanel()
+    internal bool TryActivateQuickPanel(bool retrieval = false, nint returnWindow = 0)
     {
         if (!CanActivateQuickPanel()) return false;
+        if (retrieval) OpenRetrieval(returnWindow);
         CancelQuickPanelFocus();
         try
         {
@@ -2065,7 +2075,7 @@ public sealed partial class OverlayWindow : Window
             if (!CanActivateQuickPanel() || generation != _experience.HideGeneration || page != _experience.Current.Page)
                 return false;
 
-            FrameworkElement pageRoot = page switch
+            FrameworkElement pageRoot = _retrievalVisible ? RetrievalView : page switch
             {
                 IslandPage.Music => MusicExpanded,
                 IslandPage.Widgets => WidgetsExpanded,
@@ -2118,10 +2128,11 @@ public sealed partial class OverlayWindow : Window
     {
         try
         {
+            if (_retrievalVisible) return RetrievalView.FocusSearch();
             // An outgoing animated page can remain visible. Search only the page
             // selected for this request, never the whole expanded visual tree.
             if (FocusManager.FindFirstFocusableElement(pageRoot) is Control first && first.Focus(FocusState.Keyboard)) return true;
-            if (page != IslandPage.Files && OtherPageCollapse.Visibility == Visibility.Visible &&
+            if (OtherPageCollapse.Visibility == Visibility.Visible &&
                 OtherPageCollapse.IsEnabled && OtherPageCollapse.Focus(FocusState.Keyboard)) return true;
         }
         catch (Exception exception)
@@ -2174,6 +2185,7 @@ public sealed partial class OverlayWindow : Window
     private async void OnCompactClicked(object sender, RoutedEventArgs args)
     {
         if (_closing) return;
+        RememberRetrievalForeground(CaptureRetrievalForeground());
         _hideWhenSettled = false;
         try
         {
@@ -2231,7 +2243,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnIslandKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs args)
     {
-        if (args.Key != Windows.System.VirtualKey.Escape || _placementEditActive) return;
+        if (args.Handled || _retrievalVisible || RetrievalView.IsComposing || args.Key != Windows.System.VirtualKey.Escape || _placementEditActive) return;
         _experience.DismissNow(); args.Handled = true;
     }
     private void OnCollapseClicked(object sender, RoutedEventArgs args) { _experience.Collapse(); _viewModel.Collapse(); }
@@ -2248,6 +2260,7 @@ public sealed partial class OverlayWindow : Window
         XamlResourceOverride.Apply(this, "OverlayWindow");
         XamlResourceOverride.ApplyTree(Root);
         WidgetsExpanded.RefreshLanguage();
+        RetrievalView.RefreshLanguage();
         CancelPlacementButton.Content = _strings.Get("CommonCancel");
     }
     public void RefreshModules() => WidgetsExpanded.RefreshModules();

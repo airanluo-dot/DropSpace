@@ -952,4 +952,89 @@
   <data name="HotkeySave" xml:space="preserve"><value>Сохранить</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Сочетание недоступно или уже используется. Выберите другое.</value></data>
   <data name="DlcStorageSummary" xml:space="preserve"><value>Общий объём DLC: {0}</value></data>
+  <data name="ReferenceWindowTitle" xml:space="preserve"><value>Временный просмотр</value></data>
+  <data name="ReferenceKeepOnTop" xml:space="preserve"><value>Поверх всех окон</value></data>
+  <data name="ReferenceFitImage" xml:space="preserve"><value>Вписать изображение</value></data>
+  <data name="ReferenceZoomIn" xml:space="preserve"><value>Увеличить</value></data>
+  <data name="ReferenceZoomOut" xml:space="preserve"><value>Уменьшить</value></data>
+  <data name="ReferenceLoading" xml:space="preserve"><value>Загрузка содержимого…</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>Содержимое больше недоступно или его нельзя просмотреть.</value></data>
+  <data name="ReferenceCopyFailed" xml:space="preserve"><value>Не удалось скопировать. Повторите попытку.</value></data>
+  <data name="RelayTitle" xml:space="preserve"><value>Приём новых файлов</value></data>
+  <data name="RelayDescription" xml:space="preserve"><value>Включается после выбора локальной папки. Принимаются только новые файлы непосредственно в ней; существующие файлы и вложенные папки не импортируются. Для внешних файлов указывается текущая доступность, без подтверждения завершения загрузки или экспорта.</value></data>
+  <data name="RelayChooseDirectory" xml:space="preserve"><value>Выбрать папку</value></data>
+  <data name="RelayRetentionDescription" xml:space="preserve"><value>Недавние записи удаляются через 30 дней или при превышении 500 записей. Сохранённые, закреплённые и открытые для просмотра элементы защищены. Удаляются только записи; исходные файлы остаются на месте.</value></data>
+  <data name="RelayError" xml:space="preserve"><value>Не удалось обновить настройки приёма файлов: {0}</value></data>
+  <data name="RelayOff" xml:space="preserve"><value>Выключено · Папки не выбраны</value></data>
+  <data name="RelayPaused" xml:space="preserve"><value>Приостановлено</value></data>
+  <data name="RelayWatching" xml:space="preserve"><value>Ожидание новых файлов</value></data>
+  <data name="RelayUnavailable" xml:space="preserve"><value>Папка недоступна: {0}</value></data>
+  <data name="RelayResume" xml:space="preserve"><value>Возобновить</value></data>
+  <data name="RelayPause" xml:space="preserve"><value>Приостановить</value></data>
+  <data name="RelayRemoveDirectory" xml:space="preserve"><value>Убрать папку</value></data>
+  <data name="ActionOutputRegistrationFailed" xml:space="preserve"><value>Результат сохранён, но добавить его в недавние материалы не удалось.</value></data>
+  <data name="ActionPartiallyCompleted" xml:space="preserve"><value>Выполнено частично</value></data>
+  <data name="RetrievalSearch.PlaceholderText" xml:space="preserve"><value>Поиск в буфере обмена, файлах и результатах</value></data>
+  <data name="RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Быстрый поиск</value></data>
+  <data name="RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Назад</value></data>
+  <data name="RetrievalAll.Content" xml:space="preserve"><value>Все</value></data>
+  <data name="RetrievalRecent.Content" xml:space="preserve"><value>Недавние</value></data>
+  <data name="RetrievalPinned.Content" xml:space="preserve"><value>Закреплённые</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>Совпадений нет. Добавьте папку в настройках, чтобы принимать новые файлы.</value></data>
+  <data name="RetrievalCopy.Content" xml:space="preserve"><value>Копировать</value></data>
+  <data name="RetrievalPreview.Content" xml:space="preserve"><value>Просмотр</value></data>
+  <data name="RetrievalReference.Content" xml:space="preserve"><value>Отдельное окно</value></data>
+  <data name="RetrievalKeep.Content" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="RetrievalCopyPath.Content" xml:space="preserve"><value>Копировать путь</value></data>
+  <data name="RetrievalRemove.Content" xml:space="preserve"><value>Убрать</value></data>
+  <data name="RetrievalUnavailable" xml:space="preserve"><value>Этот элемент сейчас недоступен.</value></data>
+  <data name="RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Быстрый поиск</value></data>
+  <data name="ItemSourceRecent" xml:space="preserve"><value>Недавние</value></data>
+  <data name="ItemSourceOutput" xml:space="preserve"><value>Результат</value></data>
+  <data name="ItemSourcePartialOutput" xml:space="preserve"><value>Результат · частичный успех</value></data>
+  <data name="ItemStatusWaiting" xml:space="preserve"><value>Ожидание доступности</value></data>
+  <data name="ItemStatusCurrent" xml:space="preserve"><value>Доступен сейчас</value></data>
+  <data name="RelayReasonDirectoryUnavailable" xml:space="preserve"><value>Папка не найдена или диск отключён.</value></data>
+  <data name="RelayReasonAccessDenied" xml:space="preserve"><value>Windows отказала в доступе к этой папке.</value></data>
+  <data name="RelayReasonDirectoryUnsupported" xml:space="preserve"><value>Выберите локальную папку вне внутреннего хранилища DropSpace.</value></data>
+  <data name="RelayReasonWatcherInterrupted" xml:space="preserve"><value>Наблюдение за папкой прервано. Приостановите и возобновите его для повторной попытки.</value></data>
+  <data name="RelayReasonEventsOverflow" xml:space="preserve"><value>Слишком много изменений файлов; некоторые новые файлы могли быть пропущены.</value></data>
+  <data name="AgentConnectionsTitle" xml:space="preserve"><value>Подключения агентов</value></data>
+  <data name="AgentConnectionsDescription" xml:space="preserve"><value>Подключайте агентов на этом компьютере к данным, функциям и настройкам DropSpace.</value></data>
+  <data name="AgentAccessDescription" xml:space="preserve"><value>Каждое подключение даёт доступ к рабочему пространству. Передавайте ключ сопряжения только доверенному агенту.</value></data>
+  <data name="AgentNameLabel" xml:space="preserve"><value>Имя агента</value></data>
+  <data name="AgentNamePlaceholder" xml:space="preserve"><value>Например: помощник по программированию</value></data>
+  <data name="AgentCreateKey" xml:space="preserve"><value>Создать ключ сопряжения</value></data>
+  <data name="AgentCopyInstallPrompt" xml:space="preserve"><value>Скопировать запрос установки навыка</value></data>
+  <data name="AgentInvitationExpired" xml:space="preserve"><value>Этот ключ больше недоступен. Создайте новое подключение.</value></data>
+  <data name="AgentPromptCopied" xml:space="preserve"><value>Запрос скопирован. Передайте его агенту для установки навыка и однократного сопряжения.</value></data>
+  <data name="AgentOperationFailed" xml:space="preserve"><value>Не удалось завершить действие: {0}</value></data>
+  <data name="AgentServiceError" xml:space="preserve"><value>Доступ агентов недоступен: {0}</value></data>
+  <data name="AgentListening" xml:space="preserve"><value>Ожидание на этом компьютере: {0}</value></data>
+  <data name="AgentInactive" xml:space="preserve"><value>Неактивно · нет авторизованных агентов</value></data>
+  <data name="AgentInvitationReady" xml:space="preserve"><value>Ключ создан. Скопируйте запрос до {0}.</value></data>
+  <data name="AgentNoBindings" xml:space="preserve"><value>Нет подключённых агентов.</value></data>
+  <data name="AgentPaired" xml:space="preserve"><value>Сопряжено · доступ разрешён</value></data>
+  <data name="AgentPending" xml:space="preserve"><value>Ожидание сопряжения</value></data>
+  <data name="AgentLastActivity" xml:space="preserve"><value>Последняя активность: {0}</value></data>
+  <data name="AgentRevoke" xml:space="preserve"><value>Отозвать доступ</value></data>
+  <data name="AgentRevoked" xml:space="preserve"><value>Доступ отозван. Это подключение больше не может отправлять запросы.</value></data>
+  <data name="AgentRevocationDescription" xml:space="preserve"><value>Ключи действуют 30 минут и используются один раз. После сопряжения агенты используют сохранённые учётные данные. Отзыв блокирует новые запросы и отменяет активные вызовы API. Уже запущенные фоновые задачи приложения и выполненные изменения сохраняются.</value></data>
+  <data name="AgentNameRequired" xml:space="preserve"><value>Введите имя этого агента.</value></data>
+  <data name="AgentConfirmTitle" xml:space="preserve"><value>Разрешить действие агента?</value></data>
+  <data name="AgentConfirmAllow" xml:space="preserve"><value>Разрешить действие</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Открыть окно музыки</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Музыка</value></data>
+  <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Открыть окно музыки</value></data>
+  <data name="ShortcutUnassigned" xml:space="preserve"><value>Не назначено</value></data>
+  <data name="HotkeyClearBinding" xml:space="preserve"><value>Удалить сочетание клавиш</value></data>
+  <data name="MusicWindowShowLyrics" xml:space="preserve"><value>Показать текст песни</value></data>
+  <data name="MusicWindowHideLyrics" xml:space="preserve"><value>Скрыть текст песни</value></data>
+  <data name="MusicWindowTranslation" xml:space="preserve"><value>Перевод</value></data>
+  <data name="MusicWindowNoArtwork" xml:space="preserve"><value>Нет обложки</value></data>
+  <data name="MusicWindowNoTranslation" xml:space="preserve"><value>Для этой композиции перевод недоступен.</value></data>
+  <data name="MusicWindowSeekUnavailable" xml:space="preserve"><value>Этот проигрыватель не поддерживает переход к точной позиции воспроизведения.</value></data>
+  <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>Тексты песен отключены в настройках музыки.</value></data>
+  <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Системная громкость</value></data>
+  <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Системная громкость недоступна.</value></data>
 </root>

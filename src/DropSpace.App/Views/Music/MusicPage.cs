@@ -52,7 +52,7 @@ public sealed class MusicPage : UserControl
     private int _lastCenteredLyric = -1;
     public MusicPage(NativeSettingsEditor editor, MediaViewModel media, WindowsMediaSessionService sessions,
         MediaExperienceService experience, MediaApplicationIconService icons, IAppStringLocalizer strings, nint windowHandle,
-        NeteaseEnhancementViewModel enhancement, Services.Dlc.DlcManagerService dlc, Action openDlc)
+        NeteaseEnhancementViewModel enhancement, Services.Dlc.DlcManagerService dlc, Action openDlc, Action? openMusicWindow = null)
     {
         _editor = editor; _media = media; _sessions = sessions; _icons = icons; _strings = strings;
         _enhancement = enhancement; _experience = experience;
@@ -84,7 +84,25 @@ public sealed class MusicPage : UserControl
         musicActions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         musicActions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         musicActions.Children.Add(_restartStatus);
-        Grid.SetColumn(_refreshMusic, 1); musicActions.Children.Add(_refreshMusic);
+        var openWindow = new Button
+        {
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal, Spacing = 8,
+                Children =
+                {
+                    new FontIcon { Glyph = "\uE8A7", FontSize = 16, VerticalAlignment = VerticalAlignment.Center },
+                    new TextBlock { Text = strings.Get("MusicWindowOpen"), VerticalAlignment = VerticalAlignment.Center },
+                },
+            },
+            IsEnabled = openMusicWindow is not null,
+        };
+        AutomationProperties.SetName(openWindow, strings.Get("MusicWindowOpen"));
+        AutomationProperties.SetAutomationId(openWindow, "MusicWindowOpen");
+        openWindow.Click += (_, _) => openMusicWindow?.Invoke();
+        var actionButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        actionButtons.Children.Add(openWindow); actionButtons.Children.Add(_refreshMusic);
+        Grid.SetColumn(actionButtons, 1); musicActions.Children.Add(actionButtons);
         var playback = new StackPanel();
         playback.Children.Add(musicActions);
         playback.Children.Add(_nowPlaying);

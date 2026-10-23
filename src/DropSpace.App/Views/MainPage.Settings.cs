@@ -19,13 +19,40 @@ public sealed partial class MainPage
     private DownloadPanel? _downloadSettingsPanel;
     private FeatureModuleInventoryView? _moduleInventory;
     private string _selectedSettingsPage = "General";
+    private NavigationView? _settingsNavigation;
+
+    internal async Task<bool> ConfirmAgentOperationAsync(string operation, string details, CancellationToken token)
+    {
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, _dialogLifetime.Token);
+        lifetime.Token.ThrowIfCancellationRequested();
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot ?? throw new InvalidOperationException("The main window is not ready."),
+            Title = _strings.Get("AgentConfirmTitle"),
+            Content = new ScrollViewer { MaxHeight = 320, Content = new TextBlock
+            { Text = operation[..Math.Min(operation.Length, 128)] + "\n\n" + details[..Math.Min(details.Length, 4000)], TextWrapping = TextWrapping.Wrap } },
+            PrimaryButtonText = _strings.Get("AgentConfirmAllow"), CloseButtonText = _strings.Get("Cancel"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        return await ContentDialogLifetime.ShowAsync(dialog, lifetime.Token) == ContentDialogResult.Primary;
+    }
+
+    internal async Task OpenSettingsPageAsync(string key)
+    {
+        var item = _settingsNavigation?.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(item => Equals(item.Tag, key))
+            ?? throw new ArgumentException("Unknown settings page.", nameof(key));
+        var ownerToken = _dialogLifetime.Token;
+        var ownership = await SelectSectionAsync("Settings");
+        if (ownership is { } current && OwnsNavigation(current, ownerToken) && _viewModel.CurrentSection == "Settings")
+            _settingsNavigation!.SelectedItem = item;
+    }
 
     private void OpenDlcSettings() => _openDlcSettings?.Invoke();
 
     private void BuildSettingsPages(NativeSettingsEditor editor, Services.Dlc.DlcManagerService dlc)
     {
         var groups = new Dictionary<string, StackPanel>();
-        foreach (var key in new[] { "General", "Island", "Shortcuts", "Widgets", "DLC", "Downloads", "SystemActivities", "Devices", "Updates", "About" })
+        foreach (var key in new[] { "General", "Island", "Shortcuts", "Relay", "Agents", "Widgets", "DLC", "Downloads", "SystemActivities", "Devices", "Updates", "About" })
             groups[key] = new() { Spacing = 18, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
         var sections = LegacySettingsSections.Children.OfType<StackPanel>().ToArray();
         LegacySettingsSections.Children.Clear();
@@ -47,6 +74,8 @@ public sealed partial class MainPage
             else groups[uid == "DevicesSharingSection" ? "Devices" : uid == "UpdatesSection" ? "Updates" : "General"].Children.Add(section);
         }
         BuildKeyboardShortcutsPage(groups["Shortcuts"]);
+        groups["Relay"].Children.Add(new FileRelayPanel(editor, _strings, _windowHandle));
+        groups["Agents"].Children.Add(new AgentConnectionsPanel(editor.Agents.Value, editor.AgentSkill, _strings, _viewModel.CopyAgentInvitationAsync));
         var island = new SettingsForm(editor, _strings);
         island.AddChoice("IslandAppearance", new[]
         {
@@ -123,6 +152,7 @@ public sealed partial class MainPage
         var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(24, 0, 24, 0) };
         error.SetBinding(TextBlock.TextProperty, new Binding { Source = editor, Path = new PropertyPath(nameof(NativeSettingsEditor.Error)) });
         var navigation = new NavigationView { PaneDisplayMode = NavigationViewPaneDisplayMode.Top, IsSettingsVisible = false, IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed };
+        _settingsNavigation = navigation;
         var pageHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
         var body = new Grid(); body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new());
         body.Children.Add(error); Grid.SetRow(pageHost, 1); body.Children.Add(pageHost); navigation.Content = body;
@@ -136,7 +166,7 @@ public sealed partial class MainPage
             var resourceKey = key switch
             {
                 "General" => "SettingsPageGeneral", "Island" => "SettingsPageIsland", "Shortcuts" => "SettingsPageShortcuts",
-                "Widgets" => "SettingsPageWidgets", "DLC" => "SettingsPageDlc", "Downloads" => "SettingsPageDownloads", "SystemActivities" => "SettingsPageSystemActivities",
+                "Relay" => "RelayTitle", "Agents" => "AgentConnectionsTitle", "Widgets" => "SettingsPageWidgets", "DLC" => "SettingsPageDlc", "Downloads" => "SettingsPageDownloads", "SystemActivities" => "SettingsPageSystemActivities",
                 "Devices" => "SettingsPageDevices", "Updates" => "SettingsPageUpdates", _ => "SettingsPageAbout",
             };
             navigation.MenuItems.Add(new NavigationViewItem { Content = _strings.Get(resourceKey), Tag = key });

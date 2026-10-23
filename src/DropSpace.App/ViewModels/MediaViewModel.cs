@@ -31,11 +31,25 @@ public sealed class MediaViewModel : ObservableObject
     private string? _notifiedNextLyricText;
     private readonly IAppStringLocalizer _strings;
     private readonly HashSet<object> _visibleOwners = [];
+    private readonly HashSet<object> _spectrumVisibleOwners = [];
     private bool _presentationVisible;
+    private bool _spectrumPresentationVisible;
     // Only an actual island may request glow audio. Main-window Music presentation
     // visibility must not accidentally light an off-screen island or start its capture.
     private readonly HashSet<object> _islandGlowOwners = [];
     private bool _islandGlowActive;
+    // The standalone music surface has its own audio owner. Closing or minimizing
+    // it must not release the island's presentation or audio ownership.
+    private readonly HashSet<object> _musicWindowAudioOwners = [];
+    private bool _musicWindowAudioActive;
+    public bool IsMusicWindowAudioActive => Volatile.Read(ref _musicWindowAudioActive);
+    public void SetMusicWindowAudioActive(object owner, bool active)
+    {
+        var wasActive = IsMusicWindowAudioActive;
+        if (active) _musicWindowAudioOwners.Add(owner); else _musicWindowAudioOwners.Remove(owner);
+        Volatile.Write(ref _musicWindowAudioActive, _musicWindowAudioOwners.Count > 0);
+        if (wasActive != IsMusicWindowAudioActive) OnPropertyChanged(nameof(IsMusicWindowAudioActive));
+    }
     public bool IsIslandGlowActive => Volatile.Read(ref _islandGlowActive);
     public void SetIslandGlowActive(object owner, bool active)
     {
@@ -45,12 +59,17 @@ public sealed class MediaViewModel : ObservableObject
         if (wasActive != IsIslandGlowActive) OnPropertyChanged(nameof(IsIslandGlowActive));
     }
     public bool IsPresentationVisible => Volatile.Read(ref _presentationVisible);
-    public void SetPresentationVisible(object owner, bool visible)
+    public bool IsSpectrumPresentationVisible => Volatile.Read(ref _spectrumPresentationVisible);
+    public void SetPresentationVisible(object owner, bool visible, bool showSpectrum = true)
     {
         var wasVisible = IsPresentationVisible;
+        var spectrumWasVisible = IsSpectrumPresentationVisible;
         if (visible) _visibleOwners.Add(owner); else _visibleOwners.Remove(owner);
+        if (visible && showSpectrum) _spectrumVisibleOwners.Add(owner); else _spectrumVisibleOwners.Remove(owner);
         Volatile.Write(ref _presentationVisible, _visibleOwners.Count > 0);
+        Volatile.Write(ref _spectrumPresentationVisible, _spectrumVisibleOwners.Count > 0);
         if (wasVisible != IsPresentationVisible) OnPropertyChanged(nameof(IsPresentationVisible));
+        if (spectrumWasVisible != IsSpectrumPresentationVisible) OnPropertyChanged(nameof(IsSpectrumPresentationVisible));
     }
     public MediaViewModel(IMediaSessionService media, IAppStringLocalizer strings, ILogger<MediaViewModel> logger)
     {

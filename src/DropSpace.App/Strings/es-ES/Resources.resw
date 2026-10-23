@@ -952,4 +952,89 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="HotkeySave" xml:space="preserve"><value>Guardar</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>El atajo no está disponible o ya está en uso. Elige otra combinación.</value></data>
   <data name="DlcStorageSummary" xml:space="preserve"><value>Espacio total de DLC: {0}</value></data>
+  <data name="ReferenceWindowTitle" xml:space="preserve"><value>Referencia temporal</value></data>
+  <data name="ReferenceKeepOnTop" xml:space="preserve"><value>Mantener en primer plano</value></data>
+  <data name="ReferenceFitImage" xml:space="preserve"><value>Ajustar imagen</value></data>
+  <data name="ReferenceZoomIn" xml:space="preserve"><value>Ampliar</value></data>
+  <data name="ReferenceZoomOut" xml:space="preserve"><value>Reducir</value></data>
+  <data name="ReferenceLoading" xml:space="preserve"><value>Cargando referencia…</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>Este contenido ya no está disponible o no se puede previsualizar.</value></data>
+  <data name="ReferenceCopyFailed" xml:space="preserve"><value>No se ha podido copiar. Inténtalo de nuevo.</value></data>
+  <data name="RelayTitle" xml:space="preserve"><value>Recepción de archivos nuevos</value></data>
+  <data name="RelayDescription" xml:space="preserve"><value>Se activa al elegir una carpeta local. Solo recoge los archivos nuevos de esa carpeta; no importa los existentes ni las subcarpetas. Los archivos externos se muestran como disponibles actualmente, sin confirmar que haya finalizado su descarga o exportación.</value></data>
+  <data name="RelayChooseDirectory" xml:space="preserve"><value>Elegir carpeta</value></data>
+  <data name="RelayRetentionDescription" xml:space="preserve"><value>Los elementos recientes caducan tras 30 días o al superar los 500. Los conservados, fijados o abiertos como referencia están protegidos. Solo se eliminan los registros; los archivos originales permanecen intactos.</value></data>
+  <data name="RelayError" xml:space="preserve"><value>No se ha podido actualizar la recepción de archivos: {0}</value></data>
+  <data name="RelayOff" xml:space="preserve"><value>Desactivado · Sin carpetas seleccionadas</value></data>
+  <data name="RelayPaused" xml:space="preserve"><value>En pausa</value></data>
+  <data name="RelayWatching" xml:space="preserve"><value>Esperando archivos nuevos</value></data>
+  <data name="RelayUnavailable" xml:space="preserve"><value>Carpeta no disponible: {0}</value></data>
+  <data name="RelayResume" xml:space="preserve"><value>Reanudar</value></data>
+  <data name="RelayPause" xml:space="preserve"><value>Pausar</value></data>
+  <data name="RelayRemoveDirectory" xml:space="preserve"><value>Quitar carpeta</value></data>
+  <data name="ActionOutputRegistrationFailed" xml:space="preserve"><value>El resultado se ha guardado, pero no se ha podido añadir a los elementos recientes.</value></data>
+  <data name="ActionPartiallyCompleted" xml:space="preserve"><value>Completado parcialmente</value></data>
+  <data name="RetrievalSearch.PlaceholderText" xml:space="preserve"><value>Buscar en el portapapeles, archivos y resultados</value></data>
+  <data name="RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Acceso rápido</value></data>
+  <data name="RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Atrás</value></data>
+  <data name="RetrievalAll.Content" xml:space="preserve"><value>Todos</value></data>
+  <data name="RetrievalRecent.Content" xml:space="preserve"><value>Recientes</value></data>
+  <data name="RetrievalPinned.Content" xml:space="preserve"><value>Fijados</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>No hay elementos coincidentes. Añade una carpeta en Ajustes para recibir archivos nuevos.</value></data>
+  <data name="RetrievalCopy.Content" xml:space="preserve"><value>Copiar</value></data>
+  <data name="RetrievalPreview.Content" xml:space="preserve"><value>Vista previa</value></data>
+  <data name="RetrievalReference.Content" xml:space="preserve"><value>Referencia</value></data>
+  <data name="RetrievalKeep.Content" xml:space="preserve"><value>Conservar</value></data>
+  <data name="RetrievalCopyPath.Content" xml:space="preserve"><value>Copiar ruta</value></data>
+  <data name="RetrievalRemove.Content" xml:space="preserve"><value>Quitar</value></data>
+  <data name="RetrievalUnavailable" xml:space="preserve"><value>Este elemento no está disponible actualmente.</value></data>
+  <data name="RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Acceso rápido</value></data>
+  <data name="ItemSourceRecent" xml:space="preserve"><value>Recientes</value></data>
+  <data name="ItemSourceOutput" xml:space="preserve"><value>Resultado</value></data>
+  <data name="ItemSourcePartialOutput" xml:space="preserve"><value>Resultado · éxito parcial</value></data>
+  <data name="ItemStatusWaiting" xml:space="preserve"><value>Esperando disponibilidad</value></data>
+  <data name="ItemStatusCurrent" xml:space="preserve"><value>Disponible actualmente</value></data>
+  <data name="RelayReasonDirectoryUnavailable" xml:space="preserve"><value>La carpeta no existe o la unidad está desconectada.</value></data>
+  <data name="RelayReasonAccessDenied" xml:space="preserve"><value>Windows ha denegado el acceso a esta carpeta.</value></data>
+  <data name="RelayReasonDirectoryUnsupported" xml:space="preserve"><value>Elige una carpeta local fuera del almacenamiento interno de DropSpace.</value></data>
+  <data name="RelayReasonWatcherInterrupted" xml:space="preserve"><value>Se ha interrumpido la supervisión de la carpeta. Pausa y reanuda para reintentarlo.</value></data>
+  <data name="RelayReasonEventsOverflow" xml:space="preserve"><value>Se han producido demasiados cambios; es posible que algunos archivos nuevos no se hayan detectado.</value></data>
+  <data name="AgentConnectionsTitle" xml:space="preserve"><value>Conexiones de agentes</value></data>
+  <data name="AgentConnectionsDescription" xml:space="preserve"><value>Conecta los agentes de este equipo con los datos, las funciones y los ajustes de DropSpace.</value></data>
+  <data name="AgentAccessDescription" xml:space="preserve"><value>Cada vinculación da acceso a tu espacio de trabajo. Entrega la clave de emparejamiento solo a un agente de confianza.</value></data>
+  <data name="AgentNameLabel" xml:space="preserve"><value>Nombre del agente</value></data>
+  <data name="AgentNamePlaceholder" xml:space="preserve"><value>Por ejemplo: mi asistente de programación</value></data>
+  <data name="AgentCreateKey" xml:space="preserve"><value>Crear clave de emparejamiento</value></data>
+  <data name="AgentCopyInstallPrompt" xml:space="preserve"><value>Copiar instrucciones para instalar el skill</value></data>
+  <data name="AgentInvitationExpired" xml:space="preserve"><value>Esta clave ya no está disponible. Crea una nueva vinculación.</value></data>
+  <data name="AgentPromptCopied" xml:space="preserve"><value>Instrucciones copiadas. Entrégaselas a tu agente para instalar el skill y emparejarlo una sola vez.</value></data>
+  <data name="AgentOperationFailed" xml:space="preserve"><value>No se pudo completar la acción: {0}</value></data>
+  <data name="AgentServiceError" xml:space="preserve"><value>El acceso de agentes no está disponible: {0}</value></data>
+  <data name="AgentListening" xml:space="preserve"><value>A la escucha en este equipo: {0}</value></data>
+  <data name="AgentInactive" xml:space="preserve"><value>Inactivo · sin agentes autorizados</value></data>
+  <data name="AgentInvitationReady" xml:space="preserve"><value>Clave creada. Copia las instrucciones antes de las {0}.</value></data>
+  <data name="AgentNoBindings" xml:space="preserve"><value>No hay agentes vinculados.</value></data>
+  <data name="AgentPaired" xml:space="preserve"><value>Emparejado · acceso autorizado</value></data>
+  <data name="AgentPending" xml:space="preserve"><value>Esperando emparejamiento</value></data>
+  <data name="AgentLastActivity" xml:space="preserve"><value>Última actividad: {0}</value></data>
+  <data name="AgentRevoke" xml:space="preserve"><value>Revocar acceso</value></data>
+  <data name="AgentRevoked" xml:space="preserve"><value>Acceso revocado. Esta vinculación ya no puede enviar solicitudes.</value></data>
+  <data name="AgentRevocationDescription" xml:space="preserve"><value>Las claves caducan en 30 minutos y solo se usan una vez. Los agentes emparejados usan sus credenciales guardadas. Revocar el acceso bloquea nuevas solicitudes y cancela las llamadas API activas. Las tareas de la aplicación ya iniciadas y los cambios completados se mantienen.</value></data>
+  <data name="AgentNameRequired" xml:space="preserve"><value>Introduce un nombre para este agente.</value></data>
+  <data name="AgentConfirmTitle" xml:space="preserve"><value>¿Permitir la acción del agente?</value></data>
+  <data name="AgentConfirmAllow" xml:space="preserve"><value>Permitir esta acción</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Abrir ventana de música</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Música</value></data>
+  <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Abrir ventana de música</value></data>
+  <data name="ShortcutUnassigned" xml:space="preserve"><value>Sin asignar</value></data>
+  <data name="HotkeyClearBinding" xml:space="preserve"><value>Quitar atajo</value></data>
+  <data name="MusicWindowShowLyrics" xml:space="preserve"><value>Mostrar letra</value></data>
+  <data name="MusicWindowHideLyrics" xml:space="preserve"><value>Ocultar letra</value></data>
+  <data name="MusicWindowTranslation" xml:space="preserve"><value>Traducción</value></data>
+  <data name="MusicWindowNoArtwork" xml:space="preserve"><value>Sin carátula</value></data>
+  <data name="MusicWindowNoTranslation" xml:space="preserve"><value>No hay traducción disponible para esta canción.</value></data>
+  <data name="MusicWindowSeekUnavailable" xml:space="preserve"><value>Este reproductor no permite desplazarse a una posición de reproducción exacta.</value></data>
+  <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>La letra está desactivada en los ajustes de música.</value></data>
+  <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Volumen del sistema</value></data>
+  <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>El volumen del sistema no está disponible.</value></data>
 </root>

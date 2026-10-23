@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.20348.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.20348.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RootNamespace>DropSpace.App.Controls</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="SharpGen.Runtime" />
+    <PackageReference Include="Vortice.Direct3D11" />
+    <PackageReference Include="System.Drawing.Common" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ThirdParty\Lyricify\AppleMusicIosBackground.hlsl" LogicalName="Lyricify.Backgrounds.AppleMusicInspired.Ios.Shared.Resources.AppleMusicIosBackground.hlsl" />
+    <Content Include="ThirdParty\Lyricify\LICENSE.txt" Link="Licenses\Lyricify-Backgrounds-Apache-2.0.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ThirdParty\Lyricify\UPSTREAM.md" Link="Licenses\Lyricify-Backgrounds-NOTICE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -3,7 +3,7 @@
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:services="using:DropSpace.App.Services">
  <Grid>
- <Grid Padding="22,28">
+ <Grid Padding="22,0,22,28">
   <Grid x:Name="Tiles" ColumnSpacing="8" RowSpacing="8"/>
   <TextBlock x:Name="EmptyText" services:XamlResourceOverride.Uid="WidgetsEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"/>
  </Grid>

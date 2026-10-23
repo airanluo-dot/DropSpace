@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { approvalPath, admissionPath, fixturePath, fixtureAdmissionDecision, readScope, readSourceFingerprint, modelDeliverySourcePaths, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, stableHostExperimentalModelsStatus, publicationDecision } from './test-ai-release-approval.mjs';
+import { approvalPath, admissionPath, fixturePath, fixtureAdmissionDecision, readScope, readSourceFingerprint, modelDeliverySourcePaths, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, stableHostExperimentalModelsStatus, betaHostExperimentalModelsStatus, betaHostExperimentalModelsVersion, publicationDecision } from './test-ai-release-approval.mjs';
 import { fileIdentity, writeReleaseBinding } from './ai-runtime-publication.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -365,6 +365,37 @@ test('stable host authorization preserves experimental models and historical tim
   assert.equal(x.report.userAcceptance.releaseVersion, experimentalBetaVersion);
   assert.equal(x.report.models[0].validation[0].status, 'timed-out');
   assert.equal(x.report.models[1].validation[0].status, 'not-run');
+});
+
+function betaHostExample(t) {
+  const x = stableHostExample(t);
+  x.write('RELEASE_VERSION', betaHostExperimentalModelsVersion);
+  x.scope.releaseVersion = betaHostExperimentalModelsVersion;
+  x.approval.status = betaHostExperimentalModelsStatus;
+  x.report.kind = x.report.verdict = betaHostExperimentalModelsStatus;
+  x.report.publicationAuthorization.releaseVersion = betaHostExperimentalModelsVersion;
+  const decision = `SYNTHETIC TEST ONLY: publish ${betaHostExperimentalModelsVersion}; no new model acceptance.`;
+  x.write(x.report.ownerDecision.path, decision);
+  x.report.ownerDecision.sha256 = sha256(decision);
+  x.save();
+  return x;
+}
+
+test('Beta host authorization carries model limits without inventing semantic approval', t => {
+  const x = betaHostExample(t);
+  assert.deepEqual(publicationDecision(x.root, { now }), {
+    authorized: true, semanticApproved: false, mode: betaHostExperimentalModelsStatus,
+  });
+  assert.equal(x.report.userAcceptance.releaseVersion, experimentalBetaVersion);
+  assert.equal(x.report.models[0].validation[0].status, 'timed-out');
+});
+
+for (const [label, mutate, expected] of [
+  ['future release', x => { x.write('RELEASE_VERSION', 'v1.1.0-beta.2'); x.scope.releaseVersion = 'v1.1.0-beta.2'; }, /release-specific/],
+  ['new model acceptance', x => { x.report.userAcceptance.releaseVersion = betaHostExperimentalModelsVersion; }, /Do not invent/],
+  ['changed observations', x => { x.report.models[0].validation[0].status = 'complete-unreviewed'; }, /preserve original/],
+]) test(`Beta host authorization rejects ${label}`, t => {
+  const x = betaHostExample(t); mutate(x); x.save(); assert.throws(() => x.validate(), expected);
 });
 
 for (const [label, mutate, expected] of [

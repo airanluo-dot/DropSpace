@@ -954,4 +954,89 @@
   <data name="HotkeySave" xml:space="preserve"><value>保存</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>快捷键不可用或已被占用，请换一个组合。</value></data>
   <data name="DlcStorageSummary" xml:space="preserve"><value>DLC 总占用：{0}</value></data>
+  <data name="ReferenceWindowTitle" xml:space="preserve"><value>临时参照</value></data>
+  <data name="ReferenceKeepOnTop" xml:space="preserve"><value>置顶</value></data>
+  <data name="ReferenceFitImage" xml:space="preserve"><value>适应窗口</value></data>
+  <data name="ReferenceZoomIn" xml:space="preserve"><value>放大</value></data>
+  <data name="ReferenceZoomOut" xml:space="preserve"><value>缩小</value></data>
+  <data name="ReferenceLoading" xml:space="preserve"><value>正在载入参照…</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>内容已失效或无法预览。</value></data>
+  <data name="ReferenceCopyFailed" xml:space="preserve"><value>复制失败，请重试。</value></data>
+  <data name="RelayTitle" xml:space="preserve"><value>新文件接力</value></data>
+  <data name="RelayDescription" xml:space="preserve"><value>选择本地目录后启用，仅接入该目录新增文件，不导入已有文件或子目录。外部文件仅显示当前可用，不宣称下载或导出完成。</value></data>
+  <data name="RelayChooseDirectory" xml:space="preserve"><value>选择目录</value></data>
+  <data name="RelayRetentionDescription" xml:space="preserve"><value>最近候选最多保留30天、500项；已保留、固定及正在参照的内容不会过期。清理只移除记录，不删除原文件。</value></data>
+  <data name="RelayError" xml:space="preserve"><value>无法更新接力设置：{0}</value></data>
+  <data name="RelayOff" xml:space="preserve"><value>已关闭 · 尚未选择目录</value></data>
+  <data name="RelayPaused" xml:space="preserve"><value>已暂停</value></data>
+  <data name="RelayWatching" xml:space="preserve"><value>正在接入新文件</value></data>
+  <data name="RelayUnavailable" xml:space="preserve"><value>目录不可用：{0}</value></data>
+  <data name="RelayResume" xml:space="preserve"><value>继续</value></data>
+  <data name="RelayPause" xml:space="preserve"><value>暂停</value></data>
+  <data name="RelayRemoveDirectory" xml:space="preserve"><value>移除目录</value></data>
+  <data name="ActionOutputRegistrationFailed" xml:space="preserve"><value>产物已保存，但未能加入最近资料。</value></data>
+  <data name="ActionPartiallyCompleted" xml:space="preserve"><value>部分完成</value></data>
+  <data name="RetrievalSearch.PlaceholderText" xml:space="preserve"><value>搜索剪贴板、文件与产物</value></data>
+  <data name="RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>快速回取</value></data>
+  <data name="RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>返回</value></data>
+  <data name="RetrievalAll.Content" xml:space="preserve"><value>全部</value></data>
+  <data name="RetrievalRecent.Content" xml:space="preserve"><value>最近</value></data>
+  <data name="RetrievalPinned.Content" xml:space="preserve"><value>固定</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>无匹配资料，可在设置中添加新文件接力目录。</value></data>
+  <data name="RetrievalCopy.Content" xml:space="preserve"><value>复制</value></data>
+  <data name="RetrievalPreview.Content" xml:space="preserve"><value>预览</value></data>
+  <data name="RetrievalReference.Content" xml:space="preserve"><value>参照</value></data>
+  <data name="RetrievalKeep.Content" xml:space="preserve"><value>保留</value></data>
+  <data name="RetrievalCopyPath.Content" xml:space="preserve"><value>复制路径</value></data>
+  <data name="RetrievalRemove.Content" xml:space="preserve"><value>移除</value></data>
+  <data name="RetrievalUnavailable" xml:space="preserve"><value>此资料当前不可用。</value></data>
+  <data name="RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>快速回取</value></data>
+  <data name="ItemSourceRecent" xml:space="preserve"><value>最近</value></data>
+  <data name="ItemSourceOutput" xml:space="preserve"><value>产物</value></data>
+  <data name="ItemSourcePartialOutput" xml:space="preserve"><value>产物 · 部分成功</value></data>
+  <data name="ItemStatusWaiting" xml:space="preserve"><value>等待可用</value></data>
+  <data name="ItemStatusCurrent" xml:space="preserve"><value>当前可用</value></data>
+  <data name="RelayReasonDirectoryUnavailable" xml:space="preserve"><value>目录不存在或所在驱动器已断开。</value></data>
+  <data name="RelayReasonAccessDenied" xml:space="preserve"><value>Windows 拒绝访问该目录。</value></data>
+  <data name="RelayReasonDirectoryUnsupported" xml:space="preserve"><value>请选择 DropSpace 内部存储之外的本地目录。</value></data>
+  <data name="RelayReasonWatcherInterrupted" xml:space="preserve"><value>目录监听已中断，可先暂停再继续以重试。</value></data>
+  <data name="RelayReasonEventsOverflow" xml:space="preserve"><value>文件变化过于频繁，可能遗漏部分新文件。</value></data>
+  <data name="AgentConnectionsTitle" xml:space="preserve"><value>Agent 连接</value></data>
+  <data name="AgentConnectionsDescription" xml:space="preserve"><value>连接这台电脑上的 Agent，让它访问 DropSpace 资料、功能与设置。</value></data>
+  <data name="AgentAccessDescription" xml:space="preserve"><value>每个绑定均可访问你的工作区。请只向信任的 Agent 提供配对密钥。</value></data>
+  <data name="AgentNameLabel" xml:space="preserve"><value>Agent 名称</value></data>
+  <data name="AgentNamePlaceholder" xml:space="preserve"><value>例如：我的编程助手</value></data>
+  <data name="AgentCreateKey" xml:space="preserve"><value>创建配对密钥</value></data>
+  <data name="AgentCopyInstallPrompt" xml:space="preserve"><value>复制 Skill 安装提示词</value></data>
+  <data name="AgentInvitationExpired" xml:space="preserve"><value>此配对密钥已不可用，请创建新的绑定。</value></data>
+  <data name="AgentPromptCopied" xml:space="preserve"><value>已复制安装提示词，交给 Agent 即可安装 Skill 并完成一次配对。</value></data>
+  <data name="AgentOperationFailed" xml:space="preserve"><value>操作未完成：{0}</value></data>
+  <data name="AgentServiceError" xml:space="preserve"><value>Agent 接入不可用：{0}</value></data>
+  <data name="AgentListening" xml:space="preserve"><value>正在本机监听：{0}</value></data>
+  <data name="AgentInactive" xml:space="preserve"><value>未启用 · 没有已授权的 Agent</value></data>
+  <data name="AgentInvitationReady" xml:space="preserve"><value>配对密钥已生成，请在 {0} 前复制安装提示词。</value></data>
+  <data name="AgentNoBindings" xml:space="preserve"><value>尚无 Agent 绑定。</value></data>
+  <data name="AgentPaired" xml:space="preserve"><value>已配对 · 已授权访问</value></data>
+  <data name="AgentPending" xml:space="preserve"><value>等待配对</value></data>
+  <data name="AgentLastActivity" xml:space="preserve"><value>最近活动：{0}</value></data>
+  <data name="AgentRevoke" xml:space="preserve"><value>撤销访问</value></data>
+  <data name="AgentRevoked" xml:space="preserve"><value>已撤销访问，此绑定不能再发起请求。</value></data>
+  <data name="AgentRevocationDescription" xml:space="preserve"><value>配对密钥 30 分钟后失效，仅可使用一次。配对后使用已保存的凭据，无需重复输入。撤销会拒绝新请求并取消正在执行的接口调用；已启动的 App 后台任务和已完成的修改会保留。</value></data>
+  <data name="AgentNameRequired" xml:space="preserve"><value>请输入此 Agent 的名称。</value></data>
+  <data name="AgentConfirmTitle" xml:space="preserve"><value>允许 Agent 执行此操作？</value></data>
+  <data name="AgentConfirmAllow" xml:space="preserve"><value>允许此操作</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>打开音乐窗口</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>音乐</value></data>
+  <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>打开音乐窗口</value></data>
+  <data name="ShortcutUnassigned" xml:space="preserve"><value>未绑定</value></data>
+  <data name="HotkeyClearBinding" xml:space="preserve"><value>清除快捷键</value></data>
+  <data name="MusicWindowShowLyrics" xml:space="preserve"><value>显示歌词</value></data>
+  <data name="MusicWindowHideLyrics" xml:space="preserve"><value>隐藏歌词</value></data>
+  <data name="MusicWindowTranslation" xml:space="preserve"><value>翻译</value></data>
+  <data name="MusicWindowNoArtwork" xml:space="preserve"><value>暂无封面</value></data>
+  <data name="MusicWindowNoTranslation" xml:space="preserve"><value>这首歌曲暂无翻译。</value></data>
+  <data name="MusicWindowSeekUnavailable" xml:space="preserve"><value>此播放器未提供可准确定位的进度。</value></data>
+  <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>歌词已在音乐设置中关闭。</value></data>
+  <data name="MusicWindowSystemVolume" xml:space="preserve"><value>系统音量</value></data>
+  <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>系统音量当前不可用。</value></data>
 </root>

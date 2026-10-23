@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v1.0.0
+## Release target: v1.1.0-beta.1
 
-The current release target is `v1.0.0` (Stable).
-v0.3.2-beta.7 is the immediate upgrade baseline for this release.
+The current Beta target is `v1.1.0-beta.1` (Beta 1).
+v1.0.0 is the immediate upgrade baseline for this release.
 
-Separate cache and DLC usage, pause the System Activities experience, center the About page with the logo, enable automatic update installation, and refine the existing website and early Mac page. Preserve user data, providers and model/CUDA bytes.
+Deliver unified Island retrieval, selected-folder file relay, reusable successful outputs, a shared-content reference window, local Agent access, and a standalone music window with shared media state and Windows system volume. Refine action icons, layout transitions and minimum window sizes. Preserve user data, providers and model/CUDA bytes.
 
-Use focused interaction and persistence checks, required Windows compilation, exact-main packaging, one isolated installer payload scenario and public release/update verification. See the [release notes](.github/release-notes/v1.0.0.md) and [execution record](docs/dev/v1-release-2026-10-22.md).
+Reuse completed focused checks; do not repeat functional suites. Retain exact-main packaging, one isolated installer payload scenario and public release/update verification. See the [release notes](.github/release-notes/v1.1.0-beta.1.md), [local evidence](docs/dev/1.1-beta1-delivery.md) and [release record](docs/dev/1.1-beta1-release.md).
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,8 +160,8 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-Version 1.0 is the current Stable target, with v0.3.2-beta.7 as its immediate
-upgrade baseline; published versions remain listed on the official Releases page.
+v1.1.0-beta.1 is the current Beta target; 1.0 remains the public Stable baseline.
+Published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
 two-device transfer, Apple Music/provider, and deployed Worker/browser evidence

@@ -952,4 +952,89 @@
   <data name="HotkeySave" xml:space="preserve"><value>儲存</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>快速鍵無法使用或已被占用，請選擇其他組合。</value></data>
   <data name="DlcStorageSummary" xml:space="preserve"><value>DLC 總用量：{0}</value></data>
+  <data name="ReferenceWindowTitle" xml:space="preserve"><value>暫時參照</value></data>
+  <data name="ReferenceKeepOnTop" xml:space="preserve"><value>保持最上層</value></data>
+  <data name="ReferenceFitImage" xml:space="preserve"><value>符合視窗大小</value></data>
+  <data name="ReferenceZoomIn" xml:space="preserve"><value>放大</value></data>
+  <data name="ReferenceZoomOut" xml:space="preserve"><value>縮小</value></data>
+  <data name="ReferenceLoading" xml:space="preserve"><value>正在載入參照…</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>內容已失效或無法預覽。</value></data>
+  <data name="ReferenceCopyFailed" xml:space="preserve"><value>複製失敗，請再試一次。</value></data>
+  <data name="RelayTitle" xml:space="preserve"><value>新檔案接力</value></data>
+  <data name="RelayDescription" xml:space="preserve"><value>選擇本機資料夾後啟用，僅接收該資料夾新增的檔案，不匯入既有檔案或子資料夾。外部檔案只顯示目前可用，不宣稱下載或匯出已完成。</value></data>
+  <data name="RelayChooseDirectory" xml:space="preserve"><value>選擇資料夾</value></data>
+  <data name="RelayRetentionDescription" xml:space="preserve"><value>最近項目最多保留 30 天、500 筆；已保留、釘選及正在參照的內容不會過期。清理只移除紀錄，不刪除原始檔案。</value></data>
+  <data name="RelayError" xml:space="preserve"><value>無法更新接力設定：{0}</value></data>
+  <data name="RelayOff" xml:space="preserve"><value>已關閉 · 尚未選擇資料夾</value></data>
+  <data name="RelayPaused" xml:space="preserve"><value>已暫停</value></data>
+  <data name="RelayWatching" xml:space="preserve"><value>正在接收新檔案</value></data>
+  <data name="RelayUnavailable" xml:space="preserve"><value>資料夾無法使用：{0}</value></data>
+  <data name="RelayResume" xml:space="preserve"><value>繼續</value></data>
+  <data name="RelayPause" xml:space="preserve"><value>暫停</value></data>
+  <data name="RelayRemoveDirectory" xml:space="preserve"><value>移除資料夾</value></data>
+  <data name="ActionOutputRegistrationFailed" xml:space="preserve"><value>產出已儲存，但無法加入最近資料。</value></data>
+  <data name="ActionPartiallyCompleted" xml:space="preserve"><value>部分完成</value></data>
+  <data name="RetrievalSearch.PlaceholderText" xml:space="preserve"><value>搜尋剪貼簿、檔案與產出</value></data>
+  <data name="RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>快速取用</value></data>
+  <data name="RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>返回</value></data>
+  <data name="RetrievalAll.Content" xml:space="preserve"><value>全部</value></data>
+  <data name="RetrievalRecent.Content" xml:space="preserve"><value>最近</value></data>
+  <data name="RetrievalPinned.Content" xml:space="preserve"><value>釘選</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>沒有符合的資料。可在設定中新增資料夾以接收新檔案。</value></data>
+  <data name="RetrievalCopy.Content" xml:space="preserve"><value>複製</value></data>
+  <data name="RetrievalPreview.Content" xml:space="preserve"><value>預覽</value></data>
+  <data name="RetrievalReference.Content" xml:space="preserve"><value>參照</value></data>
+  <data name="RetrievalKeep.Content" xml:space="preserve"><value>保留</value></data>
+  <data name="RetrievalCopyPath.Content" xml:space="preserve"><value>複製路徑</value></data>
+  <data name="RetrievalRemove.Content" xml:space="preserve"><value>移除</value></data>
+  <data name="RetrievalUnavailable" xml:space="preserve"><value>此資料目前無法使用。</value></data>
+  <data name="RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>快速取用</value></data>
+  <data name="ItemSourceRecent" xml:space="preserve"><value>最近</value></data>
+  <data name="ItemSourceOutput" xml:space="preserve"><value>產出</value></data>
+  <data name="ItemSourcePartialOutput" xml:space="preserve"><value>產出 · 部分成功</value></data>
+  <data name="ItemStatusWaiting" xml:space="preserve"><value>等待可用</value></data>
+  <data name="ItemStatusCurrent" xml:space="preserve"><value>目前可用</value></data>
+  <data name="RelayReasonDirectoryUnavailable" xml:space="preserve"><value>資料夾不存在或所在磁碟機已中斷連線。</value></data>
+  <data name="RelayReasonAccessDenied" xml:space="preserve"><value>Windows 拒絕存取此資料夾。</value></data>
+  <data name="RelayReasonDirectoryUnsupported" xml:space="preserve"><value>請選擇 DropSpace 內部儲存空間以外的本機資料夾。</value></data>
+  <data name="RelayReasonWatcherInterrupted" xml:space="preserve"><value>資料夾監看已中斷，可先暫停再繼續以重試。</value></data>
+  <data name="RelayReasonEventsOverflow" xml:space="preserve"><value>檔案變動過於頻繁，可能遺漏部分新檔案。</value></data>
+  <data name="AgentConnectionsTitle" xml:space="preserve"><value>Agent 連線</value></data>
+  <data name="AgentConnectionsDescription" xml:space="preserve"><value>連接這台電腦上的 Agent，讓它存取 DropSpace 資料、功能與設定。</value></data>
+  <data name="AgentAccessDescription" xml:space="preserve"><value>每個綁定皆可存取你的工作區。請只向信任的 Agent 提供配對金鑰。</value></data>
+  <data name="AgentNameLabel" xml:space="preserve"><value>Agent 名稱</value></data>
+  <data name="AgentNamePlaceholder" xml:space="preserve"><value>例如：我的程式設計助理</value></data>
+  <data name="AgentCreateKey" xml:space="preserve"><value>建立配對金鑰</value></data>
+  <data name="AgentCopyInstallPrompt" xml:space="preserve"><value>複製 Skill 安裝提示詞</value></data>
+  <data name="AgentInvitationExpired" xml:space="preserve"><value>此配對金鑰已無法使用，請建立新的綁定。</value></data>
+  <data name="AgentPromptCopied" xml:space="preserve"><value>已複製安裝提示詞，交給 Agent 即可安裝 Skill 並完成一次配對。</value></data>
+  <data name="AgentOperationFailed" xml:space="preserve"><value>操作未完成：{0}</value></data>
+  <data name="AgentServiceError" xml:space="preserve"><value>Agent 存取無法使用：{0}</value></data>
+  <data name="AgentListening" xml:space="preserve"><value>正在本機監聽：{0}</value></data>
+  <data name="AgentInactive" xml:space="preserve"><value>未啟用 · 沒有已授權的 Agent</value></data>
+  <data name="AgentInvitationReady" xml:space="preserve"><value>配對金鑰已產生，請在 {0} 前複製安裝提示詞。</value></data>
+  <data name="AgentNoBindings" xml:space="preserve"><value>尚無 Agent 綁定。</value></data>
+  <data name="AgentPaired" xml:space="preserve"><value>已配對 · 已授權存取</value></data>
+  <data name="AgentPending" xml:space="preserve"><value>等待配對</value></data>
+  <data name="AgentLastActivity" xml:space="preserve"><value>最近活動：{0}</value></data>
+  <data name="AgentRevoke" xml:space="preserve"><value>撤銷存取權</value></data>
+  <data name="AgentRevoked" xml:space="preserve"><value>已撤銷存取權，此綁定無法再發出請求。</value></data>
+  <data name="AgentRevocationDescription" xml:space="preserve"><value>配對金鑰 30 分鐘後失效，僅可使用一次。配對後使用已儲存的憑證，無須重複輸入。撤銷會拒絕新請求並取消執行中的介面呼叫；已啟動的 App 背景工作及已完成的變更會保留。</value></data>
+  <data name="AgentNameRequired" xml:space="preserve"><value>請輸入此 Agent 的名稱。</value></data>
+  <data name="AgentConfirmTitle" xml:space="preserve"><value>允許 Agent 執行此操作？</value></data>
+  <data name="AgentConfirmAllow" xml:space="preserve"><value>允許此操作</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>開啟音樂視窗</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>音樂</value></data>
+  <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>開啟音樂視窗</value></data>
+  <data name="ShortcutUnassigned" xml:space="preserve"><value>未設定</value></data>
+  <data name="HotkeyClearBinding" xml:space="preserve"><value>清除快捷鍵</value></data>
+  <data name="MusicWindowShowLyrics" xml:space="preserve"><value>顯示歌詞</value></data>
+  <data name="MusicWindowHideLyrics" xml:space="preserve"><value>隱藏歌詞</value></data>
+  <data name="MusicWindowTranslation" xml:space="preserve"><value>翻譯</value></data>
+  <data name="MusicWindowNoArtwork" xml:space="preserve"><value>暫無封面</value></data>
+  <data name="MusicWindowNoTranslation" xml:space="preserve"><value>這首歌曲暫無翻譯。</value></data>
+  <data name="MusicWindowSeekUnavailable" xml:space="preserve"><value>此播放器未提供可準確定位的播放進度。</value></data>
+  <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>歌詞已在音樂設定中關閉。</value></data>
+  <data name="MusicWindowSystemVolume" xml:space="preserve"><value>系統音量</value></data>
+  <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>系統音量目前無法使用。</value></data>
 </root>

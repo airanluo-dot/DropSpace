@@ -11,7 +11,7 @@ source. Their upstream source and license notices remain authoritative.
 The required Microsoft Visual C++ Redistributable is downloaded separately
 from Microsoft and retains Microsoft's software license terms.
 
-DropSpace's original source is licensed under Apache-2.0. The components below are dependencies or build services; their source is not incorporated into DropSpace and is not relicensed by the root [LICENSE](LICENSE). Release binaries may contain redistributable object code from the runtime components identified below.
+DropSpace's original source is licensed under Apache-2.0. The components below retain their own licenses. Most are binary dependencies or build services; explicitly identified renderer source and icon paths are incorporated with their upstream notices. Release binaries may contain redistributable object code from the runtime components identified below.
 
 Versions are the versions pinned by `Directory.Packages.props`, `global.json`, the GitHub Actions workflows, and the installer scripts at the time of this notice. Transitive components remain subject to the notices supplied by their upstream packages.
 
@@ -38,6 +38,13 @@ Edouard Grave, Piotr Bojanowski, Matthijs Douze, Hervé Jégou and Tomas Mikolov
 *FastText.zip: Compressing text classification models* (2016). The original model
 is redistributed unchanged under its separate CC BY-SA 3.0 terms; DropSpace's own
 code, the MIT engine and the MIT native wrapper retain their separate licenses.
+
+## Music rendering and symbols
+
+- Lyricify Backgrounds at commit `cbef8a667c02a01707c78c7e76dc67d65cf161ed`: selected Direct3D renderer, mesh and shader source under Apache-2.0. The [complete license](src/DropSpace.MusicBackground/ThirdParty/Lyricify/LICENSE.txt) and [upstream attribution and modifications](src/DropSpace.MusicBackground/ThirdParty/Lyricify/UPSTREAM.md) are retained and bundled. Its player and audio-capture services are not incorporated.
+- Microsoft Fluent UI System Icons at commit `463d58b8186f874ab2f51cf0a08b4ff5097c912f`: Chat and Translate vector paths under the [MIT license](docs/licenses/fluent-system-icons-MIT.txt), retained with [source provenance](src/DropSpace.App/Assets/MusicIcons/README.md) and bundled license.
+- Vortice.Direct3D11 3.2.0 and SharpGen.Runtime 2.4.2-beta: MIT-licensed managed graphics/COM bindings, distributed as NuGet object code with upstream package notices.
+- System.Drawing.Common 10.0.10: MIT-licensed Windows artwork decoding dependency, distributed as NuGet object code with upstream package notices.
 
 ## Build and test dependencies
 

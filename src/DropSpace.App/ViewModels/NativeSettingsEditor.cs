@@ -24,8 +24,12 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     private int _savingDownloadLimits;
     public bool HasPendingDownloadLimits => _pendingLimits is not null || _savingDownloadLimits > 0;
     public DropSpace.Infrastructure.Downloads.DownloadManager Downloads { get; }
-    public NativeSettingsEditor(MainViewModel main, IAppStringLocalizer strings, ILogger<NativeSettingsEditor> logger, NativeFolderPickerService folders, Services.Notifications.WindowsNotificationActivityService notifications, DropSpace.Infrastructure.Downloads.DownloadManager downloads)
-    { _main = main; _strings = strings; _logger = logger; _folders = folders; _notifications = notifications; Downloads = downloads; main.PropertyChanged += OnChanged; }
+    public IRecentItemsService Recent { get; }
+    public Lazy<DropSpace.Core.Agent.IAppAgentHost> Agents { get; }
+    public Services.Agent.AgentSkillPackageService AgentSkill { get; }
+    public NativeSettingsEditor(MainViewModel main, IAppStringLocalizer strings, ILogger<NativeSettingsEditor> logger, NativeFolderPickerService folders, Services.Notifications.WindowsNotificationActivityService notifications, DropSpace.Infrastructure.Downloads.DownloadManager downloads, IRecentItemsService recent,
+        Lazy<DropSpace.Core.Agent.IAppAgentHost> agents, Services.Agent.AgentSkillPackageService agentSkill)
+    { _main = main; _strings = strings; _logger = logger; _folders = folders; _notifications = notifications; Downloads = downloads; Recent = recent; Agents = agents; AgentSkill = agentSkill; main.PropertyChanged += OnChanged; }
     public Task<string?> PickDownloadFolderAsync(nint windowHandle) => _folders.PickAsync(windowHandle);
     public void OpenDownloadFolder(string directory) => NativeFolderPickerService.OpenDirectory(directory);
     public string DefaultDownloadDirectory => string.IsNullOrEmpty(Settings.DefaultDownloadDirectory) ? NativeFolderPickerService.GetDownloadsDirectory() : Settings.DefaultDownloadDirectory;

@@ -345,7 +345,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         return _consecutiveCaptures.ResetAsync(cancellationToken);
     }
 
-    public async Task CopyTextAsync(string text, CancellationToken cancellationToken = default)
+    public Task CopyTextAsync(string text, CancellationToken cancellationToken = default) => CopyTextCoreAsync(text, false, cancellationToken);
+
+    public Task CopySensitiveTextAsync(string text, CancellationToken cancellationToken = default) => CopyTextCoreAsync(text, true, cancellationToken);
+
+    private async Task CopyTextCoreAsync(string text, bool sensitive, CancellationToken cancellationToken)
     {
         ThrowIfDisposing();
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
@@ -367,8 +371,14 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     RequestedOperation = DataPackageOperation.Copy,
                 };
                 package.SetText(text);
+                if (sensitive) package.SetData("DropSpace.Sensitive", "1");
                 return ClipboardAccessPolicy.SetContentAsync(
-                    () => Clipboard.SetContent(package),
+                    () =>
+                    {
+                        if (!sensitive) Clipboard.SetContent(package);
+                        else if (!Clipboard.SetContentWithOptions(package, new ClipboardContentOptions { IsAllowedInHistory = false, IsRoamable = false }))
+                            throw new UnauthorizedAccessException("The clipboard is temporarily unavailable.");
+                    },
                     cancellationToken);
             }).ConfigureAwait(false);
         }
@@ -1118,6 +1128,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         RecordDiagnostic(ClipboardDiagnosticDecision.ClipboardViewReadStarted, signal);
         var view = ClipboardViewReader();
         RecordDiagnostic(ClipboardDiagnosticDecision.ClipboardViewRead, signal);
+
+        // A pairing prompt is deliberately excluded even after a restart or self-write marker expiry.
+        if (view.Contains("DropSpace.Sensitive")) return new ClipboardReadResult(null, null);
 
         if (view.Contains(StandardDataFormats.StorageItems))
             return await ReadDeferredProviderAsync(signal, async token =>
