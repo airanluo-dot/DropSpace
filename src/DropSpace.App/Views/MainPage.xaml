@@ -30,7 +30,7 @@
     </NavigationView.FooterMenuItems>
     <NavigationView.PaneFooter>
       <Button x:Name="FileTransfersButton" Width="40" Height="36" Padding="0" Margin="4"
-              Style="{StaticResource SubtleButtonStyle}" HorizontalAlignment="Left"
+              Style="{StaticResource DropSpaceIconButtonStyle}" HorizontalAlignment="Left"
               HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
         <Button.Content>
           <Grid Width="20" Height="20">
@@ -242,7 +242,7 @@
                         Stretch="UniformToFill"
                         Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibilityConverter}}" />
                       <FontIcon
-                        FontFamily="Segoe Fluent Icons"
+                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
                         FontSize="22"
                         Glyph="{Binding Glyph}"
                         Visibility="{Binding Thumbnail, Converter={StaticResource InverseNullToVisibilityConverter}}" />
@@ -285,7 +285,7 @@
                             Padding="10,6"
                             Tag="{Binding}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                              <FontIcon FontSize="16" Glyph="{Binding Glyph}" />
+                              <FontIcon Style="{StaticResource DropSpaceActionIconStyle}" Glyph="{Binding Glyph}" />
                               <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
                             </StackPanel>
                           </Button>
@@ -578,7 +578,7 @@
               <ListView.ItemTemplate>
                 <DataTemplate>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE770;" />
+                    <FontIcon Style="{StaticResource DropSpaceActionIconStyle}" Glyph="&#xE770;" />
                     <TextBlock Text="{Binding DisplayName}" />
                     <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding Platform}" />
                   </StackPanel>

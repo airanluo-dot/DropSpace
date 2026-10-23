@@ -4,6 +4,7 @@ public enum ItemSource
 {
     Space = 1,
     Clipboard = 2,
+    Recent = 3,
 }
 
 public enum ItemKind

@@ -320,6 +320,20 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Updates/HttpUpdateDownloader.cs',
   'scripts/Test-CudaBuildBinding.ps1',
   'scripts/ai-runtime-publication.mjs',
+  // The independent music surface and Agent controls share the existing media
+  // session and lyric state. Bind their entry points without treating UI checks
+  // as a new model-quality review.
+  'src/DropSpace.App/Services/Media/MusicWindowService.cs',
+  'src/DropSpace.App/Services/Agent/MediaAgentDomain.cs',
+  'src/DropSpace.App/Services/Agent/DesktopAgentDomain.cs',
+  'src/DropSpace.App/Services/GlobalMusicWindowHotkeyService.cs',
+  'src/DropSpace.App/Services/Volume/WindowsVolumeActivityService.cs',
+  'src/DropSpace.App/Views/Music/MusicWindow.cs',
+  'src/DropSpace.App/Views/Music/MusicWindowLayout.cs',
+  'src/DropSpace.App/Views/Music/MusicWindowVisuals.cs',
+  'src/DropSpace.App/Views/Music/MusicWindowGlyphs.cs',
+  'src/DropSpace.MusicBackground/DropSpace.MusicBackground.csproj',
+  'src/DropSpace.MusicBackground/packages.lock.json',
   ...residentSourcePaths,
 ]);
 export const productionPromptProfile = 'production-plain-hy';
@@ -329,6 +343,8 @@ export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
+export const betaHostExperimentalModelsStatus = 'owner-authorized-beta-host-experimental-models';
+export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.1';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -813,19 +829,24 @@ function timestamp(value, label) {
 
 function validateExperimentalBeta(root, report, scope, reviewedAt) {
   const stableHost = report.kind === stableHostExperimentalModelsStatus;
-  assert.equal(scope.releaseVersion, stableHost ? 'v1.0.0' : experimentalBetaVersion, 'Experimental model authorization is release-specific');
-  if (stableHost) {
-    assert.equal(report.publicationAuthorization?.releaseVersion, 'v1.0.0');
+  const betaHost = report.kind === betaHostExperimentalModelsStatus;
+  const authorizedHost = stableHost || betaHost;
+  const authorizedVersion = stableHost ? 'v1.0.0' : betaHost ? betaHostExperimentalModelsVersion : experimentalBetaVersion;
+  assert.equal(scope.releaseVersion, authorizedVersion, 'Experimental model authorization is release-specific');
+  if (authorizedHost) {
+    assert.equal(report.publicationAuthorization?.releaseVersion, authorizedVersion);
     assert.equal(report.publicationAuthorization?.reference, report.ownerDecision?.path);
-    nonempty(readEvidence(root, report.ownerDecision, 'Stable host publication authorization').toString('utf8'), 'Owner release request');
+    const decision = readEvidence(root, report.ownerDecision, 'Host publication authorization').toString('utf8');
+    nonempty(decision, 'Owner release request');
+    if (betaHost) assert.ok(decision.includes(authorizedVersion), 'Owner release request must name the exact Beta host');
     const previous = JSON.parse(readEvidence(root, report.carriedForwardFrom, 'Historical model acceptance').toString('utf8'));
     assert.equal(previous.scope.releaseVersion, experimentalBetaVersion);
     assert.equal(previous.kind, experimentalBetaStatus);
     assert.deepEqual(report.userAcceptance, previous.userAcceptance, 'Do not invent new model acceptance');
-    assert.deepEqual(report.models, previous.models, 'Stable host publication must preserve original model observations');
-    assert.deepEqual(report.acceptedLimitations, previous.acceptedLimitations, 'Stable host publication must retain experimental limitations');
+    assert.deepEqual(report.models, previous.models, 'Host publication must preserve original model observations');
+    assert.deepEqual(report.acceptedLimitations, previous.acceptedLimitations, 'Host publication must retain experimental limitations');
     for (const key of Object.keys(scope).filter(key => !['releaseVersion', 'sources'].includes(key)))
-      assert.deepEqual(scope[key], previous.scope[key], `Stable host publication cannot change model input ${key}`);
+      assert.deepEqual(scope[key], previous.scope[key], `Host publication cannot change model input ${key}`);
   }
   assert.equal(report.semanticApproved, false, 'Experimental Beta must not claim semantic approval');
   assert.equal(scope.executionLimits.wholeSongSeconds, 600, 'Owner acceptance covers the 600-second processing ceiling');
@@ -883,7 +904,8 @@ export function validateApproval(root, { now = Date.now(), runtimeManifestPath, 
   const approval = readJson(root, approvalPath);
   assert.equal(approval.schemaVersion, 1, 'Unsupported AI approval schema');
   const stableHost = approval.status === stableHostExperimentalModelsStatus;
-  const experimental = approval.status === experimentalBetaStatus || stableHost;
+  const betaHost = approval.status === betaHostExperimentalModelsStatus;
+  const experimental = approval.status === experimentalBetaStatus || stableHost || betaHost;
   assert.ok(approval.status === 'approved' || experimental, 'AI semantic release approval is pending or absent; structural success is not approval');
   const scope = readScope(root);
   nonempty(scope.releaseVersion, 'Release version');

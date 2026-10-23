@@ -6,6 +6,30 @@ namespace DropSpace.Infrastructure.Network;
 
 public sealed class TransferRepository(SqliteDatabase database)
 {
+    public Task<IReadOnlyList<TransferSession>> GetSessionsAsync(int offset = 0, int limit = 100, CancellationToken cancellationToken = default) =>
+        ReadSessionsAsync(offset, limit, null, cancellationToken);
+
+    public async Task<TransferSession?> GetSessionAsync(Guid id, CancellationToken cancellationToken = default) =>
+        (await ReadSessionsAsync(0, 1, id, cancellationToken).ConfigureAwait(false)).FirstOrDefault();
+
+    private async Task<IReadOnlyList<TransferSession>> ReadSessionsAsync(int offset, int limit, Guid? id, CancellationToken cancellationToken)
+    {
+        if (offset < 0 || limit is < 1 or > 500) throw new ArgumentOutOfRangeException(nameof(limit));
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id,direction,mode,peer_id,state,created_at_utc,completed_at_utc,item_count,total_bytes,transferred_bytes,error_category FROM transfer_sessions WHERE (@id IS NULL OR id=@id) ORDER BY created_at_utc DESC,id LIMIT @limit OFFSET @offset;";
+        command.Parameters.AddWithValue("@id", (object?)id?.ToString("D") ?? DBNull.Value);
+        command.Parameters.AddWithValue("@limit", limit); command.Parameters.AddWithValue("@offset", offset);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        var sessions = new List<TransferSession>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            sessions.Add(new(Guid.Parse(reader.GetString(0)), (TransferDirection)reader.GetInt32(1), (TransferMode)reader.GetInt32(2),
+                reader.IsDBNull(3) ? null : Guid.Parse(reader.GetString(3)), (TransferSessionState)reader.GetInt32(4),
+                DateTimeOffset.Parse(reader.GetString(5), System.Globalization.CultureInfo.InvariantCulture),
+                reader.IsDBNull(6) ? null : DateTimeOffset.Parse(reader.GetString(6), System.Globalization.CultureInfo.InvariantCulture),
+                reader.GetInt32(7), reader.GetInt64(8), reader.GetInt64(9), reader.IsDBNull(10) ? null : reader.GetString(10)));
+        return sessions;
+    }
 
     public async Task UpsertPeerAsync(PeerDevice peer, string secretKeyId, CancellationToken cancellationToken = default)
     {

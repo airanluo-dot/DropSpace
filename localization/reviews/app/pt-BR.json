@@ -3798,19 +3798,369 @@
     "DlcStorageSummary": [
       "a5806f0f95ded3ab4c34cbd9759e144101875f1a1e5f7be4c5230eb0ed364cdc",
       "a32ea23ba4db581c8ef0c8033c36af2e2c14fd69cdb8213753101e17592bdd9f"
+    ],
+    "ReferenceWindowTitle": [
+      "9a907caccba6a7ea3d0393fbeff0871bd4bd0f1a6e3bbdc68c0dcbe5c248116a",
+      "50d6101cd864f90930476994016ef6666a4e506cd3e23dfd90d26e82c286bd9b"
+    ],
+    "ReferenceKeepOnTop": [
+      "7f28ef840cd292dc5fbc5dcb2f753491f31f30e2f673a8db470759d4bcb8d126",
+      "4bbd5711b40eb87636d7d6bd71b586149731cab5d52b315d5278dfde18c8ab2a"
+    ],
+    "ReferenceFitImage": [
+      "294736152034e122a25f780af1accae665ed7658e6b8ec7daa31397491b1cd0a",
+      "ee0205ceed2e6a293a2d036cb0e13aa97e90f478c7cc26d625deab53cab6c33f"
+    ],
+    "ReferenceZoomIn": [
+      "0e47f09a748fa1321dbaee5c8983f8e8f2880b1212956fb4f21ae9d60b88a8b2",
+      "ee87d9f0a8bc743729904e22bafe4c2523320b9b148d448feefb281aa124cad5"
+    ],
+    "ReferenceZoomOut": [
+      "bc7b631a689b45ca5c51923515d31eb3597b2d9b129d88d0dbee066ee5c35453",
+      "efdda80d56c057aa6d817a9c2e833d64168ceffa3fb858da2ad9cadab042e53a"
+    ],
+    "ReferenceLoading": [
+      "a96a030852e4e49f68eceb210b26c970c345e5781e7c2aef4bf2240c2d1e6a70",
+      "2e251d8893dbbf511b62ea819a7490febf6e238faf48656133cf3ca171ba7b2b"
+    ],
+    "ReferenceUnavailable": [
+      "364625cf104e3fca87f6b9b6f0de13eabd8548524fc28bce0b7f6abb7b22a171",
+      "5838d0a450ca03d85565c244d8a50f797ce8166cdce27095462e9778923c022a"
+    ],
+    "ReferenceCopyFailed": [
+      "f9242b4b1a3f66e86513f649339e47f061f8b1e36e7662ca90232c07ce3b9014",
+      "c67d4eefb7839c26a63355a4526419300eacbecbceb57f5bb8ecbffeb6451dc7"
+    ],
+    "RelayTitle": [
+      "5fa460cd04790b33a40cf55c4c1bbf281f1f39f8d895999f8deb7fdf1d3d89e5",
+      "1c239d341fba13fd022c8b51a678465da8f1b92e6de3466488fcb0e07d9021b9"
+    ],
+    "RelayDescription": [
+      "5f3b3595b56d65a62f8ca76dca288301012b62badcda9ff79a9c47a4d7b8cdb0",
+      "660f93c5baad87a98f2e10fc8d412514df825b3cabeabede5033c21192a0272f"
+    ],
+    "RelayChooseDirectory": [
+      "3db741003e46eee46c1a028dae8a3b4307b4ce87291281820f26606336b89bfd",
+      "7630bc441a57379624a58e5b4730d519193adffc1357427e122a83bb7fe2da4d"
+    ],
+    "RelayRetentionDescription": [
+      "798e573c80b8194f45b771be8bcf369e469b2619c1fe23bce066d5688f5ee8b1",
+      "16ae35ac3a54ae48ada13d7510ad808996ddc24a8c10c1d1b5d6e60a32765b77"
+    ],
+    "RelayError": [
+      "31d36961d6f220889973c4a56b6ddbe9acd106e21550f32580d7ec456f2a6122",
+      "3ada8afb5e35b8e78d6ff56d824172b0e2d66057a6e64c845d622867b9a9f6ba"
+    ],
+    "RelayOff": [
+      "683e635964a2babbfcacfdfc3278849fa065a2fd950708f597ccc45d4793386d",
+      "2745912bd89de3c0494c52c4e346d6884bcbf1fdd28f1ad21760ae075316cd81"
+    ],
+    "RelayPaused": [
+      "e159b06187d369a0615f66ce577582b5c983d4ea59b3a62b702049f61753f0bf",
+      "d455cfb682d3705f35a598a9c7c21ba29132310c93beae34361e5084861c827e"
+    ],
+    "RelayWatching": [
+      "398438d18576d79e66e05062f791742b7047ff3c3d44bfb30a2478e52750e867",
+      "57d0b5815f35fcfe83c644a122a5e447e0674b33269dc4d8d98899219921831e"
+    ],
+    "RelayUnavailable": [
+      "0b112bcf10583b1a3c7343d9e2810b2997d4948675a7f3374199ba891f076767",
+      "8e3b62d2a1b89e7c10391cf9937a59a6f53799ad403ea66b5d8738a39e67da55"
+    ],
+    "RelayResume": [
+      "d640c7421da066618a39daf4266da5f61f66a9b1afcd626481b831a17064965d",
+      "6304c5019ae88330b6686b6c518482e6c04e7930bcef1721bbf7a2d13b256425"
+    ],
+    "RelayPause": [
+      "858e4ba7a29fd38b630ed73a79e2738333b3fc6778fafa90252f5556c1262fdc",
+      "cd25ee5b1db8f5b0aaf73d23695c2ece0eb6e8792cbc4e618013555411e5eafa"
+    ],
+    "RelayRemoveDirectory": [
+      "f2a987fb119bf4ba7e928ca48fb7b2acc778ac64d90f75943ef9dc08870ec724",
+      "41a2fe9c2c988024aa7c220d8882c5e6f292ff1fa194525acf1f4a8563b19cf8"
+    ],
+    "ActionOutputRegistrationFailed": [
+      "2e9ba31889e12fcd80af83e8ed908f816b8bb0f9bdc06001ce993d549c6f222a",
+      "72f089bc51fc575f58892a56bf53cad8973e8b8f3d2d1567633115550df63359"
+    ],
+    "ActionPartiallyCompleted": [
+      "24421344abc368523525b730b30bab9d51ab058ee83a1c475401b808ef1f431b",
+      "ff745b7d91fdeadd7b123cd1927fd801c59e1e70d53d79ebabd34d2f6fe86f82"
+    ],
+    "RetrievalSearch.PlaceholderText": [
+      "3798040da86b33152338c98154e8d41bdb70562944a3eb3a3cbff51742102556",
+      "46de5485047da18f2dc1a3c3b02092558dad554845512507307735dd031609e0"
+    ],
+    "RetrievalAll.Content": [
+      "a52ace420f2175d08b1577a1bea5445e36801229c074ef9ed6c55a73401fd9c2",
+      "bd02b9a7d71dac67a21b2758f11975bc491cc834c22edd9fa598fed97405aaa9"
+    ],
+    "RetrievalRecent.Content": [
+      "690dbe9dc0993c4256683738fc3fd541cfa96f60d299be33343615dd58179d93",
+      "3068eba03d591c16281aedb1f6ed08900fd16384505c9008c867a628784b5dce"
+    ],
+    "RetrievalPinned.Content": [
+      "f20c879465551f0d1457a13d4390d0f1ece456b115d75463169c5d55341b9b1e",
+      "edd6dd450d3492b505f3db1ee1de2219940dd531f03ebac7c95b69d73f323135"
+    ],
+    "RetrievalEmpty.Text": [
+      "3f5bdde42c429f7360924ef49d53b9a6b82c0228466c9271d40c1b3b54a28735",
+      "f5fcb31441c394ec33cb12e16dfdeb4ff8197a51cb6b02e0c9c29d63328d8e6b"
+    ],
+    "RetrievalCopy.Content": [
+      "e21f935f11d7e966dbbae78da9daa378fe8142a14e7c0cd7434183005faa6c5c",
+      "39dcf1cbeb5adbd084a1c71d75bca9e6e0c2376d933b674b1049e631ee1fd98f"
+    ],
+    "RetrievalPreview.Content": [
+      "324b134f57c70c729ae3dc4d298bb451656717d70523e942c1ce667b8024ea07",
+      "1acb4b8fd2aa9e2d243120c2ace8d4d39a97175dac963f9c8373c0b6390f79bc"
+    ],
+    "RetrievalReference.Content": [
+      "71bf90935fc231d20126e2087eeb583c6aa419fc3dd1b6847bfe376b9200eaa0",
+      "6fac4ad8493d989676c1f35f3d7d0d8d273b1da14549ab19f90d911419ee502e"
+    ],
+    "RetrievalKeep.Content": [
+      "183f00f483d3844e875d26eac74c676054383aef38ed5a8e4d1505ef21008585",
+      "00f93752a3289917c483964d9a85eb78ea5e20b1602f88e8c8725734a14e11a7"
+    ],
+    "RetrievalCopyPath.Content": [
+      "720ff4160412b943370afdb8fc1c082ff057d54713d5fb4b4b7a9634bfabf5fe",
+      "df1380ee2218dc419f9ebc44622a83fa4c8e8dcd8942ef1e3f844449ae2e89d6"
+    ],
+    "RetrievalRemove.Content": [
+      "c3812fc4acb861d5182fc2b8155f327f736fbe5e5eb86a7bd7afcb6dc5497282",
+      "a3037dc71a43fa40bb1e03b5844b83474819caeffa882d2e7793e31daf092939"
+    ],
+    "RetrievalUnavailable": [
+      "e92908d3ae7e56f6d18663d3f68f039611fe406351f550144a0d0f341951802c",
+      "01fded5b41554fcfba686c287f327d453dac0488d1f3784463a8b25154bf92b6"
+    ],
+    "ItemSourceRecent": [
+      "690dbe9dc0993c4256683738fc3fd541cfa96f60d299be33343615dd58179d93",
+      "3068eba03d591c16281aedb1f6ed08900fd16384505c9008c867a628784b5dce"
+    ],
+    "ItemSourceOutput": [
+      "6e7d50e84f4731ef74187cf8cfa2672184eed8866b0b0074a772f4a64e0f4ba2",
+      "a71bc39fe3f33e42d1164472c83a9a340c52da9718ce3b8114c488647338fdf5"
+    ],
+    "ItemSourcePartialOutput": [
+      "2db4600a77b5c76f836f37e272400535f460375251cc8bcb9c3c2dfc00d012b9",
+      "bc940d92615bd80ed0f46a6f446e13b7d1100d323cde763eee72e3817b2e5f3f"
+    ],
+    "ItemStatusWaiting": [
+      "6e2699e31b0c962412f9c624e25ee861299d59cbab16796181f3090544ddbe9d",
+      "432032f9508b52eff304728b16bdc21ef7e0fbe990d2d33019c0a7cf84369484"
+    ],
+    "ItemStatusCurrent": [
+      "8a9eb94c445c3662062d6ddb3cb5da31ae20402a772fe6c731c34adb29847403",
+      "87063b04ad9f43732b25443afda07f0b5f33bea38a7f0ee2557eda51b40e3c35"
+    ],
+    "RelayReasonDirectoryUnavailable": [
+      "fbe875e3f9988b56a7d107030a3f1e92f17d55ed05f4699d24247a01c1245e03",
+      "629d6ca3466cbbdbd5bba2201969de7e6e42c98dfd4f5b1d4505a142578bef66"
+    ],
+    "RelayReasonAccessDenied": [
+      "1d5edebf71f230947afb392fd6601f72992806a4ae512ffe000d0093de55f777",
+      "eba4b669a44ac2f978308b9f9cd03771c4d0796d65b6b9f9b26d6c0c05ba3440"
+    ],
+    "RelayReasonDirectoryUnsupported": [
+      "6149d7f28c237b9d242bd6fa76d7df253addb36cdac62fd5f5170b11f5fe09ba",
+      "6f2e5d438934cfd6e666249e1046c0a152fd73a6f05320f182dd1e1888714b8e"
+    ],
+    "RelayReasonWatcherInterrupted": [
+      "9313fcb588e1fdfd3497a06cc66af2bf89b0b958e95daeae2942449e03c80d3a",
+      "0c89073bbcd43135a7f7ed8a5f03299c72d69d00eeed812be2fdc7af80012064"
+    ],
+    "RelayReasonEventsOverflow": [
+      "18226ebf83ccc7d2e4c1a3a289ee105e4f2f47963264ec905d976ece5521c0f2",
+      "8f9ffb2ae17cf76dcf62370637a21f85e381f35ad7ba5b29e30b51c1b6b4a139"
+    ],
+    "RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name": [
+      "55c319d1c79e1e387a1b7fa5a61e8b87168072aeec395bfef3026b0d7e30c0c0",
+      "151c33ab8248559ce7fa837d5a8e5014ba78fce10e4892f2349bf0c15ce2c78e"
+    ],
+    "RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name": [
+      "76900f1bfd16c8d4dd3d25e6f46638d7165aee23883ccea6bfe071c514421769",
+      "59dc926760d04aeaf3f80c4c954b3d948f2594a6b73c8e0332f4ca1436676e4b"
+    ],
+    "RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name": [
+      "55c319d1c79e1e387a1b7fa5a61e8b87168072aeec395bfef3026b0d7e30c0c0",
+      "151c33ab8248559ce7fa837d5a8e5014ba78fce10e4892f2349bf0c15ce2c78e"
+    ],
+    "AgentConnectionsTitle": [
+      "b7949f01c101e5a93c8ef6938a32cc9b63facabfa623e68f331c32d2869cf5d9",
+      "dabb268206e392316d714f26b9b879579af89f9ba9f995ccede109cdcba842c7"
+    ],
+    "AgentConnectionsDescription": [
+      "d5a903686d30c7028beba6c9348589e44ddf8777839cc95d70a55c67246eb467",
+      "7e30c1854c053a20a9eb975cbf9c6f0c79c72acc71ff44c339ba0a191eec2e6f"
+    ],
+    "AgentAccessDescription": [
+      "ff6b5a1a95d64f3fc97d4534317d4144c69113a9c2aefa682c8bed33deb20048",
+      "1e7ea2b65b99c264b6f7e568c74404e5a711c121388ba981a7cf737d2c9dc0fa"
+    ],
+    "AgentNameLabel": [
+      "1cfb21871a035769dbfdfd53e759e840c44ef8723bcb71e4d721fecfb20de3de",
+      "14e56277fd032cb3812013f076e48aabea9dd7ad6d58d50920624c4556f0267a"
+    ],
+    "AgentNamePlaceholder": [
+      "f71b18f438909a6f37d3ce95216523d7e0a211000ae6b9bf33c400c9fc0fb284",
+      "3b33c84496dd30faecfc435d97b00f5c40e7e43e5dd86ccb95416de9c9d071ab"
+    ],
+    "AgentCreateKey": [
+      "4041ce4eee69d8269de09524596b463f5e4dab7b7877f841133424588856e625",
+      "5d9465055f70f6d0b33c1d5cf1bd4c59bd5d32b621897ad55bb26402102177e4"
+    ],
+    "AgentCopyInstallPrompt": [
+      "4161a23e9aae48e480dbce50db6351eeb07b307cb909668fdc3da2bbdf510ef5",
+      "9c1ed99354ceb8c0275edf206442373fb5f9a3f3ed3f03d9b2bcaf90a5d5998d"
+    ],
+    "AgentInvitationExpired": [
+      "ce50b0aa7d015cee63b61500e9d786f3f1fbb399094a5d05d35e71b064348f52",
+      "b635dcd25f7032e152a45de02957a10140cfc11865e585f02c5efa83c9049665"
+    ],
+    "AgentPromptCopied": [
+      "7565fb2ba493c4d9541c9ef4a2e34a085d7b658b2065887f712088f8292b7b44",
+      "28b63b98f174fd5c7aeb844ea8b48a48ac1211bb53c93d4062bfe46c4ef1204e"
+    ],
+    "AgentOperationFailed": [
+      "690604f97fd36b76b25b27595f3a4f1d5036ce6e1b6a96ed89124f3aea0faf6b",
+      "0768f6ccf9e80e5d662470528d5b9083beee36cab4ef588514978a46d387a441"
+    ],
+    "AgentServiceError": [
+      "4bc406e825adb805b816cfe7e658c43ebe870c407a3da663af497b7712f14e5b",
+      "254167938c890db459d4b0cec6a03d0f2f419f49617d847639c864adcd711ded"
+    ],
+    "AgentListening": [
+      "477d03d193e9ea315dd404a175c447765cdd58d49c12423886143553015558e4",
+      "a26abf0c814f4d129b210031ce1471835a41f9a4db4be65e3d55d3f62f7c984d"
+    ],
+    "AgentInactive": [
+      "184b891cfb48a305df460ada60a5f77609e755af07a096346b65866004999d72",
+      "ce6d819235ec1ba66cafa7c05ccef6369b5c552e140c32e151867aab359e8f2f"
+    ],
+    "AgentInvitationReady": [
+      "ef12dd0353082c9c1eadba2a46a765ed5771edeb10a6d72fdacb1203ae57a10a",
+      "3ce3d599182e9911adc59c53b37e1cd2176a433d5567d8a9367d75f6812d14a3"
+    ],
+    "AgentNoBindings": [
+      "1013adfa8c5f938342af4d38c30929d7c28ee5ed469fdab739441656dc685cfa",
+      "3e1da79b3bf4012b3c799e4a4fb63c4f385c85bd6e82ce8a6e722afa837849bc"
+    ],
+    "AgentPaired": [
+      "a3f0a14235a830604a8ae983ee3c81b100a2c12c2962851af40b1c328c26d313",
+      "5e30abbb1ad0ede3577683841dd3170d6faa93ed0d55a25aba291f8826765c24"
+    ],
+    "AgentPending": [
+      "9193a6bd2430c6df82cef64f7e0ed1cef44be8cf9ad41cc3cffc76616f9e8f2a",
+      "d9b815f25c26d5f1bd14e0917bd56ac6ea5623b3f23c6daa7526bc8fe1504512"
+    ],
+    "AgentLastActivity": [
+      "41b6492b8d5748321df6c5397a7e109267574e0a18d4a3b596993aa2df819e96",
+      "f0d9d41354c9ef29ed28b6cfee74f6cdcb3a63cb749c96ba7d026fd732506f4c"
+    ],
+    "AgentRevoke": [
+      "ab292ddb87d6ffacdf9d9de6f78f8e24993a7836f4705d021278af71d27a444a",
+      "5dea4136af2901b29ae2ec0979fe065c0c942f4cca1acf8deab9ba9aad2958a3"
+    ],
+    "AgentRevoked": [
+      "6213f2c75f6b4245cc23f83c54a2dd053e2337bf5649229275ddf5cf63ba5b1f",
+      "495cd207e8b128d870cb2d205121c5462b0b3d0e708b9349d1c839dd5f34c501"
+    ],
+    "AgentRevocationDescription": [
+      "3c87d3cf438e321b1d53772849831bb382513e35cd6e9248530a732ccdf55734",
+      "4852f0cacdfaf082ec7175ef37c6ffc213bd2389ccee6b1af795d24ad2c6505a"
+    ],
+    "AgentNameRequired": [
+      "71e53b3dafee0eca88843d5d3d675c2ca018fdbcab0de581af3464bf475867b4",
+      "6b5c32577bd85d0fc587ca7438b9e208dd72e5bf9f4575265f5a3cd9986e4de8"
+    ],
+    "AgentConfirmTitle": [
+      "60d51c568ec644b4811a187cfe5ac3b5dbbcaec97bb482299880c2804918b100",
+      "29999ed8c6ae3f8c6ca7cd696075966cc5cc38720410c2f5033b072e41f81054"
+    ],
+    "AgentConfirmAllow": [
+      "bd3ed386f7188ccb0eb6d55277a90a17b6e9a10508f062fe6cec11ff023ccc84",
+      "0e08365ebf0acde4ab0df8307ade4f3008a9816ea00ba589b92abd2c266194c7"
+    ],
+    "MusicWindowOpen": [
+      "3deb8afb83f4b5e6dbe9a76398d1580416bb2e6f33da0083ec91ab02ff8ef8ce",
+      "7d896d4abfb839083bdaa55471ce5a8b62253142e0d69b49e4894f2d7b96817c"
+    ],
+    "MusicWindowTitle": [
+      "6eb00b4b2614a144d41ccdf709017a675953fae2df6cfd6b397bd9e4d8708461",
+      "0e0cc1a93fe567a4935c582cb5bb54c2ee942dff9e635e861f3339b636f83087"
+    ],
+    "ShortcutOpenMusicWindow": [
+      "3deb8afb83f4b5e6dbe9a76398d1580416bb2e6f33da0083ec91ab02ff8ef8ce",
+      "7d896d4abfb839083bdaa55471ce5a8b62253142e0d69b49e4894f2d7b96817c"
+    ],
+    "ShortcutUnassigned": [
+      "13075c2336114cd61689ea2ff249beb20052a0afbad7f0e4b8d68fb866e568e7",
+      "c139a9dfac92bffb19f02ab5e2c0a84968d9fbc66fc533cf2d80514b9c934ae0"
+    ],
+    "HotkeyClearBinding": [
+      "b22b0b3873a155de2e4f74d9198bf07b8818adc5bf6ed476a1d5ad6c16f9d798",
+      "1bde7da043cdafb6b62e701ffc5d825d92fc048084434c06935b6d116b871f41"
+    ],
+    "MusicWindowShowLyrics": [
+      "7f6eedd8e71fc394268e1769b4edd1bc7f18c094446bccef05d53b4b2f93ca64",
+      "3b831028ab3f29f9d3a42781fcc4046f0a705c7567b162ac086c43797e6e5d8a"
+    ],
+    "MusicWindowHideLyrics": [
+      "54b04db500cfccf85f38a4ce84787818bf784413167f6d291d68353f5edd9aa2",
+      "76cd2e10eaa80cab619af34dc88f007a4b046d601ca04d00e0b9e89cea8e33c5"
+    ],
+    "MusicWindowTranslation": [
+      "6fbd766b1a71cc4d296d92f84976a1fd5f5a750ae0f0cc929db2c6458d3dc9ea",
+      "31049c42a96d707e72a3393a636a60e0ae6fb839dfc90299a2ded8c71e87b859"
+    ],
+    "MusicWindowNoArtwork": [
+      "f2f95c147a0506ddc374439c76ab948624afab6caf99a169b59fcaaecff8c7c6",
+      "f2ce8bfc2c25f5e995232f73f6e512c7af127f63f9bbf40a56bb7bba42ff13be"
+    ],
+    "MusicWindowNoTranslation": [
+      "9987e1ba3ce2408031b524d7a09c7c4780b3c35260c5c095640a1166f6bcb607",
+      "509f61810b5d2adff79b8222b79daf206666d1bd83fa15fcbbf027d8c52a5ead"
+    ],
+    "MusicWindowSeekUnavailable": [
+      "468540b0a8b8bfc3ce0e1a805a19567973a71e7c3884ca089f6412bd47b40fe4",
+      "85ace31676c6e18ec6ed1095bf17e2fab57e553c8f850a99e4a37dae692bcd59"
+    ],
+    "MusicWindowLyricsDisabled": [
+      "385996d3a201dfc003edc8fd05d2c6da9eb9d7704be0a9655a81297c0abf6264",
+      "c82056eed8a57351de0edd186e192a7e0290a52f23424fbe33ad8e9adb2450b9"
+    ],
+    "MusicWindowSystemVolume": [
+      "1f4a67059996bf7f16d0017ef72830334ad91de4f55e13c1b22054f117600939",
+      "6dcc2a8e1f056e3fcf1c3b20326c8a2011c6ac693d18b64d13e751f3c5545b7f"
+    ],
+    "MusicWindowVolumeUnavailable": [
+      "ea02654758bc563a2c4fcb4629c91d101a952f15bd14b67718e5c6d2d4f4011d",
+      "5f173ffd73ebdb943f803dab67f7f5d933dd82e9c40ad962342e286a7113409b"
     ]
   },
-  "reviewedBy": "Codex: reviewed cache/DLC usage and automatic installation labels",
-  "reviewedAt": "2026-10-22T10:32:54.424Z",
+  "reviewedBy": "Codex music-window: reviewed all 14 music-window and shortcut labels including system volume availability",
+  "reviewedAt": "2026-10-23T13:56:40.863Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "LocalDataSection.Text",
-      "StorageSummary",
-      "AutoInstallUpdatesTitle.Text",
-      "DlcStorageSummary"
+      "MusicWindowOpen",
+      "MusicWindowTitle",
+      "ShortcutOpenMusicWindow",
+      "ShortcutUnassigned",
+      "HotkeyClearBinding",
+      "MusicWindowShowLyrics",
+      "MusicWindowHideLyrics",
+      "MusicWindowTranslation",
+      "MusicWindowNoArtwork",
+      "MusicWindowNoTranslation",
+      "MusicWindowSeekUnavailable",
+      "MusicWindowLyricsDisabled",
+      "MusicWindowSystemVolume",
+      "MusicWindowVolumeUnavailable"
     ],
-    "reviewedBy": "Codex: reviewed cache/DLC usage and automatic installation labels",
-    "reviewedAt": "2026-10-22T10:32:54.424Z"
+    "reviewedBy": "Codex music-window: reviewed all 14 music-window and shortcut labels including system volume availability",
+    "reviewedAt": "2026-10-23T13:56:40.863Z"
   }
 }

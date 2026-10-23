@@ -40,6 +40,7 @@ public partial class App : Application
     private readonly System.Collections.Concurrent.ConcurrentQueue<AppActivationArguments> _pendingActivations = new();
     private OverlayWindowService? _overlayWindows;
     private Services.Media.MediaExperienceService? _mediaExperience;
+    private GlobalMusicWindowHotkeyService? _musicWindowHotkey;
     private Services.Dlc.DlcManagerService? _dlcManager;
     private Services.Dlc.FeatureModuleRuntime? _featureModules;
     private Task? _featureModuleStartup;
@@ -66,6 +67,25 @@ public partial class App : Application
         try
         {
             var commandLine = Environment.GetCommandLineArgs();
+            if (GetCommandLineArgumentValue(commandLine, "--music-window-check") is { } musicCheckOutput)
+            {
+                UnhandledException -= OnUnhandledException;
+                Environment.Exit(await Services.Diagnostics.MusicWindowCheck.RunAsync(musicCheckOutput, BuildServices,
+                    GetCommandLineArgumentValue(commandLine, "--music-check-focus")));
+                return;
+            }
+            if (GetCommandLineArgumentValue(commandLine, "--agent-integration-check") is { } agentCheckOutput)
+            {
+                UnhandledException -= OnUnhandledException;
+                Environment.Exit(await Services.Diagnostics.AgentIntegrationCheck.RunAsync(agentCheckOutput, BuildServices));
+                return;
+            }
+            if (GetCommandLineArgumentValue(commandLine, "--local-delivery-check") is { } localCheckOutput)
+            {
+                UnhandledException -= OnUnhandledException;
+                Environment.Exit(await Services.Diagnostics.LocalDeliveryCheck.RunAsync(localCheckOutput, BuildServices));
+                return;
+            }
             if (Services.Diagnostics.BetaUiDiagnostics.IsRequested(commandLine))
             {
                 // This isolated entry point owns its receipts and never enters the user's
@@ -183,6 +203,7 @@ public partial class App : Application
             // Recovery owns its I/O failures and lifetime. A slow or inaccessible user
             // download directory must not keep the application's window from starting.
             var downloadManager = _services.GetRequiredService<DropSpace.Infrastructure.Downloads.DownloadManager>();
+            await _services.GetRequiredService<IRecentItemsService>().StartAsync(_appLifetimeCancellation.Token);
             _ = Task.Run(async () =>
             {
                 try { await downloadManager.RestoreAsync(defaultOutputDirectory: persistedSettings.DefaultDownloadDirectory); }
@@ -235,7 +256,15 @@ public partial class App : Application
                 _services.GetRequiredService<NeteaseEnhancementViewModel>(),
                 _dlcManager,
                 _featureModules,
-                _services.GetRequiredService<GlobalQuickPanelHotkeyService>());
+                _services.GetRequiredService<GlobalQuickPanelHotkeyService>(),
+                _services.GetRequiredService<GlobalMusicWindowHotkeyService>(),
+                _services.GetRequiredService<Services.Media.MusicWindowService>());
+            var agentWindow = _window;
+            _services.GetRequiredService<Services.Agent.AppAgentDesktopControl>().Attach(
+                agentWindow.ShowAndActivate, agentWindow.Hide,
+                async page => { agentWindow.ShowAndActivate(); await agentWindow.DiagnosticPage.OpenSettingsPageAsync(page); },
+                () => agentWindow.DispatcherQueue.TryEnqueue(() => OnExitRequested(agentWindow, EventArgs.Empty)),
+                async (operation, details, token) => { agentWindow.ShowAndActivate(); return await agentWindow.DiagnosticPage.ConfirmAgentOperationAsync(operation, details, token); });
             // Module handshake must never delay the built-in window startup.
             var moduleStartupLogger = _services.GetRequiredService<ILogger<App>>();
             _featureModuleStartup = ObserveModuleStartupAsync(_featureModules, moduleStartupLogger);
@@ -334,10 +363,16 @@ public partial class App : Application
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
                 _mediaExperience = _services.GetRequiredService<Services.Media.MediaExperienceService>();
                 await _mediaExperience.InitializeAsync(viewModel.Settings);
+                _musicWindowHotkey = _services.GetRequiredService<GlobalMusicWindowHotkeyService>();
+                _musicWindowHotkey.Invoked += OnMusicWindowHotkey;
+                await _musicWindowHotkey.StartAsync(viewModel.Settings.MusicWindowHotkey);
                 _systemActivities = _services.GetRequiredService<SystemActivityExperienceService>();
                 _systemActivities.Initialize();
                 _services.GetRequiredService<MaintenanceShutdownService>().MarkReady();
                 _startupReady = true;
+                try { await _services.GetRequiredService<DropSpace.Core.Agent.IAppAgentHost>().StartAsync(_appLifetimeCancellation.Token); }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                { _services.GetRequiredService<ILogger<App>>().LogWarning("Agent access startup isolated ({Category}).", error.GetType().Name); }
                 while (_pendingActivations.TryDequeue(out var pendingActivation)) OnInstanceActivated(this, pendingActivation);
                 if (isShellActivation)
                 {
@@ -486,6 +521,18 @@ public partial class App : Application
             _appLifetimeCancellation.Cancel();
             return Task.CompletedTask;
         });
+        if (services is not null)
+        {
+            services.GetRequiredService<Services.Agent.AppAgentDesktopControl>().Detach();
+            await CleanupAsync("Agent access", () => services.GetRequiredService<DropSpace.Core.Agent.IAppAgentHost>().StopAsync());
+            if (_musicWindowHotkey is { } musicHotkey)
+            {
+                musicHotkey.Invoked -= OnMusicWindowHotkey;
+                await CleanupAsync("music window shortcut", () => musicHotkey.StopAsync());
+                _musicWindowHotkey = null;
+            }
+            await CleanupAsync("music window", () => { services.GetRequiredService<Services.Media.MusicWindowService>().Close(); return Task.CompletedTask; });
+        }
         if (_startupUpdateTask is not null)
             await CleanupAsync("startup update", () => _startupUpdateTask);
 
@@ -501,6 +548,10 @@ public partial class App : Application
 
         if (services is not null)
             await CleanupAsync("file downloads", () => services.GetRequiredService<DropSpace.Infrastructure.Downloads.DownloadManager>().ShutdownAsync());
+        if (services is not null)
+        {
+            await CleanupAsync("reference window", () => { services.GetRequiredService<ReferenceWindowService>().Dispose(); return Task.CompletedTask; });
+        }
 
         var overlay = _overlayWindows;
         if (_systemActivities is { } systemActivities)
@@ -525,6 +576,10 @@ public partial class App : Application
         });
         if (window is not null)
             await CleanupAsync("main window tasks", () => window.DisposeAsync().AsTask());
+        if (services?.GetRequiredService<IItemActionRegistry>() is ItemActionRegistry actionRegistry)
+            await CleanupAsync("completed action registration", actionRegistry.ShutdownAsync);
+        if (services is not null)
+            await CleanupAsync("recent file relay", () => services.GetRequiredService<IRecentItemsService>().DisposeAsync().AsTask());
         if (services is not null)
             await CleanupAsync("application services", () => services.DisposeAsync().AsTask());
 
@@ -597,6 +652,19 @@ public partial class App : Application
         services.AddSingleton<SqliteDatabase>();
         services.AddSingleton<SqliteItemRepository>();
         services.AddSingleton<IItemRepository>(provider => provider.GetRequiredService<SqliteItemRepository>());
+        services.AddSingleton<IRecentItemsService, RecentItemsService>();
+        services.AddSingleton<Services.Agent.AppAgentDesktopControl>();
+        services.AddSingleton<Services.Agent.AgentSkillPackageService>();
+        services.AddSingleton<Services.Agent.IAppAgentDomain, Services.Agent.ContentAgentDomain>();
+        services.AddSingleton<Services.Agent.IAppAgentDomain, Services.Agent.DesktopAgentDomain>();
+        services.AddSingleton<Services.Agent.IAppAgentDomain, Services.Agent.MediaAgentDomain>();
+        services.AddSingleton<Services.Agent.IAppAgentDomain, Services.Agent.PackagesAgentDomain>();
+        services.AddSingleton<Services.Agent.IAppAgentDomain, Services.Agent.TransferAgentDomain>();
+        services.AddSingleton<DropSpace.Core.Agent.IAppAgentDispatcher, Services.Agent.AppAgentDispatcher>();
+        services.AddSingleton<DropSpace.Core.Agent.IAppAgentHost, DropSpace.Infrastructure.Agent.AppAgentHost>();
+        services.AddSingleton(provider => new Lazy<DropSpace.Core.Agent.IAppAgentHost>(provider.GetRequiredService<DropSpace.Core.Agent.IAppAgentHost>));
+        services.AddSingleton<ReferenceWindowService>();
+        services.AddSingleton<IslandRetrievalViewModel>();
         services.AddSingleton<IPayloadCleanupRepository>(provider => provider.GetRequiredService<SqliteItemRepository>());
         services.AddSingleton<IPayloadStore, FilePayloadStore>();
         services.AddSingleton<OwnedPayloadReconciler>();
@@ -767,12 +835,14 @@ public partial class App : Application
             provider.GetRequiredService<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>()));
         services.AddSingleton<Services.Dlc.FeatureModuleRuntime>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
+        services.AddSingleton<Services.Media.MusicWindowService>();
         services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<OleDragDropService>();
         services.AddSingleton<DragSessionDetector>();
         services.AddSingleton<GlobalQuickPanelHotkeyService>();
+        services.AddSingleton<GlobalMusicWindowHotkeyService>();
         services.AddSingleton<SystemVisualPreferenceService>();
         services.AddSingleton<ItemProjectionService>();
         services.AddSingleton<SettingsApplicationCoordinator>();
@@ -791,6 +861,12 @@ public partial class App : Application
             ValidateScopes = true,
         });
     }
+
+    private void OnMusicWindowHotkey(object? sender, EventArgs args) => _window?.DispatcherQueue.TryEnqueue(() =>
+    {
+        if (!_startupReady || _appLifetimeCancellation.IsCancellationRequested) return;
+        _services?.GetRequiredService<Services.Media.MusicWindowService>().Open();
+    });
 
     private void OnInstanceActivated(object? sender, AppActivationArguments args)
     {

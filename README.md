@@ -13,11 +13,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 DropSpace **1.0** is the first stable release of the current application. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, Windows release automation, and the product/engineering specifications.
 
-The current release target is `v1.0.0` (Stable).
+The current Beta target is `v1.1.0-beta.1` (Beta 1). The application displays **1.1 Beta1**; Stable remains 1.0.
 
-Version 1.0 separates cache and DLC usage, pauses the System Activities experience, centers the About page, enables automatic update installation and refines the website and early Mac downloads. See the [release notes](.github/release-notes/v1.0.0.md) and [focused execution record](docs/dev/v1-release-2026-10-22.md).
+Version 1.1 Beta1 adds unified Island retrieval, opt-in new-file relay, reusable task outputs, a shared-content reference window, local Agent connections, and an independent music window using the existing media session. Music controls, Island icons and minimum window sizes are refined. See the [release notes](.github/release-notes/v1.1.0-beta.1.md) and [release record](docs/dev/1.1-beta1-release.md).
 
-Public upgrade baseline: [v0.3.2-beta.7](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.2-beta.7); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Public upgrade baseline: [v1.0.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v1.0.0); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
 Beta1 adds optional official feature modules around the existing host. The host owns navigation, settings and Island presentation; a module supplies an independent worker, declarations and its own data. Existing built-in behavior, independent CUDA component delivery and optional AI translation off by default remain.
 
@@ -27,7 +27,7 @@ The unchanged optional CUDA archive is reused from its [independent component re
 
 Beta16 bundled fastText `lid.176.bin` for one offline whole-track prediction. Originals already in the independently selected Chinese/English target language skip AI; any valid target-language provider translation disables AI for the entire track, including gaps. Only Unknown originals without valid target translations enter the existing optional Hy-MT2 progressive flow. Its historical validation remains in the [Beta16 audit](docs/dev/beta16-lyrics-audit.md); it does not establish Beta17 Windows acceptance.
 
-v0.3.2-beta.7 is the immediate upgrade baseline for this release.
+v1.0.0 is the immediate upgrade baseline for this release.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables

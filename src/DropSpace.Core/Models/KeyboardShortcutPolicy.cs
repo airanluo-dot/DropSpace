@@ -18,6 +18,15 @@ public static class KeyboardShortcutPolicy
             settings.KeyboardShortcuts.Keys.Any(id => !Defaults.ContainsKey(id)))
             throw new ArgumentException("Invalid keyboard shortcut settings.");
         var gestures = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (settings.MusicWindowHotkey is null || settings.MusicWindowHotkey.Length > SettingsValidationPolicy.MaximumQuickPanelHotkeyLength)
+            throw new ArgumentException("Invalid music-window shortcut.");
+        if (!string.IsNullOrWhiteSpace(settings.MusicWindowHotkey))
+        {
+            var music = SettingsValidationPolicy.CanonicalizeHotkey(settings.MusicWindowHotkey);
+            if (music is null || music.Equals(SettingsValidationPolicy.CanonicalizeHotkey(settings.QuickPanelHotkey),StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Invalid or conflicting music-window shortcut.");
+            gestures.Add(music);
+        }
         if (includeGlobal) gestures.Add(SettingsValidationPolicy.CanonicalizeHotkey(settings.QuickPanelHotkey)!);
         foreach (var id in Defaults.Keys)
         {

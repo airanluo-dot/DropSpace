@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/DropSpace.App/Services/Agent/AgentSkillPackageService.cs" Link="AgentSkillPackageService.cs" />
+    <Compile Include="../../src/DropSpace.Core/Agent/AppAgentContracts.cs" Link="AppAgentContracts.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Storage/AppStoragePaths.cs" Link="AppStoragePaths.cs" />
+    <EmbeddedResource Include="../../src/DropSpace.App/Assets/AgentIntegration/dropspace-agent/**/*" LogicalName="DropSpace.AgentSkill/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

@@ -952,4 +952,89 @@
   <data name="HotkeySave" xml:space="preserve"><value>保存</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>このショートカットは使用できないか使用中です。別の組み合わせを選んでください。</value></data>
   <data name="DlcStorageSummary" xml:space="preserve"><value>DLC の合計使用量：{0}</value></data>
+  <data name="ReferenceWindowTitle" xml:space="preserve"><value>一時参照</value></data>
+  <data name="ReferenceKeepOnTop" xml:space="preserve"><value>最前面に表示</value></data>
+  <data name="ReferenceFitImage" xml:space="preserve"><value>ウィンドウに合わせる</value></data>
+  <data name="ReferenceZoomIn" xml:space="preserve"><value>拡大</value></data>
+  <data name="ReferenceZoomOut" xml:space="preserve"><value>縮小</value></data>
+  <data name="ReferenceLoading" xml:space="preserve"><value>参照を読み込み中…</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>この内容は利用できなくなったか、プレビューできません。</value></data>
+  <data name="ReferenceCopyFailed" xml:space="preserve"><value>コピーできませんでした。もう一度お試しください。</value></data>
+  <data name="RelayTitle" xml:space="preserve"><value>新しいファイルの取り込み</value></data>
+  <data name="RelayDescription" xml:space="preserve"><value>ローカルフォルダーを選ぶと有効になります。そのフォルダー内の新しいファイルだけを取り込み、既存のファイルやサブフォルダーは取り込みません。外部ファイルは現在利用可能と表示し、ダウンロードや書き出しの完了は保証しません。</value></data>
+  <data name="RelayChooseDirectory" xml:space="preserve"><value>フォルダーを選択</value></data>
+  <data name="RelayRetentionDescription" xml:space="preserve"><value>最近の候補は30日後、または500件を超えると期限切れになります。保存済み、ピン留め済み、参照中の項目は保護されます。削除するのは記録のみで、元のファイルはそのまま残ります。</value></data>
+  <data name="RelayError" xml:space="preserve"><value>ファイル取り込みの設定を更新できませんでした：{0}</value></data>
+  <data name="RelayOff" xml:space="preserve"><value>オフ · フォルダー未選択</value></data>
+  <data name="RelayPaused" xml:space="preserve"><value>一時停止中</value></data>
+  <data name="RelayWatching" xml:space="preserve"><value>新しいファイルを待機中</value></data>
+  <data name="RelayUnavailable" xml:space="preserve"><value>フォルダーを利用できません：{0}</value></data>
+  <data name="RelayResume" xml:space="preserve"><value>再開</value></data>
+  <data name="RelayPause" xml:space="preserve"><value>一時停止</value></data>
+  <data name="RelayRemoveDirectory" xml:space="preserve"><value>フォルダーを解除</value></data>
+  <data name="ActionOutputRegistrationFailed" xml:space="preserve"><value>結果は保存されましたが、最近の項目に追加できませんでした。</value></data>
+  <data name="ActionPartiallyCompleted" xml:space="preserve"><value>一部完了</value></data>
+  <data name="RetrievalSearch.PlaceholderText" xml:space="preserve"><value>クリップボード・ファイル・結果を検索</value></data>
+  <data name="RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>すばやく取り出す</value></data>
+  <data name="RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>戻る</value></data>
+  <data name="RetrievalAll.Content" xml:space="preserve"><value>すべて</value></data>
+  <data name="RetrievalRecent.Content" xml:space="preserve"><value>最近</value></data>
+  <data name="RetrievalPinned.Content" xml:space="preserve"><value>ピン留め</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>一致する項目がありません。設定でフォルダーを追加すると、新しいファイルを取り込めます。</value></data>
+  <data name="RetrievalCopy.Content" xml:space="preserve"><value>コピー</value></data>
+  <data name="RetrievalPreview.Content" xml:space="preserve"><value>プレビュー</value></data>
+  <data name="RetrievalReference.Content" xml:space="preserve"><value>参照</value></data>
+  <data name="RetrievalKeep.Content" xml:space="preserve"><value>保存</value></data>
+  <data name="RetrievalCopyPath.Content" xml:space="preserve"><value>パスをコピー</value></data>
+  <data name="RetrievalRemove.Content" xml:space="preserve"><value>取り除く</value></data>
+  <data name="RetrievalUnavailable" xml:space="preserve"><value>この項目は現在利用できません。</value></data>
+  <data name="RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>すばやく取り出す</value></data>
+  <data name="ItemSourceRecent" xml:space="preserve"><value>最近</value></data>
+  <data name="ItemSourceOutput" xml:space="preserve"><value>結果</value></data>
+  <data name="ItemSourcePartialOutput" xml:space="preserve"><value>結果 · 一部成功</value></data>
+  <data name="ItemStatusWaiting" xml:space="preserve"><value>利用可能になるまで待機中</value></data>
+  <data name="ItemStatusCurrent" xml:space="preserve"><value>現在利用可能</value></data>
+  <data name="RelayReasonDirectoryUnavailable" xml:space="preserve"><value>フォルダーが存在しないか、ドライブが接続されていません。</value></data>
+  <data name="RelayReasonAccessDenied" xml:space="preserve"><value>Windows によりこのフォルダーへのアクセスが拒否されました。</value></data>
+  <data name="RelayReasonDirectoryUnsupported" xml:space="preserve"><value>DropSpace の内部保存領域以外のローカルフォルダーを選んでください。</value></data>
+  <data name="RelayReasonWatcherInterrupted" xml:space="preserve"><value>フォルダーの監視が中断されました。一時停止してから再開してください。</value></data>
+  <data name="RelayReasonEventsOverflow" xml:space="preserve"><value>ファイルの変更が多すぎるため、一部の新しいファイルを取り込めなかった可能性があります。</value></data>
+  <data name="AgentConnectionsTitle" xml:space="preserve"><value>エージェント接続</value></data>
+  <data name="AgentConnectionsDescription" xml:space="preserve"><value>このパソコンのエージェントから DropSpace のデータ、機能、設定にアクセスできます。</value></data>
+  <data name="AgentAccessDescription" xml:space="preserve"><value>各接続にはワークスペースへのアクセスが許可されます。信頼できるエージェントだけにペアリングキーを渡してください。</value></data>
+  <data name="AgentNameLabel" xml:space="preserve"><value>エージェント名</value></data>
+  <data name="AgentNamePlaceholder" xml:space="preserve"><value>例：コーディングアシスタント</value></data>
+  <data name="AgentCreateKey" xml:space="preserve"><value>ペアリングキーを作成</value></data>
+  <data name="AgentCopyInstallPrompt" xml:space="preserve"><value>スキル設定プロンプトをコピー</value></data>
+  <data name="AgentInvitationExpired" xml:space="preserve"><value>このキーは使用できません。新しい接続を作成してください。</value></data>
+  <data name="AgentPromptCopied" xml:space="preserve"><value>設定プロンプトをコピーしました。エージェントに渡してスキルを導入し、一度だけペアリングしてください。</value></data>
+  <data name="AgentOperationFailed" xml:space="preserve"><value>操作を完了できませんでした：{0}</value></data>
+  <data name="AgentServiceError" xml:space="preserve"><value>エージェント接続は利用できません：{0}</value></data>
+  <data name="AgentListening" xml:space="preserve"><value>このパソコンで待機中：{0}</value></data>
+  <data name="AgentInactive" xml:space="preserve"><value>無効 · 許可済みエージェントなし</value></data>
+  <data name="AgentInvitationReady" xml:space="preserve"><value>キーを作成しました。{0} までに設定プロンプトをコピーしてください。</value></data>
+  <data name="AgentNoBindings" xml:space="preserve"><value>エージェント接続はありません。</value></data>
+  <data name="AgentPaired" xml:space="preserve"><value>ペアリング済み · アクセス許可済み</value></data>
+  <data name="AgentPending" xml:space="preserve"><value>ペアリング待ち</value></data>
+  <data name="AgentLastActivity" xml:space="preserve"><value>最終操作：{0}</value></data>
+  <data name="AgentRevoke" xml:space="preserve"><value>アクセスを取り消す</value></data>
+  <data name="AgentRevoked" xml:space="preserve"><value>アクセスを取り消しました。この接続からは要求できません。</value></data>
+  <data name="AgentRevocationDescription" xml:space="preserve"><value>ペアリングキーは 30 分で期限切れになり、一度だけ使用できます。接続後は保存済みの認証情報を使用します。取り消すと新しい要求を拒否し、実行中の API 呼び出しを中止します。開始済みのアプリのバックグラウンドタスクと完了した変更は保持されます。</value></data>
+  <data name="AgentNameRequired" xml:space="preserve"><value>エージェント名を入力してください。</value></data>
+  <data name="AgentConfirmTitle" xml:space="preserve"><value>エージェントの操作を許可しますか？</value></data>
+  <data name="AgentConfirmAllow" xml:space="preserve"><value>この操作を許可</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>音楽ウィンドウを開く</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>音楽</value></data>
+  <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>音楽ウィンドウを開く</value></data>
+  <data name="ShortcutUnassigned" xml:space="preserve"><value>未割り当て</value></data>
+  <data name="HotkeyClearBinding" xml:space="preserve"><value>ショートカットを解除</value></data>
+  <data name="MusicWindowShowLyrics" xml:space="preserve"><value>歌詞を表示</value></data>
+  <data name="MusicWindowHideLyrics" xml:space="preserve"><value>歌詞を非表示</value></data>
+  <data name="MusicWindowTranslation" xml:space="preserve"><value>翻訳</value></data>
+  <data name="MusicWindowNoArtwork" xml:space="preserve"><value>アートワークなし</value></data>
+  <data name="MusicWindowNoTranslation" xml:space="preserve"><value>この曲の翻訳はありません。</value></data>
+  <data name="MusicWindowSeekUnavailable" xml:space="preserve"><value>このプレーヤーは正確な位置へのシークに対応していません。</value></data>
+  <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>音楽設定で歌詞が無効になっています。</value></data>
+  <data name="MusicWindowSystemVolume" xml:space="preserve"><value>システム音量</value></data>
+  <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>システム音量を利用できません。</value></data>
 </root>

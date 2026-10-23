@@ -436,7 +436,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         artworkPending = !_artworkWork.TryStart(
                             workToken => LoadArtworkAsync(session, artworkGeneration, workToken), token,
                             () => _changes.Writer.TryWrite(true));
-                    var sourceKey = playing && ((settings.IslandActivity.ShowSpectrum && _view.IsPresentationVisible) || _view.IsIslandGlowActive) ? session.SourceAppUserModelId : string.Empty;
+                    var sourceKey = playing && ((settings.IslandActivity.ShowSpectrum && _view.IsSpectrumPresentationVisible) || _view.IsIslandGlowActive || _view.IsMusicWindowAudioActive) ? session.SourceAppUserModelId : string.Empty;
                     var observation = Volatile.Read(ref _spectrum);
                     var recoverAudio = AudioCaptureRecoveryPolicy.ShouldRecover(sourceKey.Length > 0,
                         observation.Frame.CaptureMode, Stopwatch.GetElapsedTime(observation.Timestamp),
@@ -726,12 +726,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
     }
     private void UpdateFrameTimer()
     {
-        if (_view.IsPlaying && (_view.IsPresentationVisible || _view.IsIslandGlowActive)) _frames.Start();
+        if (!_initialized || _disposed) { _frames.Stop(); return; }
+        if (_view.IsPlaying && (_view.IsPresentationVisible || _view.IsIslandGlowActive || _view.IsMusicWindowAudioActive)) _frames.Start();
         else _frames.Stop();
     }
     private void OnPresentationChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName is not (nameof(MediaViewModel.IsPresentationVisible) or nameof(MediaViewModel.IsIslandGlowActive))) return;
+        if (args.PropertyName is not (nameof(MediaViewModel.IsPresentationVisible) or nameof(MediaViewModel.IsSpectrumPresentationVisible) or nameof(MediaViewModel.IsIslandGlowActive) or nameof(MediaViewModel.IsMusicWindowAudioActive))) return;
         UpdateFrameTimer(); _changes.Writer.TryWrite(true);
     }
 

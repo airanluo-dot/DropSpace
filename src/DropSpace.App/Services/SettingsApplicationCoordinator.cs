@@ -19,7 +19,8 @@ public sealed class SettingsApplicationCoordinator(
     CrossDeviceClipboardService crossDeviceClipboard,
     ILogger<SettingsApplicationCoordinator> logger,
     DropSpace.Infrastructure.Downloads.HttpRangeDownloader? downloads = null,
-    DropSpace.Infrastructure.Lyrics.LyricsCache? lyricsCache = null) : IDisposable
+    DropSpace.Infrastructure.Lyrics.LyricsCache? lyricsCache = null,
+    GlobalMusicWindowHotkeyService? musicWindowHotkey = null) : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -108,12 +109,14 @@ public sealed class SettingsApplicationCoordinator(
             var stage = "SettingsStageAppearance";
             try
             {
-                if (!string.Equals(next.QuickPanelHotkey, current.QuickPanelHotkey, StringComparison.OrdinalIgnoreCase))
+                var quickChanged=!string.Equals(next.QuickPanelHotkey,current.QuickPanelHotkey,StringComparison.OrdinalIgnoreCase);
+                var musicChanged=!string.Equals(next.MusicWindowHotkey,current.MusicWindowHotkey,StringComparison.OrdinalIgnoreCase);
+                if (quickChanged || musicChanged)
                 {
                     // The real message-thread registration is part of this transaction.
                     // A probe alone cannot reserve the gesture until persistence finishes.
-                    rollback.Committed("quick-panel-hotkey", () => ApplyHotkeyAsync(current.QuickPanelHotkey, CancellationToken.None));
-                    await ApplyHotkeyAsync(next.QuickPanelHotkey, cancellationToken);
+                    rollback.Committed("global-hotkeys", () => ApplyHotkeysAsync(current,quickChanged,musicChanged,CancellationToken.None));
+                    await ApplyHotkeysAsync(next,quickChanged,musicChanged,cancellationToken);
                 }
 
                 if (uiPreflight is not null)
@@ -260,6 +263,21 @@ public sealed class SettingsApplicationCoordinator(
             throw new InvalidOperationException(
                 "The requested Quick Panel hotkey could not be registered.");
         }
+    }
+
+    private async Task ApplyHotkeysAsync(AppSettings settings,bool quickChanged,bool musicChanged,CancellationToken token)
+    {
+        if(musicChanged && musicWindowHotkey is null)throw new InvalidOperationException("Music hotkey registration is unavailable.");
+        // A simultaneous swap must release both old keys first. Single-action edits
+        // leave the other global registration running throughout the transaction.
+        if(quickChanged && musicChanged)
+        {
+            await quickPanelHotkey.StopAsync(token);
+            await musicWindowHotkey!.StopAsync(token);
+        }
+        if(quickChanged)await ApplyHotkeyAsync(settings.QuickPanelHotkey,token);
+        if(musicChanged && !await musicWindowHotkey!.TryStartAsync(settings.MusicWindowHotkey,token))
+            throw new InvalidOperationException("The requested music-window hotkey could not be registered.");
     }
 
     private async Task<IReadOnlyList<Exception>> ReconcileAsync(IReadOnlyList<SettingsRollbackFailure> rollbackFailures)

@@ -20,7 +20,7 @@ public sealed class DownloadActionPanel : Panel
         {
             var icon = new FontIcon
             {
-                Glyph = glyph, FontFamily = new FontFamily("Segoe Fluent Icons"), FontSize = 16,
+                Glyph = glyph, FontFamily = (FontFamily)Application.Current.Resources["SymbolThemeFontFamily"], FontSize = 16,
                 Width = 16, Height = 16, IsTextScaleFactorEnabled = false,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             };

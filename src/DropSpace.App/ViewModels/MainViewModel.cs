@@ -534,7 +534,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
     public AppLanguagePreference Language => Settings.Language;
 
     public string CurrentVersionText => _updates.CurrentVersion.IsPrerelease
-        ? $"{_updates.CurrentVersion.Major}.{_updates.CurrentVersion.Minor}.{_updates.CurrentVersion.Patch} (Beta {_updates.CurrentVersion.PrereleaseNumber})"
+        ? $"{_updates.CurrentVersion.Major}.{_updates.CurrentVersion.Minor}{(_updates.CurrentVersion.Patch == 0 ? string.Empty : $".{_updates.CurrentVersion.Patch}")} Beta{_updates.CurrentVersion.PrereleaseNumber}"
         : _updates.CurrentVersion.ToString();
 
     public string CurrentVersionDisplayText => _strings.Format("CurrentVersion", CurrentVersionText);
@@ -635,6 +635,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
     public string StorageSummaryText => _strings.Format("StorageSummary", StorageSummary);
 
     public Task CopyTextAsync(string text, CancellationToken token = default) => _clipboard.CopyTextAsync(text, token);
+    public Task CopyAgentInvitationAsync(string text) => _clipboard.CopySensitiveTextAsync(text);
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -1032,7 +1033,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
     public async Task CopyAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        await _shell.CopyAsync(card.Item, cancellationToken);
+        var item = await RefreshFileAvailabilityAsync(card, cancellationToken);
+        if (item is null || item.Status != ItemStatus.Available)
+            throw new InvalidOperationException("The selected item is no longer available for copying.");
+        await _shell.CopyAsync(item, cancellationToken);
         await _repository.MarkUsedAsync(card.Id, cancellationToken);
         Status = AppUiMessage.Resource("ItemCopied");
     }
@@ -1342,6 +1346,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
         var item = card.Item;
         var generation = card.PresentationGeneration;
         if (_disposed || !card.IsPresentationCurrent(generation)) return null;
+        // A relay candidate becomes usable only after the relay's readability and
+        // stability checks; metadata/thumbnail inspection is not a completion signal.
+        if (item.Status == ItemStatus.Processing &&
+            (item.Source == ItemSource.Recent || RecentItemMetadata.Read(item.MetadataJson) is not null)) return null;
         if (item.File is null)
         {
             return item;

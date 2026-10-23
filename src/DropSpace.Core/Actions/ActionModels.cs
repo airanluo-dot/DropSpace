@@ -72,6 +72,9 @@ public sealed record ItemActionResult(
 {
     public string? ResultText { get; init; }
 
+    // OutputPaths on a partial result contain only committed successful outputs.
+    public bool IsPartial { get; init; }
+
     public static ItemActionResult Success(
         IReadOnlyList<string>? outputPaths = null,
         IReadOnlyList<Guid>? outputItemIds = null,

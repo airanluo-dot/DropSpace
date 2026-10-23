@@ -27,6 +27,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly MediaViewModel _mediaViewModel;
     private readonly WidgetViewModel _widgetViewModel;
     private readonly ClipboardIslandViewModel _clipboardViewModel;
+    private readonly IslandRetrievalViewModel _retrievalViewModel;
     private readonly SystemActivityViewModel _systemActivityViewModel;
     private readonly Dlc.FeatureModuleRuntime? _modules;
     private int _moduleRefreshQueued;
@@ -82,6 +83,7 @@ public sealed class OverlayWindowService : IDisposable
         WidgetViewModel widgetViewModel,
         ClipboardIslandViewModel clipboardViewModel,
         SystemActivityViewModel systemActivityViewModel,
+        IslandRetrievalViewModel retrievalViewModel,
         Dlc.FeatureModuleRuntime? modules = null)
     {
         _viewModel = viewModel;
@@ -112,6 +114,7 @@ public sealed class OverlayWindowService : IDisposable
         _experience = experience; _mediaViewModel = mediaViewModel;
         _widgetViewModel = widgetViewModel;
         _clipboardViewModel = clipboardViewModel;
+        _retrievalViewModel = retrievalViewModel;
     }
 
     public async Task InitializeAsync(Action openMainWindow, CancellationToken cancellationToken = default)
@@ -890,8 +893,11 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
+    public void OpenRetrieval() => OnQuickPanelHotkeyInvoked(this, EventArgs.Empty);
+
     private void OnQuickPanelHotkeyInvoked(object? sender, EventArgs args)
     {
+        var returnWindow = OverlayWindow.CaptureRetrievalForeground();
         _dispatcher.TryEnqueue(() =>
         {
             if (_disposed)
@@ -906,7 +912,7 @@ public sealed class OverlayWindowService : IDisposable
             // Surface routing includes Primary/fullscreen preferences. Let the
             // window actually shown by ApplySnapshot accept the keyboard request.
             foreach (var window in _windows)
-                if (window.TryActivateQuickPanel()) break;
+                if (window.TryActivateQuickPanel(retrieval: true, returnWindow)) break;
             _logger.LogInformation("Quick Panel opened from the registered global hotkey.");
         });
     }
@@ -999,6 +1005,7 @@ public sealed class OverlayWindowService : IDisposable
                 _widgetViewModel,
                 _clipboardViewModel,
                 _systemActivityViewModel,
+                _retrievalViewModel,
                 _modules);
             if (glowTransfers is not null && glowTransfers.TryGetValue(monitor.Id, out var transfer))
                 window.StageGlowHandoff(transfer);

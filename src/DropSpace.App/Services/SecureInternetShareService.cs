@@ -21,6 +21,7 @@ public sealed class SecureInternetShareService(
     public bool IsConfigured => TryGetEndpoint() is not null;
 
     public bool CanRevoke(Guid shareId) => _sessions.ContainsKey(shareId);
+    public IReadOnlyList<Guid> RevocableShareIds => _sessions.Keys.Order().ToArray();
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {

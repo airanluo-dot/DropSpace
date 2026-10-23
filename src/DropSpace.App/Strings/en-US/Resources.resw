@@ -954,4 +954,89 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="HotkeySave" xml:space="preserve"><value>Save</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Shortcut unavailable or already in use. Choose another combination.</value></data>
   <data name="DlcStorageSummary" xml:space="preserve"><value>Total DLC usage: {0}</value></data>
+  <data name="ReferenceWindowTitle" xml:space="preserve"><value>Temporary reference</value></data>
+  <data name="ReferenceKeepOnTop" xml:space="preserve"><value>Keep on top</value></data>
+  <data name="ReferenceFitImage" xml:space="preserve"><value>Fit image</value></data>
+  <data name="ReferenceZoomIn" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="ReferenceZoomOut" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="ReferenceLoading" xml:space="preserve"><value>Loading reference…</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>This content is no longer available or cannot be previewed.</value></data>
+  <data name="ReferenceCopyFailed" xml:space="preserve"><value>Could not copy. Try again.</value></data>
+  <data name="RelayTitle" xml:space="preserve"><value>New file relay</value></data>
+  <data name="RelayDescription" xml:space="preserve"><value>Off until you choose a local folder. Only new files in that folder are collected; existing files and subfolders are not imported. External files are shown as currently available, never as a confirmed completed download or export.</value></data>
+  <data name="RelayChooseDirectory" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="RelayRetentionDescription" xml:space="preserve"><value>Recent candidates expire after 30 days or beyond 500 items. Kept, pinned and currently referenced items are protected. Only records are removed; original files stay in place.</value></data>
+  <data name="RelayError" xml:space="preserve"><value>Could not update file relay: {0}</value></data>
+  <data name="RelayOff" xml:space="preserve"><value>Off · No folders selected</value></data>
+  <data name="RelayPaused" xml:space="preserve"><value>Paused</value></data>
+  <data name="RelayWatching" xml:space="preserve"><value>Watching for new files</value></data>
+  <data name="RelayUnavailable" xml:space="preserve"><value>Folder unavailable: {0}</value></data>
+  <data name="RelayResume" xml:space="preserve"><value>Resume</value></data>
+  <data name="RelayPause" xml:space="preserve"><value>Pause</value></data>
+  <data name="RelayRemoveDirectory" xml:space="preserve"><value>Remove folder</value></data>
+  <data name="ActionOutputRegistrationFailed" xml:space="preserve"><value>Output saved, but could not be added to recent materials.</value></data>
+  <data name="ActionPartiallyCompleted" xml:space="preserve"><value>Partially completed</value></data>
+  <data name="RetrievalSearch.PlaceholderText" xml:space="preserve"><value>Search clipboard, files and results</value></data>
+  <data name="RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Quick retrieval</value></data>
+  <data name="RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Back</value></data>
+  <data name="RetrievalAll.Content" xml:space="preserve"><value>All</value></data>
+  <data name="RetrievalRecent.Content" xml:space="preserve"><value>Recent</value></data>
+  <data name="RetrievalPinned.Content" xml:space="preserve"><value>Pinned</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>No matching items. Add a folder in Settings to receive new files.</value></data>
+  <data name="RetrievalCopy.Content" xml:space="preserve"><value>Copy</value></data>
+  <data name="RetrievalPreview.Content" xml:space="preserve"><value>Preview</value></data>
+  <data name="RetrievalReference.Content" xml:space="preserve"><value>Reference</value></data>
+  <data name="RetrievalKeep.Content" xml:space="preserve"><value>Keep</value></data>
+  <data name="RetrievalCopyPath.Content" xml:space="preserve"><value>Copy path</value></data>
+  <data name="RetrievalRemove.Content" xml:space="preserve"><value>Remove</value></data>
+  <data name="RetrievalUnavailable" xml:space="preserve"><value>This item is not currently available.</value></data>
+  <data name="RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Quick retrieval</value></data>
+  <data name="ItemSourceRecent" xml:space="preserve"><value>Recent</value></data>
+  <data name="ItemSourceOutput" xml:space="preserve"><value>Result</value></data>
+  <data name="ItemSourcePartialOutput" xml:space="preserve"><value>Result · partial success</value></data>
+  <data name="ItemStatusWaiting" xml:space="preserve"><value>Waiting until available</value></data>
+  <data name="ItemStatusCurrent" xml:space="preserve"><value>Currently available</value></data>
+  <data name="RelayReasonDirectoryUnavailable" xml:space="preserve"><value>The folder is missing or its drive is disconnected.</value></data>
+  <data name="RelayReasonAccessDenied" xml:space="preserve"><value>Windows denied access to this folder.</value></data>
+  <data name="RelayReasonDirectoryUnsupported" xml:space="preserve"><value>Choose a local folder outside DropSpace internal storage.</value></data>
+  <data name="RelayReasonWatcherInterrupted" xml:space="preserve"><value>Folder monitoring was interrupted. Pause and resume to retry.</value></data>
+  <data name="RelayReasonEventsOverflow" xml:space="preserve"><value>Too many file changes occurred; some new files may have been missed.</value></data>
+  <data name="AgentConnectionsTitle" xml:space="preserve"><value>Agent connections</value></data>
+  <data name="AgentConnectionsDescription" xml:space="preserve"><value>Connect agents on this computer to your DropSpace data, features and settings.</value></data>
+  <data name="AgentAccessDescription" xml:space="preserve"><value>Each binding grants access to your workspace. Share a pairing key only with an agent you trust.</value></data>
+  <data name="AgentNameLabel" xml:space="preserve"><value>Agent name</value></data>
+  <data name="AgentNamePlaceholder" xml:space="preserve"><value>For example, my coding assistant</value></data>
+  <data name="AgentCreateKey" xml:space="preserve"><value>Create pairing key</value></data>
+  <data name="AgentCopyInstallPrompt" xml:space="preserve"><value>Copy skill setup prompt</value></data>
+  <data name="AgentInvitationExpired" xml:space="preserve"><value>This pairing key is no longer available. Create a new binding.</value></data>
+  <data name="AgentPromptCopied" xml:space="preserve"><value>Setup prompt copied. Give it to your agent to install the skill and pair once.</value></data>
+  <data name="AgentOperationFailed" xml:space="preserve"><value>Could not complete this action: {0}</value></data>
+  <data name="AgentServiceError" xml:space="preserve"><value>Agent access is unavailable: {0}</value></data>
+  <data name="AgentListening" xml:space="preserve"><value>Listening on this computer: {0}</value></data>
+  <data name="AgentInactive" xml:space="preserve"><value>Inactive · no authorized agents</value></data>
+  <data name="AgentInvitationReady" xml:space="preserve"><value>Pairing key ready. Copy the setup prompt before {0}.</value></data>
+  <data name="AgentNoBindings" xml:space="preserve"><value>No agent bindings.</value></data>
+  <data name="AgentPaired" xml:space="preserve"><value>Paired · access authorized</value></data>
+  <data name="AgentPending" xml:space="preserve"><value>Waiting for pairing</value></data>
+  <data name="AgentLastActivity" xml:space="preserve"><value>Last activity: {0}</value></data>
+  <data name="AgentRevoke" xml:space="preserve"><value>Revoke access</value></data>
+  <data name="AgentRevoked" xml:space="preserve"><value>Access revoked. This binding can no longer make requests.</value></data>
+  <data name="AgentRevocationDescription" xml:space="preserve"><value>Pairing keys expire after 30 minutes and can be used once. Paired agents use their saved credential without asking again. Revocation blocks new requests and cancels active API calls. App background tasks already started and completed changes remain.</value></data>
+  <data name="AgentNameRequired" xml:space="preserve"><value>Enter a name for this agent.</value></data>
+  <data name="AgentConfirmTitle" xml:space="preserve"><value>Allow agent action?</value></data>
+  <data name="AgentConfirmAllow" xml:space="preserve"><value>Allow this action</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Open music window</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Music</value></data>
+  <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Open music window</value></data>
+  <data name="ShortcutUnassigned" xml:space="preserve"><value>Not assigned</value></data>
+  <data name="HotkeyClearBinding" xml:space="preserve"><value>Clear shortcut</value></data>
+  <data name="MusicWindowShowLyrics" xml:space="preserve"><value>Show lyrics</value></data>
+  <data name="MusicWindowHideLyrics" xml:space="preserve"><value>Hide lyrics</value></data>
+  <data name="MusicWindowTranslation" xml:space="preserve"><value>Translation</value></data>
+  <data name="MusicWindowNoArtwork" xml:space="preserve"><value>No artwork</value></data>
+  <data name="MusicWindowNoTranslation" xml:space="preserve"><value>Translation is not available for this track.</value></data>
+  <data name="MusicWindowSeekUnavailable" xml:space="preserve"><value>This player does not provide an exact, seekable timeline.</value></data>
+  <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>Lyrics are disabled in Music settings.</value></data>
+  <data name="MusicWindowSystemVolume" xml:space="preserve"><value>System volume</value></data>
+  <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>System volume is unavailable.</value></data>
 </root>

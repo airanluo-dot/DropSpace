@@ -1,0 +1,4 @@
+interface:
+  display_name: "DropSpace"
+  short_description: "Use your paired local DropSpace Windows app"
+  default_prompt: "Use $dropspace-agent to discover commands in my paired local DropSpace app and complete my request."

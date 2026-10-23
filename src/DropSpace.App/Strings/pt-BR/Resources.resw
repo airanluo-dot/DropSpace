@@ -952,4 +952,89 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="HotkeySave" xml:space="preserve"><value>Salvar</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Atalho indisponível ou já em uso. Escolha outra combinação.</value></data>
   <data name="DlcStorageSummary" xml:space="preserve"><value>Uso total dos DLCs: {0}</value></data>
+  <data name="ReferenceWindowTitle" xml:space="preserve"><value>Referência temporária</value></data>
+  <data name="ReferenceKeepOnTop" xml:space="preserve"><value>Manter no topo</value></data>
+  <data name="ReferenceFitImage" xml:space="preserve"><value>Ajustar imagem</value></data>
+  <data name="ReferenceZoomIn" xml:space="preserve"><value>Ampliar</value></data>
+  <data name="ReferenceZoomOut" xml:space="preserve"><value>Reduzir</value></data>
+  <data name="ReferenceLoading" xml:space="preserve"><value>Carregando referência…</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>Este conteúdo não está mais disponível ou não pode ser visualizado.</value></data>
+  <data name="ReferenceCopyFailed" xml:space="preserve"><value>Não foi possível copiar. Tente novamente.</value></data>
+  <data name="RelayTitle" xml:space="preserve"><value>Recebimento de novos arquivos</value></data>
+  <data name="RelayDescription" xml:space="preserve"><value>Ativado ao escolher uma pasta local. Somente os novos arquivos dessa pasta são coletados; arquivos existentes e subpastas não são importados. Os arquivos externos são indicados como disponíveis no momento, sem confirmar a conclusão do download ou da exportação.</value></data>
+  <data name="RelayChooseDirectory" xml:space="preserve"><value>Escolher pasta</value></data>
+  <data name="RelayRetentionDescription" xml:space="preserve"><value>Os itens recentes expiram após 30 dias ou ao ultrapassar 500 itens. Os itens mantidos, fixados e usados como referência estão protegidos. Somente os registros são removidos; os arquivos originais permanecem no local.</value></data>
+  <data name="RelayError" xml:space="preserve"><value>Não foi possível atualizar o recebimento de arquivos: {0}</value></data>
+  <data name="RelayOff" xml:space="preserve"><value>Desativado · Nenhuma pasta selecionada</value></data>
+  <data name="RelayPaused" xml:space="preserve"><value>Pausado</value></data>
+  <data name="RelayWatching" xml:space="preserve"><value>Aguardando novos arquivos</value></data>
+  <data name="RelayUnavailable" xml:space="preserve"><value>Pasta indisponível: {0}</value></data>
+  <data name="RelayResume" xml:space="preserve"><value>Retomar</value></data>
+  <data name="RelayPause" xml:space="preserve"><value>Pausar</value></data>
+  <data name="RelayRemoveDirectory" xml:space="preserve"><value>Remover pasta</value></data>
+  <data name="ActionOutputRegistrationFailed" xml:space="preserve"><value>O resultado foi salvo, mas não pôde ser adicionado aos itens recentes.</value></data>
+  <data name="ActionPartiallyCompleted" xml:space="preserve"><value>Parcialmente concluído</value></data>
+  <data name="RetrievalSearch.PlaceholderText" xml:space="preserve"><value>Buscar na área de transferência, arquivos e resultados</value></data>
+  <data name="RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Acesso rápido</value></data>
+  <data name="RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Voltar</value></data>
+  <data name="RetrievalAll.Content" xml:space="preserve"><value>Todos</value></data>
+  <data name="RetrievalRecent.Content" xml:space="preserve"><value>Recentes</value></data>
+  <data name="RetrievalPinned.Content" xml:space="preserve"><value>Fixados</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>Nenhum item correspondente. Adicione uma pasta nas configurações para receber novos arquivos.</value></data>
+  <data name="RetrievalCopy.Content" xml:space="preserve"><value>Copiar</value></data>
+  <data name="RetrievalPreview.Content" xml:space="preserve"><value>Visualizar</value></data>
+  <data name="RetrievalReference.Content" xml:space="preserve"><value>Referência</value></data>
+  <data name="RetrievalKeep.Content" xml:space="preserve"><value>Manter</value></data>
+  <data name="RetrievalCopyPath.Content" xml:space="preserve"><value>Copiar caminho</value></data>
+  <data name="RetrievalRemove.Content" xml:space="preserve"><value>Remover</value></data>
+  <data name="RetrievalUnavailable" xml:space="preserve"><value>Este item não está disponível no momento.</value></data>
+  <data name="RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Acesso rápido</value></data>
+  <data name="ItemSourceRecent" xml:space="preserve"><value>Recentes</value></data>
+  <data name="ItemSourceOutput" xml:space="preserve"><value>Resultado</value></data>
+  <data name="ItemSourcePartialOutput" xml:space="preserve"><value>Resultado · sucesso parcial</value></data>
+  <data name="ItemStatusWaiting" xml:space="preserve"><value>Aguardando disponibilidade</value></data>
+  <data name="ItemStatusCurrent" xml:space="preserve"><value>Disponível no momento</value></data>
+  <data name="RelayReasonDirectoryUnavailable" xml:space="preserve"><value>A pasta não existe ou a unidade está desconectada.</value></data>
+  <data name="RelayReasonAccessDenied" xml:space="preserve"><value>O Windows negou acesso a esta pasta.</value></data>
+  <data name="RelayReasonDirectoryUnsupported" xml:space="preserve"><value>Escolha uma pasta local fora do armazenamento interno do DropSpace.</value></data>
+  <data name="RelayReasonWatcherInterrupted" xml:space="preserve"><value>O monitoramento da pasta foi interrompido. Pause e retome para tentar novamente.</value></data>
+  <data name="RelayReasonEventsOverflow" xml:space="preserve"><value>Ocorreram muitas alterações; alguns arquivos novos podem não ter sido detectados.</value></data>
+  <data name="AgentConnectionsTitle" xml:space="preserve"><value>Conexões de agentes</value></data>
+  <data name="AgentConnectionsDescription" xml:space="preserve"><value>Conecte os agentes deste computador aos dados, recursos e configurações do DropSpace.</value></data>
+  <data name="AgentAccessDescription" xml:space="preserve"><value>Cada vínculo concede acesso ao seu espaço de trabalho. Compartilhe a chave de pareamento apenas com um agente confiável.</value></data>
+  <data name="AgentNameLabel" xml:space="preserve"><value>Nome do agente</value></data>
+  <data name="AgentNamePlaceholder" xml:space="preserve"><value>Por exemplo: meu assistente de programação</value></data>
+  <data name="AgentCreateKey" xml:space="preserve"><value>Criar chave de pareamento</value></data>
+  <data name="AgentCopyInstallPrompt" xml:space="preserve"><value>Copiar prompt de instalação do skill</value></data>
+  <data name="AgentInvitationExpired" xml:space="preserve"><value>Esta chave não está mais disponível. Crie um novo vínculo.</value></data>
+  <data name="AgentPromptCopied" xml:space="preserve"><value>Prompt copiado. Envie ao seu agente para instalar o skill e parear uma única vez.</value></data>
+  <data name="AgentOperationFailed" xml:space="preserve"><value>Não foi possível concluir esta ação: {0}</value></data>
+  <data name="AgentServiceError" xml:space="preserve"><value>O acesso de agentes não está disponível: {0}</value></data>
+  <data name="AgentListening" xml:space="preserve"><value>Aguardando neste computador: {0}</value></data>
+  <data name="AgentInactive" xml:space="preserve"><value>Inativo · nenhum agente autorizado</value></data>
+  <data name="AgentInvitationReady" xml:space="preserve"><value>Chave criada. Copie o prompt antes de {0}.</value></data>
+  <data name="AgentNoBindings" xml:space="preserve"><value>Nenhum agente vinculado.</value></data>
+  <data name="AgentPaired" xml:space="preserve"><value>Pareado · acesso autorizado</value></data>
+  <data name="AgentPending" xml:space="preserve"><value>Aguardando pareamento</value></data>
+  <data name="AgentLastActivity" xml:space="preserve"><value>Última atividade: {0}</value></data>
+  <data name="AgentRevoke" xml:space="preserve"><value>Revogar acesso</value></data>
+  <data name="AgentRevoked" xml:space="preserve"><value>Acesso revogado. Este vínculo não pode mais enviar solicitações.</value></data>
+  <data name="AgentRevocationDescription" xml:space="preserve"><value>As chaves expiram em 30 minutos e só podem ser usadas uma vez. Agentes pareados usam as credenciais salvas. A revogação bloqueia novas solicitações e cancela chamadas de API ativas. Tarefas do aplicativo já iniciadas em segundo plano e alterações concluídas são mantidas.</value></data>
+  <data name="AgentNameRequired" xml:space="preserve"><value>Digite um nome para este agente.</value></data>
+  <data name="AgentConfirmTitle" xml:space="preserve"><value>Permitir a ação do agente?</value></data>
+  <data name="AgentConfirmAllow" xml:space="preserve"><value>Permitir esta ação</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Abrir janela de música</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Música</value></data>
+  <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Abrir janela de música</value></data>
+  <data name="ShortcutUnassigned" xml:space="preserve"><value>Não atribuído</value></data>
+  <data name="HotkeyClearBinding" xml:space="preserve"><value>Remover atalho</value></data>
+  <data name="MusicWindowShowLyrics" xml:space="preserve"><value>Mostrar letra</value></data>
+  <data name="MusicWindowHideLyrics" xml:space="preserve"><value>Ocultar letra</value></data>
+  <data name="MusicWindowTranslation" xml:space="preserve"><value>Tradução</value></data>
+  <data name="MusicWindowNoArtwork" xml:space="preserve"><value>Sem capa</value></data>
+  <data name="MusicWindowNoTranslation" xml:space="preserve"><value>Não há tradução disponível para esta música.</value></data>
+  <data name="MusicWindowSeekUnavailable" xml:space="preserve"><value>Este player não permite avançar para uma posição exata de reprodução.</value></data>
+  <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>As letras estão desativadas nas configurações de música.</value></data>
+  <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Volume do sistema</value></data>
+  <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>O volume do sistema está indisponível.</value></data>
 </root>

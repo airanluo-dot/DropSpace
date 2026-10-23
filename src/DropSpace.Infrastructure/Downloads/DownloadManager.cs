@@ -2,6 +2,7 @@
 // cancellation settlement, reservations and checkpoint persistence. No media resolver or FFmpeg.
 using System.Security.Cryptography;
 using DropSpace.Core.Downloads;
+using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Downloads;
@@ -25,12 +26,14 @@ public sealed class DownloadManager : IAsyncDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private Task? _lifetimeCallbacks;
     private readonly ILogger<DownloadManager>? _logger;
+    private readonly IRecentItemsService? _recent;
     private bool _stopping;
     private bool _restored;
     private bool _disposed;
-    public DownloadManager(HttpRangeDownloader engine, IDownloadTaskRepository repository, ILogger<DownloadManager>? logger = null)
+    public DownloadManager(HttpRangeDownloader engine, IDownloadTaskRepository repository, ILogger<DownloadManager>? logger = null,
+        IRecentItemsService? recent = null)
     {
-        _engine = engine; _repository = repository; _persistence = new(repository); _logger = logger;
+        _engine = engine; _repository = repository; _persistence = new(repository); _logger = logger; _recent = recent;
         _taskView = new TaskView(this);
         _progressNotification = new Timer(_ => PublishProgress(), null, Timeout.Infinite, Timeout.Infinite);
         _cleanupRetry = new Timer(_ => StartCleanupRetry(), null, Timeout.Infinite, Timeout.Infinite);
@@ -470,8 +473,24 @@ public sealed class DownloadManager : IAsyncDisposable
         DownloadTaskSnapshot snapshot;
         lock (_sync) item.Snapshot = snapshot = item.Snapshot with { State = state, ActiveConnections = 0, BytesPerSecond = 0,
             ErrorCode = state is DownloadTaskState.Completed or DownloadTaskState.Cancelled ? null : item.Snapshot.ErrorCode, UpdatedAt = DateTimeOffset.UtcNow };
-        try { await _persistence.EnqueueCriticalAsync(snapshot).ConfigureAwait(false); }
-        finally { NotifyTask(snapshot); }
+        try
+        {
+            await _persistence.EnqueueCriticalAsync(snapshot).ConfigureAwait(false);
+        }
+        finally
+        {
+            // The final file has already been committed (or hash-verified during recovery).
+            // A journal checkpoint failure cannot suppress registration of those real bytes.
+            if (state == DownloadTaskState.Completed && _recent is not null)
+            {
+                // This manager is exclusively ordinary user file downloads. Models, updates,
+                // runtimes and module packages use the shared transfer engine directly.
+                try { await _recent.RegisterOutputAsync(snapshot.OutputPath, "Download").ConfigureAwait(false); }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                { _logger?.LogWarning(error, "Completed download could not enter recent materials."); }
+            }
+            NotifyTask(snapshot);
+        }
     }
     private static async Task ObserveRunAsync(Task run)
     {

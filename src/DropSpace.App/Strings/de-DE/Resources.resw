@@ -952,4 +952,89 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="HotkeySave" xml:space="preserve"><value>Speichern</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Tastenkombination nicht verfügbar oder bereits belegt. Bitte eine andere wählen.</value></data>
   <data name="DlcStorageSummary" xml:space="preserve"><value>DLC-Gesamtbelegung: {0}</value></data>
+  <data name="ReferenceWindowTitle" xml:space="preserve"><value>Temporäre Referenz</value></data>
+  <data name="ReferenceKeepOnTop" xml:space="preserve"><value>Immer im Vordergrund</value></data>
+  <data name="ReferenceFitImage" xml:space="preserve"><value>Bild einpassen</value></data>
+  <data name="ReferenceZoomIn" xml:space="preserve"><value>Vergrößern</value></data>
+  <data name="ReferenceZoomOut" xml:space="preserve"><value>Verkleinern</value></data>
+  <data name="ReferenceLoading" xml:space="preserve"><value>Referenz wird geladen…</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>Dieser Inhalt ist nicht mehr verfügbar oder kann nicht als Vorschau angezeigt werden.</value></data>
+  <data name="ReferenceCopyFailed" xml:space="preserve"><value>Kopieren fehlgeschlagen. Bitte erneut versuchen.</value></data>
+  <data name="RelayTitle" xml:space="preserve"><value>Neue Dateien übernehmen</value></data>
+  <data name="RelayDescription" xml:space="preserve"><value>Erst nach Auswahl eines lokalen Ordners aktiv. Nur neue Dateien direkt in diesem Ordner werden erfasst; vorhandene Dateien und Unterordner werden nicht importiert. Externe Dateien werden als aktuell verfügbar angezeigt, ohne den Abschluss eines Downloads oder Exports zu bestätigen.</value></data>
+  <data name="RelayChooseDirectory" xml:space="preserve"><value>Ordner auswählen</value></data>
+  <data name="RelayRetentionDescription" xml:space="preserve"><value>Neu erfasste Einträge verfallen nach 30 Tagen oder oberhalb von 500 Einträgen. Behaltene, angeheftete und aktuell betrachtete Inhalte sind geschützt. Nur Einträge werden entfernt; Originaldateien bleiben erhalten.</value></data>
+  <data name="RelayError" xml:space="preserve"><value>Dateiübernahme konnte nicht aktualisiert werden: {0}</value></data>
+  <data name="RelayOff" xml:space="preserve"><value>Aus · Keine Ordner ausgewählt</value></data>
+  <data name="RelayPaused" xml:space="preserve"><value>Pausiert</value></data>
+  <data name="RelayWatching" xml:space="preserve"><value>Wartet auf neue Dateien</value></data>
+  <data name="RelayUnavailable" xml:space="preserve"><value>Ordner nicht verfügbar: {0}</value></data>
+  <data name="RelayResume" xml:space="preserve"><value>Fortsetzen</value></data>
+  <data name="RelayPause" xml:space="preserve"><value>Pausieren</value></data>
+  <data name="RelayRemoveDirectory" xml:space="preserve"><value>Ordner entfernen</value></data>
+  <data name="ActionOutputRegistrationFailed" xml:space="preserve"><value>Ergebnis gespeichert, konnte aber nicht zu den zuletzt verwendeten Inhalten hinzugefügt werden.</value></data>
+  <data name="ActionPartiallyCompleted" xml:space="preserve"><value>Teilweise abgeschlossen</value></data>
+  <data name="RetrievalSearch.PlaceholderText" xml:space="preserve"><value>Zwischenablage, Dateien und Ergebnisse suchen</value></data>
+  <data name="RetrievalSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Schnellzugriff</value></data>
+  <data name="RetrievalBack.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Zurück</value></data>
+  <data name="RetrievalAll.Content" xml:space="preserve"><value>Alle</value></data>
+  <data name="RetrievalRecent.Content" xml:space="preserve"><value>Zuletzt verwendet</value></data>
+  <data name="RetrievalPinned.Content" xml:space="preserve"><value>Angeheftet</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>Keine passenden Einträge. Fügen Sie in den Einstellungen einen Ordner hinzu, um neue Dateien zu empfangen.</value></data>
+  <data name="RetrievalCopy.Content" xml:space="preserve"><value>Kopieren</value></data>
+  <data name="RetrievalPreview.Content" xml:space="preserve"><value>Vorschau</value></data>
+  <data name="RetrievalReference.Content" xml:space="preserve"><value>Referenz</value></data>
+  <data name="RetrievalKeep.Content" xml:space="preserve"><value>Behalten</value></data>
+  <data name="RetrievalCopyPath.Content" xml:space="preserve"><value>Pfad kopieren</value></data>
+  <data name="RetrievalRemove.Content" xml:space="preserve"><value>Entfernen</value></data>
+  <data name="RetrievalUnavailable" xml:space="preserve"><value>Dieser Eintrag ist derzeit nicht verfügbar.</value></data>
+  <data name="RetrievalOpen.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Schnellzugriff</value></data>
+  <data name="ItemSourceRecent" xml:space="preserve"><value>Zuletzt verwendet</value></data>
+  <data name="ItemSourceOutput" xml:space="preserve"><value>Ergebnis</value></data>
+  <data name="ItemSourcePartialOutput" xml:space="preserve"><value>Ergebnis · teilweise erfolgreich</value></data>
+  <data name="ItemStatusWaiting" xml:space="preserve"><value>Wartet auf Verfügbarkeit</value></data>
+  <data name="ItemStatusCurrent" xml:space="preserve"><value>Aktuell verfügbar</value></data>
+  <data name="RelayReasonDirectoryUnavailable" xml:space="preserve"><value>Der Ordner fehlt oder das Laufwerk ist nicht verbunden.</value></data>
+  <data name="RelayReasonAccessDenied" xml:space="preserve"><value>Windows hat den Zugriff auf diesen Ordner verweigert.</value></data>
+  <data name="RelayReasonDirectoryUnsupported" xml:space="preserve"><value>Wählen Sie einen lokalen Ordner außerhalb des internen DropSpace-Speichers.</value></data>
+  <data name="RelayReasonWatcherInterrupted" xml:space="preserve"><value>Die Ordnerüberwachung wurde unterbrochen. Pausieren und fortsetzen, um es erneut zu versuchen.</value></data>
+  <data name="RelayReasonEventsOverflow" xml:space="preserve"><value>Zu viele Dateiänderungen; einige neue Dateien wurden möglicherweise nicht erfasst.</value></data>
+  <data name="AgentConnectionsTitle" xml:space="preserve"><value>Agent-Verbindungen</value></data>
+  <data name="AgentConnectionsDescription" xml:space="preserve"><value>Verbinde Agents auf diesem Computer mit deinen DropSpace-Daten, Funktionen und Einstellungen.</value></data>
+  <data name="AgentAccessDescription" xml:space="preserve"><value>Jede Verbindung erlaubt den Zugriff auf deinen Arbeitsbereich. Gib einen Kopplungsschlüssel nur einem vertrauenswürdigen Agent.</value></data>
+  <data name="AgentNameLabel" xml:space="preserve"><value>Name des Agents</value></data>
+  <data name="AgentNamePlaceholder" xml:space="preserve"><value>Zum Beispiel: mein Programmierassistent</value></data>
+  <data name="AgentCreateKey" xml:space="preserve"><value>Kopplungsschlüssel erstellen</value></data>
+  <data name="AgentCopyInstallPrompt" xml:space="preserve"><value>Prompt zur Skill-Einrichtung kopieren</value></data>
+  <data name="AgentInvitationExpired" xml:space="preserve"><value>Dieser Schlüssel ist nicht mehr verfügbar. Erstelle eine neue Verbindung.</value></data>
+  <data name="AgentPromptCopied" xml:space="preserve"><value>Einrichtungsprompt kopiert. Übergib ihn deinem Agent, um den Skill zu installieren und die einmalige Kopplung durchzuführen.</value></data>
+  <data name="AgentOperationFailed" xml:space="preserve"><value>Die Aktion konnte nicht abgeschlossen werden: {0}</value></data>
+  <data name="AgentServiceError" xml:space="preserve"><value>Agent-Zugriff nicht verfügbar: {0}</value></data>
+  <data name="AgentListening" xml:space="preserve"><value>Auf diesem Computer erreichbar: {0}</value></data>
+  <data name="AgentInactive" xml:space="preserve"><value>Inaktiv · keine autorisierten Agents</value></data>
+  <data name="AgentInvitationReady" xml:space="preserve"><value>Schlüssel erstellt. Kopiere den Einrichtungsprompt vor {0}.</value></data>
+  <data name="AgentNoBindings" xml:space="preserve"><value>Keine Agent-Verbindungen.</value></data>
+  <data name="AgentPaired" xml:space="preserve"><value>Gekoppelt · Zugriff autorisiert</value></data>
+  <data name="AgentPending" xml:space="preserve"><value>Wartet auf Kopplung</value></data>
+  <data name="AgentLastActivity" xml:space="preserve"><value>Letzte Aktivität: {0}</value></data>
+  <data name="AgentRevoke" xml:space="preserve"><value>Zugriff widerrufen</value></data>
+  <data name="AgentRevoked" xml:space="preserve"><value>Zugriff widerrufen. Diese Verbindung kann keine Anfragen mehr stellen.</value></data>
+  <data name="AgentRevocationDescription" xml:space="preserve"><value>Kopplungsschlüssel gelten 30 Minuten und nur einmal. Gekoppelte Agenten nutzen ihre gespeicherten Zugangsdaten. Ein Widerruf blockiert neue Anfragen und bricht aktive API-Aufrufe ab. Bereits gestartete App-Hintergrundaufgaben und abgeschlossene Änderungen bleiben bestehen.</value></data>
+  <data name="AgentNameRequired" xml:space="preserve"><value>Gib einen Namen für diesen Agent ein.</value></data>
+  <data name="AgentConfirmTitle" xml:space="preserve"><value>Agent-Aktion erlauben?</value></data>
+  <data name="AgentConfirmAllow" xml:space="preserve"><value>Diese Aktion erlauben</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Musikfenster öffnen</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Musik</value></data>
+  <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Musikfenster öffnen</value></data>
+  <data name="ShortcutUnassigned" xml:space="preserve"><value>Nicht zugewiesen</value></data>
+  <data name="HotkeyClearBinding" xml:space="preserve"><value>Tastenkürzel entfernen</value></data>
+  <data name="MusicWindowShowLyrics" xml:space="preserve"><value>Liedtext anzeigen</value></data>
+  <data name="MusicWindowHideLyrics" xml:space="preserve"><value>Liedtext ausblenden</value></data>
+  <data name="MusicWindowTranslation" xml:space="preserve"><value>Übersetzung</value></data>
+  <data name="MusicWindowNoArtwork" xml:space="preserve"><value>Kein Cover</value></data>
+  <data name="MusicWindowNoTranslation" xml:space="preserve"><value>Für diesen Titel ist keine Übersetzung verfügbar.</value></data>
+  <data name="MusicWindowSeekUnavailable" xml:space="preserve"><value>Dieser Player unterstützt keine genaue Wiedergabeposition zum Spulen.</value></data>
+  <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>Liedtexte sind in den Musikeinstellungen deaktiviert.</value></data>
+  <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Systemlautstärke</value></data>
+  <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Die Systemlautstärke ist nicht verfügbar.</value></data>
 </root>
