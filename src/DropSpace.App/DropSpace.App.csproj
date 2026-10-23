@@ -37,7 +37,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DropSpace.Core\DropSpace.Core.csproj" />
     <ProjectReference Include="..\DropSpace.Infrastructure\DropSpace.Infrastructure.csproj" />
-    <ProjectReference Include="..\DropSpace.MusicBackground\DropSpace.MusicBackground.csproj" />
+    <ProjectReference Include="..\DropSpace.MusicBackground\DropSpace.MusicBackground.csproj" GlobalPropertiesToRemove="WindowsAppSDKSelfContained;PublishSingleFile" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />

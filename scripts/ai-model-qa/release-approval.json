@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "owner-authorized-beta-host-experimental-models",
-  "reason": "Owner-authorized v1.1.0-beta.1 host publication. Model/runtime/prompt/admission inputs match the previous record exactly; historical model observations and acceptance remain unchanged. New host integration and existing local validation do not establish model semantic quality.",
+  "reason": "Preserve the 1.1 Beta1 publication authorization and all historical model limitations. Isolate WindowsAppSDKSelfContained and PublishSingleFile global properties at the music background class-library reference; the App remains self-contained and single-file. No model, runtime, prompt, admission or functional behavior change.",
   "scope": {
     "releaseVersion": "v1.1.0-beta.1",
     "shippingModels": [
@@ -1061,7 +1061,7 @@
         },
         {
           "path": "src/DropSpace.App/DropSpace.App.csproj",
-          "sha256": "ebd670deaf02f535023061d86615e0598ebd23f37e23363b0a09e14afb3867f5"
+          "sha256": "0ecaabff0bb0f9c486db462768053b97b9a60e3bb25e295c1827c64ef5560855"
         },
         {
           "path": "scripts/Build-PortableExe.ps1",
@@ -1324,7 +1324,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "4d8aab982f36fa1c66f24d3f3740aa5e558a89a3e6857da8dcd0d56a241c4a4e"
+      "sha256": "ab0402cf63bfa9875870b1f13fcce11bbbe5b3332bf6d28ca127a3e57cf019f9"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2767,7 +2767,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.1-host-review.json",
-    "sha256": "f1a25f4f88676bf6da2657ae7ce3a3dd7cf734c031c7a62d08688c6739eee601"
+    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.1-host-review2.json",
+    "sha256": "ebe32046151d6a2d7954614ca03a1d137a2c29d352174ffe66969efafc37f6d7"
   }
 }
