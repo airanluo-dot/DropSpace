@@ -2,17 +2,17 @@
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:services="using:DropSpace.App.Services">
- <Grid Padding="28,0,28,16" RowSpacing="12">
+ <Grid x:Name="LayoutRoot" Padding="28,0,28,12" RowSpacing="9">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Grid ColumnSpacing="18">
    <Grid.ColumnDefinitions><ColumnDefinition x:Name="ArtworkColumn" Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <Border x:Name="ArtworkHost" Height="100" CornerRadius="16" Background="{ThemeResource ControlFillColorSecondaryBrush}" VerticalAlignment="Center">
     <Image Source="{Binding Artwork}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw"/>
    </Border>
-   <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
-    <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-    <TextBlock Text="{Binding ArtistAlbum}" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
-    <TextBlock Text="{Binding SourceDisplayName}" FontSize="12" Opacity="0.55" TextTrimming="CharacterEllipsis"/>
+   <StackPanel x:Name="MetadataPanel" Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+    <TextBlock x:Name="TrackTitle" Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+    <TextBlock x:Name="TrackDetails" Text="{Binding ArtistAlbum}" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
+    <TextBlock x:Name="TrackSource" Text="{Binding SourceDisplayName}" FontSize="12" Opacity="0.55" TextTrimming="CharacterEllipsis"/>
     <TextBlock x:Name="EmptyText" services:XamlResourceOverride.Uid="MediaNoSession" TextWrapping="Wrap"/>
    </StackPanel>
    <StackPanel x:Name="Spectrum" Grid.Column="2" Orientation="Horizontal" Spacing="3" Height="24" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw">
@@ -42,7 +42,7 @@
     </Grid>
    </Border>
   </Grid>
-  <StackPanel Grid.Row="2" Spacing="12">
+  <StackPanel x:Name="PlaybackPanel" Grid.Row="2" Spacing="8">
   <Grid x:Name="TimelineRow" ColumnSpacing="12">
    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <TextBlock x:Name="ElapsedLabel" MinWidth="48" VerticalAlignment="Center"/>

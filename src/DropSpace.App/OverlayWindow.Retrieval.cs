@@ -32,6 +32,7 @@ public sealed partial class OverlayWindow
     private void CloseRetrieval()
     {
         _retrievalVisible = false;
+        RetrievalView.ResetPreview();
         RetrievalView.SetActive(false);
         RetrievalView.Visibility = Visibility.Collapsed;
         ApplyPageTransition(); ApplyRetrievalVisibility();
@@ -39,6 +40,8 @@ public sealed partial class OverlayWindow
 
     private void ApplyRetrievalVisibility()
     {
+        ExpandedContentRoot.Width = ExpandedNaturalWidth;
+        ExpandedContentRoot.Height = ExpandedNaturalHeight;
         RetrievalView.Visibility = _retrievalVisible ? Visibility.Visible : Visibility.Collapsed;
         ExpandedToolbar.Visibility = _retrievalVisible ? Visibility.Collapsed : Visibility.Visible;
         RetrievalOpenButton.Visibility = _retrievalVisible ? Visibility.Collapsed : Visibility.Visible;
@@ -55,6 +58,14 @@ public sealed partial class OverlayWindow
             NextPageRail.Visibility = page == Core.Island.IslandPage.Clipboard ? Visibility.Collapsed : Visibility.Visible;
             OtherPageCollapse.Visibility = Visibility.Visible;
         }
+    }
+
+    private void OnRetrievalPreviewChanged(object? sender, EventArgs args)
+    {
+        if (_closing || _presentationSnapshot is null) return;
+        ApplyRetrievalVisibility();
+        ApplySnapshot(_presentationSnapshot, _isActiveWindow, _isActiveWindow,
+            _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
     }
 
     private void OnRetrievalOpen(object sender, RoutedEventArgs args)

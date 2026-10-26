@@ -47,6 +47,7 @@ public sealed class IslandRetrievalViewModel : ObservableObject, IDisposable
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
     public string Status => _status.Render(_strings);
     public bool Empty => Items.Count == 0;
+    public bool HasSelection => SelectedItem is not null;
     public bool CanReference => SelectedItem is { } selected && ReferenceWindowService.CanOpen(selected.Item);
     public bool CanKeep => SelectedItem?.Item.Source == ItemSource.Recent;
     public bool CanCopyPath => SelectedItem?.Item.File is not null;
@@ -66,6 +67,7 @@ public sealed class IslandRetrievalViewModel : ObservableObject, IDisposable
         set
         {
             if (!SetProperty(ref _selected, value)) return;
+            OnPropertyChanged(nameof(HasSelection));
             OnPropertyChanged(nameof(CanReference)); OnPropertyChanged(nameof(CanKeep)); OnPropertyChanged(nameof(CanCopyPath));
         }
     }
@@ -139,7 +141,9 @@ public sealed class IslandRetrievalViewModel : ObservableObject, IDisposable
                     var current = Items.IndexOf(Items.First(card => card.Id == items[index].Id));
                     if (current != index) Items.Move(current, index);
                 }
-            SelectedItem = Items.FirstOrDefault(card => card.Id == selectedId) ?? Items.FirstOrDefault();
+            // A passive refresh must also preserve the deliberate absence of a selection.
+            // Arrow navigation or an explicit click chooses a result; arrival never does.
+            SelectedItem = Items.FirstOrDefault(card => card.Id == selectedId);
             OnPropertyChanged(nameof(Empty)); OnPropertyChanged(nameof(CanKeep)); OnPropertyChanged(nameof(CanReference));
         }
         catch (OperationCanceledException) { }

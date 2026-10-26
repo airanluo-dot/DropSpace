@@ -40,7 +40,8 @@ public sealed partial class OverlayWindow
         };
         return new { Page = _experience.Current.Page.ToString(), Retrieval = _retrievalVisible,
             Search = Observe(RetrievalOpenButton), Collapse = Observe(OtherPageCollapse),
-            ContentTop = content.TransformToVisual(Root).TransformPoint(new Point()).Y };
+            ContentTop = content.TransformToVisual(Root).TransformPoint(new Point()).Y,
+            MusicLayout = _experience.Current.Page == IslandPage.Music ? MusicExpanded.ObserveLayout() : null };
     }
     internal OverlayModuleObservation ObserveModuleOverlay() => new(
         _experience.Current.State.ToString(), _experience.Current.Page.ToString(),

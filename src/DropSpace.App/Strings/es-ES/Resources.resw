@@ -1037,4 +1037,5 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>La letra está desactivada en los ajustes de música.</value></data>
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Volumen del sistema</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>El volumen del sistema no está disponible.</value></data>
+  <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Quitar selección</value></data>
 </root>

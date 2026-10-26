@@ -7,6 +7,25 @@ namespace DropSpace.Core.Tests;
 public sealed class OverlayPlacementPolicyTests
 {
     [TestMethod]
+    public void EnlargedPreviewFitsCustomAnchorWithoutChangingSavedPlacement()
+    {
+        foreach (var dpi in new[] { 1d, 1.25d, 1.5d, 2d })
+        foreach (var screen in new[] { (Width: 1024, Height: 640), (Width: 2560, Height: 1400) })
+        {
+            var content = OverlayPlacementPolicy.FitContentScale(screen.Width, screen.Height, dpi, 760, 580, 2);
+            var saved = new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 8_000, 8_000);
+            var request = new OverlayPlacementRequest(-screen.Width, 40, screen.Width, screen.Height, dpi,
+                FileDragWakeMode.Disabled, 2, 1600, 760 * content, 580 * content);
+            var actual = OverlayPlacementPolicy.Resolve(request, saved);
+            var centerPixels = actual.HostLeftPixels + request.HostWidthDips * dpi / 2;
+            Assert.IsTrue(centerPixels + 760 * content * dpi / 2 <= 1);
+            Assert.IsTrue(actual.HostTopPixels + 580 * content * dpi <= 40 + screen.Height + 1);
+            Assert.AreEqual(8_000, saved.X);
+            Assert.AreEqual(8_000, saved.Y);
+        }
+    }
+
+    [TestMethod]
     public void DefaultAnchorAndContentFitAcrossAspectRatiosDpiAndWorkAreaOrigins()
     {
         foreach (var screen in new[] { (1920,1080), (2560,1440), (3840,2160), (1080,1920), (3440,1440), (800,480) })

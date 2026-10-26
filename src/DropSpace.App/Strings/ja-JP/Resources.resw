@@ -1037,4 +1037,5 @@
   <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>音楽設定で歌詞が無効になっています。</value></data>
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>システム音量</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>システム音量を利用できません。</value></data>
+  <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>選択を解除</value></data>
 </root>

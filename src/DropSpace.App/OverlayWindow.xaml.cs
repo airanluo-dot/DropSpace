@@ -34,15 +34,19 @@ public sealed partial class OverlayWindow : Window
     private bool _pageReducedMotion;
     private readonly IslandPageTransition _pageTransition = new();
     private readonly Dictionary<FrameworkElement, TranslateTransform> _pageOffsets = [];
+    private double ExpandedNaturalWidth => _retrievalVisible && RetrievalView.IsPreviewOpen ? 760 : 560;
+    private double ExpandedNaturalHeight => _retrievalVisible && RetrievalView.IsPreviewOpen ? 580 : 340;
     private double ExpandedScale => OverlayPlacementPolicy.FitContentScale(
         _monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight, _monitor.Scale,
-        OverlayPlacementPolicy.MaximumSurfaceWidthDips, OverlayPlacementPolicy.MaximumSurfaceHeightDips,
+        ExpandedNaturalWidth, ExpandedNaturalHeight,
         _mediaViewModel.Settings.IslandAppearance.ExpandedScale);
     private double HostContentScale => Math.Max(1, Math.Max(ExpandedScale, _mediaViewModel.Settings.IslandAppearance.CompactScale));
     private double _compactSurfaceWidth;
-    private double HostWidth => Math.Max(OverlayPlacementPolicy.HostWidthDips * HostContentScale, _compactSurfaceWidth + 40);
+    // Reserve the preview envelope so the existing spring and native hit region can
+    // grow and reverse without clipping against a smaller HWND halfway through.
+    private double HostWidth => Math.Max(800 * HostContentScale, _compactSurfaceWidth + 40);
     private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
-    private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale, HostContentScale);
+    private double HostHeight => OverlayPlacementPolicy.DynamicIslandTopGapDips + 620 * HostContentScale;
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
     private readonly MonitorDescriptor _monitor;
@@ -1273,7 +1277,7 @@ public sealed partial class OverlayWindow : Window
                 _monitor.EffectiveWorkHeight,
                 _monitor.Scale,
                 wakeMode,
-                HostContentScale, HostWidth, Math.Max(560 * ExpandedScale, _compactSurfaceWidth)),
+                HostContentScale, HostWidth, Math.Max(ExpandedNaturalWidth * ExpandedScale, _compactSurfaceWidth), ExpandedNaturalHeight * ExpandedScale),
             placement);
 
     internal void RefreshAnimationRefreshRate() =>
@@ -1797,7 +1801,7 @@ public sealed partial class OverlayWindow : Window
     {
         var geometry = DropSpace.Core.Island.IslandGeometry.ForFiles(state);
         if (state == OverlayState.Expanded)
-            geometry = geometry with { Width = geometry.Width * ExpandedScale, Height = geometry.Height * ExpandedScale, Radius = geometry.Radius * ExpandedScale };
+            geometry = geometry with { Width = ExpandedNaturalWidth * ExpandedScale, Height = ExpandedNaturalHeight * ExpandedScale, Radius = geometry.Radius * ExpandedScale };
         return state switch
         {
             OverlayState.DragApproaching or OverlayState.DragReady => Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 0, 1, 0),

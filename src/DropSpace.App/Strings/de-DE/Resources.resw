@@ -1037,4 +1037,5 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>Liedtexte sind in den Musikeinstellungen deaktiviert.</value></data>
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Systemlautstärke</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Die Systemlautstärke ist nicht verfügbar.</value></data>
+  <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Auswahl aufheben</value></data>
 </root>

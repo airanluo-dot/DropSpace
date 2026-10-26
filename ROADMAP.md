@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v1.1.0-beta.1
+## Release target: v1.1.0-beta.2
 
-The current Beta target is `v1.1.0-beta.1` (Beta 1).
-v1.0.0 is the immediate upgrade baseline for this release.
+The current Beta target is `v1.1.0-beta.2` (Beta 2).
+v1.1.0-beta.1 is the immediate upgrade baseline for this release.
 
-Deliver unified Island retrieval, selected-folder file relay, reusable successful outputs, a shared-content reference window, local Agent access, and a standalone music window with shared media state and Windows system volume. Refine action icons, layout transitions and minimum window sizes. Preserve user data, providers and model/CUDA bytes.
+Refine independent music presentation using shared word timing and process audio, add idle lyric blur and edge fade, and make Island retrieval selection and enlarged previews intuitive. Keep responsive music controls balanced across portrait, split and centered layouts. Preserve user data, providers and model/CUDA bytes. The reported background native heap crash remains under investigation; the separately reproduced managed shutdown defect is fixed.
 
-Reuse completed focused checks; do not repeat functional suites. Retain exact-main packaging, one isolated installer payload scenario and public release/update verification. See the [release notes](.github/release-notes/v1.1.0-beta.1.md), [local evidence](docs/dev/1.1-beta1-delivery.md) and [release record](docs/dev/1.1-beta1-release.md).
+Reuse completed focused checks; do not repeat functional suites. Retain exact-main packaging, one isolated installer payload scenario and public release/update verification. See the [release notes](.github/release-notes/v1.1.0-beta.2.md) and [validation record](docs/dev/1.1-beta2-local-delivery.md). Beta2 publication was explicitly authorized after verification; unresolved requested behavior must remain visible in the delivery decision.
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.1.0-beta.1 is the current Beta target; 1.0 remains the public Stable baseline.
+v1.1.0-beta.2 is the current Beta target; 1.0 remains the public Stable baseline.
 Published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

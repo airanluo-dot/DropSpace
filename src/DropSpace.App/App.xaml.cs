@@ -531,7 +531,9 @@ public partial class App : Application
                 await CleanupAsync("music window shortcut", () => musicHotkey.StopAsync());
                 _musicWindowHotkey = null;
             }
-            await CleanupAsync("music window", () => { services.GetRequiredService<Services.Media.MusicWindowService>().Close(); return Task.CompletedTask; });
+            // Retire the dispatcher-owned surface here. The DI container resumes
+            // async disposal on a pool thread after disposing other services.
+            await CleanupAsync("music window", () => { services.GetRequiredService<Services.Media.MusicWindowService>().Dispose(); return Task.CompletedTask; });
         }
         if (_startupUpdateTask is not null)
             await CleanupAsync("startup update", () => _startupUpdateTask);

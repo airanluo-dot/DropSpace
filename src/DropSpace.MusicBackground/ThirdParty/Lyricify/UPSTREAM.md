@@ -34,4 +34,10 @@ DropSpace modifications (2026-10-23):
   upstream GPU-completion polling loop to 100 ms so a stalled device cannot spin indefinitely.
 - Add provenance headers to incorporated source files; keep mesh/shader calculations intact.
 
+DropSpace modifications (2026-10-26):
+
+- Give the four artwork layers different bounded scale responses to the shared audio envelope.
+  The host uses the existing island audio-response mapping and process-loopback frames; no
+  additional capture source, playback clock or audio monitor is introduced.
+
 The local `MusicFlowBackground.cs` control and its lifecycle adaptation are DropSpace code.

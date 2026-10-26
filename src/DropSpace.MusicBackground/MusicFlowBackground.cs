@@ -41,6 +41,7 @@ public sealed class MusicFlowBackground : Grid, IDisposable
     public bool IsReady { get; private set; }
     public long PresentedFrameCount => _renderer?.PresentedFrameCount ?? 0;
     public long FrameCount => PresentedFrameCount;
+    public float AudioPulse => _renderer?.AudioPulse ?? 0;
     public bool IsRendering => _renderingHooked && !_failed && _visible;
     public string? LastFault { get; private set; }
     public event EventHandler<Exception>? Faulted;

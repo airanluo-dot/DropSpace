@@ -1037,4 +1037,5 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>Les paroles sont désactivées dans les paramètres de musique.</value></data>
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Volume du système</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Le volume système est indisponible.</value></data>
+  <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Désélectionner</value></data>
 </root>

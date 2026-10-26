@@ -4138,29 +4138,20 @@
     "MusicWindowVolumeUnavailable": [
       "ea02654758bc563a2c4fcb4629c91d101a952f15bd14b67718e5c6d2d4f4011d",
       "3578a4673696b599320393dfc213f8a21482d8527dfb997970979b200af9c9f6"
+    ],
+    "RetrievalClearSelection.Content": [
+      "cea4d2e010b8fd52bc28a66eca24ff0d616b2c7d982545757780c196c5cc04c7",
+      "9ac3a0bebb2fdd90f6af5846546bd8be784982e80abfe04c7c75f12d74c7e64a"
     ]
   },
-  "reviewedBy": "Codex music-window: reviewed all 14 music-window and shortcut labels including system volume availability",
-  "reviewedAt": "2026-10-23T13:56:38.546Z",
+  "reviewedBy": "Codex Beta2 clear-selection label review",
+  "reviewedAt": "2026-10-26T09:31:32.613Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "MusicWindowOpen",
-      "MusicWindowTitle",
-      "ShortcutOpenMusicWindow",
-      "ShortcutUnassigned",
-      "HotkeyClearBinding",
-      "MusicWindowShowLyrics",
-      "MusicWindowHideLyrics",
-      "MusicWindowTranslation",
-      "MusicWindowNoArtwork",
-      "MusicWindowNoTranslation",
-      "MusicWindowSeekUnavailable",
-      "MusicWindowLyricsDisabled",
-      "MusicWindowSystemVolume",
-      "MusicWindowVolumeUnavailable"
+      "RetrievalClearSelection.Content"
     ],
-    "reviewedBy": "Codex music-window: reviewed all 14 music-window and shortcut labels including system volume availability",
-    "reviewedAt": "2026-10-23T13:56:38.546Z"
+    "reviewedBy": "Codex Beta2 clear-selection label review",
+    "reviewedAt": "2026-10-26T09:31:32.613Z"
   }
 }

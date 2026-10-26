@@ -330,6 +330,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/Services/Volume/WindowsVolumeActivityService.cs',
   'src/DropSpace.App/Views/Music/MusicWindow.cs',
   'src/DropSpace.App/Views/Music/MusicWindowLayout.cs',
+  'src/DropSpace.App/Views/Music/MusicLyricRow.cs',
   'src/DropSpace.App/Views/Music/MusicWindowVisuals.cs',
   'src/DropSpace.App/Views/Music/MusicWindowGlyphs.cs',
   'src/DropSpace.MusicBackground/DropSpace.MusicBackground.csproj',
@@ -344,7 +345,7 @@ export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
 export const betaHostExperimentalModelsStatus = 'owner-authorized-beta-host-experimental-models';
-export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.1';
+export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.2';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));

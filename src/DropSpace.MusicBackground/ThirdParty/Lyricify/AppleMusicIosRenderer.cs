@@ -202,12 +202,17 @@ namespace Lyricify.Backgrounds.AppleMusicInspired.Ios.WinUI
 
         public void SetReducedMotion(bool reduced) => _reducedMotion = reduced;
 
+        public float AudioPulse => _smoothedAmplitude * 0.38f * GetSettingScale(_settings.BassPulseScale);
+
         private Vector4 GetImageScales(double elapsed)
         {
             bool fresh = _spectrumTimestamp != 0 && Stopwatch.GetElapsedTime(_spectrumTimestamp).TotalMilliseconds < 450;
             float target = !_reducedMotion && fresh && (_isPlayingProvider?.Invoke() ?? false) ? _spectrumAmplitude : 0f;
             _smoothedAmplitude += (target - _smoothedAmplitude) * (float)(1 - Math.Exp(-elapsed * (target > _smoothedAmplitude ? 12 : 5)));
-            return new Vector4(1f + _smoothedAmplitude * 0.12f * GetSettingScale(_settings.BassPulseScale));
+            var pulse = AudioPulse;
+            // Independent mesh layers breathe by different amounts. A uniform,
+            // near-constant 7% scale was visually lost after the broad lyric blur.
+            return new Vector4(1f + pulse, 1f + pulse * .65f, 1f + pulse * .85f, 1f + pulse * .5f);
         }
 
         public void SetVerticalLayout(bool isVertical, bool animate = true)

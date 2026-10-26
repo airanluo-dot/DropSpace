@@ -52,6 +52,11 @@ public sealed partial class ExpandedIslandMusicView : UserControl
     public ExpandedIslandMusicView()
     {
         InitializeComponent();
+        LayoutRoot.SizeChanged += (_, _) => UpdateAdaptiveLayout();
+        OriginalLyric.SizeChanged += (_, _) => UpdateAdaptiveLayout();
+        TranslatedLyric.SizeChanged += (_, _) => UpdateAdaptiveLayout();
+        NextLyric.SizeChanged += (_, _) => UpdateAdaptiveLayout();
+        PlaybackPanel.SizeChanged += (_, _) => UpdateAdaptiveLayout();
         _seekCommitTimer = DispatcherQueue.CreateTimer();
         _seekCommitTimer.Interval = TimeSpan.FromMilliseconds(120);
         _seekCommitTimer.IsRepeating = false;
@@ -181,7 +186,6 @@ public sealed partial class ExpandedIslandMusicView : UserControl
             var empty = string.IsNullOrEmpty(_view.Title);
             EmptyText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
             var showArtwork = !empty && _view.Settings.IslandActivity.ShowArtwork;
-            ArtworkColumn.Width = new GridLength(showArtwork ? 100 : 0);
             ArtworkHost.Visibility = showArtwork ? Visibility.Visible : Visibility.Collapsed;
             TimelineRow.Visibility = ControlsRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
             LyricsArea.Visibility = empty || !_view.Settings.Lyrics.Enabled ? Visibility.Collapsed : Visibility.Visible;
@@ -204,7 +208,45 @@ public sealed partial class ExpandedIslandMusicView : UserControl
                 ((Rectangle)Spectrum.Children[index]).Height = 2 + 22 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
         }
         finally { _updating = false; }
+        UpdateAdaptiveLayout();
         NotifyTranslationVisibility();
+    }
+    private void UpdateAdaptiveLayout()
+    {
+        if (LayoutRoot.ActualHeight <= 0) return;
+        // All four Island pages keep the same outer size. Allocate the fixed
+        // interior to reading first, then fit artwork and metadata into the rest.
+        // DIPs are subsequently scaled by the existing monitor-aware Viewbox.
+        var gap = Math.Clamp(LayoutRoot.ActualHeight * .03, 6, 9);
+        if (Math.Abs(LayoutRoot.RowSpacing - gap) > .1) LayoutRoot.RowSpacing = gap;
+        double TextHeight(TextBlock text) => Math.Max(text.FontSize * 1.5, text.DesiredSize.Height);
+        var lyricHeight = LyricsArea.Visibility == Visibility.Visible
+            ? TextHeight(OriginalLyric) + 4
+                + (TranslatedLyric.Visibility == Visibility.Visible ? TextHeight(TranslatedLyric) + 2 : 0)
+                + (NextLyricPreview.Visibility == Visibility.Visible ? TextHeight(NextLyric) + 15 : 0)
+                + (LyricsStatus.Visibility == Visibility.Visible ? TextHeight(LyricsStatus) + 2 : 0)
+            : 0;
+        var playbackHeight = ControlsRow.Visibility == Visibility.Visible ? Math.Max(84, PlaybackPanel.DesiredSize.Height) : 0;
+        var artworkSide = Math.Clamp(LayoutRoot.ActualHeight - LayoutRoot.Padding.Bottom - gap * 2 - playbackHeight - lyricHeight, 56, 100);
+        if (Math.Abs(ArtworkHost.Height - artworkSide) > .1) ArtworkHost.Height = artworkSide;
+        var artworkWidth = ArtworkHost.Visibility == Visibility.Visible ? artworkSide : 0;
+        if (Math.Abs(ArtworkColumn.Width.Value - artworkWidth) > .1) ArtworkColumn.Width = new GridLength(artworkWidth);
+        void Font(TextBlock text, double size) { if (Math.Abs(text.FontSize - size) > .1) text.FontSize = size; }
+        Font(TrackTitle, Math.Clamp(artworkSide * .22, 18, 22));
+        Font(TrackDetails, Math.Clamp(artworkSide * .18, 12, 14));
+        Font(TrackSource, Math.Clamp(artworkSide * .15, 11, 12));
+        TrackSource.Visibility = artworkSide < 72 ? Visibility.Collapsed : Visibility.Visible;
+        var metadataGap = Math.Clamp(artworkSide * .06, 4, 6);
+        if (Math.Abs(MetadataPanel.Spacing - metadataGap) > .1) MetadataPanel.Spacing = metadataGap;
+    }
+    internal object ObserveLayout()
+    {
+        var translation = TranslatedLyric.TransformToVisual(CurrentLyricsViewport).TransformBounds(
+            new Windows.Foundation.Rect(0, 0, TranslatedLyric.ActualWidth, TranslatedLyric.ActualHeight));
+        return new { LayoutRoot.ActualWidth, LayoutRoot.ActualHeight, Artwork = ArtworkHost.ActualHeight,
+            FontSize = OriginalLyric.FontSize, CurrentLyricsViewport.ViewportHeight,
+            TranslationTop = translation.Top, TranslationBottom = translation.Bottom,
+            TranslationFullyVisible = translation.Top >= 0 && translation.Bottom <= CurrentLyricsViewport.ViewportHeight + .5 };
     }
     private void NotifyTranslationVisibility()
     {

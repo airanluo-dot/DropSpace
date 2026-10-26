@@ -18,9 +18,12 @@ internal sealed class IslandGlowRasterizer
     private static readonly DistanceProfile[] DistanceProfiles = CreateDistanceProfiles();
     private readonly record struct DistanceProfile(double Distance, double Coverage, double BaseLight, double CoreLight);
     private readonly record struct Sample(int Pixel, int Lookup, int SimplifiedLookup, float SimplifiedCoverage);
-    private readonly Sample[] _samples;
+    private readonly List<Sample> _samples = [];
     private readonly int[] _lookup = new int[AroundSteps * DistanceSteps];
     private readonly double[] _frameBands = new double[6];
+    private readonly double _scale;
+    private (int Width, int Height, int TopRadius, int BottomRadius) _shape;
+    private bool _geometryDirty;
     private double _lastPhase;
     private double _lastBrightness;
     private double _lastSimplification;
@@ -28,17 +31,37 @@ internal sealed class IslandGlowRasterizer
 
     public IslandGlowRasterizer(int surfaceWidth, int surfaceHeight, int topRadius, int bottomRadius, double scale)
     {
-        if (surfaceWidth <= 0 || surfaceHeight <= 0 || !double.IsFinite(scale) || scale <= 0)
-            throw new ArgumentOutOfRangeException(nameof(surfaceWidth));
+        if (!double.IsFinite(scale) || scale <= 0) throw new ArgumentOutOfRangeException(nameof(scale));
+        _scale = scale;
         PaddingPixels = checked((int)Math.Ceiling(PaddingDips * scale));
-        Width = checked(surfaceWidth + 2 * PaddingPixels);
-        Height = checked(surfaceHeight + 2 * PaddingPixels);
-        Pixels = new int[checked(Width * Height)];
-        var samples = new List<Sample>();
-        var halfWidth = surfaceWidth / 2d;
-        var halfHeight = surfaceHeight / 2d;
+        SetGeometry(surfaceWidth, surfaceHeight, topRadius, bottomRadius);
+    }
+
+    // An Island spring changes its physical contour every display frame. Retain
+    // the bounded working storage instead of putting several large arrays on the
+    // LOH on each frame (and collecting them while the UI is animating).
+    public void SetGeometry(int surfaceWidth, int surfaceHeight, int topRadius, int bottomRadius)
+    {
+        if (surfaceWidth <= 0 || surfaceHeight <= 0) throw new ArgumentOutOfRangeException(nameof(surfaceWidth));
         topRadius = Math.Clamp(topRadius, 0, Math.Min(surfaceWidth, surfaceHeight) / 2);
         bottomRadius = Math.Clamp(bottomRadius, 0, Math.Min(surfaceWidth, surfaceHeight) / 2);
+        var shape = (surfaceWidth, surfaceHeight, topRadius, bottomRadius);
+        if (_shape == shape) return;
+        _shape = shape;
+        // Clear the previous extent, including pixels outside a newly smaller
+        // contour. Capacity is not the active bitmap extent; native upload uses
+        // PixelCount exclusively.
+        Array.Clear(Pixels, 0, PixelCount);
+        Width = checked(surfaceWidth + 2 * PaddingPixels);
+        Height = checked(surfaceHeight + 2 * PaddingPixels);
+        var pixelCount = PixelCount;
+        if (Pixels.Length < pixelCount)
+            Pixels = new int[checked((pixelCount + 131_071) / 131_072 * 131_072)];
+        _samples.Clear();
+        _geometryDirty = true;
+        var scale = _scale;
+        var halfWidth = surfaceWidth / 2d;
+        var halfHeight = surfaceHeight / 2d;
         var bottomQuarter = HalfContourLength(halfWidth, halfHeight, bottomRadius);
         var topQuarter = HalfContourLength(halfWidth, halfHeight, topRadius);
         var perimeter = 2 * (bottomQuarter + topQuarter);
@@ -47,8 +70,20 @@ internal sealed class IslandGlowRasterizer
             var dy = y + 0.5 - PaddingPixels - halfHeight;
             var radius = dy < 0 ? topRadius : bottomRadius;
             var qy = Math.Abs(dy) - halfHeight + radius;
+            // The central rectangle is guaranteed deeper than the finite inner
+            // overlap. Skip it without evaluating a distance/arc for every fully
+            // transparent body pixel, especially at high DPI in expanded mode.
+            var interiorInset = Math.Max(radius, InnerOverlapDips * scale);
+            var interiorLeft = (int)Math.Ceiling(PaddingPixels + interiorInset - .5);
+            var interiorRight = (int)Math.Floor(PaddingPixels + surfaceWidth - interiorInset - .5);
+            var skipInterior = Math.Abs(dy) <= halfHeight - InnerOverlapDips * scale;
             for (var x = 1; x < Width - 1; x++)
             {
+                if (skipInterior && x >= interiorLeft && x <= interiorRight)
+                {
+                    x = interiorRight;
+                    continue;
+                }
                 var dx = x + 0.5 - PaddingPixels - halfWidth;
                 var qx = Math.Abs(dx) - halfWidth + radius;
                 var ox = Math.Max(0, qx);
@@ -94,27 +129,28 @@ internal sealed class IslandGlowRasterizer
                 var lateral = Math.Max(0, Math.Abs(dx) - sourceEndX) / scale;
                 coverage *= Gaussian(lateral / (1.8 + .45 * Math.Max(0, projectedDistance)));
                 if (projectedDistance <= -InnerOverlapDips || projectedDistance >= PaddingDips - 1) coverage = 0;
-                samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex,
+                _samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex,
                     projectedAroundIndex * DistanceSteps + projectedDistanceIndex, (float)coverage));
             }
         }
-        _samples = samples.ToArray();
     }
 
-    public int Width { get; }
-    public int Height { get; }
+    public int Width { get; private set; }
+    public int Height { get; private set; }
     public int PaddingPixels { get; }
-    public int[] Pixels { get; }
+    public int PixelCount => checked(Width * Height);
+    public int[] Pixels { get; private set; } = [];
 
     public bool Render(double phase, double brightness, IReadOnlyList<double>? bands = null, double simplification = 0)
     {
         brightness = double.IsFinite(brightness) ? Math.Clamp(brightness, 0, 1) : 0;
         if (brightness == 0)
         {
-            if (_hasRenderedFrame && _lastBrightness == 0) return false;
-            Array.Clear(Pixels);
+            if (_hasRenderedFrame && _lastBrightness == 0 && !_geometryDirty) return false;
+            Array.Clear(Pixels, 0, PixelCount);
             _lastBrightness = 0;
             _hasRenderedFrame = true;
+            _geometryDirty = false;
             return true;
         }
         phase = double.IsFinite(phase) ? phase : 0;
@@ -131,7 +167,11 @@ internal sealed class IslandGlowRasterizer
             _frameBands[i] = value;
         }
         if (_hasRenderedFrame && sameBands && phase == _lastPhase && brightness == _lastBrightness && simplification == _lastSimplification)
-            return false;
+        {
+            if (!_geometryDirty) return false;
+            FillPixels(simplification);
+            return true;
+        }
         _lastPhase = phase;
         _lastBrightness = brightness;
         _lastSimplification = simplification;
@@ -208,6 +248,12 @@ internal sealed class IslandGlowRasterizer
                 _lookup[around * DistanceSteps + distance] = a << 24 | r << 16 | g << 8 | b;
             }
         }
+        FillPixels(simplification);
+        return true;
+    }
+
+    private void FillPixels(double simplification)
+    {
         foreach (var sample in _samples)
         {
             var pixel = _lookup[sample.Lookup];
@@ -222,7 +268,7 @@ internal sealed class IslandGlowRasterizer
             var b = (int)Math.Round((pixel & 255) * (1 - simplification) + (projected & 255) * coverage);
             Pixels[sample.Pixel] = a << 24 | r << 16 | g << 8 | b;
         }
-        return true;
+        _geometryDirty = false;
     }
 
     private static double HalfContourLength(double halfWidth, double halfHeight, double radius) =>
