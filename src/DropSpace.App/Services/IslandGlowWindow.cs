@@ -49,7 +49,9 @@ internal sealed class IslandGlowWindow : IDisposable
         if (!CanPresent()) return;
         EnsureWindow();
         EnsureBitmap(rasterizer.Width, rasterizer.Height);
-        Marshal.Copy(rasterizer.Pixels, 0, _bits, rasterizer.Pixels.Length);
+        // Rasterizer retains capacity across size changes; the DIB is exactly the
+        // active dimensions. Never copy spare managed capacity into native memory.
+        Marshal.Copy(rasterizer.Pixels, 0, _bits, rasterizer.PixelCount);
         var destination = new NativePoint { X = surfaceLeft, Y = surfaceTop };
         if (!ClientToScreen(_island, ref destination)) ThrowNativeFailure("ClientToScreen(glow)");
         destination.X -= rasterizer.PaddingPixels;

@@ -10,6 +10,33 @@ public sealed class IslandGlowNativeWindowTests
 {
     [TestMethod]
     [TestCategory("WindowsNative")]
+    public void ReusedPixelCapacityNeverChangesNativeUploadExtentAfterShrinking()
+    {
+        var owner = CreateWindowEx(0x08000080, "STATIC", string.Empty, 0x80000000,
+            -30_000, -30_000, 600, 400, nint.Zero, nint.Zero, nint.Zero, nint.Zero);
+        Assert.AreNotEqual(nint.Zero, owner);
+        using var window = new IslandGlowWindow(owner);
+        try
+        {
+            _ = ShowWindow(owner, 8);
+            var raster = new IslandGlowRasterizer(560, 340, 28, 28, 1);
+            var capacity = raster.Pixels;
+            foreach (var shape in new[] { (560, 340), (280, 60), (500, 300), (120, 24), (560, 340) })
+            {
+                raster.SetGeometry(shape.Item1, shape.Item2, 26, 26);
+                raster.Render(2, .6);
+                window.Present(raster, 20, 20);
+                Assert.AreSame(capacity, raster.Pixels);
+                Assert.IsTrue(GetWindowRect(window.WindowHandle, out var bounds));
+                Assert.AreEqual(raster.Width, bounds.Right - bounds.Left);
+                Assert.AreEqual(raster.Height, bounds.Bottom - bounds.Top);
+            }
+        }
+        finally { _ = DestroyWindow(owner); }
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsNative")]
     public void CachedStaticFrameStillObservesNativeVisibilityAndBodyDestruction()
     {
         var owner = CreateWindowEx(0x08000080, "STATIC", string.Empty, 0x80000000,

@@ -11,6 +11,28 @@ namespace DropSpace.App.Services.Diagnostics;
 
 internal static partial class MusicWindowCheck
 {
+    private static async Task<PortraitResult> VerifyBeta2FocusAsync(string output, MusicWindowService music)
+    {
+        if (Directory.Exists(output)) throw new IOException("Focus checks require a fresh output directory.");
+        Directory.CreateDirectory(output);
+        music.Open(); music.SetLyricsVisible(true);
+        var window = music.CurrentWindow!;
+        ResizeMusicDips(window, 1040, 760);
+        var checks = new List<CheckResult>();
+        void Check(bool passed, string description) => checks.Add(new(passed ? "passed" : "failed", "beta2-focus", description, window.LayoutSnapshot));
+        window.DiagnosticNotifyLyricInteraction();
+        for (var i = 0; i < 5; i++) { await Task.Delay(950); window.DiagnosticNotifyInteraction(); }
+        await Task.Delay(400);
+        Check(window.GetState().LyricsIdle, "Repeated non-lyric control interaction does not postpone lyric focus");
+        ResizeMusicDips(window, 1060, 740); window.DiagnosticNotifyInteraction(); await Task.Delay(650);
+        Check(window.GetState().LyricsIdle, "Resize and control interaction preserve existing lyric blur");
+        window.DiagnosticNotifyLyricInteraction(); await Task.Delay(400);
+        Check(!window.GetState().LyricsIdle, "Explicit lyric reading interaction restores clarity");
+        var failed = checks.Count(check => check.Status == "failed");
+        var path = Path.Combine(output, "receipt.json");
+        await WriteAsync(path, new { status = failed == 0 ? "passed" : "failed", syntheticMedia = true, checks });
+        return new(failed == 0 ? "passed" : "failed", path, checks.Count - failed, failed, null);
+    }
     private static async Task<PortraitResult> VerifyBeta2SpacingAsync(string output, MusicWindowService music)
     {
         if (Directory.Exists(output)) throw new IOException("Spacing checks require a fresh output directory.");
@@ -128,11 +150,11 @@ internal static partial class MusicWindowCheck
                 effects.Where(e => e.GetProperty("Index").GetInt32() != 2).All(e => e.GetProperty("BlurAmount").GetDouble() > 0) &&
                 idle.GetProperty("LyricEffectFailures").GetArrayLength() == 0,
                 "Idle creates real compositor effect graphs; active line stays sharp and surrounding rows blur", idle);
-            window.DiagnosticNotifyInteraction();
+            window.DiagnosticNotifyLyricInteraction();
             await Task.Delay(420);
             var awake = JsonSerializer.SerializeToElement(window.LayoutSnapshot);
             Check(!awake.GetProperty("LyricsIdle").GetBoolean() && awake.GetProperty("LyricEffects").EnumerateArray().All(e => e.GetProperty("BlurAmount").GetDouble() == 0),
-                "Interaction smoothly restores clear lyrics", awake);
+                "Lyric reading interaction smoothly restores clear lyrics", awake);
             ResizeMusicDips(window, 430, 800);
             await Task.Delay(750);
             var wrapped = await At(52.7);

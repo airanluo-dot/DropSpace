@@ -73,7 +73,8 @@ internal sealed class IslandGlowController : IDisposable
         if (_shape != shape)
         {
             _shape = shape;
-            _rasterizer = null; // Allocate only if this shape actually needs to glow.
+            // Keep one working set through spring animation and subsequent songs.
+            // Geometry is materialized lazily only when this shape needs to glow.
         }
         _left = left;
         _top = top;
@@ -168,6 +169,7 @@ internal sealed class IslandGlowController : IDisposable
             }
             _rasterizer ??= new IslandGlowRasterizer(_shape.Width, _shape.Height,
                 _shape.TopRadius, _shape.BottomRadius, _scale);
+            _rasterizer.SetGeometry(_shape.Width, _shape.Height, _shape.TopRadius, _shape.BottomRadius);
             var changed = _rasterizer.Render(_envelope.Phase, _envelope.Brightness * _surfaceOpacity, _envelope.Bands, _envelope.Simplification);
             if (changed || _presentationDirty)
             {

@@ -77,6 +77,7 @@ public sealed class MusicWindow : Window
     private readonly LyricsGlowAudioResponse _audioResponse = new();
     private long _audioResponseTick;
     private bool _lyricsIdle, _lyricFocusDirty = true;
+    private long _controlsInteractionAt = Stopwatch.GetTimestamp(), _lyricInteractionAt = Stopwatch.GetTimestamp();
     private readonly MediaRenderQueue _renderQueue = new();
     private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
     private readonly DispatcherQueueTimer _seekCommit, _seekAcknowledgement, _volumeCommit, _manualFollowTimer, _idleTimer;
@@ -134,6 +135,12 @@ public sealed class MusicWindow : Window
         _lyricsToggle.Click += (_, _) => SetLyricsVisible(_lyricsToggle.IsChecked == true);
         _lyricsScroll.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler((_, _) => OnManualScroll()), true);
         _lyricsScroll.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, args) => { _manualScrollPointers.Add(args.Pointer.PointerId); OnManualScroll(); }), true);
+        _lyricsScroll.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler((_, args) =>
+        {
+            if (args.Key is Windows.System.VirtualKey.Up or Windows.System.VirtualKey.Down
+                or Windows.System.VirtualKey.PageUp or Windows.System.VirtualKey.PageDown
+                or Windows.System.VirtualKey.Home or Windows.System.VirtualKey.End) OnManualScroll();
+        }), true);
         _lyricsScroll.ViewChanged += OnLyricsViewChanged;
         _lyricsScroll.SizeChanged += (_, _) =>
         {
@@ -286,6 +293,7 @@ public sealed class MusicWindow : Window
         return new(point.X, point.Y, element.ActualWidth, element.ActualHeight);
     }
     internal void DiagnosticNotifyInteraction() => NotifyInteraction();
+    internal void DiagnosticNotifyLyricInteraction() => OnManualScroll();
     internal void DiagnosticFocusTransport() { _keyboardControlsIntent = true; _previous.Focus(FocusState.Keyboard); }
 
     private void UpdateViewport()
@@ -450,14 +458,22 @@ public sealed class MusicWindow : Window
     private void NotifyInteraction()
     {
         if (!CanRender) return;
-        if (_lyricsIdle) { _lyricsIdle = false; _lyricFocusDirty = true; RequestRender(); }
+        _controlsInteractionAt = Stopwatch.GetTimestamp();
         if (!_controlsVisible) { _controlsVisible = true; UpdateLayoutGeometry(); }
         ResetIdleTimer();
     }
     private void ResetIdleTimer()
     {
         _idleTimer.Stop();
-        if (CanRender && _lyricsVisible && !GestureInProgress()) _idleTimer.Start();
+        if (!CanRender || !_lyricsVisible) return;
+        // One existing UI timer serves two independent deadlines. Transport,
+        // volume, resize and focus changes never reset the lyric-reading state.
+        var due = double.PositiveInfinity;
+        if (!_lyricsIdle && _manualScrollPointers.Count == 0 && !_manualScrollInertia)
+            due = Math.Min(due, Math.Max(40, 4_000 - Stopwatch.GetElapsedTime(_lyricInteractionAt).TotalMilliseconds));
+        if (_portrait && _controlsVisible && !InteractionHoldsControls())
+            due = Math.Min(due, Math.Max(40, 4_000 - Stopwatch.GetElapsedTime(_controlsInteractionAt).TotalMilliseconds));
+        if (double.IsFinite(due)) { _idleTimer.Interval = TimeSpan.FromMilliseconds(due); _idleTimer.Start(); }
     }
     private bool GestureInProgress() => _interactingPointers.Count > 0 || _manualScrollPointers.Count > 0 || _seekInteraction.IsDragging;
     private bool InteractionHoldsControls()
@@ -475,14 +491,21 @@ public sealed class MusicWindow : Window
     }
     private void OnIdle()
     {
-        if (!CanRender || !_lyricsVisible || GestureInProgress()) return;
-        _lyricsIdle = true; _lyricFocusDirty = true; RequestRender();
+        if (!CanRender || !_lyricsVisible) return;
+        if (!_lyricsIdle && _manualScrollPointers.Count == 0 && !_manualScrollInertia &&
+            Stopwatch.GetElapsedTime(_lyricInteractionAt).TotalMilliseconds >= 4_000)
+        { _lyricsIdle = true; _lyricFocusDirty = true; RequestRender(); }
         // Keyboard focus keeps its controls reachable, but a resting focus ring
         // is not ongoing interaction and must not suppress lyric focus effects.
-        if (_portrait && !InteractionHoldsControls()) { _controlsVisible = false; UpdateLayoutGeometry(); }
+        if (_portrait && _controlsVisible && !InteractionHoldsControls() &&
+            Stopwatch.GetElapsedTime(_controlsInteractionAt).TotalMilliseconds >= 4_000)
+        { _controlsVisible = false; UpdateLayoutGeometry(); }
+        ResetIdleTimer();
     }
     private void OnManualScroll()
     {
+        _lyricInteractionAt = Stopwatch.GetTimestamp();
+        if (_lyricsIdle) { _lyricsIdle = false; _lyricFocusDirty = true; RequestRender(); }
         _manualScrollPending = true;
         ScheduleManualReturn();
         NotifyInteraction();
@@ -493,8 +516,10 @@ public sealed class MusicWindow : Window
         // Only explicit pointer/wheel input starts this state. Our ChangeView follow
         // events can never create another manual-scroll timeout.
         if (!_manualScrollPending) return;
+        _lyricInteractionAt = Stopwatch.GetTimestamp();
         _manualScrollInertia = args.IsIntermediate;
         ScheduleManualReturn();
+        ResetIdleTimer();
     }
     private void EndManualScrollPointer(PointerRoutedEventArgs args, bool released)
     {
@@ -502,7 +527,9 @@ public sealed class MusicWindow : Window
         var point = args.GetCurrentPoint(_lyricsScroll);
         if (!released && (point.IsInContact || point.Properties.IsLeftButtonPressed)) return;
         _manualScrollPointers.Remove(args.Pointer.PointerId);
+        _lyricInteractionAt = Stopwatch.GetTimestamp();
         ScheduleManualReturn();
+        ResetIdleTimer();
     }
     private void ScheduleManualReturn()
     {

@@ -10,6 +10,46 @@ namespace DropSpace.App.Tests;
 public sealed class IslandGlowRasterizerTests
 {
     [TestMethod]
+    [DataRow(1d)]
+    [DataRow(1.25d)]
+    [DataRow(1.5d)]
+    [DataRow(2d)]
+    public void AnimatedContoursReuseStorageAndInvalidateOnlyTheirActivePixels(double scale)
+    {
+        var raster = new IslandGlowRasterizer((int)(560 * scale), (int)(340 * scale), (int)(28 * scale), (int)(28 * scale), scale);
+        var capacity = raster.Pixels;
+        double[] bands = [.2, .4, .6, .8, .3, .5];
+        foreach (var shape in new[] { (280, 60, 0, 26), (560, 340, 28, 28), (320, 90, 18, 26), (120, 24, 8, 10) })
+        {
+            var width = (int)(shape.Item1 * scale);
+            var height = (int)(shape.Item2 * scale);
+            var top = (int)(shape.Item3 * scale);
+            var bottom = (int)(shape.Item4 * scale);
+            raster.SetGeometry(width, height, top, bottom);
+            // Same phase/brightness must still redraw a changed contour, while
+            // stale pixels from an expanded predecessor cannot survive shrinking.
+            raster.Render(2.3, .6, bands, .5);
+            var fresh = new IslandGlowRasterizer(width, height, top, bottom, scale);
+            fresh.Render(2.3, .6, bands, .5);
+            Assert.IsTrue(fresh.Pixels.AsSpan(0, fresh.PixelCount).SequenceEqual(raster.Pixels.AsSpan(0, raster.PixelCount)));
+            Assert.IsFalse(raster.Pixels.AsSpan(raster.PixelCount).ContainsAnyExcept(0));
+            Assert.AreSame(capacity, raster.Pixels);
+            Assert.AreEqual(raster.Width * raster.Height, raster.PixelCount);
+        }
+
+        // A warmed expand/collapse replay must not allocate per-frame large arrays.
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var frame = 0; frame < 120; frame++)
+        {
+            var fraction = (frame % 30) / 29d;
+            raster.SetGeometry((int)((280 + 280 * fraction) * scale), (int)((60 + 280 * fraction) * scale),
+                (int)((26 + 2 * fraction) * scale), (int)((26 + 2 * fraction) * scale));
+            raster.Render(frame * .03, .6, bands);
+        }
+        Assert.AreEqual(0L, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    [TestMethod]
     [DataRow(280, 60, 1d)]
     [DataRow(560, 340, 1d)]
     [DataRow(700, 425, 1.25d)]
