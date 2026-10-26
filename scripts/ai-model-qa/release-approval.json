@@ -877,7 +877,7 @@
         },
         {
           "path": "scripts/Build-NextBetaCandidate.ps1",
-          "sha256": "33d5509f7271c9674a6c684795bbae128644df25b570ce4ad8620c43d40c246d"
+          "sha256": "3b4d45226ee2911623097d2b4b639e881b1cb0834494908d4b28514ccd20b134"
         },
         {
           "path": "scripts/next-beta-release-validation.mjs",
@@ -1328,7 +1328,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "436505b6552bc355336b89138e30d74371170e7e690721e753e658b1fc34f7d6"
+      "sha256": "43049578352d92c5e0ae8656c388a0cf60c77bd4581211c96bf5f6525f6d722e"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2771,7 +2771,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.2-final-host-review.json",
-    "sha256": "f9e2c390ea0cc6740ca500d054df2f4e960d632ff05f7ae0f3c50f61fe97a7c0"
+    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.2-summary-preflight-review.json",
+    "sha256": "7f2e6c127b2328720b0b9878d53dd4993a75f024f5fc60af2edd3674599b87d1"
   }
 }

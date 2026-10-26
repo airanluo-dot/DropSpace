@@ -16,6 +16,10 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_REPOSITORY -cne 'airanluo-dot
 if ($LASTEXITCODE -ne 0) { throw 'A dynamically selected new Beta version is required.' }
 & node scripts/test-release-metadata.mjs $PWD
 if ($LASTEXITCODE -ne 0) { throw 'Release version, notes and current product metadata disagree.' }
+# Validate the same updater-summary contract before App compilation, rather than
+# discovering a missing marker only after all final packages have been built.
+. (Join-Path $PSScriptRoot 'ReleaseNotes.ps1')
+$null = Get-DropSpaceUpdateSummary -RepositoryRoot $PWD.Path -Tag ((Get-Content RELEASE_VERSION -Raw).Trim())
 & ./scripts/Test-Localization.ps1 -Scope app
 if ($LASTEXITCODE -ne 0) { throw 'Translation completeness blocks compilation and publication.' }
 if ($ValidateOnly) {
