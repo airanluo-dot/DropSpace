@@ -88,6 +88,7 @@ public sealed class MusicWindow : Window
     private bool _volumeDesiredActive, _volumeWriting, _volumeWriteFailed, _keyboardControlsIntent;
     private readonly HashSet<uint> _interactingPointers = [];
     private readonly HashSet<uint> _manualScrollPointers = [];
+    private Point? _lastPointerPosition;
     private bool _manualScrollPending, _manualScrollInertia;
     private bool _portrait, _controlsVisible = true, _lyricsChoiceExplicit, _nativeVisible;
     private bool _transitionRunning, _transitionHooked, _clampingSize;
@@ -140,11 +141,11 @@ public sealed class MusicWindow : Window
             _lyricsRows.Padding = new Thickness(0, padding, 12, padding);
             _lastCentered = -1; _lyricFocusDirty = true; RequestRender();
         };
-        _root.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler((_, args) => { _keyboardControlsIntent = false; EndManualScrollPointer(args, released: false); NotifyInteraction(); }), true);
-        _root.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, args) => { _keyboardControlsIntent = false; _interactingPointers.Add(args.Pointer.PointerId); NotifyInteraction(); }), true);
+        _root.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnPointerActivity), true);
+        _root.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, args) => { _lastPointerPosition = args.GetCurrentPoint(_root).Position; _keyboardControlsIntent = false; _interactingPointers.Add(args.Pointer.PointerId); NotifyInteraction(); }), true);
         _root.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler((_, args) => { _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: true); NotifyInteraction(); }), true);
         _root.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, args) => { _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: true); NotifyInteraction(); }), true);
-        _root.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, args) => { _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: false); NotifyInteraction(); }), true);
+        _root.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, args) => { var wasPressed = _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: false); if (wasPressed) NotifyInteraction(); }), true);
         _root.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler((_, _) => { _keyboardControlsIntent = true; NotifyInteraction(); }), true);
         _root.GotFocus += (_, _) => NotifyInteraction();
         _root.LostFocus += (_, _) => NotifyInteraction();
@@ -256,6 +257,8 @@ public sealed class MusicWindow : Window
                 ArtworkDisplayed = _artwork.Source is not null, LyricRows = _lyricsRows.Children.Count,
                 TranslationDisplayed = _rows.Count > 0 && _rows[0].TranslationVisible,
                 LyricsIdle = _lyricsIdle,
+                ActivePointers = _interactingPointers.Count, ManualPointers = _manualScrollPointers.Count,
+                IdleTimerRunning = _idleTimer.IsRunning, KeyboardControlsIntent = _keyboardControlsIntent,
                 LyricViewportHeight = _lyricsScroll.ViewportHeight, LyricScrollOffset = _lyricsScroll.VerticalOffset,
                 LyricScrollableHeight = _lyricsScroll.ScrollableHeight,
                 ActiveHighlightedCharacters = _activeLyric >= 0 && _activeLyric < _rows.Count ? _rows[_activeLyric].HighlightedCharacters : 0,
@@ -306,7 +309,7 @@ public sealed class MusicWindow : Window
         }
         // Small work areas retain scrolling access instead of clipping the controls.
         _body.Width = Math.Max(320, _bodyViewport.ActualWidth);
-        _body.Height = Math.Max(568, _bodyViewport.ActualHeight);
+        _body.Height = Math.Max(480, _bodyViewport.ActualHeight);
     }
 
     public void SetMinimized(bool minimized)
@@ -429,6 +432,20 @@ public sealed class MusicWindow : Window
             _lastCentered = -1;
             DispatcherQueue.TryEnqueue(() => { if (CanRender && !_transitionRunning) CenterCurrentLyric(); });
         }
+    }
+    private void OnPointerActivity(object sender, PointerRoutedEventArgs args)
+    {
+        var point = args.GetCurrentPoint(_root);
+        EndManualScrollPointer(args, released: false);
+        if (!point.Properties.IsLeftButtonPressed && !point.IsInContact)
+            _interactingPointers.Remove(args.Pointer.PointerId);
+        // XAML can re-hit-test a stationary pointer as the controls move away.
+        // Such layout-generated moves must not immediately undo idle presentation.
+        if (_lastPointerPosition is { } previous && Math.Abs(previous.X - point.Position.X) < .1 && Math.Abs(previous.Y - point.Position.Y) < .1)
+            return;
+        _lastPointerPosition = point.Position;
+        _keyboardControlsIntent = false;
+        NotifyInteraction();
     }
     private void NotifyInteraction()
     {

@@ -11,6 +11,33 @@ namespace DropSpace.App.Services.Diagnostics;
 
 internal static partial class MusicWindowCheck
 {
+    private static async Task<PortraitResult> VerifyBeta2SpacingAsync(string output, MusicWindowService music)
+    {
+        if (Directory.Exists(output)) throw new IOException("Spacing checks require a fresh output directory.");
+        Directory.CreateDirectory(output);
+        var checks = new List<CheckResult>();
+        music.Open();
+        foreach (var (width, height, lyrics) in new[] { (1040, 760, true), (1440, 900, true), (480, 800, true), (360, 600, false), (1040, 760, false) })
+        {
+            var window = music.CurrentWindow!;
+            ResizeMusicDips(window, width, height); music.SetLyricsVisible(lyrics); window.DiagnosticNotifyInteraction();
+            await Task.Delay(800);
+            var layout = JsonSerializer.SerializeToElement(window.LayoutSnapshot);
+            var footer = layout.GetProperty("PresentedFooter");
+            var bottom = layout.GetProperty("RootHeight").GetDouble() - footer.GetProperty("Y").GetDouble() - footer.GetProperty("Height").GetDouble();
+            var left = layout.GetProperty("LeftX").GetDouble();
+            var centered = !layout.GetProperty("Portrait").GetBoolean() && !lyrics;
+            var expected = centered ? layout.GetProperty("PresentedCoverSlot").GetProperty("Y").GetDouble() - 32 : left;
+            checks.Add(new(Math.Abs(bottom - expected) <= 1.1 ? "passed" : "failed", "beta2-spacing",
+                centered ? "Landscape cover composition balances vertical insets" : "Visible action bottom inset matches the content left inset",
+                new { width, height, lyrics, bottom, expected, layout }));
+        }
+        var path = Path.Combine(output, "receipt.json");
+        var failed = checks.Count(check => check.Status == "failed");
+        await WriteAsync(path, new { status = failed == 0 ? "passed" : "failed", syntheticMedia = true, checks });
+        return new(failed == 0 ? "passed" : "failed", path, checks.Count - failed, failed, null);
+    }
+
     private static async Task<PortraitResult> VerifyBeta2EdgesAsync(string output, MusicWindowService music, MediaViewModel media)
     {
         if (Directory.Exists(output)) throw new IOException("Beta2 edge checks require a fresh output directory.");

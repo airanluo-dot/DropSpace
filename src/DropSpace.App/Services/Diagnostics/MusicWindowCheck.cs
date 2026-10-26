@@ -381,6 +381,7 @@ internal static partial class MusicWindowCheck
                             case "layout-check": ApplyFixture(); separateProbe = await VerifyLayoutActionsAsync(ProbeOutput(output, "layout-check", command.RootElement), music); break;
                             case "beta2-check": await EnsureOverlayAsync(); separateProbe = await VerifyBeta2Async(ProbeOutput(output, "beta2-check", command.RootElement), music, media, lines, services, overlay!); break;
                             case "beta2-edges": separateProbe = await VerifyBeta2EdgesAsync(ProbeOutput(output, "beta2-edges", command.RootElement), music, media); break;
+                            case "beta2-spacing": separateProbe = await VerifyBeta2SpacingAsync(ProbeOutput(output, "beta2-spacing", command.RootElement), music); break;
                             case "session-probe": separateProbe = await MusicSessionProbe.RunAsync(ProbeOutput(output, "session-probe", command.RootElement), services.GetRequiredService<ILoggerFactory>()); break;
                             case "snapshot": break;
                             default: throw new ArgumentException("Unknown diagnostic state.");
