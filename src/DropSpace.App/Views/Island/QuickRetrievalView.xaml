@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:services="using:DropSpace.App.Services">
-  <Grid Padding="18,14,18,12" RowSpacing="8">
+  <Grid Padding="18,14,18,12" RowSpacing="8" Background="Transparent" Tapped="OnBackgroundTapped">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
@@ -14,14 +14,19 @@
           TextCompositionStarted="OnCompositionStarted" TextCompositionEnded="OnCompositionEnded"/>
       <Button Grid.Column="1" services:XamlResourceOverride.Uid="RetrievalBack" Click="OnBack" Style="{StaticResource DropSpaceIconButtonStyle}" Width="36" Height="36"><FontIcon Glyph="&#xE72B;" Style="{StaticResource DropSpaceActionIconStyle}"/></Button>
     </Grid>
-    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6">
+    <Grid Grid.Row="1">
+    <StackPanel Orientation="Horizontal" Spacing="6">
       <ToggleButton x:Name="AllFilter" services:XamlResourceOverride.Uid="RetrievalAll" IsChecked="True" Click="OnAll" Padding="10,3"/>
       <ToggleButton x:Name="RecentFilter" services:XamlResourceOverride.Uid="RetrievalRecent" Click="OnRecent" Padding="10,3"/>
       <ToggleButton x:Name="PinnedFilter" services:XamlResourceOverride.Uid="RetrievalPinned" Click="OnPinned" Padding="10,3"/>
     </StackPanel>
-    <Grid Grid.Row="2">
+    <Button HorizontalAlignment="Right" services:XamlResourceOverride.Uid="RetrievalClearSelection" Click="OnClearSelection" IsEnabled="{Binding HasSelection}" Padding="10,3"/>
+    </Grid>
+    <Grid Grid.Row="2" Background="Transparent">
+    <Grid x:Name="ResultsPanel">
       <ListView x:Name="Results" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
-          SelectionMode="Single" CanDragItems="True" DragItemsStarting="OnDragStarting" DragItemsCompleted="OnDragCompleted">
+          SelectionMode="Single" CanDragItems="True" DragItemsStarting="OnDragStarting" DragItemsCompleted="OnDragCompleted"
+          IsItemClickEnabled="True" ItemClick="OnResultClick">
         <ListView.ItemContainerStyle>
           <Style TargetType="ListViewItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="8,4"/></Style>
         </ListView.ItemContainerStyle>
@@ -48,20 +53,26 @@
       </ListView>
       <TextBlock services:XamlResourceOverride.Uid="RetrievalEmpty" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center"
           MaxWidth="420" Visibility="{Binding Empty, Converter={StaticResource BoolToVisibilityConverter}}"/>
-      <Grid x:Name="PreviewPanel" Visibility="Collapsed" Background="{ThemeResource DropSpaceOverlayFallbackBrush}">
-        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-          <StackPanel Spacing="8"><Image x:Name="PreviewImage" MaxHeight="160" Stretch="Uniform"/><TextBlock x:Name="PreviewText" TextWrapping="Wrap" IsTextSelectionEnabled="True"/></StackPanel>
-        </ScrollViewer>
+    </Grid>
+      <Grid x:Name="PreviewPanel" Visibility="Collapsed" RowSpacing="10">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <TextBlock Text="{Binding SelectedItem.Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+        <Grid Grid.Row="1">
+          <Image x:Name="PreviewImage" Stretch="Uniform"/>
+          <ScrollViewer x:Name="PreviewTextScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="PreviewText" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
+          </ScrollViewer>
+        </Grid>
       </Grid>
     </Grid>
     <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled">
     <StackPanel Orientation="Horizontal" Spacing="5">
-      <Button services:XamlResourceOverride.Uid="RetrievalCopy" Click="OnCopy" Padding="8,4"/>
-      <Button services:XamlResourceOverride.Uid="RetrievalPreview" Click="OnPreview" Padding="8,4"/>
+      <Button services:XamlResourceOverride.Uid="RetrievalCopy" Click="OnCopy" IsEnabled="{Binding HasSelection}" Padding="8,4"/>
+      <Button services:XamlResourceOverride.Uid="RetrievalPreview" Click="OnPreview" IsEnabled="{Binding HasSelection}" Padding="8,4"/>
       <Button services:XamlResourceOverride.Uid="RetrievalReference" Click="OnReference" IsEnabled="{Binding CanReference}" Padding="8,4"/>
       <Button services:XamlResourceOverride.Uid="RetrievalKeep" Click="OnKeep" IsEnabled="{Binding CanKeep}" Padding="8,4"/>
       <Button services:XamlResourceOverride.Uid="RetrievalCopyPath" Click="OnCopyPath" IsEnabled="{Binding CanCopyPath}" Padding="8,4"/>
-      <Button services:XamlResourceOverride.Uid="RetrievalRemove" Click="OnRemove" Padding="8,4"/>
+      <Button services:XamlResourceOverride.Uid="RetrievalRemove" Click="OnRemove" IsEnabled="{Binding HasSelection}" Padding="8,4"/>
     </StackPanel>
     </ScrollViewer>
     <TextBlock Grid.Row="4" Text="{Binding Status}" FontSize="11" MaxLines="1" TextTrimming="CharacterEllipsis"/>

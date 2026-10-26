@@ -1037,4 +1037,5 @@
   <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>Тексты песен отключены в настройках музыки.</value></data>
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Системная громкость</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Системная громкость недоступна.</value></data>
+  <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Снять выделение</value></data>
 </root>

@@ -93,7 +93,7 @@ public static class OverlayPlacementPolicy
         var workHeightDips = request.WorkHeightPixels / request.Scale;
         var halfSurface = Math.Min(request.SurfaceWidthDips > 0 ? request.SurfaceWidthDips : MaximumSurfaceWidthDips * contentScale, workWidthDips) / 2;
         var clampedCenterX = Math.Clamp(placement.X, halfSurface, Math.Max(halfSurface, workWidthDips - halfSurface));
-        var maxTop = Math.Max(0, workHeightDips - MaximumSurfaceHeightDips * contentScale);
+        var maxTop = Math.Max(0, workHeightDips - (request.SurfaceHeightDips > 0 ? request.SurfaceHeightDips : MaximumSurfaceHeightDips * contentScale));
         var clampedTop = Math.Clamp(placement.Y, 0, maxTop);
         var hostLeftDips = clampedCenterX - hostWidth / 2;
         return new OverlayResolvedPlacement(
@@ -145,7 +145,7 @@ public readonly record struct OverlayPlacementRequest(
     int WorkHeightPixels,
     double Scale,
     FileDragWakeMode WakeMode,
-    double ContentScale = 1, double HostWidthDips = 0, double SurfaceWidthDips = 0);
+    double ContentScale = 1, double HostWidthDips = 0, double SurfaceWidthDips = 0, double SurfaceHeightDips = 0);
 
 public readonly record struct OverlayResolvedPlacement(
     int HostLeftPixels,

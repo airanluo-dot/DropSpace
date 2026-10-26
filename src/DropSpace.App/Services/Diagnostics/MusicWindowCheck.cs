@@ -34,8 +34,8 @@ internal static partial class MusicWindowCheck
 
     internal static async Task<int> RunAsync(string output, Func<string, ServiceProvider> createServices, string? focus = null)
     {
-        if (focus is not (null or "baseline" or "interactive" or "portrait"))
-            throw new ArgumentException("Music-check focus must be baseline, interactive or portrait.", nameof(focus));
+        if (focus is not (null or "baseline" or "interactive" or "portrait" or "beta2" or "beta2-ui"))
+            throw new ArgumentException("Music-check focus must be baseline, interactive, portrait, beta2 or beta2-ui.", nameof(focus));
         var runBaseline = focus is null or "baseline";
         output = Path.GetFullPath(output);
         if (Directory.Exists(output) || File.Exists(output)) return 3;
@@ -103,6 +103,12 @@ internal static partial class MusicWindowCheck
             var artwork = await CreateArtworkAsync();
             await File.WriteAllBytesAsync(Path.Combine(output, "synthetic-artwork.png"), artwork.Bytes);
             var lines = FixtureLyrics();
+            if (focus is "beta2" or "beta2-ui")
+            {
+                lines = TimedFixtureLyrics(lines);
+                await main.AddPathsAsync([Path.Combine(output, "synthetic-artwork.png")]);
+                await main.AddTextToSpaceAsync("Beta2 中文检索与长文本参照\n" + string.Join('\n', Enumerable.Range(1, 80).Select(i => $"Line {i}: an isolated reference document.")), "beta2-local-check");
+            }
             var fixture = new MediaSessionSnapshot("isolated-synthetic-session", "DropSpace.SyntheticFixture", "Synthetic fixture",
                 "Evening in the window", "DropSpace · synthetic media", "Local verification", artwork.Bytes,
                 MediaPlaybackState.Playing, true, true, true, true, true,
@@ -123,7 +129,7 @@ internal static partial class MusicWindowCheck
                 {
                     media.SetLyricsDocument(new(lines, LyricsProviderKind.LocalLrc));
                     media.LyricsStatus = LyricsQueryStatus.Found;
-                    media.Lyrics = new(lines[2], -1, 0, DateTime.UtcNow.Ticks);
+                    media.Lyrics = focus is "beta2" or "beta2-ui" ? new LyricsTimelineEngine().GetFrame(new(lines, LyricsProviderKind.LocalLrc), media.Position, 0) : new(lines[2], -1, 0, DateTime.UtcNow.Ticks);
                 }
                 else
                 {
@@ -318,6 +324,12 @@ internal static partial class MusicWindowCheck
                 var portrait = await VerifyPortraitAsync(Path.Combine(output, "portrait-check"), music, media);
                 Check(portrait.Status == "passed", "native-portrait-focused", "Dedicated portrait and actual-animation checks completed; see their separate receipt", portrait);
             }
+            if (focus == "beta2")
+            {
+                await EnsureOverlayAsync();
+                var receipt = await VerifyBeta2Async(Path.Combine(output, "beta2-check"), music, media, lines, services, overlay!);
+                Check(receipt.Status == "passed", "native-beta2-focused", "Word rendering, focus effects, retrieval and native lifetime checks; see the scoped receipt", receipt);
+            }
             await SnapshotAsync("current");
             await SaveLedgerAsync();
             await WriteAsync(Path.Combine(output, "ready.txt"), new
@@ -367,6 +379,8 @@ internal static partial class MusicWindowCheck
                             case "wake": music.CurrentWindow?.DiagnosticNotifyInteraction(); break;
                             case "portrait-check": music.Open(); separateProbe = await VerifyPortraitAsync(ProbeOutput(output, "portrait-check", command.RootElement), music, media); break;
                             case "layout-check": ApplyFixture(); separateProbe = await VerifyLayoutActionsAsync(ProbeOutput(output, "layout-check", command.RootElement), music); break;
+                            case "beta2-check": await EnsureOverlayAsync(); separateProbe = await VerifyBeta2Async(ProbeOutput(output, "beta2-check", command.RootElement), music, media, lines, services, overlay!); break;
+                            case "beta2-edges": separateProbe = await VerifyBeta2EdgesAsync(ProbeOutput(output, "beta2-edges", command.RootElement), music, media); break;
                             case "session-probe": separateProbe = await MusicSessionProbe.RunAsync(ProbeOutput(output, "session-probe", command.RootElement), services.GetRequiredService<ILoggerFactory>()); break;
                             case "snapshot": break;
                             default: throw new ArgumentException("Unknown diagnostic state.");

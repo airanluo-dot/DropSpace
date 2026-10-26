@@ -1039,4 +1039,5 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>Lyrics are disabled in Music settings.</value></data>
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>System volume</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>System volume is unavailable.</value></data>
+  <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Clear selection</value></data>
 </root>

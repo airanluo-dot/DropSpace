@@ -6,6 +6,7 @@ using DropSpace.Core.Models;
 using DropSpace.Core.Preview;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.ApplicationModel.DataTransfer;
@@ -21,6 +22,9 @@ public sealed partial class QuickRetrievalView : UserControl
     private ItemCardViewModel? _observedCard;
     private bool _loadingPreview;
     private long _compositionEndedAt, _previewGeneration;
+    private ItemCardViewModel? _pressedSelection;
+    public bool IsPreviewOpen => PreviewPanel.Visibility == Visibility.Visible;
+    public event EventHandler? PreviewChanged;
     public event EventHandler? BackRequested;
     public event EventHandler? ItemTaken;
     public bool IsComposing => _composing || Environment.TickCount64 - _compositionEndedAt < 80;
@@ -29,6 +33,7 @@ public sealed partial class QuickRetrievalView : UserControl
     {
         InitializeComponent();
         AddHandler(KeyDownEvent, new KeyEventHandler(OnKeyDown), true);
+        Results.AddHandler(PointerPressedEvent, new PointerEventHandler((_, _) => _pressedSelection = _viewModel?.SelectedItem), true);
         Unloaded += (_, _) => SetActive(false);
     }
 
@@ -60,12 +65,45 @@ public sealed partial class QuickRetrievalView : UserControl
     }
     internal void DiagnosticMoveSelection(int delta) { if (!IsComposing) MoveSelection(delta); }
     internal Task DiagnosticCopyAsync() => CopyAsync(false);
+    internal Task DiagnosticPreviewAsync() => OpenPreviewAsync();
     internal DataPackage? DiagnosticBuildDragData()
     {
         var data = new DataPackage();
         return _viewModel?.SelectedItem is { } selected && TryPopulateDragData(data, [selected]) ? data : null;
     }
-    public void ResetPreview() { ++_previewGeneration; PreviewPanel.Visibility = Visibility.Collapsed; PreviewImage.Source = null; PreviewText.Text = string.Empty; }
+    public void ResetPreview()
+    {
+        ++_previewGeneration;
+        var wasOpen = IsPreviewOpen;
+        PreviewPanel.Visibility = Visibility.Collapsed; ResultsPanel.Visibility = Visibility.Visible;
+        PreviewImage.Source = null; PreviewText.Text = string.Empty;
+        if (wasOpen) PreviewChanged?.Invoke(this, EventArgs.Empty);
+    }
+    private void ShowPreview()
+    {
+        var wasOpen = IsPreviewOpen;
+        ResultsPanel.Visibility = Visibility.Collapsed; PreviewPanel.Visibility = Visibility.Visible;
+        if (!wasOpen) PreviewChanged?.Invoke(this, EventArgs.Empty);
+    }
+    private void OnClearSelection(object sender, RoutedEventArgs args)
+    { if (_viewModel is { } view) view.SelectedItem = null; FocusSearch(); }
+    private void OnResultClick(object sender, ItemClickEventArgs args)
+    {
+        if (ReferenceEquals(args.ClickedItem, _pressedSelection))
+            DispatcherQueue.TryEnqueue(() => { if (!_dragging && _viewModel is { } view) view.SelectedItem = null; });
+        _pressedSelection = null;
+    }
+    private void OnBackgroundTapped(object sender, TappedRoutedEventArgs args)
+    {
+        if (IsPreviewOpen || args.OriginalSource is not Grid) return;
+        var element = args.OriginalSource as DependencyObject;
+        while (element is not null)
+        {
+            if (element is ListViewItem or ButtonBase or TextBox) return;
+            element = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(element);
+        }
+        if (_viewModel is { } view) view.SelectedItem = null;
+    }
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -106,6 +144,7 @@ public sealed partial class QuickRetrievalView : UserControl
         {
             args.Handled = true;
             if (PreviewPanel.Visibility == Visibility.Visible) ResetPreview();
+            else if (view.SelectedItem is not null) { view.SelectedItem = null; FocusSearch(); }
             else if (QueryBox.Text.Length > 0) QueryBox.Text = string.Empty;
             else BackRequested?.Invoke(this, EventArgs.Empty);
         }
@@ -160,11 +199,15 @@ public sealed partial class QuickRetrievalView : UserControl
     private async void OnKeep(object sender, RoutedEventArgs args) { if (_viewModel is { } view) await view.KeepAsync(); }
     private async void OnRemove(object sender, RoutedEventArgs args) { ResetPreview(); if (_viewModel is { } view) await view.RemoveAsync(); }
     private async void OnReference(object sender, RoutedEventArgs args) { if (_viewModel is { } view) await view.OpenReferenceAsync(); }
-    private async void OnPreview(object sender, RoutedEventArgs args)
+    private async void OnPreview(object sender, RoutedEventArgs args) => await OpenPreviewAsync();
+    private async Task OpenPreviewAsync()
     {
-        if (_viewModel is not { } view) return;
+        if (_viewModel is not { SelectedItem: not null } view) return;
         var generation = ++_previewGeneration;
         var selectedId = view.SelectedItem?.Id;
+        PreviewImage.Source = null; PreviewText.Text = string.Empty;
+        PreviewTextScroll.Visibility = Visibility.Visible;
+        ShowPreview();
         _loadingPreview = true;
         PreviewDescriptor? descriptor;
         try { descriptor = await view.PreviewAsync(); }
@@ -174,7 +217,7 @@ public sealed partial class QuickRetrievalView : UserControl
         {
             PreviewImage.Source = null;
             PreviewText.Text = _strings?.Get("RetrievalUnavailable") ?? string.Empty;
-            PreviewPanel.Visibility = Visibility.Visible;
+            ShowPreview();
             return;
         }
         PreviewImage.Source = null;
@@ -189,11 +232,12 @@ public sealed partial class QuickRetrievalView : UserControl
                 stream.Seek(0); var bitmap = new BitmapImage(); await bitmap.SetSourceAsync(stream);
                 if (!_active || generation != _previewGeneration || selectedId != view.SelectedItem?.Id) return;
                 PreviewImage.Source = bitmap; PreviewText.Text = string.Empty;
+                PreviewTextScroll.Visibility = Visibility.Collapsed;
             }
             catch (Exception exception) when (exception is IOException or System.Runtime.InteropServices.COMException or ArgumentException)
             { PreviewText.Text = _strings?.Get("PreviewUnavailable") ?? string.Empty; }
         }
-        PreviewPanel.Visibility = Visibility.Visible;
+        ShowPreview();
     }
     private void OnDragStarting(object sender, DragItemsStartingEventArgs args)
     {

@@ -1039,4 +1039,5 @@
   <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>歌词已在音乐设置中关闭。</value></data>
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>系统音量</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>系统音量当前不可用。</value></data>
+  <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>取消选择</value></data>
 </root>

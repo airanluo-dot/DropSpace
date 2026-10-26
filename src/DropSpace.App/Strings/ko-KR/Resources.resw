@@ -1037,4 +1037,5 @@
   <data name="MusicWindowLyricsDisabled" xml:space="preserve"><value>음악 설정에서 가사가 꺼져 있습니다.</value></data>
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>시스템 음량</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>시스템 볼륨을 사용할 수 없습니다.</value></data>
+  <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>선택 해제</value></data>
 </root>

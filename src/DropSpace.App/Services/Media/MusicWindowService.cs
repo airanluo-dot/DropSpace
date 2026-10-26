@@ -65,4 +65,5 @@ public sealed record MusicWindowState(bool IsOpen = false, bool IsMinimized = fa
     long PresentedFrameCount = 0, bool IsRendering = false, string? BackgroundFault = null,
     bool Portrait = false, bool ControlsVisible = true, bool TransitionRunning = false,
     long TransitionGeneration = 0, double TransitionProgress = 1, double LyricsOpacity = 1,
-    double ControlsOpacity = 1);
+    double ControlsOpacity = 1, string AudioSource = "", double AudioResponse = 0,
+    double BackgroundPulse = 0, double HighlightedCharacters = 0, bool LyricsIdle = false);

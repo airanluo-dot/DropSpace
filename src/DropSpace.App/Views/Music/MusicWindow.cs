@@ -73,7 +73,10 @@ public sealed class MusicWindow : Window
     private readonly StackPanel _lyricsEmpty = new() { Spacing = 16, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock _lyricsStatus = new() { FontSize = 26, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Opacity = 0.75 };
     private readonly TextBlock _translationStatus = new() { FontSize = 13, TextWrapping = TextWrapping.Wrap, Opacity = 0.65 };
-    private readonly LyricsRowCollection<StackPanel> _rows;
+    private readonly LyricsRowCollection<MusicLyricRow> _rows;
+    private readonly LyricsGlowAudioResponse _audioResponse = new();
+    private long _audioResponseTick;
+    private bool _lyricsIdle, _lyricFocusDirty = true;
     private readonly MediaRenderQueue _renderQueue = new();
     private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
     private readonly DispatcherQueueTimer _seekCommit, _seekAcknowledgement, _volumeCommit, _manualFollowTimer, _idleTimer;
@@ -82,7 +85,7 @@ public sealed class MusicWindow : Window
     private string _trackIdentity = string.Empty;
     private string _lyricsOptions = string.Empty;
     private bool _loaded, _closed, _minimized, _lyricsVisible = true, _updating, _lyricsDirty = true, _metadataDirty = true;
-    private bool _volumeDesiredActive, _volumeWriting, _volumeWriteFailed;
+    private bool _volumeDesiredActive, _volumeWriting, _volumeWriteFailed, _keyboardControlsIntent;
     private readonly HashSet<uint> _interactingPointers = [];
     private readonly HashSet<uint> _manualScrollPointers = [];
     private bool _manualScrollPending, _manualScrollInertia;
@@ -131,12 +134,18 @@ public sealed class MusicWindow : Window
         _lyricsScroll.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler((_, _) => OnManualScroll()), true);
         _lyricsScroll.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, args) => { _manualScrollPointers.Add(args.Pointer.PointerId); OnManualScroll(); }), true);
         _lyricsScroll.ViewChanged += OnLyricsViewChanged;
-        _root.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler((_, args) => { EndManualScrollPointer(args, released: false); NotifyInteraction(); }), true);
-        _root.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, args) => { _interactingPointers.Add(args.Pointer.PointerId); NotifyInteraction(); }), true);
+        _lyricsScroll.SizeChanged += (_, _) =>
+        {
+            var padding = Math.Max(80, _lyricsScroll.ActualHeight / 2);
+            _lyricsRows.Padding = new Thickness(0, padding, 12, padding);
+            _lastCentered = -1; _lyricFocusDirty = true; RequestRender();
+        };
+        _root.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler((_, args) => { _keyboardControlsIntent = false; EndManualScrollPointer(args, released: false); NotifyInteraction(); }), true);
+        _root.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, args) => { _keyboardControlsIntent = false; _interactingPointers.Add(args.Pointer.PointerId); NotifyInteraction(); }), true);
         _root.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler((_, args) => { _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: true); NotifyInteraction(); }), true);
         _root.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, args) => { _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: true); NotifyInteraction(); }), true);
         _root.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, args) => { _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: false); NotifyInteraction(); }), true);
-        _root.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler((_, _) => NotifyInteraction()), true);
+        _root.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler((_, _) => { _keyboardControlsIntent = true; NotifyInteraction(); }), true);
         _root.GotFocus += (_, _) => NotifyInteraction();
         _root.LostFocus += (_, _) => NotifyInteraction();
         _seek.ValueChanged += OnSeekChanged;
@@ -229,7 +238,9 @@ public sealed class MusicWindow : Window
         _seek.IsEnabled, _coverScale, _background.IsReady, CanRender && !_media.IsReducedMotion,
         _background.FrameCount, _background.PresentedFrameCount, _background.IsRendering, _background.LastFault,
         _portrait, _controlsVisible, _transitionRunning, _transitionGeneration, _transitionProgress,
-        _lyricsPanel.Opacity, _controls.Opacity);
+        _lyricsPanel.Opacity, _controls.Opacity, _media.Spectrum.CaptureMode.ToString(), _audioResponse.Energy,
+        _background.AudioPulse, _activeLyric >= 0 && _activeLyric < _rows.Count ? _rows[_activeLyric].HighlightedCharacters : 0,
+        _lyricsIdle);
 
     public MusicFlowBackground Background => _background;
     internal object LayoutSnapshot
@@ -243,7 +254,13 @@ public sealed class MusicWindow : Window
                 LeftX = ActualBounds(_controls).X, LeftWidth = _controls.ActualWidth, LyricsWidth = _lyricsPanel.ActualWidth,
                 LyricsDisplayed = _lyricsPanel.Visibility == Visibility.Visible,
                 ArtworkDisplayed = _artwork.Source is not null, LyricRows = _lyricsRows.Children.Count,
-                TranslationDisplayed = _rows.Count > 0 && _rows[0].Children[1].Visibility == Visibility.Visible,
+                TranslationDisplayed = _rows.Count > 0 && _rows[0].TranslationVisible,
+                LyricsIdle = _lyricsIdle,
+                LyricViewportHeight = _lyricsScroll.ViewportHeight, LyricScrollOffset = _lyricsScroll.VerticalOffset,
+                LyricScrollableHeight = _lyricsScroll.ScrollableHeight,
+                ActiveHighlightedCharacters = _activeLyric >= 0 && _activeLyric < _rows.Count ? _rows[_activeLyric].HighlightedCharacters : 0,
+                LyricEffects = Enumerable.Range(0, _rows.Count).Where(i => _rows[i].EffectReady).Select(i => new { Index = i, _rows[i].BlurAmount }).ToArray(),
+                LyricEffectFailures = Enumerable.Range(0, _rows.Count).Select(i => _rows[i].EffectFailure).Where(value => value is not null).Distinct().ToArray(),
                 VolumeEnabled = _volumeSlider.IsEnabled, VolumeValue = _volumeSlider.Value,
                 Portrait = _portrait, ControlsVisible = _controlsVisible, TransitionRunning = _transitionRunning,
                 TransitionGeneration = _transitionGeneration, TransitionProgress = _transitionProgress,
@@ -266,6 +283,7 @@ public sealed class MusicWindow : Window
         return new(point.X, point.Y, element.ActualWidth, element.ActualHeight);
     }
     internal void DiagnosticNotifyInteraction() => NotifyInteraction();
+    internal void DiagnosticFocusTransport() { _keyboardControlsIntent = true; _previous.Focus(FocusState.Keyboard); }
 
     private void UpdateViewport()
     {
@@ -415,17 +433,22 @@ public sealed class MusicWindow : Window
     private void NotifyInteraction()
     {
         if (!CanRender) return;
+        if (_lyricsIdle) { _lyricsIdle = false; _lyricFocusDirty = true; RequestRender(); }
         if (!_controlsVisible) { _controlsVisible = true; UpdateLayoutGeometry(); }
         ResetIdleTimer();
     }
     private void ResetIdleTimer()
     {
         _idleTimer.Stop();
-        if (CanRender && _portrait && _lyricsVisible && _controlsVisible && !InteractionHoldsControls()) _idleTimer.Start();
+        if (CanRender && _lyricsVisible && !GestureInProgress()) _idleTimer.Start();
     }
+    private bool GestureInProgress() => _interactingPointers.Count > 0 || _manualScrollPointers.Count > 0 || _seekInteraction.IsDragging;
     private bool InteractionHoldsControls()
     {
-        if (_interactingPointers.Count > 0 || _manualScrollPointers.Count > 0 || _seekInteraction.IsDragging) return true;
+        if (GestureInProgress()) return true;
+        // WinUI automatically focuses the first control when opening a window.
+        // Only real keyboard navigation should keep the portrait controls pinned.
+        if (!_keyboardControlsIntent) return false;
         if (_root.XamlRoot is null) return false;
         var focused = FocusManager.GetFocusedElement(_root.XamlRoot) as DependencyObject;
         if (focused is not Control { FocusState: FocusState.Keyboard }) return false;
@@ -435,8 +458,11 @@ public sealed class MusicWindow : Window
     }
     private void OnIdle()
     {
-        if (!CanRender || !_portrait || !_lyricsVisible || InteractionHoldsControls()) return;
-        _controlsVisible = false; UpdateLayoutGeometry();
+        if (!CanRender || !_lyricsVisible || GestureInProgress()) return;
+        _lyricsIdle = true; _lyricFocusDirty = true; RequestRender();
+        // Keyboard focus keeps its controls reachable, but a resting focus ring
+        // is not ongoing interaction and must not suppress lyric focus effects.
+        if (_portrait && !InteractionHoldsControls()) { _controlsVisible = false; UpdateLayoutGeometry(); }
     }
     private void OnManualScroll()
     {
@@ -446,6 +472,7 @@ public sealed class MusicWindow : Window
     }
     private void OnLyricsViewChanged(object? sender, ScrollViewerViewChangedEventArgs args)
     {
+        _lyricFocusDirty = true; RequestRender();
         // Only explicit pointer/wheel input starts this state. Our ChangeView follow
         // events can never create another manual-scroll timeout.
         if (!_manualScrollPending) return;
@@ -502,12 +529,14 @@ public sealed class MusicWindow : Window
             if (!string.Equals(_trackIdentity, _media.Session.TrackIdentity, StringComparison.Ordinal))
             {
                 _trackIdentity = _media.Session.TrackIdentity; CancelSeek(); _activeLyric = _lastCentered = -1;
+                _audioResponse.Reset(); _audioResponseTick = 0;
                 _manualFollowTimer.Stop(); _manualScrollPending = _manualScrollPointers.Count > 0; _manualScrollInertia = false;
                 _metadataDirty = _lyricsDirty = true;
             }
             if (_metadataDirty)
             {
                 _metadataDirty = false; RefreshLanguage();
+                _lyricFocusDirty = true;
                 _title.Text = string.IsNullOrWhiteSpace(_media.Title) ? _strings.Get("MediaNoSession.Text") : _media.Title;
                 _artist.Text = _media.Artist; _artwork.Source = _media.Artwork;
                 _noArtwork.Visibility = _media.Artwork is null ? Visibility.Visible : Visibility.Collapsed;
@@ -533,9 +562,20 @@ public sealed class MusicWindow : Window
             _error.Visibility = string.IsNullOrWhiteSpace(_error.Text) ? Visibility.Collapsed : Visibility.Visible;
             var spectrum = _media.Spectrum;
             var realAudio = _media.IsPlaying && spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.Bands.Count > 0;
-            var amplitude = realAudio ? spectrum.Bands.Where(double.IsFinite).DefaultIfEmpty().Average() : 0;
-            _background.UpdateSpectrum((float)Math.Clamp(amplitude, 0, 1), realAudio);
+            var now = Stopwatch.GetTimestamp();
+            var elapsed = _audioResponseTick == 0 ? TimeSpan.FromMilliseconds(33) : Stopwatch.GetElapsedTime(_audioResponseTick, now);
+            _audioResponseTick = now;
+            if (realAudio)
+                _audioResponse.Advance(spectrum.Bands.Where(double.IsFinite).DefaultIfEmpty().Max(), spectrum.Bands, elapsed);
+            else _audioResponse.Reset();
+            // Spectrum bars are already dB-normalized. Reuse the island's local
+            // contrast response so sustained loudness does not flatten every beat.
+            _background.UpdateSpectrum((float)_audioResponse.Energy, realAudio);
             if (_lyricsDirty) { _lyricsDirty = false; RefreshLyrics(); }
+            CenterCurrentLyric();
+            if (_activeLyric >= 0 && _activeLyric < _rows.Count)
+                _rows[_activeLyric].Highlight(_media.Lyrics, true, _media.Settings.Lyrics.WordSyncedHighlighting);
+            if (_lyricFocusDirty) RefreshLyricFocus();
         }
         finally { _updating = false; }
     }
@@ -613,48 +653,41 @@ public sealed class MusicWindow : Window
         }
         if (_activeLyric != _media.CurrentLyricIndex)
         {
-            var previous = _activeLyric; _activeLyric = _media.CurrentLyricIndex;
-            foreach (var index in Enumerable.Range(Math.Max(0, previous - 2), Math.Max(0, Math.Min(_rows.Count, previous + 3) - Math.Max(0, previous - 2)))
-                .Concat(Enumerable.Range(Math.Max(0, _activeLyric - 2), Math.Max(0, Math.Min(_rows.Count, _activeLyric + 3) - Math.Max(0, _activeLyric - 2)))).Distinct())
-                SetLyricEmphasis(index);
+            if (_activeLyric >= 0 && _activeLyric < _rows.Count) _rows[_activeLyric].Highlight(LyricsHighlightFrame.Empty, false, false);
+            _activeLyric = _media.CurrentLyricIndex;
         }
+        _lyricFocusDirty = true;
         var hasTranslation = lines.Any(line => !string.IsNullOrWhiteSpace(LyricsDisplayPolicy.SecondaryPresentation(line, target, true, _media.Settings.Lyrics.ShowAiLyricsLabel)));
         _translationStatus.Text = _strings.Get("MusicWindowNoTranslation");
         _translationStatus.Visibility = hasLyrics && _media.Settings.Lyrics.SecondaryLyrics && !hasTranslation ? Visibility.Visible : Visibility.Collapsed;
         CenterCurrentLyric();
     }
 
-    private StackPanel CreateLyricRow(LyricsLine line)
+    private MusicLyricRow CreateLyricRow(LyricsLine line)
     {
-        var row = new StackPanel { Spacing = 10 };
-        ElementCompositionPreview.GetElementVisual(row).Opacity = .16f;
-        row.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, CharacterSpacing = 12 });
-        row.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.76 });
+        var row = new MusicLyricRow();
+        row.SizeChanged += (_, _) => { _lastCentered = -1; _lyricFocusDirty = true; RequestRender(); };
         UpdateLyricRow(row, line); return row;
     }
-    private void UpdateLyricRow(StackPanel row, LyricsLine line)
+    private void UpdateLyricRow(MusicLyricRow row, LyricsLine line)
     {
-        var original = (TextBlock)row.Children[0]; original.Text = line.Text;
-        original.FontSize = Math.Clamp(_media.Settings.Lyrics.OriginalFontSize * 1.6, 28, 46);
-        original.LineHeight = original.FontSize * 1.3;
         var secondary = LyricsDisplayPolicy.SecondaryPresentation(line,
             LyricsTranslationTargetPolicy.ToLanguageTag(_media.Settings.LyricsTranslationTarget),
             _media.Settings.Lyrics.Enabled && _media.Settings.Lyrics.SecondaryLyrics, _media.Settings.Lyrics.ShowAiLyricsLabel);
-        var translation = (TextBlock)row.Children[1]; translation.Text = secondary ?? string.Empty;
-        translation.FontSize = Math.Clamp(_media.Settings.Lyrics.TranslationFontSize * 1.4, 18, 30);
-        translation.LineHeight = translation.FontSize * 1.35;
-        translation.Visibility = string.IsNullOrEmpty(secondary) ? Visibility.Collapsed : Visibility.Visible;
+        row.Update(line, secondary, Math.Clamp(_media.Settings.Lyrics.OriginalFontSize * 1.6, 28, 46),
+            Math.Clamp(_media.Settings.Lyrics.TranslationFontSize * 1.4, 18, 30));
     }
-    private void SetLyricEmphasis(int index)
+    private void RefreshLyricFocus()
     {
-        if (index < 0 || index >= _rows.Count) return;
-        var distance = Math.Abs(index - _activeLyric);
-        var opacity = _activeLyric < 0 ? .16f : distance == 0 ? 1f : distance == 1 ? .38f : distance == 2 ? .24f : .16f;
-        var visual = ElementCompositionPreview.GetElementVisual(_rows[index]);
-        if (!CanRender || _media.IsReducedMotion) { visual.StopAnimation("Opacity"); visual.Opacity = opacity; return; }
-        var animation = visual.Compositor.CreateScalarKeyFrameAnimation();
-        animation.InsertKeyFrame(1, opacity, Ease(visual.Compositor));
-        animation.Duration = TimeSpan.FromMilliseconds(200); visual.StartAnimation("Opacity", animation);
+        _lyricFocusDirty = false;
+        if (!_lyricsScroll.IsLoaded || _lyricsScroll.ViewportHeight <= 0) return;
+        for (var index = 0; index < _rows.Count; index++)
+        {
+            var row = _rows[index];
+            var top = row.TransformToVisual(_lyricsScroll).TransformPoint(new Point()).Y;
+            row.Focus(_activeLyric < 0 ? 1 : Math.Abs(index - _activeLyric), _lyricsIdle,
+                top, _lyricsScroll.ViewportHeight, _media.IsReducedMotion);
+        }
     }
     private void CenterCurrentLyric()
     {
