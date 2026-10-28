@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v1.1.0-beta.2
+## Release target: v1.1.0-beta.3
 
-The current Beta target is `v1.1.0-beta.2` (Beta 2).
-v1.1.0-beta.1 is the immediate upgrade baseline for this release.
+The current Beta target is `v1.1.0-beta.3` (Beta 3).
+v1.1.0-beta.2 is the immediate upgrade baseline for this release.
 
-Refine independent music presentation using shared word timing and process audio, add idle lyric blur and edge fade, and make Island retrieval selection and enlarged previews intuitive. Keep responsive music controls balanced across portrait, split and centered layouts. Preserve user data, providers and model/CUDA bytes. The reported background native heap crash remains under investigation; the separately reproduced managed shutdown defect is fixed.
+Improve lyric search and selection using verified local Dynamic Notch 2.0.3 (176) configuration and observed mechanisms: bounded bilingual name lookup, broader same-source candidate comparison and temporary failure backoff. Preserve strict recording identity, preferred/backup source choices, progressive delivery, cancellation, native translation and optional AI boundaries. Retain user data and unchanged model/CUDA bytes.
 
-Reuse completed focused checks; do not repeat functional suites. Retain exact-main packaging, one isolated installer payload scenario and public release/update verification. See the [release notes](.github/release-notes/v1.1.0-beta.2.md) and [validation record](docs/dev/1.1-beta2-local-delivery.md). Beta2 publication was explicitly authorized after verification; unresolved requested behavior must remain visible in the delivery decision.
+Develop and validate a local Beta3 candidate with focused checks and actual App/XAML compilation. Public publication is a separate delivery step. See the [release notes](.github/release-notes/v1.1.0-beta.3.md) and [validation record](docs/dev/1.1-beta3-lyrics-matching.md). The pre-existing native heap crash investigation remains unresolved; lyrics matching changes do not establish its resolution.
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.1.0-beta.2 is the current Beta target; 1.0 remains the public Stable baseline.
+v1.1.0-beta.3 is the current Beta target; 1.0 remains the public Stable baseline.
 Published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

@@ -1,5 +1,18 @@
 # DropSpace Feature Catalogue
 
+## 1.1 Beta3 lyric discovery and selection
+
+- Explicit English/Chinese artist and song-name mappings improve catalog discovery while
+  retaining original metadata and bounded fallback terms. The bundled Jay Chou table has 153
+  song-title pairs. Cross-language identity requires complete artist and duration evidence.
+- Online sources compare up to six admitted candidates per result pool while the first usable
+  result remains progressive. Effective timing coverage and duration closeness break ties after
+  target-language/native-translation requirements and configured source priority.
+- LRCLIB searches after an unusable exact response. Repeated endpoint failures receive bounded
+  temporary backoff; manual refresh can retry transient failures but respects rate limiting.
+- Existing wrong-artist, incomplete-collaboration, version, language and duration rejection,
+  source switches, offline local lyrics, native translation priority and opt-in AI are retained.
+
 ## v0.3.1 Beta16 AI lyrics
 
 - Bundled `lid.176.bin` identifies the whole original once, offline on CPU; no
@@ -13,7 +26,7 @@
 
 ## Beta 28 media interoperability and Music hierarchy
 
-- Player-agnostic lyric identity uses track artist and album artist as alternative credits,
+- Player-agnostic lyric identity uses complete track artist credits, falling back to album artist only when track artist is absent,
   plus album and duration corroboration, while retaining hard wrong-artist and version rejection.
 - NetEase, QQ Music, Kugou, LRCLIB and AMLL all use bounded title normalization and title-only
   recovery; a failed early query is retried when the same Windows session later gains duration.
@@ -46,7 +59,7 @@ results remain in `docs/dev/netease-enhancement.md`; this catalogue does not est
 - Real clock, calendar, CPU/memory, battery/AC and uptime data; stopwatch start/pause/reset; settings and clipboard recording controls.
 - Clipboard page: most recent 20 canonical records with copy, pin/unpin, remove from DropSpace, pause/resume, and full-history navigation.
 - Music settings retain provider, translation, timing, artwork, spectrum and explicit player allowlist choices. No valid native timeline means estimated position and unavailable seeking, not a fabricated seek capability.
-- Beta 27 validates lyric candidates against provider identity and multiple metadata signals before display. It tolerates harmless title decorations, primary/full artist-credit lists, reissue or missing albums and bounded duration drift while rejecting wrong artists, conflicting live/remix variants and large duration differences. Stale asynchronous results cannot replace the current track, and Loading/Not found/Failed states are visible in expanded Music. NetEase remains preferred; Beta 28 makes backup and remaining-provider recovery explicit, while Local LRC remains offline-only.
+- Beta 27 introduced validation against provider identity and multiple metadata signals before display. Current matching tolerates harmless title decorations, equivalent complete artist credits, reissue or missing albums and bounded duration drift while rejecting wrong or missing collaborators, conflicting live/remix variants and large duration differences. Generic title typos alone do not establish recording identity. Stale asynchronous results cannot replace the current track, and Loading/Not found/Failed states are visible in expanded Music. NetEase remains preferred; Beta 28 makes backup and remaining-provider recovery explicit, while Local LRC remains offline-only.
 - Incomplete LRCLIB metadata uses search; Kugou preserves duration units and hash-verified album identity. Optional artwork failure cannot suppress a new song's metadata, and explicit lyric end times survive instrumental gaps.
 - Beta 26 bounds clipboard, manual file drops, virtual OLE materialization, batch persistence, native-window recovery, updater cancellation and integrity failures without changing the local-first or source-file-safe boundary. Virtual-file batches reserve distinct names, payload operations reject linked-directory escapes, and failed cleanup obligations cannot starve later work.
 - ZIP exports retain hierarchy and empty folders. Installer/update artifacts must match RELEASE_VERSION; cancellation before installer launch restores a retryable state or exposes a rollback failure.

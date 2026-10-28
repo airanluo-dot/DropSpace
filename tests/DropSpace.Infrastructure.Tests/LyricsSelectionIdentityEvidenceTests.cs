@@ -9,6 +9,25 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class LyricsSelectionIdentityEvidenceTests
 {
     [TestMethod]
+    public async Task DisplayAliasCannotHideConflictingCanonicalRecordingFromSelectionOrReuse()
+    {
+        var query = new LyricsQuery("Song", "Artist", "Album", TimeSpan.FromSeconds(180), "canonical-check");
+        var rules = Document(query, "Artist", false, LyricsProviderKind.NetEase);
+        var live = Document(query, "Artist", true, LyricsProviderKind.QqMusic);
+        live = live with { Match = live.Match! with { CanonicalTitle = "Song (Live)" } };
+        var runtime = new Runtime();
+        var selector = new LyricsCandidateSelector(runtime);
+        var settings = new LyricsSettings { SelectionMode = LyricsSelectionMode.AiRanked };
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var result = await selector.SelectAsync(query, settings, "zh", "model", Snapshot(rules, live), rules, default);
+            Assert.AreEqual(LyricsSelectionOutcome.Invalid, result.Outcome);
+            Assert.AreSame(rules, result.Document);
+        }
+        Assert.AreEqual(2, runtime.Calls, "A rejected canonical recording must never become a cached AI selection.");
+    }
+
+    [TestMethod]
     public async Task MissingArtistCannotBecomeAiSuccessWhileNativeFallbackAndKnownWeakAliasesRemainUsable()
     {
         foreach (var mode in new[] { LyricsSelectionMode.AiAssisted, LyricsSelectionMode.AiRanked })

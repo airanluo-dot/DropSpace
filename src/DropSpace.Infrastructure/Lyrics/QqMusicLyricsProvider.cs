@@ -10,7 +10,7 @@ namespace DropSpace.Infrastructure.Lyrics;
 
 public sealed class QqMusicLyricsProvider(LyricsHttpClient http, ILyricsLanguageIdentifier? languageIdentifier = null) : IProgressiveLyricsProvider
 {
-    public const int DataRevision = 3;
+    public const int DataRevision = 4;
     private static readonly Regex VocalCredit = new(
         @"^(?:演唱(?:\s*Artist)?|歌手|Artist|Vocals?|Singer)\s*[:：]\s*(.{1,128})$",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
@@ -27,7 +27,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http, ILyricsLanguage
             session.EnsureUsable();
         }
         var attempted = new HashSet<string>(StringComparer.Ordinal);
-        var remaining = 3;
+        var remaining = LyricsCandidateRequests.MaximumCandidates;
         var requests = new LyricsCandidateRequests();
         var original = LyricsDocument.Empty;
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
@@ -108,15 +108,14 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http, ILyricsLanguage
                 if (languageIdentifier is not null && target.Length > 0)
                     document = await languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
                 reportCandidate(document);
-                if (!query.CollectSelectionCandidates && (target.Length == 0 ||
-                    !LyricsTranslationPolicy.NeedsProviderTranslationLookup(document, target))) return document;
                 original = LyricsCandidateRules.Best([
                     LyricsCandidateRules.Describe("current", original, target),
                     LyricsCandidateRules.Describe("candidate", document, target),
                 ], query, Kind, null);
             }
+            if (!LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) break;
         }
-        requests.ThrowIfFailed();
+        if (LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) requests.ThrowIfFailed();
         return original;
     }
 

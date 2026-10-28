@@ -9,8 +9,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
     ILyricsLanguageIdentifier? languageIdentifier = null) : IProgressiveLyricsProvider, ILyricsResponseCache
 {
     private readonly NetEaseResponseCache _responses = new(http, timeProvider);
-    private const int MaximumLyricCandidates = 3;
-    internal const int DataRevision = 3;
+    internal const int DataRevision = 4;
     public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
     public void ClearResponseCache() => _responses.Clear();
 
@@ -22,7 +21,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
     {
         var searches = LyricsMatcher.SearchTerms(query);
         var attempted = new HashSet<string>(StringComparer.Ordinal);
-        var remaining = MaximumLyricCandidates;
+        var remaining = LyricsCandidateRequests.MaximumCandidates;
         var requests = new LyricsCandidateRequests();
         var original = LyricsDocument.Empty;
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
@@ -47,15 +46,14 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
                 if (languageIdentifier is not null && target.Length > 0)
                     document = await languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
                 reportCandidate(document);
-                if (!query.CollectSelectionCandidates && (target.Length == 0 ||
-                    !LyricsTranslationPolicy.NeedsProviderTranslationLookup(document, target))) return document;
                 original = LyricsCandidateRules.Best([
                     LyricsCandidateRules.Describe("current", original, target),
                     LyricsCandidateRules.Describe("candidate", document, target),
                 ], query, Kind, null);
             }
+            if (!LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) break;
         }
-        requests.ThrowIfFailed();
+        if (LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) requests.ThrowIfFailed();
         return original;
     }
 

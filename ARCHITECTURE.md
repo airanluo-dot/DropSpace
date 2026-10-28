@@ -112,11 +112,23 @@ execution evidence; structural smoke success is not semantic-quality approval.
 `LyricsQuery` carries generic Windows media evidence, including track and album artist; provider
 adapters share bounded search terms and the Core matcher remains the only acceptance authority.
 The media experience may retry when the same track gains duration but never branches on a player
-name. `LyricsService` executes preferred → optional backup sequentially, then starts the bounded
-remaining-provider quality race only when enabled; the strategy is part of the cache key. Local
+name. `LyricsService` starts with the preferred source and may launch permitted supplemental
+lookups after a progressive original result. An optional backup has a 150 ms hedge before the
+enabled remaining-provider race; a shared short selection budget and provider concurrency bound
+the work. Source preference and target-language priority still decide among admitted results,
+and the strategy is part of the cache key. Local
 mode never enters the online chain. Online documents (including provider translations) and local-AI
 translations share an app-owned persistent lyrics cache. Its identity includes track evidence,
 provider strategy, target language, pinned model hash, source content, and translation prompt version.
+
+Beta3 embeds a bounded factual artist/title alias table. It enriches at most three search terms
+without rewriting media metadata; cross-language title admission additionally requires the
+mapped complete artist identity, compatible recording variants and independent duration evidence.
+Providers examine at most six admitted candidates in a pool, publishing usable results
+progressively. Shared quality ordering compares valid text-aligned timing and duration evidence
+only after target satisfaction and source priority. Request-stage health temporarily skips
+repeated transport failures; manual refresh does not bypass server rate limiting.
+
 The cache uses atomic replacement, generation-fenced clearing, access-time LRU eviction, and a
 settings-bounded 100 MiB–5 GiB quota (1 GiB by default); user LRC files and model packages are outside
 this directory and are never cache eviction targets. Persistent lyric identity excludes the random
