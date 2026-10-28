@@ -7,6 +7,7 @@ namespace DropSpace.Infrastructure.Lyrics;
 
 public sealed class AmllLyricsProvider(LyricsHttpClient http, ILyricsLanguageIdentifier? languageIdentifier = null) : IProgressiveLyricsProvider, ILyricsResponseCache
 {
+    internal const int DataRevision = 1;
     private readonly object _cacheGate = new();
     private readonly Dictionary<string, CachedLyrics> _cache = new(StringComparer.Ordinal);
     private int _cacheBytes;
@@ -80,18 +81,20 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http, ILyricsLanguageIde
                 if (downloaded && parsed.Lines.Count > 0) Store(best.Id, text!, generation);
                 // SongItem does not expose audio duration. Neither player duration
                 // nor the last sung timestamp may be presented as source evidence.
-                return parsed.Bind(query, best.Title, best.Artist, best.Album, 0, best.Score, best.Id);
+                return parsed.Bind(query, best.Title, best.Artist, best.Album, 0, best.Score, best.Id)
+                    with { ProviderDataRevision = DataRevision };
             });
             if (document.Lines.Count == 0) continue;
             LyricsRequestTrace.Record("parse", new { provider = "Amll", best.Id, document = LyricsRequestTrace.Describe(document) });
             if (languageIdentifier is not null && target.Length > 0)
                 document = await languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
             reportCandidate(document);
-            if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
-                LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;
-            if (original.Lines.Count == 0) original = document;
+            original = LyricsCandidateRules.Best([
+                LyricsCandidateRules.Describe("current", original, target),
+                LyricsCandidateRules.Describe("candidate", document, target),
+            ], query, Kind, null);
         }
-        requests.ThrowIfFailed();
+        if (LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) requests.ThrowIfFailed();
         return original;
     }
 
@@ -139,7 +142,8 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http, ILyricsLanguageIde
                 .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
             if (best is not null && best.Score >= 4 && !string.IsNullOrWhiteSpace(best.Id)) matches.Add(best);
         }
-        return matches.OrderByDescending(candidate => candidate.Score).DistinctBy(candidate => candidate.Id).Take(3);
+        return matches.OrderByDescending(candidate => candidate.Score).DistinctBy(candidate => candidate.Id)
+            .Take(LyricsCandidateRequests.MaximumCandidates);
     }
 
     private void Store(string id, string text, long generation)

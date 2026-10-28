@@ -3,13 +3,16 @@ using System.Text.Json;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>? diagnostic = null, QqMusicSession? qqMusicSession = null)
+public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>? diagnostic = null, QqMusicSession? qqMusicSession = null,
+    TimeProvider? timeProvider = null)
 {
     internal QqMusicSession? QqSession => qqMusicSession;
     private const int MaximumResponseBytes = 3 * 1024 * 1024;
-    private long _netEaseSearchRetryAfter, _netEaseLyricRetryAfter;
+    private readonly TimeProvider _clock = timeProvider ?? TimeProvider.System;
+    private readonly LyricsRequestHealth _health = new(timeProvider ?? TimeProvider.System);
     private long _netEaseNextRequest;
     private readonly SemaphoreSlim _netEaseAdmission = new(1, 1);
+    public void RetryTransientFailures(DropSpace.Core.Models.LyricsProviderKind provider) => _health.RetryTransientFailures(provider);
     internal void ReportNetEaseReuse() => ReportReuse(DropSpace.Core.Models.LyricsProviderKind.NetEase);
     internal void ReportReuse(DropSpace.Core.Models.LyricsProviderKind provider) => LyricsDiagnostics.Report(diagnostic,
         new(provider, LyricsDiagnosticStage.Reuse, LyricsDiagnosticOutcome.Found, 0));
@@ -37,9 +40,13 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
         };
         var stage = requestedStage ?? (uri.AbsolutePath.Contains("search", StringComparison.OrdinalIgnoreCase)
             ? LyricsDiagnosticStage.Search : LyricsDiagnosticStage.Lyric);
+        stage = stage == LyricsDiagnosticStage.Search ? LyricsDiagnosticStage.Search : LyricsDiagnosticStage.Lyric;
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        long healthRevision = 0;
         try
         {
+            token.ThrowIfCancellationRequested();
+            healthRevision = _health.ThrowIfUnavailable(provider, stage);
             if (provider == DropSpace.Core.Models.LyricsProviderKind.NetEase)
             {
                 // A cancelled metadata handoff never reserves a future slot. Search
@@ -48,28 +55,20 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
                 await _netEaseAdmission.WaitAsync(token).ConfigureAwait(false);
                 try
                 {
-                    var retryAfter = stage == LyricsDiagnosticStage.Search
-                        ? Interlocked.Read(ref _netEaseSearchRetryAfter) : Interlocked.Read(ref _netEaseLyricRetryAfter);
-                    if (Environment.TickCount64 < retryAfter)
-                    {
-                        LyricsRequestTrace.Record("rate-limit-cooldown", new { provider = provider.ToString(), endpoint = stage.ToString() });
-                        throw new LyricsProviderRejectedException("NetEase request cooldown is active.", 405);
-                    }
                     var delay = _netEaseNextRequest - Environment.TickCount64;
                     if (delay > 0) await Task.Delay(TimeSpan.FromMilliseconds(delay), token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
-                    retryAfter = stage == LyricsDiagnosticStage.Search
-                        ? Interlocked.Read(ref _netEaseSearchRetryAfter) : Interlocked.Read(ref _netEaseLyricRetryAfter);
-                    if (Environment.TickCount64 < retryAfter)
-                        throw new LyricsProviderRejectedException("NetEase request cooldown is active.", 405);
+                    healthRevision = _health.ThrowIfUnavailable(provider, stage);
                     _netEaseNextRequest = Environment.TickCount64 + 500;
                 }
                 finally { _netEaseAdmission.Release(); }
             }
-            var (document, status) = await GetCoreAsync(url, token, referer, json).ConfigureAwait(false);
+            var (document, status) = await GetCoreAsync(url, token, referer, json, provider, stage).ConfigureAwait(false);
             var (code, rejected) = BusinessStatus(document.RootElement, provider, uri.Host == "songsearch.kugou.com");
-            if (provider == DropSpace.Core.Models.LyricsProviderKind.NetEase && code is 405 or 429)
-                SetNetEaseCooldown(stage);
+            if (code == 429 || provider == DropSpace.Core.Models.LyricsProviderKind.NetEase && code == 405)
+                _health.RateLimited(provider, stage);
+            else if (rejected) _health.Failed(provider, stage);
+            else _health.Succeeded(provider, stage, healthRevision);
             LyricsRequestTrace.Record("http", new { provider = provider.ToString(), endpoint = uri.GetLeftPart(UriPartial.Path), status, code, rejected });
             LyricsDiagnostics.Report(diagnostic, new(provider, stage,
                 rejected && (code == 429 || provider == DropSpace.Core.Models.LyricsProviderKind.NetEase && code == 405)
@@ -81,9 +80,10 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
-            if (provider == DropSpace.Core.Models.LyricsProviderKind.NetEase &&
-                error is HttpRequestException { StatusCode: System.Net.HttpStatusCode.TooManyRequests })
-                SetNetEaseCooldown(stage);
+            if (!token.IsCancellationRequested && error is not LyricsRequestBackoffException && IsTransientFailure(error))
+                _health.Failed(provider, stage);
+            else if (!token.IsCancellationRequested && error is HttpRequestException { StatusCode: System.Net.HttpStatusCode.NotFound })
+                _health.Succeeded(provider, stage, healthRevision);
             LyricsRequestTrace.Record("http-failure", new { provider = provider.ToString(), endpoint = uri.GetLeftPart(UriPartial.Path),
                 status = error is HttpRequestException requestError ? (int?)requestError.StatusCode : null,
                 category = LyricsDiagnostics.Classify(error, token.IsCancellationRequested).ToString() });
@@ -95,11 +95,13 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
         }
     }
 
-    private void SetNetEaseCooldown(LyricsDiagnosticStage stage)
+    private static bool IsTransientFailure(Exception error) => error switch
     {
-        if (stage == LyricsDiagnosticStage.Search) Interlocked.Exchange(ref _netEaseSearchRetryAfter, Environment.TickCount64 + 30_000);
-        else Interlocked.Exchange(ref _netEaseLyricRetryAfter, Environment.TickCount64 + 30_000);
-    }
+        LyricsProviderRejectedException => false,
+        HttpRequestException request => request.StatusCode is null or System.Net.HttpStatusCode.RequestTimeout || (int?)request.StatusCode >= 500,
+        OperationCanceledException or IOException or JsonException => true,
+        _ => false,
+    };
 
     // Reporting only: each adapter remains responsible for its own response
     // contract and terminal rejection. HTTP 200 is not provider-level success.
@@ -132,13 +134,20 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
         return (seen, false);
     }
 
-    private async Task<(JsonDocument Document, int Status)> GetCoreAsync(string url, CancellationToken token, string? referer, string? jsonBody)
+    private async Task<(JsonDocument Document, int Status)> GetCoreAsync(string url, CancellationToken token, string? referer, string? jsonBody,
+        DropSpace.Core.Models.LyricsProviderKind provider, LyricsDiagnosticStage stage)
     {
         var uri = new Uri(url);
         if (uri.Scheme != "https" || !Hosts.Contains(uri.Host) || !uri.IsDefaultPort || !string.IsNullOrEmpty(uri.UserInfo)) throw new InvalidDataException("Untrusted lyrics host.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(8));
         using var response = await SendAsync(uri, referer, timeout.Token, jsonBody).ConfigureAwait(false);
+        var retryAfter = response.Headers.RetryAfter?.Delta ??
+            (response.Headers.RetryAfter?.Date is { } date ? date - _clock.GetUtcNow() : (TimeSpan?)null);
+        if (!token.IsCancellationRequested && response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            _health.RateLimited(provider, stage, retryAfter);
+        else if (!token.IsCancellationRequested && (int)response.StatusCode >= 500 && retryAfter is not null)
+            _health.DeferTransient(provider, stage, retryAfter.Value);
         response.EnsureSuccessStatusCode();
         var finalUri = response.RequestMessage?.RequestUri;
         if (finalUri is null || finalUri.Scheme != "https" || !finalUri.IsDefaultPort || !Hosts.Contains(finalUri.Host)) throw new InvalidDataException("Untrusted lyrics response.");

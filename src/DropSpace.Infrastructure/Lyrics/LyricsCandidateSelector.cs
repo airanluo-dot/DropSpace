@@ -31,7 +31,8 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
         bool HasIdentityEvidence(LyricsSelectionCandidate candidate) =>
             !string.IsNullOrWhiteSpace(query.Artist) && candidate.Document.Match is { } match &&
             !string.IsNullOrWhiteSpace(match.Artist) &&
-            LyricsMatcher.CandidateScore(query with { CollectSelectionCandidates = true }, match.Title,
+            LyricsMatcher.CandidateScore(query with { CollectSelectionCandidates = true },
+                string.IsNullOrWhiteSpace(match.CanonicalTitle) ? match.Title : match.CanonicalTitle,
                 match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) >= 4;
         token.ThrowIfCancellationRequested();
         if (!Current()) return Fallback(LyricsSelectionOutcome.Unavailable);

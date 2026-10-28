@@ -8,7 +8,7 @@ namespace DropSpace.Infrastructure.Lyrics;
 
 public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageIdentifier? languageIdentifier = null) : IProgressiveLyricsProvider
 {
-    internal const int DataRevision = 1;
+    internal const int DataRevision = 2;
     public LyricsProviderKind Kind => LyricsProviderKind.Kugou;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
         => await QueryAsync(query, cancellationToken, _ => { }).ConfigureAwait(false);
@@ -18,14 +18,12 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
     {
         var original = LyricsDocument.Empty;
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
-        bool Complete(LyricsDocument document) => !query.CollectSelectionCandidates && document.Lines.Count > 0 &&
-            (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslationLookup(document, target));
         var attempted = new HashSet<string>(StringComparer.Ordinal);
         var requests = new LyricsCandidateRequests();
-        var remaining = 3;
+        var remaining = LyricsCandidateRequests.MaximumCandidates;
         var remainingCatalogs = 3;
         var attemptedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        async Task<LyricsDocument> TryCandidatesAsync(System.Text.Json.JsonElement root, CatalogRecording? recording = null)
+        async Task TryCandidatesAsync(System.Text.Json.JsonElement root, CatalogRecording? recording = null)
         {
             foreach (var candidate in Choose(root, query, recording))
             {
@@ -44,7 +42,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
                     }
                     catch (Exception error) when (error is InvalidDataException or FormatException or DecoderFallbackException && remaining > 0)
                     {
-                        // Charge the fallback to the existing three-download budget. Business
+                        // Charge the fallback to the shared six-download budget. Business
                         // rejection, cancellation and HTTP failures never trigger this retry.
                         remaining--;
                         using var lyric = await http.GetAsync(url + "&fmt=lrc&charset=utf8", cancellationToken);
@@ -64,18 +62,19 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
                 if (languageIdentifier is not null && target.Length > 0)
                     document = await languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
                 reportCandidate(document);
-                if (Complete(document)) return document;
                 original = LyricsCandidateRules.Best([
                     LyricsCandidateRules.Describe("current", original, target),
                     LyricsCandidateRules.Describe("candidate", document, target),
                 ], query, Kind, null);
             }
-            return LyricsDocument.Empty;
         }
         using var search = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&keyword={Escape(query.Title)}&duration={(long)query.Duration.TotalMilliseconds}", cancellationToken);
         Validate(search.RootElement, "candidates", JsonValueKind.Array);
-        var result = await TryCandidatesAsync(search.RootElement);
-        if (Complete(result)) return result;
+        await TryCandidatesAsync(search.RootElement);
+        if (!LyricsCandidateRequests.NeedsMoreSearch(query, original, target))
+        {
+            return original;
+        }
         foreach (var terms in LyricsMatcher.SearchTerms(query))
         {
             if (remaining == 0 || remainingCatalogs == 0) break;
@@ -94,16 +93,17 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
                 remainingCatalogs--;
                 var recording = new CatalogRecording(song.Title, Text(song.Item, "SingerName"),
                     Text(song.Item, "AlbumName"), Number(song.Item, "Duration"));
-                result = await requests.TryAsync(async () =>
+                await requests.TryAsync(async () =>
                 {
                     using var hashed = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash={Escape(hash)}", cancellationToken);
                     Validate(hashed.RootElement, "candidates", JsonValueKind.Array);
-                    return await TryCandidatesAsync(hashed.RootElement, recording);
+                    await TryCandidatesAsync(hashed.RootElement, recording);
+                    return LyricsDocument.Empty;
                 });
-                if (Complete(result)) return result;
             }
+            if (!LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) break;
         }
-        requests.ThrowIfFailed();
+        if (LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) requests.ThrowIfFailed();
         return original;
     }
 

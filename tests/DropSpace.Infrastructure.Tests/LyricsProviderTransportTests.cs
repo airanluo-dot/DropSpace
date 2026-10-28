@@ -237,10 +237,12 @@ public sealed class LyricsProviderTransportTests
             if (IsSearch(request))
             {
                 searches++;
-                return Json(MatchingCandidates(netEase, 4));
+                return Json(MatchingCandidates(netEase, 7));
             }
             lyricCalls++;
-            return new(HttpStatusCode.ServiceUnavailable);
+            // Missing candidate IDs can exhaust the candidate budget; repeated
+            // server outages instead terminate through endpoint health backoff.
+            return new(HttpStatusCode.NotFound);
         });
         using var client = new HttpClient(handler);
         ILyricsProvider provider = netEase ? new NetEaseLyricsProvider(new(client)) : new QqMusicLyricsProvider(new(client));
@@ -248,7 +250,7 @@ public sealed class LyricsProviderTransportTests
             new("Song", "Artist", "", TimeSpan.Zero),
             new() { Enabled = true, Provider = provider.Kind, SearchRemainingProviders = false }, default);
         Assert.AreEqual(LyricsQueryStatus.Failed, result.Status);
-        Assert.AreEqual(3, lyricCalls);
+        Assert.AreEqual(6, lyricCalls);
         Assert.AreEqual(1, searches, "Exhausted candidates must not start another search that cannot be used.");
     }
 

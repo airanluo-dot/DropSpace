@@ -53,6 +53,13 @@ public sealed class LyricsService
         // inherit a document fetched for a nearby duration merely because both durations were
         // truncated to the same whole second.
         var backup = OnlineBackup(settings, kind);
+        if (refresh && kind != LyricsProviderKind.LocalLrc)
+        {
+            _providers.RetryTransientFailures(kind);
+            if (backup is { } backupKind) _providers.RetryTransientFailures(backupKind);
+            if (settings.SearchRemainingProviders)
+                foreach (var provider in OnlineProviders) _providers.RetryTransientFailures(provider);
+        }
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
         // Non-translation callers retain the existing source cache/provenance
         // contract. Target-aware lookups use a separate identity so an old
@@ -69,32 +76,16 @@ public sealed class LyricsService
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
         });
-        var key = target.Length == 0 ? OriginalSourceKey("source-v4-quality1") : TargetSourceKey("source-v9-whole-track-beta16");
-        LyricsRequestTrace.Record("cache-lookup", new { key = LyricsRequestTrace.Key(key), version = target.Length == 0 ? "source-v4-quality1" : "source-v9-whole-track-beta16", target, refresh });
+        var key = target.Length == 0 ? OriginalSourceKey("source-v5-quality2") : TargetSourceKey("source-v10-quality2");
+        LyricsRequestTrace.Record("cache-lookup", new { key = LyricsRequestTrace.Key(key), version = target.Length == 0 ? "source-v5-quality2" : "source-v10-quality2", target, refresh });
         var generation = _cache?.Generation ?? _memory.Generation;
         LyricsDocument? cachedPreview = null;
         if (kind != LyricsProviderKind.LocalLrc && !refresh)
         {
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
-            if (cached is null)
-            {
-                var priorKey = target.Length == 0 ? OriginalSourceKey("source-v3") : TargetSourceKey("source-v7-quality1");
-                var prior = _cache is null ? _memory.Read(priorKey) : await _cache.ReadDocumentAsync(priorKey, cancellationToken).ConfigureAwait(false);
-                // Source ordering changed. A preferred-provider cache stays usable;
-                // older lower-priority winners must pass the new source stage once.
-                if (prior?.Provider == kind) cached = prior;
-            }
-            if (cached is null && target.Length > 0)
-            {
-                var legacyKey = TargetSourceKey("source-v4");
-                var legacy = _cache is null ? _memory.Read(legacyKey) :
-                    await _cache.ReadDocumentAsync(legacyKey, cancellationToken).ConfigureAwait(false);
-                // Retain Beta9's already-usable same-language primary originals.
-                // Foreign originals and old lower-priority decisions still refetch.
-                if (legacy?.Provider == kind && legacy.Lines.Count > 0 &&
-                    !LyricsTranslationPolicy.NeedsProviderTranslation(legacy, target) &&
-                    legacy.Lines.All(line => string.IsNullOrWhiteSpace(line.Secondary))) cached = legacy;
-            }
+            // The old winner may be a provider's first recording, including on the
+            // preferred source. Re-evaluate once under bounded candidate ranking;
+            // retain old files for ordinary quota eviction rather than clearing the store.
             if (cached is not null && !HasUsableEvidence(LyricsBodyQualityPolicy.Normalize(cached)))
             { LyricsRequestTrace.Record("cache-rejected", new { reason = "placeholder-or-empty-body", qualityVersion = LyricsBodyQualityPolicy.Version }); cached = null; }
             // Older source-v2 entries persisted both heuristic and explicit tags
@@ -115,6 +106,10 @@ public sealed class LyricsService
                 cached.ProviderDataRevision < KugouLyricsProvider.DataRevision) cached = null;
             if (cached is { Provider: LyricsProviderKind.QqMusic } &&
                 cached.ProviderDataRevision < QqMusicLyricsProvider.DataRevision) cached = null;
+            if (cached is { Provider: LyricsProviderKind.Lrclib } &&
+                cached.ProviderDataRevision < LrclibLyricsProvider.DataRevision) cached = null;
+            if (cached is { Provider: LyricsProviderKind.Amll } &&
+                cached.ProviderDataRevision < AmllLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
             if (_languageIdentifier is not null && target.Length > 0 && validated.Lines.Count > 0)
                 validated = await _languageIdentifier.PrepareAsync(validated, target, cancellationToken).ConfigureAwait(false);
@@ -141,7 +136,39 @@ public sealed class LyricsService
             settings.SelectionMode != LyricsSelectionMode.Rules);
         if (cachedPreview is not null) candidates.Report(cachedPreview);
         var document = LyricsDocument.Empty;
-        var translationIncomplete = false;
+        async Task<LyricsQueryResult> FinishAsync(LyricsDocument selected, bool sourceFailed, bool selectionComplete, bool allowCache = true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            selected = Validate(selected, query);
+            // Stamp fresh validated reads at the shared cache boundary too.
+            if (selected.Lines.Count > 0) selected = selected with { ProviderDataRevision = selected.Provider switch
+            {
+                LyricsProviderKind.NetEase => NetEaseLyricsProvider.DataRevision,
+                LyricsProviderKind.Kugou => KugouLyricsProvider.DataRevision,
+                LyricsProviderKind.QqMusic => QqMusicLyricsProvider.DataRevision,
+                LyricsProviderKind.Lrclib => LrclibLyricsProvider.DataRevision,
+                LyricsProviderKind.Amll => AmllLyricsProvider.DataRevision,
+                _ => selected.ProviderDataRevision,
+            } };
+            if (_languageIdentifier is not null && target.Length > 0 && selected.Lines.Count > 0)
+                selected = await _languageIdentifier.PrepareAsync(selected, target, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            var incomplete = NeedsTranslationSearch(selected, target) && sourceFailed;
+            if (allowCache && HasUsableEvidence(selected) && kind != LyricsProviderKind.LocalLrc && !incomplete &&
+                !NeedsTranslationSearch(selected, target) && (target.Length == 0 || selectionComplete))
+            {
+                try
+                {
+                    if (_cache is null) _memory.Write(key, selected, generation);
+                    else await _cache.WriteDocumentAsync(key, selected, generation, cancellationToken).ConfigureAwait(false);
+                    LyricsRequestTrace.Record("cache-write", new { key = LyricsRequestTrace.Key(key), document = LyricsRequestTrace.Describe(selected) });
+                }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                catch (InvalidDataException) { }
+            }
+            return CompleteQueryResult(selected, candidates.CompletedProviderCount, incomplete) with { SelectionCandidates = candidates.Snapshot };
+        }
         try
         {
             var primaryTask = QueryProviderAsync(kind, query, candidates.Token, candidates.Report, candidates.Token, candidates.ReportProviderCompleted);
@@ -171,51 +198,35 @@ public sealed class LyricsService
                 await all.ConfigureAwait(false);
             }
             var primary = await primaryTask.ConfigureAwait(false);
-            document = SelectTranslation(Validate(primary.Document, query), candidates.Document, target, kind, backup);
+            document = SelectTranslation(Validate(primary.Document, query), candidates.Document, query, target, kind, backup);
             var fallbackFailed = false;
             if (supplemental is not null)
             {
                 var fallback = await supplemental.ConfigureAwait(false);
-                document = SelectTranslation(document, fallback.Document, target, kind, backup);
+                document = SelectTranslation(document, fallback.Document, query, target, kind, backup);
                 fallbackFailed = fallback.Failed;
             }
-            document = SelectTranslation(document, candidates.Document, target, kind, backup);
-            cancellationToken.ThrowIfCancellationRequested();
-            // Any successful fresh read uses this service's current provider pipeline.
-            // Stamp at the cache boundary too, so injected provider implementations
-            // cannot turn an original-only response into perpetual cache misses.
-            if (document.Provider == LyricsProviderKind.NetEase && document.Lines.Count > 0)
-                document = document with { ProviderDataRevision = NetEaseLyricsProvider.DataRevision };
-            if (document.Provider == LyricsProviderKind.Kugou && document.Lines.Count > 0)
-                document = document with { ProviderDataRevision = KugouLyricsProvider.DataRevision };
-            if (document.Provider == LyricsProviderKind.QqMusic && document.Lines.Count > 0)
-                document = document with { ProviderDataRevision = QqMusicLyricsProvider.DataRevision };
-            if (_languageIdentifier is not null && target.Length > 0 && document.Lines.Count > 0)
-                document = await _languageIdentifier.PrepareAsync(document, target, cancellationToken).ConfigureAwait(false);
-            translationIncomplete = NeedsTranslationSearch(document, target) && (primary.Failed || fallbackFailed);
+            document = SelectTranslation(document, candidates.Document, query, target, kind, backup);
             // A lower-priority success must not permanently hide a preferred provider
             // that failed transiently. Target-aware v6 retires legacy such decisions.
             var selectionComplete = document.Provider == kind || !primary.Failed &&
                 (document.Provider == backup || backup is null || !fallbackFailed);
-            if (HasUsableEvidence(document) && kind != LyricsProviderKind.LocalLrc && !translationIncomplete &&
-                !NeedsTranslationSearch(document, target) && (target.Length == 0 || selectionComplete))
-            {
-                try
-                {
-                    if (_cache is null) _memory.Write(key, document, generation);
-                    else await _cache.WriteDocumentAsync(key, document, generation, cancellationToken).ConfigureAwait(false);
-                    LyricsRequestTrace.Record("cache-write", new { key = LyricsRequestTrace.Key(key), document = LyricsRequestTrace.Describe(document) });
-                }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
-                catch (InvalidDataException) { }
-            }
-            return CompleteQueryResult(document, candidates.CompletedProviderCount, translationIncomplete) with { SelectionCandidates = candidates.Snapshot };
+            return await FinishAsync(document, primary.Failed || fallbackFailed, selectionComplete).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or IOException or InvalidDataException or XmlException or FormatException or RegexMatchTimeoutException)
-        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return CompleteQueryResult(document, candidates.CompletedProviderCount, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) with { SelectionCandidates = candidates.Snapshot }; }
+        { document = SelectTranslation(document, candidates.Document, query, target, kind, backup); return CompleteQueryResult(document, candidates.CompletedProviderCount, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) with { SelectionCandidates = candidates.Snapshot }; }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return CompleteQueryResult(document, candidates.CompletedProviderCount, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) with { SelectionCandidates = candidates.Snapshot }; }
+        {
+            document = SelectTranslation(document, candidates.Document, query, target, kind, backup);
+            // Ending the internal selection window is a normal bounded decision.
+            // Only the preferred source can be committed without its task finishing;
+            // a backup must not hide an unresolved preferred request in future plays.
+            if (candidates.SelectionWindowExpired)
+                return await FinishAsync(document, sourceFailed: true, selectionComplete: document.Provider == kind,
+                    allowCache: document.Provider == kind).ConfigureAwait(false);
+            return CompleteQueryResult(document, candidates.CompletedProviderCount, document.Lines.Count > 0 && NeedsTranslationSearch(document, target))
+                with { SelectionCandidates = candidates.Snapshot };
+        }
     }
     // Weak-only collection has a provisional bound. The first strictly validated
     // original gets the full shared three-second source window; later candidates
@@ -228,12 +239,15 @@ public sealed class LyricsService
         private readonly LyricsProviderKind _primary;
         private readonly LyricsProviderKind? _backup;
         private readonly CancellationTokenSource _budget;
+        private readonly CancellationToken _parentToken;
         private LyricsDocument _document = LyricsDocument.Empty;
         private bool _started, _provisionalStarted, _closed, _truncated, _originalReported;
         private readonly Action<LyricsDocument>? _reportOriginal;
         private readonly bool _captureCandidates;
         private readonly Dictionary<string, LyricsDocument> _collected = new(StringComparer.Ordinal);
         private int _collectedBytes;
+        private int _prunedCandidates;
+        private const int CandidatesPerSource = 3;
         private int _completedProviderCount;
         public int CompletedProviderCount => Volatile.Read(ref _completedProviderCount);
         public void ReportProviderCompleted() => Interlocked.Increment(ref _completedProviderCount);
@@ -250,9 +264,11 @@ public sealed class LyricsService
             _backup = backup;
             _target = target;
             _budget = CancellationTokenSource.CreateLinkedTokenSource(token);
+            _parentToken = token;
             Token = _budget.Token;
         }
         public CancellationToken Token { get; }
+        public bool SelectionWindowExpired { get { lock (_gate) return _started && Token.IsCancellationRequested && !_parentToken.IsCancellationRequested; } }
         public LyricsDocument Document { get { lock (_gate) return _document; } }
         public LyricsCandidateSnapshot Snapshot
         {
@@ -265,7 +281,8 @@ public sealed class LyricsService
                     .OrderBy(pair => pair.Value.Provider).ThenBy(pair => pair.Value.Match!.CandidateId, StringComparer.Ordinal)
                     .Select((pair, index) => LyricsCandidateRules.Describe("c" + index, pair.Value, _target)).ToArray(),
                     _captureCandidates && _collected.Count > 0 ? System.Diagnostics.Stopwatch.GetTimestamp() +
-                        LyricsCandidateSelectionProtocol.MaximumDecisionSeconds * System.Diagnostics.Stopwatch.Frequency : 0, _truncated);
+                        LyricsCandidateSelectionProtocol.MaximumDecisionSeconds * System.Diagnostics.Stopwatch.Frequency : 0, _truncated)
+                    { PrunedCandidates = _prunedCandidates };
             }
         }
         private static int EstimateBytes(LyricsDocument doc) => checked(
@@ -280,7 +297,8 @@ public sealed class LyricsService
             var eligible = _query.CollectSelectionCandidates && candidate.Lines.Count > 0 && candidate.Match is { } match &&
                 !string.IsNullOrWhiteSpace(match.CandidateId) &&
                 (string.IsNullOrEmpty(match.TrackIdentity) || match.TrackIdentity == _query.TrackIdentity) &&
-                LyricsMatcher.CandidateScore(_query, match.Title, match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) >= 4
+                LyricsMatcher.CandidateScore(_query, string.IsNullOrWhiteSpace(match.CanonicalTitle) ? match.Title : match.CanonicalTitle,
+                    match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) >= 4
                 ? candidate : valid;
             if (!HasUsableEvidence(eligible)) return;
             var releaseSearch = false;
@@ -301,7 +319,7 @@ public sealed class LyricsService
                     }
                     return;
                 }
-                if (!_started && HasUsableEvidence(valid) && (_captureCandidates || NeedsTranslationSearch(valid, _target) || IsConfirmedInstrumental(valid)))
+                if (!_started && HasUsableEvidence(valid))
                 {
                     _started = true;
                     _budget.CancelAfter(TimeSpan.FromSeconds(3));
@@ -312,18 +330,10 @@ public sealed class LyricsService
                     _budget.CancelAfter(TimeSpan.FromSeconds(3));
                 }
                 if (_captureCandidates)
-                {
-                    var key = eligible.Provider + ":" + eligible.Match!.CandidateId;
-                    var bytes = EstimateBytes(eligible);
-                    var oldBytes = _collected.TryGetValue(key, out var old) ? EstimateBytes(old) : 0;
-                    if ((_collected.ContainsKey(key) || _collected.Count < LyricsCandidateSelectionProtocol.MaximumCandidates) &&
-                        bytes <= 16 * 1024 * 1024 && _collectedBytes - oldBytes + bytes <= 16 * 1024 * 1024)
-                    { _collected[key] = eligible; _collectedBytes += bytes - oldBytes; }
-                    else _truncated = true;
-                }
+                    CaptureCandidate(eligible);
                 if (!_originalReported) { _originalReported = true; releaseSearch = true; }
                 var previous = _document;
-                _document = SelectTranslation(_document, valid, _target, _primary, _backup);
+                _document = SelectTranslation(_document, valid, _query, _target, _primary, _backup);
                 // A validated translation must not wait behind another provider's timeout.
                 // Publish only improvements under the same ranking used for the final result.
                 // Serialize callbacks so a racing older original cannot overwrite the upgrade.
@@ -336,6 +346,47 @@ public sealed class LyricsService
                     _preferredTranslationAvailable.TrySetResult();
             }
             if (releaseSearch) _originalAvailable.TrySetResult();
+        }
+
+        private int CompareForSnapshot(LyricsDocument left, LyricsDocument right)
+        {
+            var identity = HasUsableEvidence(Validate(right, _query)).CompareTo(HasUsableEvidence(Validate(left, _query)));
+            return identity != 0 ? identity : LyricsCandidateRules.CompareCandidates(
+                LyricsCandidateRules.Describe("left", left, _target), LyricsCandidateRules.Describe("right", right, _target),
+                _query, _primary, _backup);
+        }
+
+        // Providers may evaluate six recordings, but the bounded metadata prompt
+        // keeps the best three per source. Normal shortlisting is not corruption.
+        private void CaptureCandidate(LyricsDocument eligible)
+        {
+            var key = eligible.Provider + ":" + eligible.Match!.CandidateId;
+            var replaceKey = key;
+            _collected.TryGetValue(key, out var old);
+            if (old is not null && CompareForSnapshot(eligible, old) >= 0) return;
+            if (old is null)
+            {
+                var sameSource = _collected.Where(pair => pair.Value.Provider == eligible.Provider)
+                    .OrderBy(pair => pair.Value, Comparer<LyricsDocument>.Create(CompareForSnapshot)).ToArray();
+                if (sameSource.Length >= CandidatesPerSource)
+                {
+                    _prunedCandidates++;
+                    var worst = sameSource[^1];
+                    if (CompareForSnapshot(eligible, worst.Value) >= 0) return;
+                    replaceKey = worst.Key;
+                    old = worst.Value;
+                }
+            }
+            var bytes = EstimateBytes(eligible);
+            var oldBytes = old is null ? 0 : EstimateBytes(old);
+            if ((old is not null || _collected.Count < LyricsCandidateSelectionProtocol.MaximumCandidates) &&
+                bytes <= 16 * 1024 * 1024 && _collectedBytes - oldBytes + bytes <= 16 * 1024 * 1024)
+            {
+                if (replaceKey != key) _collected.Remove(replaceKey);
+                _collected[key] = eligible;
+                _collectedBytes += bytes - oldBytes;
+            }
+            else _truncated = true;
         }
         public void Dispose()
         {
@@ -370,7 +421,7 @@ public sealed class LyricsService
         return new(document, status, translationIncomplete);
     }
 
-    private static LyricsDocument SelectTranslation(LyricsDocument current, LyricsDocument candidate, string target,
+    private static LyricsDocument SelectTranslation(LyricsDocument current, LyricsDocument candidate, LyricsQuery query, string target,
         LyricsProviderKind primary, LyricsProviderKind? backup)
     {
         if (!HasUsableEvidence(candidate)) return current;
@@ -378,13 +429,7 @@ public sealed class LyricsService
         if ((candidate.Lines.Count > 0) != (current.Lines.Count > 0)) return candidate.Lines.Count > 0 ? candidate : current;
         var left = LyricsCandidateRules.Describe("candidate", candidate, target);
         var right = LyricsCandidateRules.Describe("current", current, target);
-        var rank = LyricsCandidateRules.ComparePriority(left, right, primary, backup);
-        if (rank != 0) return rank < 0 ? candidate : current;
-        var words = left.WordCoverage.CompareTo(right.WordCoverage);
-        if (words != 0) return words > 0 ? candidate : current;
-        var score = (candidate.Match?.Score ?? 0).CompareTo(current.Match?.Score ?? 0);
-        if (score != 0) return score > 0 ? candidate : current;
-        return StringComparer.Ordinal.Compare(candidate.Match?.CandidateId, current.Match?.CandidateId) < 0 ? candidate : current;
+        return LyricsCandidateRules.CompareCandidates(left, right, query, primary, backup) < 0 ? candidate : current;
     }
 
     private sealed record ProviderResult(LyricsDocument Document, bool Failed);
@@ -529,7 +574,7 @@ public sealed class LyricsService
                     try
                     {
                         var rest = await remaining.ConfigureAwait(false);
-                        original = SelectTranslation(original, rest.Document, target, primary, backup);
+                        original = SelectTranslation(original, rest.Document, query, target, primary, backup);
                         failed |= rest.Failed;
                     }
                     catch (OperationCanceledException) when (remainingStop.IsCancellationRequested)
@@ -589,13 +634,9 @@ public sealed class LyricsService
                         LyricsProviderKind.LocalLrc, backup) < bestReadyRank))
                     qualityWindow ??= Task.Delay(TimeSpan.FromMilliseconds(300));
             }
-            return (candidates.OrderByDescending(candidate => candidate.Document.Lines.Count > 0)
-                .ThenByDescending(candidate => HasCompleteTargetCoverage(candidate.Document, target))
-                .ThenByDescending(candidate => LyricsTranslationPolicy.HasMatchingProviderTranslation(candidate.Document, target))
-                .ThenBy(candidate => LyricsCandidateRules.SourceRank(candidate.Document.Provider, LyricsProviderKind.LocalLrc, backup))
-                .ThenByDescending(candidate => LyricsCandidateRules.WordCoverage(candidate.Document))
-                .ThenByDescending(candidate => candidate.Document.Match?.Score ?? 0)
-                .ThenBy(candidate => candidate.Document.Match?.CandidateId, StringComparer.Ordinal).Select(candidate => candidate.Document).FirstOrDefault() ?? LyricsDocument.Empty, failed);
+            return (LyricsCandidateRules.Best(candidates.Select(candidate =>
+                LyricsCandidateRules.Describe("c" + candidate.Index, candidate.Document, target)), query,
+                LyricsProviderKind.LocalLrc, backup), failed);
         }
         finally
         {

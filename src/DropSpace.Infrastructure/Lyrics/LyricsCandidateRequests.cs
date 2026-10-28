@@ -11,7 +11,14 @@ namespace DropSpace.Infrastructure.Lyrics;
 // last recoverable failure so exhausted candidates are not reported as a miss.
 internal sealed class LyricsCandidateRequests
 {
+    internal const int MaximumCandidates = 6;
     private ExceptionDispatchInfo? _failure;
+
+    // Compare the current search's candidates before deciding whether another
+    // search term is useful. The first good body still reaches the UI immediately.
+    internal static bool NeedsMoreSearch(LyricsQuery query, LyricsDocument document, string target) =>
+        query.CollectSelectionCandidates || document.Lines.Count == 0 || target.Length > 0 &&
+        LyricsTranslationPolicy.NeedsProviderTranslationLookup(document, target);
 
     public async Task<LyricsDocument> TryAsync(Func<Task<LyricsDocument>> read)
     {
@@ -27,7 +34,7 @@ internal sealed class LyricsCandidateRequests
 
     private static bool CanTryNextCandidate(Exception exception) => exception switch
     {
-        LyricsProviderRejectedException => false,
+        LyricsProviderRejectedException or LyricsRequestBackoffException => false,
         HttpRequestException { StatusCode: null or HttpStatusCode.NotFound or HttpStatusCode.RequestTimeout } => true,
         HttpRequestException { StatusCode: { } status } when (int)status is >= 500 and <= 599 => true,
         JsonException or XmlException or FormatException or InvalidDataException or IOException => true,

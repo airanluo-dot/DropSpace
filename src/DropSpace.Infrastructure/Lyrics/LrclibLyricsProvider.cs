@@ -8,6 +8,7 @@ namespace DropSpace.Infrastructure.Lyrics;
 
 public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
 {
+    internal const int DataRevision = 1;
     public LyricsProviderKind Kind => LyricsProviderKind.Lrclib;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
         => await QueryAsync(query, cancellationToken, _ => { }).ConfigureAwait(false);
@@ -16,8 +17,9 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
         Action<LyricsDocument> reportCandidate)
     {
         var original = LyricsDocument.Empty;
+        var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
         var attempted = new HashSet<string>(StringComparer.Ordinal);
-        var remaining = 3;
+        var remaining = LyricsCandidateRequests.MaximumCandidates;
         var requests = new LyricsCandidateRequests();
         if (query.Duration > TimeSpan.Zero && query.ArtistCandidates.Count > 0 && !string.IsNullOrWhiteSpace(query.Album))
         {
@@ -69,8 +71,10 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                     {
                         reportCandidate(exactDocument);
                         remaining--;
-                        if (!query.CollectSelectionCandidates) return exactDocument;
-                        if (original.Lines.Count == 0) original = exactDocument;
+                        original = LyricsCandidateRules.Best([
+                            LyricsCandidateRules.Describe("current", original, target),
+                            LyricsCandidateRules.Describe("candidate", exactDocument, target),
+                        ], query, Kind, null);
                         if (remaining == 0) return original;
                     }
                 }
@@ -89,7 +93,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                 .Select(item => new
                 { Item = item, Score = LyricsMatcher.CandidateScore(query, Text(item, "trackName"), Text(item, "artistName"), Text(item, "albumName"), Number(item, "duration")) })
                 .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")))
-                .OrderByDescending(candidate => candidate.Score).Take(3);
+                .OrderByDescending(candidate => candidate.Score);
             foreach (var best in candidates)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -111,8 +115,10 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                 if (parsed.Lines.Count > 0)
                 {
                     reportCandidate(document);
-                    if (!query.CollectSelectionCandidates) return document;
-                    if (original.Lines.Count == 0) original = document;
+                    original = LyricsCandidateRules.Best([
+                        LyricsCandidateRules.Describe("current", original, target),
+                        LyricsCandidateRules.Describe("candidate", document, target),
+                    ], query, Kind, null);
                 }
                 else if (document.BodyQuality == LyricsBodyQuality.ConfirmedInstrumental)
                 {
@@ -120,14 +126,15 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                     if (original.Lines.Count == 0) original = document;
                 }
             }
+            if (!LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) break;
         }
-        requests.ThrowIfFailed();
+        if (LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) requests.ThrowIfFailed();
         return original;
     }
 
     private LyricsDocument ParseBody(JsonElement response, string text)
     {
-        var parsed = LyricsParser.Parse(text, Kind);
+        var parsed = LyricsParser.Parse(text, Kind) with { ProviderDataRevision = DataRevision };
         // Only the explicit provider flag is evidence; a placeholder sentence is not.
         return parsed.Lines.Count == 0 && response.TryGetProperty("instrumental", out var flag) && flag.ValueKind == JsonValueKind.True
             ? parsed with { BodyQuality = LyricsBodyQuality.ConfirmedInstrumental } : parsed;

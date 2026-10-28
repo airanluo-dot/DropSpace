@@ -5,7 +5,7 @@ namespace DropSpace.Core.Lyrics;
 
 public static class LyricsMatcher
 {
-    public const string Version = "recording-identity-v5-featured-performers";
+    public const string Version = "recording-identity-v6-bounded-name-aliases";
     private const int MaximumMetadataCharacters = 2_048;
     // These Unicode regex tokens recognize publisher suffixes, not UI strings.
     private static readonly Regex PlayerSuffix = new(@"\s*[-|–]\s*(?:Apple Music|QQ\u97f3\u4e50|\u7f51\u6613\u4e91\u97f3\u4e50|\u9177\u72d7\u97f3\u4e50|Spotify|YouTube)\s*$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
@@ -78,6 +78,12 @@ public static class LyricsMatcher
     {
         ArgumentNullException.ThrowIfNull(query);
         var title = SearchTitle(query.Title);
+        var artists = SearchArtists(query).Take(2).ToArray();
+        var mapped = artists.Select(artist => LyricsNameAliases.SearchTerm(query.Title, artist))
+            .FirstOrDefault(term => term is not null);
+        if (mapped is not null)
+            return new[] { mapped, $"{title} {artists.FirstOrDefault()}".Trim(), title }
+                .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).Take(3).ToArray();
         var aliases = query.ArtistCandidates.Any(artist => KnownRecordingAlias(query.Title, artist))
             ? new[] { "怪獣 サカナクション", "Kaiju Sakanaction" } : [];
         return SearchArtists(query)
@@ -205,6 +211,13 @@ public static class LyricsMatcher
             foreach (var alias in artistAliases.Take(16))
                 artistScore = Math.Max(artistScore, ArtistSimilarity(query.ArtistCandidates, WithFeaturedArtists(title, alias)));
         if (KnownFastXRecordingCredits(query, title, artist, album, durationSeconds)) artistScore = 1;
+        // A pinned translated name expands the catalogue lookup only for this artist.
+        // It cannot erase recording/language labels or compensate for uncertain credits/time.
+        if (artistScore >= 0.9 && !HasVersionConflict(query.Title, title) && !HasVersionConflict(title, query.Title) &&
+            query.Duration > TimeSpan.Zero && double.IsFinite(durationSeconds) && durationSeconds > 0 &&
+            Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds) &&
+            query.ArtistCandidates.Any(value => LyricsNameAliases.AreRecordingTitlesEquivalent(query.Title, title, value)))
+            titleScore = 1;
         var bilingualMatch = BilingualBaseMatches(query.Title, title);
         if (bilingualMatch && artistScore >= 0.6 &&
             query.Duration > TimeSpan.Zero && double.IsFinite(durationSeconds) && durationSeconds > 0 &&
@@ -308,7 +321,7 @@ public static class LyricsMatcher
         // alias does not discard arbitrary Latin suffixes from Chinese names.
         // https://www.bilibili.com/video/BV18s411F7uC/ (official Gujian publisher).
         "孙晔" or "孙晔gary" => "孙晔",
-        _ => ArtistCreditOrthography.Fold(value)
+        _ => LyricsNameAliases.CanonicalArtist(value)
     };
 
     private static double TitleSimilarity(string left, string right)
