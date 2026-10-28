@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "status": "owner-authorized-beta-host-experimental-models",
-  "reason": "Bind the owner-requested Beta2 host candidate to its reviewed source changes while preserving historical experimental model observations verbatim. No model, runtime, prompt, parser, admission or semantic-approval change. The pre-existing Beta1 native heap incident remains disclosed, not presented as fixed by the separately measured glow and shutdown corrections.",
+  "reason": "Bind the owner-requested Beta3 host release to bounded lyric discovery, pinned recording aliases, admitted candidate quality, endpoint backoff, source caching and canonical metadata selection. Preserve existing translation model/runtime identities, translation prompt/admission contracts and historical experimental observations. No new inference, native stability resolution or semantic approval is claimed.",
   "scope": {
-    "releaseVersion": "v1.1.0-beta.2",
+    "releaseVersion": "v1.1.0-beta.3",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -337,7 +337,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "4764dbe4feaaa51f0c4b66f9613cb9047df3a9b6356f0a211ee90b72d749ad2a"
+          "sha256": "6db4409474cc766a5b151592b06051d898adc9c25a95d77a7ebee8072a34a9d1"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -349,11 +349,23 @@
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsMatcher.cs",
-          "sha256": "6cd8fc197f9a9168b129d64b11c11bf9e888406eb9f1af0cd4dad4e14d86dd8c"
+          "sha256": "56120fb9b4ce682f559ae427cfc393706a4294597b7ac756f0f21d5aab4d0e27"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsNameAliases.cs",
+          "sha256": "7bd3bdd525fd2ea9816e82c7c0426a255e50bc272963e6c1e3b55495dd971c59"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/Data/RecordingNameAliases.json",
+          "sha256": "1d8c9a511d40d86c3cc338397bf8ec05465be1d0f0ca3c09aa0db054fd5fa946"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsCandidateSelection.cs",
-          "sha256": "2e34887d24e1d0da71c431db617a151268ce80c3f0091234d3fbfb2add854d64"
+          "sha256": "ac0dcf48d4bae3835df882145b7abd2c3b7ffae2c0c731fd3ce1953a3a7d6eca"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsCandidateQuality.cs",
+          "sha256": "dbe98e6efcc8f9f3ef997546433080a7a62d38e94bfba5fbe8891c211c4a5418"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/ArtistCreditOrthography.cs",
@@ -441,11 +453,11 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs",
-          "sha256": "cc5a81069c3b625fbbbc580c48d1945bad1482d5d1ce24170c30011884f31464"
+          "sha256": "31fabaa94690a1941bb6f415ecb8ebdc569e1e822b252a2044699606fe52476a"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs",
-          "sha256": "21e9796f3e8dc8ef511de3b2522a69e951055e90cd99054d711a58ec75460c7d"
+          "sha256": "16f7e3e5b68c004a747ce3b86c75cb114e8e7285fc28ad4379fb6317e722b8ed"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalLrcLyricsProvider.cs",
@@ -453,11 +465,11 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs",
-          "sha256": "cf8576165d1565c0f2b1c14aab7aa20c19d586f3a8667beeaef4ebae034fffe4"
+          "sha256": "c45537d90d40a9e950e340c4e53796fc95bb3b2b3938a72cedeef5dd8812f061"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs",
-          "sha256": "b8bd91a84a08a453c2b2aed938d2a5ca25538cc2167d0aae4dd7baa1090329ce"
+          "sha256": "dac91061cfb6bed1ac4ec716a410505072d04d9872e56445b73e9ec863536f9e"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseResponseCache.cs",
@@ -469,15 +481,15 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs",
-          "sha256": "33dbce0d383507a3be82452406f82fb87efcb03655ea0c641704882003738aa0"
+          "sha256": "bf60e8660ddb5ecaa382038146ff844501ab09ad913a5ab1ab2442f620e57b76"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
-          "sha256": "d739176570a748f1cccec24a28db369d7abca1e4f5f8b3780754e698585e2c00"
+          "sha256": "c511d044e9df8ec284d951caf7b011e6e282789e6d9f40778edb68a8170808e2"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateRequests.cs",
-          "sha256": "87f6700da5b62f847da4b4b4d39a7c1d37a7049948ccffe86f7ce570f1bba178"
+          "sha256": "51124996333880178aa1292ed4a7021d678ab4f0957acd8ab254e006de54cc0b"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/ILyricsSelectionRuntime.cs",
@@ -485,7 +497,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateSelector.cs",
-          "sha256": "732663e515e405836d59159f05d63252681596dc2ae2f39c5dcb7a48e816b222"
+          "sha256": "bc7bf5f82e1bd3e9dedda76b9cc2b29dfe15303fc3dc7707052c3823e9161084"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/KugouKrcParser.cs",
@@ -493,11 +505,15 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs",
-          "sha256": "bbf31eb2f31aa28d7a50162f322c1a27477a03c5a8b40bdf3866d778588834c5"
+          "sha256": "5d3551066f4b3f09f52aeab78c50aacab1030e75d42995885c400ae0ce07449f"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsRequestHealth.cs",
+          "sha256": "e82a0d5fe6568f6833421a251761f7113a82577afba5d27a8c54c8cdf06d2d61"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs",
-          "sha256": "4030c6d5d76f17294eff5b03af76ab79d1e6f145cde16bab6b30de03aff6e055"
+          "sha256": "13937f8ba980c4ceebdef04633f296f7281dee925aa66d68948cc6caf0201c7c"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs",
@@ -1057,7 +1073,7 @@
         },
         {
           "path": "src/DropSpace.Core/DropSpace.Core.csproj",
-          "sha256": "3bfd5315e0ea3ede9cf5ef8c30c0878addea31f714a00310cce0a66fc78344fb"
+          "sha256": "0547ea4cac1bf3fee9adb3632ac07a92a70ff147a1f448f56fe64bc3916e685e"
         },
         {
           "path": "src/DropSpace.App/DropSpace.App.csproj",
@@ -1328,7 +1344,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "43049578352d92c5e0ae8656c388a0cf60c77bd4581211c96bf5f6525f6d722e"
+      "sha256": "63fa6177e27d2b2f210bbd5d203c63e187371a6ffdebad64504f6d4894bfed7f"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2771,7 +2787,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.2-summary-preflight-review.json",
-    "sha256": "7f2e6c127b2328720b0b9878d53dd4993a75f024f5fc60af2edd3674599b87d1"
+    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.3-host-review.json",
+    "sha256": "43245fa40545199e7ea54fe76be915fe185ad39c7a3e17cc50da16608c09e215"
   }
 }

@@ -7,7 +7,7 @@ v1.1.0-beta.2 is the immediate upgrade baseline for this release.
 
 Improve lyric search and selection using verified local Dynamic Notch 2.0.3 (176) configuration and observed mechanisms: bounded bilingual name lookup, broader same-source candidate comparison and temporary failure backoff. Preserve strict recording identity, preferred/backup source choices, progressive delivery, cancellation, native translation and optional AI boundaries. Retain user data and unchanged model/CUDA bytes.
 
-Develop and validate a local Beta3 candidate with focused checks and actual App/XAML compilation. Public publication is a separate delivery step. See the [release notes](.github/release-notes/v1.1.0-beta.3.md) and [validation record](docs/dev/1.1-beta3-lyrics-matching.md). The pre-existing native heap crash investigation remains unresolved; lyrics matching changes do not establish its resolution.
+Publish Beta3 using the completed focused evidence, PR App/XAML qualification and exact-main package production. The owner explicitly authorized publication on 2026-10-28 and requested minimal redundant testing. See the [release notes](.github/release-notes/v1.1.0-beta.3.md) and [validation record](docs/dev/1.1-beta3-lyrics-matching.md). The pre-existing native heap crash investigation remains unresolved; lyrics matching changes do not establish its resolution.
 
 ## Published release: v0.3.1-beta.18
 

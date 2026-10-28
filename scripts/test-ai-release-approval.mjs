@@ -109,7 +109,10 @@ export const sourcePaths = Object.freeze([
   // Upstream identity/selection/provider parsing and target/display propagation.
   'src/DropSpace.Core/Lyrics/LyricsParser.cs',
   'src/DropSpace.Core/Lyrics/LyricsMatcher.cs',
+  'src/DropSpace.Core/Lyrics/LyricsNameAliases.cs',
+  'src/DropSpace.Core/Lyrics/Data/RecordingNameAliases.json',
   'src/DropSpace.Core/Lyrics/LyricsCandidateSelection.cs',
+  'src/DropSpace.Core/Lyrics/LyricsCandidateQuality.cs',
   'src/DropSpace.Core/Lyrics/ArtistCreditOrthography.cs',
   'src/DropSpace.Core/Lyrics/Data/TSCharacters.txt',
   'src/DropSpace.Core/Lyrics/Data/OpenCC-LICENSE.txt',
@@ -145,6 +148,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/LyricsCandidateSelector.cs',
   'src/DropSpace.Infrastructure/Lyrics/KugouKrcParser.cs',
   'src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LyricsRequestHealth.cs',
   'src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs',
   ...modelDeliverySourcePaths,
@@ -345,7 +349,7 @@ export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
 export const betaHostExperimentalModelsStatus = 'owner-authorized-beta-host-experimental-models';
-export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.2';
+export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.3';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -414,7 +418,8 @@ export function readSourceFingerprint(root) {
   assert.equal(singleMatch(packages, /<PackageVersion\b(?=[^>]*\bInclude="Panlingo\.LanguageIdentification\.FastText\.Native")(?=[^>]*\bVersion="([^"]+)")[^>]*\/>/g, 'Native language package version'), languageManifest.nativePackageVersion, 'Language native version differs from the manifest');
   // A BOM or CRLF changes the checked embedded resource identity. Normalize
   // source text only; hash manifest resources exactly as they are packaged.
-  const files = sourcePaths.map(name => ({ path: name, sha256: sha256(embeddedPaths.includes(name)
+  const files = sourcePaths.map(name => ({ path: name, sha256: sha256((embeddedPaths.includes(name)
+    || name === 'src/DropSpace.Core/Lyrics/Data/RecordingNameAliases.json')
     ? fs.readFileSync(path.join(root, name)) : readText(root, name)) }));
   return { algorithm: 'sha256-source-lf-embedded-bytes-v2', files, sha256: sha256(JSON.stringify(files)) };
 }

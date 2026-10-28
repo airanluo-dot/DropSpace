@@ -15,7 +15,7 @@ DropSpace **1.0** is the first stable release of the current application. The re
 
 The current Beta target is `v1.1.0-beta.3` (Beta 3). The application displays **1.1 Beta3**; Stable remains 1.0.
 
-Version 1.1 Beta3 improves lyric discovery with bounded bilingual song-name mappings, comparison of more candidates within each source, quality-aware selection and temporary recovery backoff for failing providers. Existing recording-identity checks and source preferences remain enforced. See the [release notes](.github/release-notes/v1.1.0-beta.3.md) and [validation record](docs/dev/1.1-beta3-lyrics-matching.md). This is a local development candidate; public availability is established separately by the Releases page.
+Version 1.1 Beta3 improves lyric discovery with bounded bilingual song-name mappings, comparison of more candidates within each source, quality-aware selection and temporary recovery backoff for failing providers. Existing recording-identity checks and source preferences remain enforced. See the [release notes](.github/release-notes/v1.1.0-beta.3.md) and [validation record](docs/dev/1.1-beta3-lyrics-matching.md). Public availability is established by the Releases page and verified update metadata.
 
 Public upgrade baseline: [v1.0.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v1.0.0); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
