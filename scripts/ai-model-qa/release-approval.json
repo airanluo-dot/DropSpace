@@ -337,7 +337,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "3ceb0a30ec7689c23db911d411137a9d2b28c8599c67155d4bf661d023d2da8d"
+          "sha256": "3f3a53a6db6b7ac16d15df315bdd36a2aead4683a0abfed56ee37871919d0293"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -1344,7 +1344,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "8de0a1e556c58004f0077de3c0dbf1761152650df215769e6ba2d71937aa1206"
+      "sha256": "eda0294147e901be14e8ecaf7bd69878f9b9d7eddbade48968125b95d5f53761"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2788,6 +2788,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.5-host-review.json",
-    "sha256": "d044f41bc9ecaf536060d19da7d446508e6e0af7cc10766d6478a0411f25da02"
+    "sha256": "baf72adbbbed8125e15d08f8faf69795cf912b3d001cf5829f440c6312102c91"
   }
 }
