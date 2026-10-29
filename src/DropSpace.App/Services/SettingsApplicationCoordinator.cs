@@ -1,6 +1,7 @@
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Diagnostics;
 using DropSpace.Core.Models;
+using DropSpace.Core.Policies;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
@@ -27,9 +28,18 @@ public sealed class SettingsApplicationCoordinator(
     public async Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken);
-        try { return ApplyCachePolicy(await settingsService.LoadAsync(cancellationToken)); }
+        try
+        {
+            var saved = await settingsService.LoadAsync(cancellationToken);
+            var resolved = ResolveTranslationDefault(saved);
+            if (resolved != saved) await settingsService.SaveAsync(resolved, cancellationToken);
+            return ApplyCachePolicy(resolved);
+        }
         finally { _gate.Release(); }
     }
+
+    private static AppSettings ResolveTranslationDefault(AppSettings settings) =>
+        LyricsTranslationTargetPolicy.ApplyDefault(settings, AppLanguageService.GetSystemLanguages());
 
     private AppSettings ApplyCachePolicy(AppSettings settings)
     {
@@ -42,7 +52,7 @@ public sealed class SettingsApplicationCoordinator(
     public async Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        settings = settings.Validate();
+        settings = ResolveTranslationDefault(settings).Validate();
         await _gate.WaitAsync(cancellationToken);
         try
         {
@@ -100,10 +110,10 @@ public sealed class SettingsApplicationCoordinator(
             logger.LogInformation("Settings operation {OperationId} started.", operationId);
             // The form may have been captured while another edit was still saving.
             // Merge its changed fields only, under the transaction gate.
-            var persisted = ApplyCachePolicy(await settingsService.LoadAsync(cancellationToken));
+            var persisted = ApplyCachePolicy(ResolveTranslationDefault(await settingsService.LoadAsync(cancellationToken)));
             var next = SettingsChangePolicy.Merge(current, requested, persisted);
             current = persisted;
-            next = next.Validate();
+            next = ResolveTranslationDefault(next).Validate();
 
             var rollback = new SettingsTransactionRollbackCoordinator();
             var stage = "SettingsStageAppearance";

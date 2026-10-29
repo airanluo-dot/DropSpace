@@ -912,7 +912,7 @@
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>유휴 상태일 때 로고 표시</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0GB(비활성화됨)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>가사 번역 언어</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>인터페이스 언어와 별도로 중국어 간체 또는 영어를 선택하세요.</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>인터페이스가 중국어이면 중국어를, 그 외에는 영어를 기본 번역 언어로 사용합니다. 직접 선택한 번역 언어는 별도로 유지됩니다.</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>활성화됨</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>비활성화됨</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>활성화</value></data>
@@ -1023,8 +1023,8 @@
   <data name="AgentNameRequired" xml:space="preserve"><value>이 에이전트의 이름을 입력하세요.</value></data>
   <data name="AgentConfirmTitle" xml:space="preserve"><value>에이전트 작업을 허용할까요?</value></data>
   <data name="AgentConfirmAllow" xml:space="preserve"><value>이 작업 허용</value></data>
-  <data name="MusicWindowOpen" xml:space="preserve"><value>음악 창 열기</value></data>
-  <data name="MusicWindowTitle" xml:space="preserve"><value>음악</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>음악 창</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>음악 창</value></data>
   <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>음악 창 열기</value></data>
   <data name="ShortcutUnassigned" xml:space="preserve"><value>지정되지 않음</value></data>
   <data name="HotkeyClearBinding" xml:space="preserve"><value>단축키 해제</value></data>
@@ -1038,4 +1038,25 @@
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>시스템 음량</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>시스템 볼륨을 사용할 수 없습니다.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>선택 해제</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>아일랜드 재질</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>아크릴</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>리퀴드 글래스</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>리퀴드 글래스 배경 흐림</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>리퀴드 글래스 굴절 강도 (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>리퀴드 글래스 색 분산</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>리퀴드 글래스 어두운 오버레이 (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>먹빛 유리</value></data>
+  <data name="IslandAppearanceLiquidGlass" xml:space="preserve"><value>리퀴드 글래스 재질</value></data>
+  <data name="IslandGlassRefreshRate" xml:space="preserve"><value>리퀴드 글래스 새로 고침 빈도</value></data>
+  <data name="IslandGlassRefreshStandard" xml:space="preserve"><value>표준 (30 fps)</value></data>
+  <data name="IslandGlassRefreshHigh" xml:space="preserve"><value>높음 (60 fps)</value></data>
+  <data name="IslandGlassRefreshVeryHigh" xml:space="preserve"><value>매우 높음 (120 fps)</value></data>
+  <data name="IslandGlassRefreshUltra" xml:space="preserve"><value>Ultra (디스플레이에 맞춤)</value></data>
+  <data name="IslandGlassRefractionWidth" xml:space="preserve"><value>확장 상태의 리퀴드 글래스 굴절 폭 (%)</value></data>
+  <data name="WidgetMusicWindow.Text" xml:space="preserve">
+    <value>음악 창</value>
+  </data>
+  <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
+    <value>음악 창이 표시되는 동안 아일랜드 숨기기</value>
+  </data>
 </root>

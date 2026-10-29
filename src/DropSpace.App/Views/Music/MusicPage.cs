@@ -39,6 +39,12 @@ public sealed class MusicPage : UserControl
     private readonly ScrollViewer _lyricsScroll;
     private readonly TextBlock _lyricsStatus = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
     private readonly MediaExpandedView _nowPlaying;
+    private readonly TextBlock _emptyPlayback = new()
+    {
+        TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
+        HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center,
+        Margin = new Thickness(28, 24, 28, 24),
+    };
     private readonly NeteaseEnhancementViewModel _enhancement;
     private readonly NeteaseEnhancementCard _enhancementCard;
     private CancellationTokenSource? _iconStop;
@@ -100,12 +106,15 @@ public sealed class MusicPage : UserControl
         AutomationProperties.SetName(openWindow, strings.Get("MusicWindowOpen"));
         AutomationProperties.SetAutomationId(openWindow, "MusicWindowOpen");
         openWindow.Click += (_, _) => openMusicWindow?.Invoke();
-        var actionButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var actionButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
         actionButtons.Children.Add(openWindow); actionButtons.Children.Add(_refreshMusic);
         Grid.SetColumn(actionButtons, 1); musicActions.Children.Add(actionButtons);
         var playback = new StackPanel();
         playback.Children.Add(musicActions);
-        playback.Children.Add(_nowPlaying);
+        // The main page owns its centered empty state; the shared island player stays unchanged.
+        var playbackSurface = new Grid { MinHeight = 280 };
+        playbackSurface.Children.Add(_nowPlaying); playbackSurface.Children.Add(_emptyPlayback);
+        playback.Children.Add(playbackSurface);
         _body.Children.Add(CreateCard(playback, new Thickness(0)));
         _enhancementCard = new NeteaseEnhancementCard(enhancement, strings);
         _body.Children.Add(_enhancementCard);
@@ -307,7 +316,11 @@ public sealed class MusicPage : UserControl
     private void Refresh()
     {
         _folder.Text = _editor.Settings.Lyrics.LocalLrcDirectory;
-        _nowPlaying.Height = string.IsNullOrEmpty(_media.Title) ? 100 : 380;
+        var hasTrack = !string.IsNullOrWhiteSpace(_media.Title);
+        _nowPlaying.Visibility = hasTrack ? Visibility.Visible : Visibility.Collapsed;
+        _emptyPlayback.Visibility = hasTrack ? Visibility.Collapsed : Visibility.Visible;
+        _emptyPlayback.Text = _strings.Get("MediaNoSession.Text");
+        _nowPlaying.Height = 380;
         RefreshLyrics();
         var settings = _editor.Settings.IslandActivity;
         var sources = _sessions.AvailableSources.Concat(settings.AllowedMediaSourceAppIds).Distinct(StringComparer.OrdinalIgnoreCase).Take(512).ToArray();

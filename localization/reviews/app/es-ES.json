@@ -3440,8 +3440,8 @@
       "b0edd85120f60be5800564d767c596eb1c21cae5a75ee259a2242726265bf331"
     ],
     "LyricsTranslationTargetDescription": [
-      "73b44e5701deb4cfb1238c4caff31b7b3eacb22530764849a72302472cfb1163",
-      "f9ab4df87934c505e7e2e673f2bab514a34db1c62a6bff165add817394ecfe12"
+      "d67d5df28d4eff88bef6445440585155236408610fa0573ab19cb2edde690378",
+      "1fdd887c3371196352920b3db001ef4fa2120e34131eec430b2ed31a4a032aad"
     ],
     "Installer.LangOptions.LanguageName": [
       "ba118bf7fc9c1aedc1edb28a0aa86e0b43b681f222af6616e13c43be87815b06",
@@ -4084,12 +4084,12 @@
       "2f69d58b4f6b227ea696cdc1c42343bef9d0efa75ec730192a2d833d7bca507f"
     ],
     "MusicWindowOpen": [
-      "3deb8afb83f4b5e6dbe9a76398d1580416bb2e6f33da0083ec91ab02ff8ef8ce",
-      "ee5aebaa4be2d8ea57091436cbea6099a59ff34c86628baa97ff4ce3971cd5f0"
+      "d1c94b4499a7663ed8c697bf1666009f91e591d154a6307353506df4729a386c",
+      "5d7ca9e2c83023ab332be14d8ef64cdb2d7e05270338cb25310e55bd4ebeec87"
     ],
     "MusicWindowTitle": [
-      "6eb00b4b2614a144d41ccdf709017a675953fae2df6cfd6b397bd9e4d8708461",
-      "0e0cc1a93fe567a4935c582cb5bb54c2ee942dff9e635e861f3339b636f83087"
+      "d1c94b4499a7663ed8c697bf1666009f91e591d154a6307353506df4729a386c",
+      "5d7ca9e2c83023ab332be14d8ef64cdb2d7e05270338cb25310e55bd4ebeec87"
     ],
     "ShortcutOpenMusicWindow": [
       "3deb8afb83f4b5e6dbe9a76398d1580416bb2e6f33da0083ec91ab02ff8ef8ce",
@@ -4142,16 +4142,88 @@
     "RetrievalClearSelection.Content": [
       "cea4d2e010b8fd52bc28a66eca24ff0d616b2c7d982545757780c196c5cc04c7",
       "f93c2bbd7c62a6ef7904e7ea31df6f87e021b7bd37c3306c9d99070699adf861"
+    ],
+    "IslandMaterialStyle": [
+      "160b9626b66eea9a1b67a68addd3fc5345a11e71c6956e98247a82353a1cb9b6",
+      "2edf45e53d15c089a91fbb1280756e0d895f8e7358d14750a77e58be97b37c64"
+    ],
+    "IslandMaterialAcrylic": [
+      "30b5311523d77890bfa52ed8fff210883111d77f6f2aa605c375498f73788d61",
+      "d503a0492d9bb7f4e0f1e12a25786cdb8e4938e4a026a380579cf49852d14aac"
+    ],
+    "IslandMaterialLiquidGlass": [
+      "29f87af4fb46de9584d7ff40f33d2d4713821c2031520cf08a7652d08c400c45",
+      "3caee2d1d02e1be16408f63df150f233af45e9cf5e0baa44022b81de6a61244f"
+    ],
+    "IslandGlassBlur": [
+      "7c4a34536f5bbdadeb4c870da6fad6015cb5e722330f0becfb17bd0507954472",
+      "36875949596958afd7405ff9651a021bfa5a97c68aa172f4318f05cfac03a9ae"
+    ],
+    "IslandGlassRefraction": [
+      "e47f5016813c2270212bc004639794c130cb159272c5a942ffadb634f50c4cc1",
+      "cb1f4e97d0da0fefd1dd6f629c8fe9c379d69f69de0bf7b4afc623c4f9fa38ee"
+    ],
+    "IslandGlassDispersion": [
+      "05681d2959b0cecbc4f0fc337f6a479c08e6c90a9d0684c18f080f73ade908d4",
+      "b4e90b9cfb28136da14b3fdb717354a04d41c462680558154e3c822dd9f9f802"
+    ],
+    "IslandGlassDarkOverlay": [
+      "9470f5be6e8a4eb12f8028fe771b17453ab2a36be8c2edcd63b95ee88d2ff5e6",
+      "071f014ef99589239143193695775a21a4410bc4085e3eb7298ee71fdbeeefe6"
+    ],
+    "IslandGlassBlackGradient": [
+      "1b0cd61ed9f8e53e29282c38c4d770e1157ab3e9d0ee7be7da75ced5c10f425a",
+      "0be26dd446fe77d68f4af2ae7fa3cd2c418c9965b3ec3ac8bc0a8c959e47c2e6"
+    ],
+    "IslandAppearanceLiquidGlass": [
+      "e3a54e561581bfe4745458f8b5fbed6d571d254453f4a2e519aaf503b906bbe3",
+      "f02986534597bb8c44fcad28f1a06895301f73348450687f126d6d9bd2e436b6"
+    ],
+    "IslandGlassRefreshRate": [
+      "dbb16d8e63eae691470bcb8a295cb8935374acf3144ab1203c80b2d0605b8cc7",
+      "a06c7fc0ca9d0790e693269c0acc3fe70e128814d0309018b0ceaef5c492612c"
+    ],
+    "IslandGlassRefreshStandard": [
+      "18143c813cf02c326417961d6b212e94053a889319433f6a05f06a910fb1f54b",
+      "fdbb0139cd1fe7492f60a214513f6877372915d3dc9f1a2ce9dcb6acf536c60e"
+    ],
+    "IslandGlassRefreshHigh": [
+      "687a614b7ac4e940e1a8849de5091e34e38cbb7d620b11e1021c4356aa6d80ed",
+      "34ff1d74437c7db45dd5bf7607aefdeb506697ba021396ad73bbe472e1396bfb"
+    ],
+    "IslandGlassRefreshVeryHigh": [
+      "28f4d6c760c52caf0dc1ff0ded0aae14d4ae880a6b89025b9622f5dc945bec0b",
+      "0c6cba70f22a9bd95d908a802ec3c29cd125e9d32ec299277530c8800dc2504c"
+    ],
+    "IslandGlassRefreshUltra": [
+      "845357aa2fa2b229d40d2e9fd4121fd8574c14ce8249fe659f00073d50f49bd6",
+      "2700abd55656231ee9d20a424f9af1a15bdc0ea5fe09908678f7fa85909afff5"
+    ],
+    "IslandGlassRefractionWidth": [
+      "abb057a4433f61bd635579fa1a5cef897c484a25a8aa6cf6e8baf78670bc5597",
+      "69ed854708976e50f1fe8a138230b712b64d3bfeb6a3d2036eeeca886c3df131"
+    ],
+    "WidgetMusicWindow.Text": [
+      "d1c94b4499a7663ed8c697bf1666009f91e591d154a6307353506df4729a386c",
+      "5d7ca9e2c83023ab332be14d8ef64cdb2d7e05270338cb25310e55bd4ebeec87"
+    ],
+    "IslandHideWhileMusicWindowVisible": [
+      "7701122903ac3fa432f53afa61deb3bfb71615ce45c6418488d51a71a1224db9",
+      "69d02e5ec63e61fa186b84ecace86a1634d937d5ed895f0950db208e07433e42"
     ]
   },
-  "reviewedBy": "Codex Beta2 clear-selection label review",
-  "reviewedAt": "2026-10-26T09:31:34.538Z",
+  "reviewedBy": "Unified music window name; removed explanatory copy",
+  "reviewedAt": "2026-10-29T10:21:37.412Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "RetrievalClearSelection.Content"
+      "WidgetMusicWindow.Text",
+      "MusicWindowOpen",
+      "MusicWindowTitle",
+      "IslandHideWhileMusicWindowVisible",
+      "ShortcutOpenMusicWindow"
     ],
-    "reviewedBy": "Codex Beta2 clear-selection label review",
-    "reviewedAt": "2026-10-26T09:31:34.538Z"
+    "reviewedBy": "Unified music window name; removed explanatory copy",
+    "reviewedAt": "2026-10-29T10:21:37.412Z"
   }
 }

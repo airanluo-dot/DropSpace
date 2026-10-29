@@ -7,6 +7,15 @@ namespace DropSpace.App.Views.Island;
 
 public sealed partial class WidgetsExpandedView
 {
+    internal void InvokeMusicWindowWidgetForDiagnostic()
+    {
+        if (!_active || !IsLoaded || _view is null) throw new InvalidOperationException("Widgets must be visible.");
+        var button = Tiles.Children.OfType<Button>().Single(item =>
+            AutomationProperties.GetName(item) == _view.Text("WidgetMusicWindow.Text"));
+        var peer = new Microsoft.UI.Xaml.Automation.Peers.ButtonAutomationPeer(button);
+        ((Microsoft.UI.Xaml.Automation.Provider.IInvokeProvider)peer.GetPattern(
+            Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Invoke)).Invoke();
+    }
     internal WidgetModuleObservation ObserveModuleWidgets() => new(
         ModuleStrip.Visibility == Visibility.Visible,
         ModuleCards.Children.OfType<Button>().Select(button => new ModuleChipObservation(

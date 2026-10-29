@@ -6,6 +6,36 @@ Status: Fluent design specification v1. No visual prototype was generated in thi
 
 Use Windows 11 Fluent design as a native utility, drawing structural cues from Windows Settings and PowerToys: calm Mica foundation, restrained cards, compact rows, clear status, and native menus. Avoid dashboard metrics, oversized marketing headings, floating glass panels, and excessive gradients.
 
+## 1.1 Beta4 island material
+
+The island's background defaults to liquid glass: blur 1, refraction 100%,
+dispersion 75, dark overlay 0%, and Ink glass (black-to-glass gradient) enabled. Only the
+background changes. Content, typography, toolbar, geometry, hit targets and motion
+retain their existing implementation. Settings can select the previous Desktop
+Acrylic material. Unavailable capture, high contrast, reduced effects, disabled
+transparency and remote sessions retain the existing Acrylic/solid fallback policy.
+Live glass excludes the island from screenshots/recordings to prevent capture feedback.
+
+The material selector offers Acrylic and Liquid Glass. Acrylic collapses all five
+glass parameters, the Ink glass switch and the refresh-rate selector, retaining their values. Liquid Glass
+offers only Liquid Glass material in the appearance selector; switching back to
+Acrylic restores its original theme choices and saved selection. Resident display
+and the idle logo are off by default.
+
+Glass refresh settings offer Standard (the existing 30 Hz consumption cadence), High
+(60 fps), Very high (120 fps) and Ultra (the island monitor's current refresh rate).
+Standard remains the default. Higher tiers consume fresh frames with bounded,
+coalesced notifications; unavailable frames are never interpolated or replayed.
+
+Expanded glass refraction width is adjustable from 50% to 300%, defaulting to
+200% after user review. 100% is the original lens-shoulder width. The setting
+extends the inward influence range without multiplying displacement strength;
+compact glass remains at 100%. Existing expanded-content animation progress blends
+the width smoothly; no new content animation, geometry or hit target is introduced.
+
+The following Beta.25 shape and theme rules remain in force; its Acrylic-only
+material description is superseded by the user-requested Beta4 default above.
+
 ## Beta.25 island surface
 
 The fixed host remains transparent. Only the bounded SystemBackdropElement owns

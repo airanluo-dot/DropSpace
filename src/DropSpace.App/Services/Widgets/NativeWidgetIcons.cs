@@ -25,6 +25,7 @@ internal static class NativeWidgetIcons
         NativeWidgetId.Calculator => "\uE8EF", // Calculator
         NativeWidgetId.PinnedItems => "\uE718", // Pin
         NativeWidgetId.WeekProgress => "\uE8C0", // CalendarWeek
+        NativeWidgetId.MusicWindow => "\uE8D6", // MusicInfo
         _ => "\uE713",
     };
 }

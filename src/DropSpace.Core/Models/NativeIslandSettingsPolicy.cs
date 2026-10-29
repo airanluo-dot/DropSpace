@@ -55,6 +55,13 @@ public static class NativeIslandSettingsPolicy
             IslandContentPriority = Enum.IsDefined(settings.IslandContentPriority) ? settings.IslandContentPriority : IslandContentPriority.Music,
             IslandAppearance = appearance with
             {
+                MaterialStyle = Enum.IsDefined(appearance.MaterialStyle) ? appearance.MaterialStyle : IslandMaterialStyle.LiquidGlass,
+                LiquidGlassRefreshRate = Enum.IsDefined(appearance.LiquidGlassRefreshRate) ? appearance.LiquidGlassRefreshRate : IslandGlassRefreshRate.Standard,
+                LiquidGlassBlur = NormalizeGlass(appearance.LiquidGlassBlur, 30, 1),
+                LiquidGlassRefraction = NormalizeGlass(appearance.LiquidGlassRefraction, 400, 100),
+                LiquidGlassRefractionWidth = NormalizeGlass(appearance.LiquidGlassRefractionWidth, 300, 200, 50),
+                LiquidGlassDispersion = NormalizeGlass(appearance.LiquidGlassDispersion, 100, 75),
+                LiquidGlassDarkOverlay = NormalizeGlass(appearance.LiquidGlassDarkOverlay, 200, 0),
                 Theme = Enum.IsDefined(appearance.Theme) ? appearance.Theme : ThemePreference.System,
                 HideDelayMilliseconds = NormalizeHideDelay(appearance.HideDelayMilliseconds),
                 CompactScale = NormalizeScale(appearance.CompactScale),
@@ -67,4 +74,6 @@ public static class NativeIslandSettingsPolicy
     }
 
     private static double NormalizeScale(double value) => double.IsFinite(value) ? Math.Clamp(value, 0.5, 2) : 1;
+    private static double NormalizeGlass(double value, double maximum, double fallback, double minimum = 0) =>
+        double.IsFinite(value) ? Math.Clamp(value, minimum, maximum) : fallback;
 }

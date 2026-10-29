@@ -912,7 +912,7 @@
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Показывать логотип во время простоя</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 ГБ (отключено)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Язык перевода песен</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Выберите упрощённый китайский или английский независимо от языка интерфейса.</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Для интерфейса на китайском языке перевод по умолчанию выполняется на китайский, для остальных — на английский. Выбранный вручную язык перевода сохраняется независимо.</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>Включён</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>Отключён</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>Включить</value></data>
@@ -1023,8 +1023,8 @@
   <data name="AgentNameRequired" xml:space="preserve"><value>Введите имя этого агента.</value></data>
   <data name="AgentConfirmTitle" xml:space="preserve"><value>Разрешить действие агента?</value></data>
   <data name="AgentConfirmAllow" xml:space="preserve"><value>Разрешить действие</value></data>
-  <data name="MusicWindowOpen" xml:space="preserve"><value>Открыть окно музыки</value></data>
-  <data name="MusicWindowTitle" xml:space="preserve"><value>Музыка</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Окно музыки</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Окно музыки</value></data>
   <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Открыть окно музыки</value></data>
   <data name="ShortcutUnassigned" xml:space="preserve"><value>Не назначено</value></data>
   <data name="HotkeyClearBinding" xml:space="preserve"><value>Удалить сочетание клавиш</value></data>
@@ -1038,4 +1038,25 @@
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Системная громкость</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Системная громкость недоступна.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Снять выделение</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Материал острова</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Акрил</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Жидкое стекло</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>Размытие фона жидкого стекла</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>Преломление жидкого стекла (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>Дисперсия жидкого стекла</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Тёмный слой жидкого стекла (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Чернильное стекло</value></data>
+  <data name="IslandAppearanceLiquidGlass" xml:space="preserve"><value>Материал «Жидкое стекло»</value></data>
+  <data name="IslandGlassRefreshRate" xml:space="preserve"><value>Частота обновления жидкого стекла</value></data>
+  <data name="IslandGlassRefreshStandard" xml:space="preserve"><value>Стандартная (30 кадров/с)</value></data>
+  <data name="IslandGlassRefreshHigh" xml:space="preserve"><value>Высокая (60 кадров/с)</value></data>
+  <data name="IslandGlassRefreshVeryHigh" xml:space="preserve"><value>Очень высокая (120 кадров/с)</value></data>
+  <data name="IslandGlassRefreshUltra" xml:space="preserve"><value>Ultra (по частоте экрана)</value></data>
+  <data name="IslandGlassRefractionWidth" xml:space="preserve"><value>Ширина преломления жидкого стекла в развёрнутом виде (%)</value></data>
+  <data name="WidgetMusicWindow.Text" xml:space="preserve">
+    <value>Окно музыки</value>
+  </data>
+  <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
+    <value>Скрывать остров, пока отображается окно музыки</value>
+  </data>
 </root>

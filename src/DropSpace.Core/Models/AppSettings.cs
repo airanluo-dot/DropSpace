@@ -133,6 +133,8 @@ public sealed record AppSettings
     public AppLanguagePreference Language { get; init; } = AppLanguagePreference.System;
 
     public LyricsTranslationTarget LyricsTranslationTarget { get; init; } = LyricsTranslationTarget.English;
+    // Until a target is explicitly selected, use the effective interface language's default.
+    public bool LyricsTranslationTargetExplicit { get; init; }
 
     public CloseBehavior CloseBehavior { get; init; } = CloseBehavior.HideToTray;
 

@@ -77,13 +77,44 @@ public sealed partial class MainPage
         groups["Relay"].Children.Add(new FileRelayPanel(editor, _strings, _windowHandle));
         groups["Agents"].Children.Add(new AgentConnectionsPanel(editor.Agents.Value, editor.AgentSkill, _strings, _viewModel.CopyAgentInvitationAsync));
         var island = new SettingsForm(editor, _strings);
-        island.AddChoice("IslandAppearance", new[]
+        island.AddChoice("IslandMaterialStyle", new[]
+        {
+            (IslandMaterialStyle.Acrylic, _strings.Get("IslandMaterialAcrylic")),
+            (IslandMaterialStyle.LiquidGlass, _strings.Get("IslandMaterialLiquidGlass")),
+        }, s => s.IslandAppearance.MaterialStyle,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { MaterialStyle = v } });
+        var glassSettings = new SettingsForm(editor, _strings);
+        glassSettings.AddSlider("IslandGlassBlur", 0, 30, 1, s => s.IslandAppearance.LiquidGlassBlur,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassBlur = v } }, v => v.ToString("0", _strings.Culture));
+        glassSettings.AddSlider("IslandGlassRefraction", 0, 400, 10, s => s.IslandAppearance.LiquidGlassRefraction,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassRefraction = v } }, v => v.ToString("0", _strings.Culture) + "%");
+        glassSettings.AddSlider("IslandGlassRefractionWidth", 50, 300, 10, s => s.IslandAppearance.LiquidGlassRefractionWidth,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassRefractionWidth = v } }, v => v.ToString("0", _strings.Culture) + "%");
+        glassSettings.AddSlider("IslandGlassDispersion", 0, 100, 5, s => s.IslandAppearance.LiquidGlassDispersion,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassDispersion = v } }, v => v.ToString("0", _strings.Culture));
+        glassSettings.AddSlider("IslandGlassDarkOverlay", 0, 200, 10, s => s.IslandAppearance.LiquidGlassDarkOverlay,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassDarkOverlay = v } }, v => v.ToString("0", _strings.Culture) + "%");
+        glassSettings.AddToggle("IslandGlassBlackGradient", s => s.IslandAppearance.LiquidGlassBlackGradient,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassBlackGradient = v } });
+        glassSettings.AddChoice("IslandGlassRefreshRate", new[]
+        {
+            (IslandGlassRefreshRate.Standard, _strings.Get("IslandGlassRefreshStandard")),
+            (IslandGlassRefreshRate.High, _strings.Get("IslandGlassRefreshHigh")),
+            (IslandGlassRefreshRate.VeryHigh, _strings.Get("IslandGlassRefreshVeryHigh")),
+            (IslandGlassRefreshRate.Ultra, _strings.Get("IslandGlassRefreshUltra")),
+        }, s => s.IslandAppearance.LiquidGlassRefreshRate,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassRefreshRate = v } });
+        island.AddConditionalContent(glassSettings, s => s.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass);
+        island.AddChoice<ThemePreference>("IslandAppearance", s => s.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass
+            ? new[] { (s.IslandAppearance.Theme, _strings.Get("IslandAppearanceLiquidGlass")) }
+            : new[]
         {
             (ThemePreference.System, _strings.Get("IslandAppearanceFollow")),
             (ThemePreference.Light, _strings.Get("IslandAppearanceLight")),
             (ThemePreference.Dark, _strings.Get("IslandAppearanceDark")),
         }, s => s.IslandAppearance.Theme,
-            (s, v) => s with { IslandAppearance = s.IslandAppearance with { Theme = v } });
+            (s, v) => s.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass
+                ? s : s with { IslandAppearance = s.IslandAppearance with { Theme = v } });
         island.AddChoice("IslandContentPriority", new[]
         {
             (IslandContentPriority.Music, _strings.Get("IslandContentPriorityMusic")),
@@ -93,6 +124,9 @@ public sealed partial class MainPage
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { ShowLogoWhenIdle = v } });
         island.AddToggle("IslandResident", s => s.IslandAppearance.Resident,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { Resident = v } });
+        island.AddToggle("IslandHideWhileMusicWindowVisible",
+            s => s.IslandAppearance.HideWhileMusicWindowVisible,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { HideWhileMusicWindowVisible = v } });
         var forceFullscreen = island.AddToggle("IslandForceShowOverFullscreen",
             s => s.IslandAppearance.ForceShowOverFullscreen,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { ForceShowOverFullscreen = v } });

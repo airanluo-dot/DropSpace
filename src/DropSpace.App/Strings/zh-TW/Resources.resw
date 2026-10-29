@@ -912,7 +912,7 @@
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>閒置時顯示標誌</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB（已停用）</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌詞翻譯目標</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>歌詞譯文可獨立選擇簡體中文或 English，不受介面語言影響。</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>中文介面預設翻譯為中文，其他介面語言預設翻譯為英文。手動選擇後，會獨立保留你的翻譯語言。</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>已啟用</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>已停用</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>啟用</value></data>
@@ -1023,8 +1023,8 @@
   <data name="AgentNameRequired" xml:space="preserve"><value>請輸入此 Agent 的名稱。</value></data>
   <data name="AgentConfirmTitle" xml:space="preserve"><value>允許 Agent 執行此操作？</value></data>
   <data name="AgentConfirmAllow" xml:space="preserve"><value>允許此操作</value></data>
-  <data name="MusicWindowOpen" xml:space="preserve"><value>開啟音樂視窗</value></data>
-  <data name="MusicWindowTitle" xml:space="preserve"><value>音樂</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>音樂視窗</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>音樂視窗</value></data>
   <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>開啟音樂視窗</value></data>
   <data name="ShortcutUnassigned" xml:space="preserve"><value>未設定</value></data>
   <data name="HotkeyClearBinding" xml:space="preserve"><value>清除快捷鍵</value></data>
@@ -1038,4 +1038,25 @@
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>系統音量</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>系統音量目前無法使用。</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>取消選取</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>靈動島材質</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>壓克力</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>液態玻璃</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>液態玻璃背景模糊</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>液態玻璃折射強度 (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>液態玻璃色散強度</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>液態玻璃深色遮罩 (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>墨染玻璃</value></data>
+  <data name="IslandAppearanceLiquidGlass" xml:space="preserve"><value>液態玻璃材質</value></data>
+  <data name="IslandGlassRefreshRate" xml:space="preserve"><value>液態玻璃更新率</value></data>
+  <data name="IslandGlassRefreshStandard" xml:space="preserve"><value>標準（30 FPS）</value></data>
+  <data name="IslandGlassRefreshHigh" xml:space="preserve"><value>高（60 FPS）</value></data>
+  <data name="IslandGlassRefreshVeryHigh" xml:space="preserve"><value>極高（120 FPS）</value></data>
+  <data name="IslandGlassRefreshUltra" xml:space="preserve"><value>Ultra（跟隨螢幕）</value></data>
+  <data name="IslandGlassRefractionWidth" xml:space="preserve"><value>液態玻璃展開折射寬度 (%)</value></data>
+  <data name="WidgetMusicWindow.Text" xml:space="preserve">
+    <value>音樂視窗</value>
+  </data>
+  <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
+    <value>音樂視窗顯示時隱藏靈動島</value>
+  </data>
 </root>

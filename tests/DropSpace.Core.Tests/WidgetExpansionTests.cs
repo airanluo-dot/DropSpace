@@ -4,9 +4,9 @@ namespace DropSpace.Core.Tests;
 public sealed class WidgetExpansionTests
 {
     [TestMethod]
-    public void CatalogHasSixteenWidgetsWithoutChangingExistingIds()
+    public void CatalogHasSeventeenWidgetsWithoutChangingExistingIds()
     {
-        Assert.AreEqual(16, Enum.GetValues<NativeWidgetId>().Length);
+        Assert.AreEqual(17, Enum.GetValues<NativeWidgetId>().Length);
         Assert.AreEqual(0, (int)Enum.Parse<NativeWidgetId>("Clock"));
         Assert.AreEqual(7, (int)Enum.Parse<NativeWidgetId>("ClipboardPause"));
         foreach (var id in Enum.GetValues<NativeWidgetId>())

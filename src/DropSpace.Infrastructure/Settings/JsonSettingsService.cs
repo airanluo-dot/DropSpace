@@ -313,20 +313,23 @@ public sealed class JsonSettingsService : ISettingsService
         var language = Enum.IsDefined(settings.Language) ? settings.Language : AppLanguagePreference.System;
         var hasTarget = root.ValueKind == JsonValueKind.Object && root.EnumerateObject().Any(property =>
             property.Name.Equals(nameof(AppSettings.LyricsTranslationTarget), StringComparison.OrdinalIgnoreCase));
+        var hasExplicit = root.ValueKind == JsonValueKind.Object && root.EnumerateObject().Any(property =>
+            property.Name.Equals(nameof(AppSettings.LyricsTranslationTargetExplicit), StringComparison.OrdinalIgnoreCase));
         // This is a one-time top-level settings migration. It does not rewrite Lyrics settings,
         // caches, or the lyric pipeline, and runs before the new interface language is applied.
         var target = hasTarget && Enum.IsDefined(settings.LyricsTranslationTarget)
             ? settings.LyricsTranslationTarget
-            : LyricsTranslationTargetPolicy.FromLegacyInterface(language, CultureInfo.CurrentUICulture.Name);
-        return settings.Language == language && hasTarget && settings.LyricsTranslationTarget == target
-            ? settings : settings with { Language = language, LyricsTranslationTarget = target };
+            : LyricsTranslationTargetPolicy.DefaultForInterface(language, [CultureInfo.CurrentUICulture.Name]);
+        // Existing saved targets may be intentional. Never silently replace them on upgrade.
+        var explicitTarget = hasExplicit ? settings.LyricsTranslationTargetExplicit : hasTarget && Enum.IsDefined(settings.LyricsTranslationTarget);
+        return settings with { Language = language, LyricsTranslationTarget = target, LyricsTranslationTargetExplicit = explicitTarget };
     }
 
     private AppSettings CreateDefaults() => new()
     {
         UpdateChannel = _freshUpdateChannel,
-        LyricsTranslationTarget = LyricsTranslationTargetPolicy.FromLegacyInterface(
-            AppLanguagePreference.System, CultureInfo.CurrentUICulture.Name),
+        LyricsTranslationTarget = LyricsTranslationTargetPolicy.DefaultForInterface(
+            AppLanguagePreference.System, [CultureInfo.CurrentUICulture.Name]),
     };
 
     private string QuarantineSettingsFile()

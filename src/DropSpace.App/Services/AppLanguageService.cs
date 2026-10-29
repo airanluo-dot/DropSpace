@@ -24,12 +24,14 @@ public sealed class AppLanguageService
         var previousLanguageTag = EffectiveLanguageTag;
         Preference = Enum.IsDefined(preference) ? preference : AppLanguagePreference.System;
         // Explicit resource contexts also work for the portable, unpackaged app.
-        IReadOnlyList<string> languages;
-        try { languages = Windows.System.UserProfile.GlobalizationPreferences.Languages; }
-        catch (Exception) { languages = [CultureInfo.CurrentUICulture.Name]; }
-        EffectiveLanguageTag = AppLanguagePolicy.ResolveEffectiveLanguageTag(Preference, languages);
+        EffectiveLanguageTag = AppLanguagePolicy.ResolveEffectiveLanguageTag(Preference, GetSystemLanguages());
         if (!string.Equals(previousLanguageTag, EffectiveLanguageTag, StringComparison.Ordinal))
             Changed?.Invoke(this, EventArgs.Empty);
+    }
+    internal static IReadOnlyList<string> GetSystemLanguages()
+    {
+        try { return Windows.System.UserProfile.GlobalizationPreferences.Languages; }
+        catch (Exception) { return [CultureInfo.CurrentUICulture.Name]; }
     }
 
     public static bool TryParseSupportedLanguage(string? value, out AppLanguagePreference preference)
