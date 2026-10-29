@@ -784,10 +784,10 @@ Se descargará un modelo en este equipo. La conexión a Internet solo se utiliza
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcDescription" xml:space="preserve"><value>Administre modelos opcionales, tiempos de ejecución y componentes de funciones. Las descargas comienzan solo cuando las eliges.</value></data>
   <data name="DlcManage" xml:space="preserve"><value>Administrar descargas en DLC</value></data>
-  <data name="DlcInstalled" xml:space="preserve"><value>Descargado</value></data>
-  <data name="DlcAvailable" xml:space="preserve"><value>No descargado</value></data>
-  <data name="DlcEmptyInstalled" xml:space="preserve"><value>No hay componentes descargados.</value></data>
-  <data name="DlcEmptyAvailable" xml:space="preserve"><value>Se descargan todos los componentes disponibles.</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>Instalados</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>No instalados</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>No hay componentes instalados.</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>Todos los componentes disponibles están instalados.</value></data>
   <data name="DlcRefresh" xml:space="preserve"><value>Actualizar componentes instalados</value></data>
   <data name="DlcModelPurpose" xml:space="preserve"><value>Traducción de letras sin conexión IA.</value></data>
   <data name="DlcLargeModelPurpose" xml:space="preserve"><value>Modelo más grande opcional para traducción de letras IA sin conexión.</value></data>
@@ -802,7 +802,7 @@ Se descargará un modelo en este equipo. La conexión a Internet solo se utiliza
   <data name="DlcRetry" xml:space="preserve"><value>Reintentar</value></data>
   <data name="DlcCancel" xml:space="preserve"><value>Cancelar descarga</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>Comprobando componentes locales...</value></data>
-  <data name="DlcNotInstalled" xml:space="preserve"><value>No descargado</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>No instalado</value></data>
   <data name="DlcReady" xml:space="preserve"><value>Instalado</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>Descarga incompleta. Reanudar o eliminar archivos descargados.</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>Descargando…</value></data>
@@ -1058,4 +1058,12 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
     <value>Ocultar la isla mientras la ventana de música esté visible</value>
   </data>
+  <data name="IslandAppearanceClearGlass" xml:space="preserve"><value>Vidrio ultratransparente</value></data>
+  <data name="NeteaseEnhancementEntryDescription" xml:space="preserve"><value>Completa los controles y el progreso de reproducción de NetEase. Sin la extensión, algunas funciones pueden no estar disponibles.</value></data>
+  <data name="NeteaseInstalledVersion" xml:space="preserve"><value>Instalado: InfLink-rs {0}</value></data>
+  <data name="NeteaseUpdateAvailable" xml:space="preserve"><value>Nueva versión: {0}</value></data>
+  <data name="NeteaseUpdateChecking" xml:space="preserve"><value>Buscando actualizaciones…</value></data>
+  <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>Está actualizado</value></data>
+  <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>No se pudo comprobar. Inténtalo más tarde.</value></data>
+  <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Instalar actualización</value></data>
 </root>

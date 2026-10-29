@@ -45,8 +45,6 @@ public sealed class MusicPage : UserControl
         HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center,
         Margin = new Thickness(28, 24, 28, 24),
     };
-    private readonly NeteaseEnhancementViewModel _enhancement;
-    private readonly NeteaseEnhancementCard _enhancementCard;
     private CancellationTokenSource? _iconStop;
     private Task _iconJob = Task.CompletedTask;
     private string _sourcesKey = string.Empty;
@@ -58,10 +56,10 @@ public sealed class MusicPage : UserControl
     private int _lastCenteredLyric = -1;
     public MusicPage(NativeSettingsEditor editor, MediaViewModel media, WindowsMediaSessionService sessions,
         MediaExperienceService experience, MediaApplicationIconService icons, IAppStringLocalizer strings, nint windowHandle,
-        NeteaseEnhancementViewModel enhancement, Services.Dlc.DlcManagerService dlc, Action openDlc, Action? openMusicWindow = null)
+        Services.Dlc.DlcManagerService dlc, Action openDlc, Action? openMusicWindow = null)
     {
         _editor = editor; _media = media; _sessions = sessions; _icons = icons; _strings = strings;
-        _enhancement = enhancement; _experience = experience;
+        _experience = experience;
         _lyricRowCache = new(MaximumDisplayedLyricsLines, CreateLyricRow, UpdateLyricRow);
         _nowPlaying = new MediaExpandedView { ViewModel = media, MinHeight = 280, Height = 380 };
         _nowPlaying.SetActive(false);
@@ -116,8 +114,6 @@ public sealed class MusicPage : UserControl
         playbackSurface.Children.Add(_nowPlaying); playbackSurface.Children.Add(_emptyPlayback);
         playback.Children.Add(playbackSurface);
         _body.Children.Add(CreateCard(playback, new Thickness(0)));
-        _enhancementCard = new NeteaseEnhancementCard(enhancement, strings);
-        _body.Children.Add(_enhancementCard);
         _lyricsScroll = new ScrollViewer
         {
             Content = _lyricsRows,
@@ -211,6 +207,15 @@ public sealed class MusicPage : UserControl
         form.AddToggle("MusicAllApplications", s => !s.IslandActivity.UseMediaSourceAllowList && s.IslandActivity.AllowedMediaSourceAppIds.Length == 0,
             (s,v) => s with { IslandActivity = s.IslandActivity with { UseMediaSourceAllowList = !v, AllowedMediaSourceAppIds = v ? [] : sessions.AvailableSources.ToArray() } });
         form.Rows.Children.Add(_applications);
+        var enhancementEntry = new Button
+        {
+            Content = new TextBlock { Text = strings.Get("DlcManage"), TextWrapping = TextWrapping.Wrap },
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        AutomationProperties.SetAutomationId(enhancementEntry, "NeteaseEnhancementOpenDlc");
+        AutomationProperties.SetName(enhancementEntry, strings.Get("NeteaseEnhancementTitle") + " · " + strings.Get("DlcManage"));
+        enhancementEntry.Click += (_, _) => openDlc();
+        form.AddRow("NeteaseEnhancementTitle", enhancementEntry, "NeteaseEnhancementEntryDescription");
         var scroll = new ScrollViewer { Content = _body, Padding = new(24), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         scroll.SizeChanged += (_, _) => _body.Width = Math.Clamp(scroll.ActualWidth - 48, 0, 780);
         IsTabStop = true;
@@ -228,9 +233,7 @@ public sealed class MusicPage : UserControl
         _restartStatus.Text = string.Empty;
         _editor.PropertyChanged += OnSettings;
         _media.PropertyChanged += OnMedia;
-        _enhancement.PropertyChanged += OnEnhancement;
         RequestRefresh();
-        UpdateEnhancementPlacement();
     }
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
@@ -242,7 +245,6 @@ public sealed class MusicPage : UserControl
         _ = ObserveIconShutdownAsync(_restartWait, pageStop);
         _editor.PropertyChanged -= OnSettings;
         _media.PropertyChanged -= OnMedia;
-        _enhancement.PropertyChanged -= OnEnhancement;
         var stop = Interlocked.Exchange(ref _iconStop, null);
         stop?.Cancel();
         var job = _iconJob;
@@ -264,9 +266,6 @@ public sealed class MusicPage : UserControl
         try
         {
             await _experience.RestartAsync(token);
-            // External component changes must not remain cached for the whole app
-            // lifetime. This reads local installation state without starting deployment.
-            if (!_enhancement.IsBusy) await _enhancement.InspectAsync().WaitAsync(token);
             if (IsCurrentPage(generation)) _restartStatus.Text = _strings.Get("MusicReconnected");
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -285,7 +284,6 @@ public sealed class MusicPage : UserControl
         generation == _pageGeneration && _pageStop is { IsCancellationRequested: false };
 
     private void OnSettings(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) RequestRefresh(); }
-    private void OnEnhancement(object? sender, PropertyChangedEventArgs args) => UpdateEnhancementPlacement();
     private void OnMedia(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName is nameof(MediaViewModel.Session) or nameof(MediaViewModel.LyricsLines) or
@@ -361,18 +359,6 @@ public sealed class MusicPage : UserControl
         if (sources.Length == 0) _applications.Children.Add(new TextBlock { Text = _strings.Get("MusicApplicationsEmpty"), TextWrapping = TextWrapping.Wrap });
         var previous = _iconJob; var oldStop = _iconStop; _iconStop = new();
         _iconJob = LoadIconsAsync(previous, oldStop, images, _iconStop.Token);
-    }
-
-    private void UpdateEnhancementPlacement()
-    {
-        var current = _body.Children.IndexOf(_enhancementCard);
-        var remainingCount = _body.Children.Count - (current >= 0 ? 1 : 0);
-        var target = _enhancement.IsEnhanced ? remainingCount : Math.Min(1, remainingCount);
-        // Unchanged placement must retain Loaded ownership and its passive inspection.
-        if (current == target) return;
-        if (current >= 0) _body.Children.RemoveAt(current);
-        if (_enhancement.IsEnhanced) _body.Children.Add(_enhancementCard);
-        else _body.Children.Insert(Math.Min(1, _body.Children.Count), _enhancementCard);
     }
 
     private static void OnLyricsPointerWheelChanged(object sender, PointerRoutedEventArgs args) =>

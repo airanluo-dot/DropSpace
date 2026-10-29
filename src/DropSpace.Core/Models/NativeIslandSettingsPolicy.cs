@@ -57,7 +57,7 @@ public static class NativeIslandSettingsPolicy
             {
                 MaterialStyle = Enum.IsDefined(appearance.MaterialStyle) ? appearance.MaterialStyle : IslandMaterialStyle.LiquidGlass,
                 LiquidGlassRefreshRate = Enum.IsDefined(appearance.LiquidGlassRefreshRate) ? appearance.LiquidGlassRefreshRate : IslandGlassRefreshRate.Standard,
-                LiquidGlassBlur = NormalizeGlass(appearance.LiquidGlassBlur, 30, 1),
+                LiquidGlassBlur = NormalizeGlass(appearance.LiquidGlassBlur, 30, 2),
                 LiquidGlassRefraction = NormalizeGlass(appearance.LiquidGlassRefraction, 400, 100),
                 LiquidGlassRefractionWidth = NormalizeGlass(appearance.LiquidGlassRefractionWidth, 300, 200, 50),
                 LiquidGlassDispersion = NormalizeGlass(appearance.LiquidGlassDispersion, 100, 75),

@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using DropSpace.App.ViewModels;
+using DropSpace.App.Services.Dlc;
+using DropSpace.Core.Models;
 using DropSpace.Core.Abstractions;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -13,33 +15,54 @@ public sealed class NeteaseEnhancementCard : UserControl
 {
     private readonly NeteaseEnhancementViewModel _view;
     private readonly IAppStringLocalizer _strings;
+    private readonly DlcManagerService? _dlc;
+    private readonly TextBlock _size = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _error = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _version = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
+    private readonly TextBlock _updateStatus = new() { TextWrapping = TextWrapping.Wrap };
     private readonly ProgressBar _progress = new() { IsIndeterminate = true };
-    private readonly Button _install, _update, _reinstall, _remove;
+    private readonly Button _install, _update, _reinstall, _remove, _cancel;
     private bool _dialogOpen;
     private bool _initialInspectionStarted;
     private CancellationTokenSource? _lifetime;
     private int _generation;
     private Task _confirmation = Task.CompletedTask;
     private string _localError = string.Empty;
+    private bool _actionsInitialized;
 
-    public NeteaseEnhancementCard(NeteaseEnhancementViewModel view, IAppStringLocalizer strings)
+    public NeteaseEnhancementCard(NeteaseEnhancementViewModel view, IAppStringLocalizer strings, DlcManagerService? dlc = null, bool inspectOnLoad = true)
     {
-        _view = view; _strings = strings;
-        var content = new StackPanel { Spacing = 10 };
+        _view = view; _strings = strings; _dlc = dlc;
+        _initialInspectionStarted = !inspectOnLoad;
+        var content = new StackPanel { Spacing = 12 };
         content.Children.Add(new TextBlock { Text = strings.Get("NeteaseEnhancementTitle"), FontSize = 18,
             FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(new TextBlock { Text = strings.Get("NeteaseEnhancementDescription"),
+            TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
+        content.Children.Add(_size);
+        content.Children.Add(_version);
+        content.Children.Add(_updateStatus);
+        _status.FontWeight = FontWeights.SemiBold;
         AutomationProperties.SetLiveSetting(_status, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        AutomationProperties.SetLiveSetting(_error, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Assertive);
+        AutomationProperties.SetAutomationId(this, "NeteaseEnhancementCard");
+        AutomationProperties.SetAutomationId(_status, "NeteaseEnhancementStatus");
+        AutomationProperties.SetAutomationId(_progress, "NeteaseEnhancementProgress");
+        AutomationProperties.SetName(_progress, strings.Format("DlcPackageProgress", strings.Get("NeteaseEnhancementTitle")));
         content.Children.Add(_status); content.Children.Add(_error); content.Children.Add(_progress);
         _install = MakeButton("NeteaseEnhancementInstall", Install);
         _update = MakeButton("NeteaseEnhancementUpdate", Update);
         _reinstall = MakeButton("NeteaseEnhancementReinstall", Reinstall);
         _remove = MakeButton("NeteaseEnhancementRemove", Remove);
-        // Vertical buttons retain readable labels at the minimum window width and large text sizes.
+        _cancel = MakeButton("DlcCancel", (_, _) => _view.Cancel());
         var actions = new StackPanel { Spacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
+        content.SizeChanged += (_, _) => actions.Orientation = content.ActualWidth >= 620
+            ? Orientation.Horizontal : Orientation.Vertical;
         actions.Children.Add(_install); actions.Children.Add(_update); actions.Children.Add(_reinstall); actions.Children.Add(_remove);
         content.Children.Add(actions);
+        _cancel.HorizontalAlignment = HorizontalAlignment.Left;
+        content.Children.Add(_cancel);
         Content = new Border { Padding = new Thickness(16), CornerRadius = new CornerRadius(8),
             Style = (Style)Application.Current.Resources["DropSpaceCardStyle"],
             BorderThickness = new Thickness(1), Child = content };
@@ -49,8 +72,9 @@ public sealed class NeteaseEnhancementCard : UserControl
 
     private Button MakeButton(string key, RoutedEventHandler action)
     {
-        var button = new Button { Content = _strings.Get(key) };
+        var button = new Button { Content = new TextBlock { Text = _strings.Get(key), TextWrapping = TextWrapping.Wrap }, MaxWidth = 196 };
         AutomationProperties.SetName(button, _strings.Get(key));
+        AutomationProperties.SetAutomationId(button, key);
         button.Click += action;
         return button;
     }
@@ -61,9 +85,9 @@ public sealed class NeteaseEnhancementCard : UserControl
         _lifetime = new CancellationTokenSource();
         ++_generation;
         _view.PropertyChanged += Changed;
+        if (_dlc is not null) _dlc.Changed += InventoryChanged;
         Refresh();
-        // Moving this card when its installation status changes raises Loaded again.
-        // Only its first load inspects; the Music refresh action explicitly reinspects.
+        // Only the first load inspects. Approved operations survive navigation.
         if (_initialInspectionStarted) return;
         _initialInspectionStarted = true;
         await RunAsync(_view.InspectAsync);
@@ -71,6 +95,7 @@ public sealed class NeteaseEnhancementCard : UserControl
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         _view.PropertyChanged -= Changed;
+        if (_dlc is not null) _dlc.Changed -= InventoryChanged;
         var lifetime = _lifetime;
         _lifetime = null;
         ++_generation;
@@ -85,19 +110,27 @@ public sealed class NeteaseEnhancementCard : UserControl
         finally { lifetime?.Dispose(); }
     }
     private bool IsCurrent(int generation) => generation == _generation && _lifetime is { IsCancellationRequested: false };
+    private void InventoryChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (_lifetime is not null) Refresh();
+    });
     private void Changed(object? sender, PropertyChangedEventArgs args) { if (_lifetime is not null) Refresh(); }
     private async void Install(object sender, RoutedEventArgs args) => await StartConfirmationAsync(false);
     private async void Reinstall(object sender, RoutedEventArgs args) => await StartConfirmationAsync(true);
-    private async void Update(object sender, RoutedEventArgs args) => await RunAsync(() => _view.EnhanceAsync());
-    private async void Remove(object sender, RoutedEventArgs args) => await RunAsync(_view.RemoveAsync);
+    private async void Update(object sender, RoutedEventArgs args)
+    {
+        if (_view.HasUpdate) await StartConfirmationAsync(false);
+        else await _view.CheckUpdateAsync();
+    }
+    private async void Remove(object sender, RoutedEventArgs args) => await StartConfirmationAsync(false, remove: true);
 
-    private Task StartConfirmationAsync(bool reinstall)
+    private Task StartConfirmationAsync(bool reinstall, bool remove = false)
     {
         if (_dialogOpen || _view.IsBusy || _lifetime is null) return Task.CompletedTask;
-        return _confirmation = ConfirmInstallAsync(reinstall);
+        return _confirmation = ConfirmInstallAsync(reinstall, remove);
     }
 
-    private async Task ConfirmInstallAsync(bool reinstall)
+    private async Task ConfirmInstallAsync(bool reinstall, bool remove)
     {
         if (_dialogOpen || _view.IsBusy || _lifetime is null) return;
         var generation = _generation;
@@ -108,14 +141,18 @@ public sealed class NeteaseEnhancementCard : UserControl
             var dialog = new ContentDialog
             {
                 XamlRoot = XamlRoot,
-                Title = _strings.Get("NeteaseEnhancementConfirmTitle"),
-                Content = new TextBlock { Text = _strings.Get("NeteaseEnhancementConfirmBody"), TextWrapping = TextWrapping.Wrap },
+                Title = _strings.Get(remove ? "NeteaseEnhancementRemove" : "NeteaseEnhancementConfirmTitle"),
+                Content = new TextBlock { Text = _strings.Get(remove ? "DlcNeteaseRemoveNotice" : "NeteaseEnhancementConfirmBody"), TextWrapping = TextWrapping.Wrap },
                 CloseButtonText = _strings.Get("NeteaseEnhancementCancel"),
-                PrimaryButtonText = _strings.Get("NeteaseEnhancementConfirm"),
+                PrimaryButtonText = _strings.Get(remove ? "NeteaseEnhancementRemove" : "NeteaseEnhancementConfirm"),
                 DefaultButton = ContentDialogButton.Close,
             };
             if (await ContentDialogLifetime.ShowAsync(dialog, token) == ContentDialogResult.Primary && IsCurrent(generation))
-                await _view.EnhanceAsync(reinstall); // Do not cancel an already approved deployment on navigation.
+            {
+                // Do not cancel an already approved deployment on navigation.
+                if (remove) await _view.RemoveAsync();
+                else await _view.EnhanceAsync(reinstall);
+            }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception exception) when (exception is not OutOfMemoryException) { if (IsCurrent(generation)) ShowError(exception); }
@@ -139,13 +176,31 @@ public sealed class NeteaseEnhancementCard : UserControl
     }
     private void Refresh()
     {
+        _version.Text = _view.InstalledVersion;
+        _version.Visibility = string.IsNullOrEmpty(_version.Text) ? Visibility.Collapsed : Visibility.Visible;
+        _updateStatus.Text = _view.UpdateStatus;
+        _updateStatus.Visibility = string.IsNullOrEmpty(_updateStatus.Text) ? Visibility.Collapsed : Visibility.Visible;
+        ((TextBlock)_update.Content).Text = _strings.Get(_view.HasUpdate ? "NeteaseUpdateInstall" : "NeteaseEnhancementUpdate");
+        AutomationProperties.SetName(_update, ((TextBlock)_update.Content).Text);
+        var inventory = _dlc?.Packages.FirstOrDefault(item => item.Package.Id == "netease-music-enhancement");
+        _size.Visibility = inventory is null ? Visibility.Collapsed : Visibility.Visible;
+        _size.Text = _strings.Format("DlcInstalledSize", inventory?.Installation?.InstalledBytes is { } bytes
+            ? AppUiMessage.Bytes(bytes).Render(_strings) : _strings.Get("StorageUnavailable"));
         _status.Text = _view.Status; _error.Text = string.IsNullOrEmpty(_localError) ? _view.Error : _localError;
         _error.Visibility = string.IsNullOrEmpty(_error.Text) ? Visibility.Collapsed : Visibility.Visible;
         _progress.Visibility = _view.IsBusy ? Visibility.Visible : Visibility.Collapsed;
-        _install.Visibility = !_view.IsEnhanced && !_view.IsManaged ? Visibility.Visible : Visibility.Collapsed;
-        _update.Visibility = _view.IsManaged ? Visibility.Visible : Visibility.Collapsed;
-        _reinstall.Visibility = _view.IsManaged ? Visibility.Visible : Visibility.Collapsed;
-        _remove.Visibility = _view.IsManaged ? Visibility.Visible : Visibility.Collapsed;
+        _cancel.Visibility = _view.IsCancelableOperation ? Visibility.Visible : Visibility.Collapsed;
+        _cancel.IsEnabled = _view.CanCancel;
+        // Keep the action row stable during transitions; both cards disable it immediately.
+        if (!_view.IsBusy || !_actionsInitialized)
+        {
+            _install.Visibility = !_view.IsEnhanced && !_view.IsManaged ? Visibility.Visible : Visibility.Collapsed;
+            _update.Visibility = _view.IsManaged ? Visibility.Visible : Visibility.Collapsed;
+            _reinstall.Visibility = _view.IsManaged ? Visibility.Visible : Visibility.Collapsed;
+            _remove.Visibility = _view.IsManaged ? Visibility.Visible : Visibility.Collapsed;
+            _actionsInitialized = true;
+        }
         foreach (var button in new[] { _install, _update, _reinstall, _remove }) button.IsEnabled = !_view.IsBusy && !_dialogOpen;
+        _update.IsEnabled &= !_view.IsCheckingUpdate;
     }
 }

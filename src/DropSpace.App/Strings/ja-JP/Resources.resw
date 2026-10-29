@@ -784,10 +784,10 @@
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcDescription" xml:space="preserve"><value>オプションのモデル、ランタイム、機能コンポーネントを管理します。ダウンロードは、選択した場合にのみ開始されます。</value></data>
   <data name="DlcManage" xml:space="preserve"><value>DLC でダウンロードを管理する</value></data>
-  <data name="DlcInstalled" xml:space="preserve"><value>ダウンロード済み</value></data>
-  <data name="DlcAvailable" xml:space="preserve"><value>ダウンロードされていません</value></data>
-  <data name="DlcEmptyInstalled" xml:space="preserve"><value>ダウンロードされたコンポーネントはありません。</value></data>
-  <data name="DlcEmptyAvailable" xml:space="preserve"><value>利用可能なコンポーネントはすべてダウンロード済みです。</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>インストール済み</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>未インストール</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>インストール済みのコンポーネントはありません。</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>利用可能なコンポーネントはすべてインストール済みです。</value></data>
   <data name="DlcRefresh" xml:space="preserve"><value>インストール済みコンポーネントの状態を再確認</value></data>
   <data name="DlcModelPurpose" xml:space="preserve"><value>オフラインでの AI 歌詞翻訳。</value></data>
   <data name="DlcLargeModelPurpose" xml:space="preserve"><value>オフライン AI 歌詞翻訳用のオプションの大型モデル。</value></data>
@@ -802,7 +802,7 @@
   <data name="DlcRetry" xml:space="preserve"><value>再試行</value></data>
   <data name="DlcCancel" xml:space="preserve"><value>ダウンロードをキャンセルする</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>ローカルコンポーネントを確認しています…</value></data>
-  <data name="DlcNotInstalled" xml:space="preserve"><value>ダウンロードされていません</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>未インストール</value></data>
   <data name="DlcReady" xml:space="preserve"><value>インストール済み</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>ダウンロードが不完全です。ダウンロードしたファイルを再開または削除します。</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>ダウンロード中…</value></data>
@@ -1058,4 +1058,12 @@
   <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
     <value>音楽ウィンドウの表示中はアイランドを隠す</value>
   </data>
+  <data name="IslandAppearanceClearGlass" xml:space="preserve"><value>高透明ガラス</value></data>
+  <data name="NeteaseEnhancementEntryDescription" xml:space="preserve"><value>NetEase の再生操作と再生位置表示を補完します。未導入の場合、一部の操作や位置表示が利用できないことがあります。</value></data>
+  <data name="NeteaseInstalledVersion" xml:space="preserve"><value>インストール済み：InfLink-rs {0}</value></data>
+  <data name="NeteaseUpdateAvailable" xml:space="preserve"><value>更新あり：{0}</value></data>
+  <data name="NeteaseUpdateChecking" xml:space="preserve"><value>更新を確認中…</value></data>
+  <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>最新バージョンです</value></data>
+  <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>確認できませんでした。後でもう一度お試しください。</value></data>
+  <data name="NeteaseUpdateInstall" xml:space="preserve"><value>更新をインストール</value></data>
 </root>

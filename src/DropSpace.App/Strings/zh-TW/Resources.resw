@@ -784,10 +784,10 @@
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcDescription" xml:space="preserve"><value>管理選用模型、執行時間和功能元件。僅當您選擇它們時才會開始下載。</value></data>
   <data name="DlcManage" xml:space="preserve"><value>管理 DLC 中的下載</value></data>
-  <data name="DlcInstalled" xml:space="preserve"><value>已下載</value></data>
-  <data name="DlcAvailable" xml:space="preserve"><value>未下載</value></data>
-  <data name="DlcEmptyInstalled" xml:space="preserve"><value>沒有下載的元件。</value></data>
-  <data name="DlcEmptyAvailable" xml:space="preserve"><value>所有可用元件已下載。</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>已安裝</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>未安裝</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>尚無已安裝的元件。</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>所有可用元件皆已安裝。</value></data>
   <data name="DlcRefresh" xml:space="preserve"><value>重新整理已安裝的元件</value></data>
   <data name="DlcModelPurpose" xml:space="preserve"><value>離線AI歌詞翻譯。</value></data>
   <data name="DlcLargeModelPurpose" xml:space="preserve"><value>可選的較大模型用於離線 AI 歌詞翻譯。</value></data>
@@ -802,7 +802,7 @@
   <data name="DlcRetry" xml:space="preserve"><value>重試</value></data>
   <data name="DlcCancel" xml:space="preserve"><value>取消下載</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>檢查本機元件...</value></data>
-  <data name="DlcNotInstalled" xml:space="preserve"><value>未下載</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>尚未安裝</value></data>
   <data name="DlcReady" xml:space="preserve"><value>已安裝</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>下載不完整。還原或刪除下載的檔案。</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>正在下載...</value></data>
@@ -1058,4 +1058,12 @@
   <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
     <value>音樂視窗顯示時隱藏靈動島</value>
   </data>
+  <data name="IslandAppearanceClearGlass" xml:space="preserve"><value>超透玻璃</value></data>
+  <data name="NeteaseEnhancementEntryDescription" xml:space="preserve"><value>補齊網易雲的播放控制與進度支援；未安裝時，部分控制與進度可能無法使用。</value></data>
+  <data name="NeteaseInstalledVersion" xml:space="preserve"><value>已安裝：InfLink-rs {0}</value></data>
+  <data name="NeteaseUpdateAvailable" xml:space="preserve"><value>有新版本：{0}</value></data>
+  <data name="NeteaseUpdateChecking" xml:space="preserve"><value>正在檢查更新…</value></data>
+  <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>已是最新版本</value></data>
+  <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>暫時無法檢查，請稍後再試。</value></data>
+  <data name="NeteaseUpdateInstall" xml:space="preserve"><value>安裝更新</value></data>
 </root>

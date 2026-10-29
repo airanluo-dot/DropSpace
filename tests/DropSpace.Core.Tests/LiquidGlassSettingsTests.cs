@@ -15,7 +15,7 @@ public sealed class LiquidGlassSettingsTests
         var glass = settings.IslandAppearance;
         Assert.AreEqual(IslandMaterialStyle.LiquidGlass, glass.MaterialStyle);
         Assert.AreEqual(IslandGlassRefreshRate.Standard, glass.LiquidGlassRefreshRate);
-        Assert.AreEqual(1d, glass.LiquidGlassBlur); Assert.AreEqual(100d, glass.LiquidGlassRefraction);
+        Assert.AreEqual(2d, glass.LiquidGlassBlur); Assert.AreEqual(100d, glass.LiquidGlassRefraction);
         Assert.AreEqual(200d, glass.LiquidGlassRefractionWidth);
         Assert.AreEqual(75d, glass.LiquidGlassDispersion); Assert.AreEqual(0d, glass.LiquidGlassDarkOverlay);
         Assert.IsTrue(glass.LiquidGlassBlackGradient); Assert.IsTrue(glass.Resident);
@@ -47,7 +47,7 @@ public sealed class LiquidGlassSettingsTests
             LiquidGlassDispersion = -10, LiquidGlassDarkOverlay = 900, LiquidGlassRefractionWidth = double.NaN } }).Validate().IslandAppearance;
         Assert.AreEqual(IslandMaterialStyle.LiquidGlass, corrupt.MaterialStyle);
         Assert.AreEqual(IslandGlassRefreshRate.Standard, corrupt.LiquidGlassRefreshRate);
-        Assert.AreEqual(1d, corrupt.LiquidGlassBlur); Assert.AreEqual(100d, corrupt.LiquidGlassRefraction);
+        Assert.AreEqual(2d, corrupt.LiquidGlassBlur); Assert.AreEqual(100d, corrupt.LiquidGlassRefraction);
         Assert.AreEqual(0d, corrupt.LiquidGlassDispersion); Assert.AreEqual(200d, corrupt.LiquidGlassDarkOverlay);
         Assert.AreEqual(1.3, corrupt.ExpandedScale);
         Assert.AreEqual(200d, corrupt.LiquidGlassRefractionWidth);

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "status": "owner-authorized-beta-host-experimental-models",
-  "reason": "Bind the owner-requested Beta4 host release to liquid-glass capture and controls, Music Window widget and visibility policy, unset translation-target initialization, and interface naming/alignment. Preserve all existing model/runtime identities, prompt/admission contracts and historical experimental observations. No new inference, native stability resolution or semantic approval is claimed. The final packaged active-playback check found a duplicate restore-activation generation conflict; the coordinator now retains the in-flight dismissal generation for duplicate notifications. The owner additionally requested moving and renaming the global lyric target with no explanatory copy, and retaining higher-resolution source artwork through a bounded decode. Provider/AI target semantics and model execution are unchanged.",
+  "reason": "Owner-requested Beta5: NetEase enhancement UX/version checking and glass appearance/defaults. AI execution, model/runtime bytes and historical limitations are unchanged. Skip broad suites and model reruns; retain publication integrity checks.",
   "scope": {
-    "releaseVersion": "v1.1.0-beta.4",
+    "releaseVersion": "v1.1.0-beta.5",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -289,15 +289,15 @@
         },
         {
           "path": "src/DropSpace.App/Views/Settings/DlcPage.cs",
-          "sha256": "1a72f22e9abd1ac4c78716ac1d99b067bc2b4b5bc958ab497b29b89ce841a813"
+          "sha256": "9d82dda22522e9cacd3c85b61fc54fb5a43fc18a4c5e15691a4946099c9628bd"
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.Settings.cs",
-          "sha256": "d883ca1a7808d9a2e9404a9340d95342a24ea0227ef46e7204bcab7fbc1e8bc6"
+          "sha256": "8edb8b420e3b2ae24ad5dd3d635dbd8faca5dc4c4718dfb34e3300f1a1201c58"
         },
         {
           "path": "src/DropSpace.App/MainWindow.xaml.cs",
-          "sha256": "e48a02cc989c5ad78a889dd8bd1c56223f9343e9fca45422c25fa1f9cd4da62d"
+          "sha256": "f55574f5aee2a7660bef36056b0fe60a6d2e063bdd1dc5f7e680e48935052140"
         },
         {
           "path": "tools/cuda-lyrics-helper/CMakeLists.txt",
@@ -337,7 +337,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "3ceb0a30ec7689c23db911d411137a9d2b28c8599c67155d4bf661d023d2da8d"
+          "sha256": "3f3a53a6db6b7ac16d15df315bdd36a2aead4683a0abfed56ee37871919d0293"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -421,11 +421,11 @@
         },
         {
           "path": "src/DropSpace.Core/Models/NativeIslandSettings.cs",
-          "sha256": "186d9c28ae0a3bfd61f787cf3fa8a6ec8cc886b918d053f484902420d372be59"
+          "sha256": "cc74547be2b8a5a3c4bcd3017a62e6fc686db4f664c7d9bee4cb04dc15ea9328"
         },
         {
           "path": "src/DropSpace.Core/Models/NativeIslandSettingsPolicy.cs",
-          "sha256": "7a060baa3a34208cd2d8ff4f9e94eefb2ee9c8e9a4ea3734e1750c195eb475a0"
+          "sha256": "b44d2c8ceafeda6cb5fe67e1f0ca44500c1a2429a07b2d500d24ff06b80e5719"
         },
         {
           "path": "src/DropSpace.Core/Models/SettingsChangePolicy.cs",
@@ -669,7 +669,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
-          "sha256": "b9cb5c158a5e017248404cfc703cb338ae26797f87e86a5244ba2e940cb2133a"
+          "sha256": "9da575d3c4e9826fb1983940ce55f930adc87bb5755735e65fc27cfd281771c7"
         },
         {
           "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs",
@@ -681,7 +681,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
-          "sha256": "9da7183cb849a52b5218f704bb26b30d4a670b85fcbb4f567ce7e1e410284f73"
+          "sha256": "10775473fade16bfc2e3a0165081068f516e93dbcbb5a3db67a23dc407c0c16b"
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.Hotkeys.cs",
@@ -729,7 +729,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
-          "sha256": "84cce14822809d8856d2a527be242fa9c9b2d289a24a9ca7d7f44a72a557919b"
+          "sha256": "65062e51e0d8acf31a28a695ff1e377b4e0c5ac0b1be0fd8df3ad411ac01aab3"
         },
         {
           "path": "src/DropSpace.App/Views/Settings/SettingsEditBehavior.cs",
@@ -741,7 +741,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Settings/SettingsForm.cs",
-          "sha256": "59c00e476ac8f7410317a13cd18beb54fdd8084b9b42126185617f8e9ca88686"
+          "sha256": "449ef1eef969d7e485f76ff8184b20fb0083771b7bb59f3000d8009ac1006efd"
         },
         {
           "path": "src/DropSpace.App/Views/Music/LyricsRowCollection.cs",
@@ -801,7 +801,7 @@
         },
         {
           "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
-          "sha256": "bfcd2e123e98a71001b4ead1348f36bbb0f5b4749706bf9ecd07b3be9a60d9fa"
+          "sha256": "e1edb9a2578209047beba82468a85758e8517b615eec492b509aa5dec23dcabc"
         },
         {
           "path": "src/DropSpace.App/Services/AcrylicCoverageBackdropTarget.cs",
@@ -905,43 +905,43 @@
         },
         {
           "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
-          "sha256": "d86a7ca9ea91f577bf1a9b92188bf92f2ce604584c687ba42786effa5c8943bd"
+          "sha256": "58730606aa046670bbe9a169832b1f1bed80650923404140bb169fbdddab151c"
         },
         {
           "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
-          "sha256": "2e73eb98100c4db7d1b254b0f4029436d13dddc107977d9c3aa2ed1fd92962d0"
+          "sha256": "a6008a35186fa25dc69391172a7bd8ec47ab5e5ea7a7c00291c34ce31548ebba"
         },
         {
           "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
-          "sha256": "40eecc89cec14bdbcc47ae1a7437690116ae4bb63239f3490bdda95bf519d8a7"
+          "sha256": "9f0a0a56250ae7ff8c258f240a07a90843fd27735f97a7d7bcfa85f34933fe5f"
         },
         {
           "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
-          "sha256": "bd87230885607c5b7031fb463192769d17f2b6439bcb56aed65fe0fdecacea0b"
+          "sha256": "96ac11d9e12581c6456a772199d905d4d0fa5cdbfa549fae511e55126b987bf0"
         },
         {
           "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
-          "sha256": "3e2b48afdfc72bf1c0d79f847ceb09864e1a54c6f39f952ff3bff6e1b8f5fe26"
+          "sha256": "5c8bcd8a6b7065be1d18cfc1be4d9c084200a850f0868b0d426ff5d52d866773"
         },
         {
           "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
-          "sha256": "bc969d14c2eda545a6d8ab5f99f996b7a7559ca51a8116cbad7d1f525e088830"
+          "sha256": "021cb0dd5c527dcce9f4ae5d90bccc6bec15f36611ea5819d269fe70d0eebafc"
         },
         {
           "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
-          "sha256": "9bba9dbff6899b145bf8282a8ef07bbda89fd64a0e28f7d61aaa1105ee612334"
+          "sha256": "c7b4fbff4467361e9202c236ca329b1df8ee3087d0cad23927334b90c3092368"
         },
         {
           "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
-          "sha256": "6a2ad74cdaa2db00f2b43e10fab95f3847c985241f72a884dbf6f05ad13261b3"
+          "sha256": "c6130e150f00e9006ff243a9546bd7a2ffc7d0cced9950d4f00275ac46d7b8a3"
         },
         {
           "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
-          "sha256": "f226d124a1c62700df1e6762a19602d94da52a6196c65d5d497ffc8dd6789042"
+          "sha256": "db01f24e087a9f0b470c011168f7f69c9d41e614a2069a80bc318155825411fc"
         },
         {
           "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
-          "sha256": "09a7cbef5ca4cfeac28fac714f3207f4d98ead0e27798d3071626027e4cae6d8"
+          "sha256": "2427d00cb971714f648660d53ba87a8ba4a880c1fb18d53387df47965e064a3a"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs",
@@ -1344,7 +1344,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "a48dd3c7a477d91e1165561901933dfae523af75732791e86fbe75c6fc911def"
+      "sha256": "eda0294147e901be14e8ecaf7bd69878f9b9d7eddbade48968125b95d5f53761"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2787,7 +2787,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.4-host-review.json",
-    "sha256": "fdf8876e2077da3a28926adacd243514e8288ac5cbda950d68161c3f705c328a"
+    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.5-host-review.json",
+    "sha256": "baf72adbbbed8125e15d08f8faf69795cf912b3d001cf5829f440c6312102c91"
   }
 }

@@ -368,9 +368,11 @@ public sealed partial class OverlayWindow : Window
     {
         if (_closing) return;
         _materialController.SetAppearance(_mediaViewModel.Settings.IslandAppearance);
-        // Default retains WinUI's existing Windows app-appearance source, including
-        // Windows Custom mode; the main settings window keeps its own preference.
-        Root.RequestedTheme = preference switch
+        // Glass always needs the light foreground/control palette. Keep the saved
+        // Acrylic preference intact so switching back restores it. Default retains
+        // Windows app appearance; the main settings window keeps its own preference.
+        Root.RequestedTheme = _mediaViewModel.Settings.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass
+            ? ElementTheme.Dark : preference switch
         {
             ThemePreference.Light => ElementTheme.Light,
             ThemePreference.Dark => ElementTheme.Dark,

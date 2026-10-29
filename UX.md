@@ -17,8 +17,8 @@ The bundled offline language model adds no setup screen or first-use download.
 Music presents Now Playing and the bounded lyric viewport as separate Windows 11 card surfaces.
 The card boundary is the pointer-wheel safety boundary: page scrolling continues outside it and
 lyric scrolling is intentionally local inside it without also moving the page. The media source is playback metadata, not an
-unlabeled line between sections. Before enhancement, the NetEase card remains near Now Playing;
-after local installation is recognized, it moves below playback, lyric and application settings.
+unlabeled line between sections. Music keeps only a NetEase enhancement navigation entry at the
+bottom, after media application settings. Installation and management belong to Settings → DLC.
 
 Lyric loading is player-agnostic. Track and album artists are alternative credits, every online
 provider can recover from an overly narrow artist-qualified search with a bounded title-only
@@ -47,7 +47,11 @@ final target and holds it briefly until the player acknowledges it, preventing s
 
 ## NetEase enhancement card
 
-Music places a concise enhancement card below Now Playing. One confirmation names InfLink-rs,
+Settings → DLC owns the enhancement card and application-owned state, including install, update,
+reinstall and remove actions. It classifies the card under Installed or Not installed using verified
+package inventory, like other components. In-flight work retains its position; completed work is
+regrouped using the refreshed inventory. Music's bottom entry only navigates to DLC.
+One confirmation names InfLink-rs,
 independent third-party components, the player restart and brief playback-control verification.
 The operation survives navigation and reports detecting/preparing/installing/restarting/verifying
 states with an indeterminate progress indicator; no fabricated percentage. Only actual complete
@@ -379,3 +383,11 @@ Image cards prioritize resize, format conversion, and metadata removal when avai
 Windows visual, keyboard, high contrast, DPI, image codec, startup registration, and two-device acceptance are still required before claiming this update verified on Windows.
 
 Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.
+
+The Music enhancement entry briefly explains that it supplies playback controls and
+progress, which may be unavailable without the component. The DLC card reads the
+installed InfLink-rs version from the actual plugin manifest. Once per process, the
+first visible activation of the main window starts a read-only release check; tray-only
+startup does not. No notification, popup, badge elsewhere or automatic install is used.
+A newer version is shown only inside the enhancement card. Manual checking reports
+its result inline and offers installation separately when a newer version exists.

@@ -2940,20 +2940,20 @@
       "8f49d51304e0c2e13ba386ef67fcb26da83d89924fcf264b7893f9592e48c5a9"
     ],
     "DlcInstalled": [
-      "f0b0738f75b8bcd1dd40e42c6233d6d6f4f584bdcfa124741bceeb2c6c5b3249",
-      "64945efa9dcd05db8b27d4fce4c2ac94156bb25ae68520a49265c474bb5e9936"
+      "f8b32f4e92bd84ce1fcd177bec17d43093de3ee8303bb40c1b9ea521ed6a70f6",
+      "c0593e3d8543bdf219869e849235b06b2450cf6caa5f51e2fc89acc469aea8fd"
     ],
     "DlcAvailable": [
-      "5569a4e0a4ce34feaef54ae5e3cebd9487ef3587f92345ca80bc69e26fc62b57",
-      "a38a6eaaed010d5fa5728a895601ce3b46a1be6a7ca7ff7d7b5efd588a788a38"
+      "d177cdc09a4ea3f377e5b336e9ff52184be0dc032f29af2e5d346bc7390340a6",
+      "19822ac9e73b91f606ef3e459fff0413e6f36fcfad5802b0d8bd2f81334db6cd"
     ],
     "DlcEmptyInstalled": [
-      "c374e8cd8c6aee73e4435e3f5ae80ad8760f67f377c9f4eab232610a71a826dd",
-      "2bf9b9273946eb3f470def6a28cc1ff1ebf55099c48441cd8ffcae3bfc2a999d"
+      "64a07796182183cd7bfc932e3d2c851c47b49441bba11d542946685d77fe763c",
+      "83b136fcd459e7681e694efc5b27fee8bd4aef5813feaea16b44a26289da30a2"
     ],
     "DlcEmptyAvailable": [
-      "5404abfba5d87abc6fc39dedee0e55a5df37e8c2b9ac6c803c0791e780ed0b81",
-      "397aea60c83547f7611cb03a44093cafcb847f07c48754d77f44daca4bf07a8f"
+      "098d02b46ba725e7c333620113d8775f775e1544170fd2f912b6b8dc65c9d3b9",
+      "b78dd5bbb86cf3ddbfefc709a1c52a8fc02c40cbdb9c64681d95ee5633f68458"
     ],
     "DlcRefresh": [
       "5b5f4a228a9d59ef1e8f3d449dcf902f11619baf28e288c166519abcff60db35",
@@ -3012,8 +3012,8 @@
       "eceb6aef9dd4aaec6fd64bdc4057fa3f1c42df5a1c3b8921be66ffc0eeb23d38"
     ],
     "DlcNotInstalled": [
-      "5569a4e0a4ce34feaef54ae5e3cebd9487ef3587f92345ca80bc69e26fc62b57",
-      "a38a6eaaed010d5fa5728a895601ce3b46a1be6a7ca7ff7d7b5efd588a788a38"
+      "d177cdc09a4ea3f377e5b336e9ff52184be0dc032f29af2e5d346bc7390340a6",
+      "19822ac9e73b91f606ef3e459fff0413e6f36fcfad5802b0d8bd2f81334db6cd"
     ],
     "DlcReady": [
       "f8b32f4e92bd84ce1fcd177bec17d43093de3ee8303bb40c1b9ea521ed6a70f6",
@@ -4206,16 +4206,54 @@
     "IslandHideWhileMusicWindowVisible": [
       "7701122903ac3fa432f53afa61deb3bfb71615ce45c6418488d51a71a1224db9",
       "96c87f186f0925ea0593d8352d71b315ad182c5e5d79b0e98faceaefefb13b3b"
+    ],
+    "IslandAppearanceClearGlass": [
+      "20676a4988c2e46ecd17d29b08b3b2d251ba24eddbba6bdbacf7b88476fd7f57",
+      "d798c5bba1f98097a0573227ad393351c0ae3a3cb64ee16294cabf7ab18c3838"
+    ],
+    "NeteaseEnhancementEntryDescription": [
+      "fc4e0b5d9aab40c1a22d3d94afb1fb041e24fce6102270c55cce8c7e57afc5ec",
+      "98c0c1a5572f802617cd117fd5841d2f50e28431259adfa35765bfc090e398ee"
+    ],
+    "NeteaseInstalledVersion": [
+      "00587c38d5093b5e048e7a61435a1822664ecd30fb55426f31ff6d664924c343",
+      "ec81bfc2e0414d299aafc2f9a4f7de01cf0e351bf1642c08ba74947d9f12cabc"
+    ],
+    "NeteaseUpdateAvailable": [
+      "68e4656ce0ff88abdfb7ae1c2475e7058391064a4670c5d924b1b5914c382e98",
+      "1bbba89900cf1616aa544349d5ddd23a3dd0476b17968da617ab8d38d5297080"
+    ],
+    "NeteaseUpdateChecking": [
+      "497a19986d82eb1fb4f14a56eccac21d863459a8b5f94edc60c79a6c73f8d2e0",
+      "e319b953aeddb3b980436a811cdd0274c181ec69abacbf51b5459d0808af3d60"
+    ],
+    "NeteaseUpdateCurrent": [
+      "ce29b7f85b9eaf7dac52e625accb4b0cb56a856ebe9a9de9a09b613b6d978dca",
+      "7df69d3dbe500361929a076cf09f85471a35d94af327cad61050294e480cd020"
+    ],
+    "NeteaseUpdateUnavailable": [
+      "1796cda1d795f69eea9ee8425004c816765a10f61ca2e4419013127c91aa5183",
+      "e23cbb06ebc88276414b183464dc4fd39e6023126747b3815691c8aa6c00c2e0"
+    ],
+    "NeteaseUpdateInstall": [
+      "cada4215d34483e4475456df3ddd22c134acffb2173b251f785fe08ced4e7652",
+      "63799bd205ad2e6784794f35cfe52cbcde00e03b6b8f24da76f7d7ba7b3cb413"
     ]
   },
-  "reviewedBy": "Codex: reviewed global lyrics target terminology",
-  "reviewedAt": "2026-10-29T11:07:41.003Z",
+  "reviewedBy": "Codex: reviewed NetEase version and inline update messages",
+  "reviewedAt": "2026-10-29T15:45:23.129Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "LyricsTranslationTargetTitle"
+      "NeteaseEnhancementEntryDescription",
+      "NeteaseInstalledVersion",
+      "NeteaseUpdateAvailable",
+      "NeteaseUpdateChecking",
+      "NeteaseUpdateCurrent",
+      "NeteaseUpdateUnavailable",
+      "NeteaseUpdateInstall"
     ],
-    "reviewedBy": "Codex: reviewed global lyrics target terminology",
-    "reviewedAt": "2026-10-29T11:07:41.003Z"
+    "reviewedBy": "Codex: reviewed NetEase version and inline update messages",
+    "reviewedAt": "2026-10-29T15:45:23.129Z"
   }
 }

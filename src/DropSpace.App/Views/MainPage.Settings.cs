@@ -49,7 +49,7 @@ public sealed partial class MainPage
 
     private void OpenDlcSettings() => _openDlcSettings?.Invoke();
 
-    private void BuildSettingsPages(NativeSettingsEditor editor, Services.Dlc.DlcManagerService dlc)
+    private void BuildSettingsPages(NativeSettingsEditor editor, Services.Dlc.DlcManagerService dlc, NeteaseEnhancementViewModel enhancement)
     {
         var groups = new Dictionary<string, StackPanel>();
         foreach (var key in new[] { "General", "Island", "Shortcuts", "Relay", "Agents", "Widgets", "DLC", "Downloads", "SystemActivities", "Devices", "Updates", "About" })
@@ -88,14 +88,12 @@ public sealed partial class MainPage
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassBlur = v } }, v => v.ToString("0", _strings.Culture));
         glassSettings.AddSlider("IslandGlassRefraction", 0, 400, 10, s => s.IslandAppearance.LiquidGlassRefraction,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassRefraction = v } }, v => v.ToString("0", _strings.Culture) + "%");
-        glassSettings.AddSlider("IslandGlassRefractionWidth", 50, 300, 10, s => s.IslandAppearance.LiquidGlassRefractionWidth,
-            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassRefractionWidth = v } }, v => v.ToString("0", _strings.Culture) + "%");
+        glassSettings.AddSlider("IslandGlassRefractionWidth", 25, 150, 5, s => s.IslandAppearance.LiquidGlassRefractionWidth / 2,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassRefractionWidth = v * 2 } }, v => v.ToString("0", _strings.Culture) + "%");
         glassSettings.AddSlider("IslandGlassDispersion", 0, 100, 5, s => s.IslandAppearance.LiquidGlassDispersion,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassDispersion = v } }, v => v.ToString("0", _strings.Culture));
         glassSettings.AddSlider("IslandGlassDarkOverlay", 0, 200, 10, s => s.IslandAppearance.LiquidGlassDarkOverlay,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassDarkOverlay = v } }, v => v.ToString("0", _strings.Culture) + "%");
-        glassSettings.AddToggle("IslandGlassBlackGradient", s => s.IslandAppearance.LiquidGlassBlackGradient,
-            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassBlackGradient = v } });
         glassSettings.AddChoice("IslandGlassRefreshRate", new[]
         {
             (IslandGlassRefreshRate.Standard, _strings.Get("IslandGlassRefreshStandard")),
@@ -105,16 +103,18 @@ public sealed partial class MainPage
         }, s => s.IslandAppearance.LiquidGlassRefreshRate,
             (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassRefreshRate = v } });
         island.AddConditionalContent(glassSettings, s => s.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass);
-        island.AddChoice<ThemePreference>("IslandAppearance", s => s.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass
-            ? new[] { (s.IslandAppearance.Theme, _strings.Get("IslandAppearanceLiquidGlass")) }
+        island.AddChoice<string>("IslandAppearance", s => s.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass
+            ? new[] { ("Ink", _strings.Get("IslandGlassBlackGradient")), ("Clear", _strings.Get("IslandAppearanceClearGlass")) }
             : new[]
         {
-            (ThemePreference.System, _strings.Get("IslandAppearanceFollow")),
-            (ThemePreference.Light, _strings.Get("IslandAppearanceLight")),
-            (ThemePreference.Dark, _strings.Get("IslandAppearanceDark")),
-        }, s => s.IslandAppearance.Theme,
+            ("System", _strings.Get("IslandAppearanceFollow")),
+            ("Light", _strings.Get("IslandAppearanceLight")),
+            ("Dark", _strings.Get("IslandAppearanceDark")),
+        }, s => s.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass
+            ? (s.IslandAppearance.LiquidGlassBlackGradient ? "Ink" : "Clear") : s.IslandAppearance.Theme.ToString(),
             (s, v) => s.IslandAppearance.MaterialStyle == IslandMaterialStyle.LiquidGlass
-                ? s : s with { IslandAppearance = s.IslandAppearance with { Theme = v } });
+                ? s with { IslandAppearance = s.IslandAppearance with { LiquidGlassBlackGradient = v == "Ink" } }
+                : s with { IslandAppearance = s.IslandAppearance with { Theme = Enum.Parse<ThemePreference>(v) } });
         island.AddChoice("IslandContentPriority", new[]
         {
             (IslandContentPriority.Music, _strings.Get("IslandContentPriorityMusic")),
@@ -146,7 +146,7 @@ public sealed partial class MainPage
         island.AddToggle("IslandRightHoldMove", s => s.IslandAppearance.RightClickHoldToMove, (s,v) => s with { IslandAppearance = s.IslandAppearance with { RightClickHoldToMove = v } });
         groups["Island"].Children.Insert(0, island);
         groups["Widgets"].Children.Add(new WidgetEditorView(editor, _strings));
-        _dlcSettingsPage = new DlcPage(dlc, _strings, editor, _modules.RefreshCatalogAsync);
+        _dlcSettingsPage = new DlcPage(dlc, _strings, editor, enhancement, _modules.RefreshCatalogAsync);
         _downloadSettingsPanel = new DownloadPanel(editor, _strings, _windowHandle);
         groups["DLC"].Children.Add(_dlcSettingsPage);
         _moduleInventory = new FeatureModuleInventoryView(_modules, _strings,

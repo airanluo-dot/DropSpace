@@ -127,9 +127,9 @@ public sealed partial class MainPage : Page
             MaxClipboardFileMegabytesNumber, MaxClipboardFileTotalMegabytesNumber, MaxClipboardFileItemsNumber })
             slider.InteractionCompleted += async (_, _) => await _settingsEditor.FlushEditsAsync();
         DataContext = viewModel;
-        _musicPage = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings, musicWindow.Open);
+        _musicPage = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, dlc, OpenDlcSettings, musicWindow.Open);
         MusicContent.Content = _musicPage;
-        BuildSettingsPages(settingsEditor, dlc);
+        BuildSettingsPages(settingsEditor, dlc, enhancement);
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
