@@ -38,6 +38,7 @@ public sealed partial class WidgetsExpandedView : UserControl
     private bool _modulesDirty = true;
     public event EventHandler? SettingsRequested;
     public event EventHandler? PinnedRequested;
+    public event EventHandler? MusicWindowRequested;
     public WidgetsExpandedView()
     {
         InitializeComponent();
@@ -217,7 +218,7 @@ public sealed partial class WidgetsExpandedView : UserControl
             var content = new StackPanel { Spacing = placement.ColumnSpan == 1 ? 2 : 4, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Stretch };
             content.Children.Add(title); content.Children.Add(value);
             FrameworkElement tile;
-            if (placement.Id is NativeWidgetId.Calculator or NativeWidgetId.PinnedItems)
+            if (placement.Id is NativeWidgetId.Calculator or NativeWidgetId.PinnedItems or NativeWidgetId.MusicWindow)
             {
                 var view = _view;
                 var busy = false;
@@ -293,6 +294,8 @@ public sealed partial class WidgetsExpandedView : UserControl
                             if (IsCurrent() && !launched)
                                 ShowLaunchFailure(IsCurrent);
                         }
+                        else if (placement.Id == NativeWidgetId.MusicWindow && IsCurrent())
+                            MusicWindowRequested?.Invoke(this, EventArgs.Empty);
                         else if (navigationRevision is { } revision &&
                             await view.OpenPinnedAsync(revision, token) && IsCurrent())
                             PinnedRequested?.Invoke(this, EventArgs.Empty);

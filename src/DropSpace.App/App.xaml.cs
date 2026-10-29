@@ -70,7 +70,9 @@ public partial class App : Application
             if (GetCommandLineArgumentValue(commandLine, "--liquid-glass-check") is { } glassCheckOutput)
             {
                 UnhandledException -= OnUnhandledException;
-                Environment.Exit(await Services.Diagnostics.LiquidGlassCheck.RunAsync(glassCheckOutput, BuildServices));
+                Environment.Exit(await Services.Diagnostics.LiquidGlassCheck.RunAsync(glassCheckOutput, BuildServices,
+                    commandLine.Contains("--liquid-glass-music", StringComparer.OrdinalIgnoreCase),
+                    GetCommandLineArgumentValue(commandLine, "--liquid-glass-settings")));
                 return;
             }
             if (GetCommandLineArgumentValue(commandLine, "--music-window-check") is { } musicCheckOutput)

@@ -10,8 +10,12 @@ namespace DropSpace.App;
 public sealed partial class OverlayWindow
 {
     internal object ObserveGlassMaterial() => _materialController.CaptureGlassState();
+    internal void BeginGlassMeasurement() => _materialController.BeginGlassMeasurement();
+    internal object? EndGlassMeasurement() => _materialController.EndGlassMeasurement();
+    internal object CompareGlassSampling(bool compareWidth = false) => _materialController.CompareGlassSampling(compareWidth);
     internal void FreezeGlassForDiagnosticCapture() => _materialController.FreezeGlassForDiagnosticCapture();
     internal FrameworkElement DiagnosticSurface => Surface;
+    internal void InvokeMusicWindowWidgetForDiagnostic() => WidgetsExpanded.InvokeMusicWindowWidgetForDiagnostic();
     internal QuickRetrievalView DiagnosticRetrievalView => RetrievalView;
     internal void DiagnosticShowPage(IslandPage page)
     {

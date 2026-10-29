@@ -226,6 +226,7 @@ public sealed partial class OverlayWindow : Window
             MusicExpanded.ViewModel = mediaViewModel;
             WidgetsExpanded.ViewModel = widgetViewModel;
             WidgetsExpanded.SetModuleRuntime(modules, strings);
+            WidgetsExpanded.MusicWindowRequested += (_, _) => { if (!_closing) MusicWindowRequested?.Invoke(this, EventArgs.Empty); };
             WidgetsExpanded.PinnedRequested += (_, _) => { if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
             ClipboardExpanded.ViewModel = clipboardViewModel;
             ClipboardExpanded.Unloaded += (_, _) => SetClipboardPresentationActive(false);
@@ -236,7 +237,8 @@ public sealed partial class OverlayWindow : Window
                 FallbackSurface,
                 capabilities,
                 _windowHandle,
-                (Grid)Surface.Child);
+                (Grid)Surface.Child,
+                () => _monitorLayout.GetCachedRefreshRateHz(MonitorId));
             _compositionAnimator = new OverlayCompositionAnimator(
                 Surface,
                 CompactPanel,
@@ -396,6 +398,7 @@ public sealed partial class OverlayWindow : Window
     public event EventHandler<string>? PlacementEditRequested;
 
     public event EventHandler? PlacementCancelled;
+    public event EventHandler? MusicWindowRequested;
 
     internal bool HasActiveFrameSubscription => _hasFrameSubscription;
 
@@ -1287,8 +1290,11 @@ public sealed partial class OverlayWindow : Window
                 HostContentScale, HostWidth, Math.Max(ExpandedNaturalWidth * ExpandedScale, _compactSurfaceWidth), ExpandedNaturalHeight * ExpandedScale),
             placement);
 
-    internal void RefreshAnimationRefreshRate() =>
+    internal void RefreshAnimationRefreshRate()
+    {
         _framePacer.SetRefreshRate(_monitorLayout.GetCachedRefreshRateHz(MonitorId));
+        _materialController.RefreshDisplayRate();
+    }
 
     private void StartAnimationFrames(bool preferDisplayCadence = false)
     {
@@ -1627,7 +1633,7 @@ public sealed partial class OverlayWindow : Window
         var rootWidth = Root.ActualWidth > 0 ? Root.ActualWidth : HostWidth;
         SurfaceTransform.TranslateX = geometry.TranslationXDips(rootWidth);
         SurfaceTransform.TranslateY = geometry.TranslationYDips;
-        _materialController.SetGeometry(signature, _monitor.Scale);
+        _materialController.SetGeometry(signature, _monitor.Scale, values.ExpandedContent);
 
         var width = signature.WidthPixels;
         var height = signature.HeightPixels;

@@ -4,7 +4,8 @@
 
 AI lyrics retain the existing opt-in switch, model controls and progressive display.
 The independently saved translation target is permanently Simplified Chinese or English;
-interface switching does not change it or request translation. Originals already in that
+an explicitly chosen target survives interface switching. Before a manual choice, Chinese
+interfaces default to Chinese and all other interfaces to English. Originals already in that
 language start no translation-model load, download prompt, queue or inference.
 Any valid target-language native translation suppresses AI for the entire track;
 partial native coverage displays its original gaps. A late native translation
@@ -100,6 +101,14 @@ Translation lines attach to their nearest original once, so opening credits do
 not repeat the first sung line's translation when timestamps coincide.
 
 ## Widget controls (local development after v0.3.2-beta.3)
+
+The Music window widget is an optional 1-by-1 library entry. Activating it opens or restores
+the single independent music window without changing playback or rearranging existing widgets.
+The opt-in Island setting hides automatic island presentations while that window is visible;
+minimizing or closing it restores the current presence rules, not the previous expanded state.
+Manual retrieval, file dragging and position editing remain usable. Once the temporary interaction
+ends, automatic hiding resumes. Resident, logo, fullscreen, activity and media preferences are
+retained; none can independently override this suppression.
 
 Focus timer and Timer keep their 25-minute and 5-minute defaults. Activate the
 time readout, or open its context menu, to choose Duration: 1, 5, 10, 15, 25,

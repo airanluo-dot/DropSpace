@@ -2,6 +2,7 @@ using DropSpace.App.Services.Volume;
 using DropSpace.App.ViewModels;
 using DropSpace.App.Views.Music;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Island;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -10,7 +11,8 @@ namespace DropSpace.App.Services.Media;
 
 /// <summary>Owns one explicitly opened music surface; it never owns playback.</summary>
 public sealed class MusicWindowService(MediaViewModel media, NativeSettingsEditor editor,
-    IAppStringLocalizer strings, WindowsVolumeActivityService volume, ILogger<MusicWindowService> logger) : IDisposable
+    IAppStringLocalizer strings, WindowsVolumeActivityService volume, ILogger<MusicWindowService> logger,
+    IslandExperienceCoordinator experience) : IDisposable
 {
     private readonly DispatcherQueue _dispatcher = DispatcherQueue.GetForCurrentThread()
         ?? throw new InvalidOperationException("Music windows require the UI dispatcher.");
@@ -27,10 +29,12 @@ public sealed class MusicWindowService(MediaViewModel media, NativeSettingsEdito
         {
             _window = new(media, editor, strings, volume, logger);
             _window.Closed += OnClosed;
+            _window.PresentationVisibilityChanged += OnPresentationVisibilityChanged;
         }
         _window.SetMinimized(false);
         // The only activation path follows an explicit UI, shortcut or Agent action.
         _window.Activate();
+        experience.UpdateMusicWindowVisibility(_window.IsPresentationVisible, activated: true);
     }
 
     public void Close() { VerifyThread(); _window?.Close(); }
@@ -44,9 +48,16 @@ public sealed class MusicWindowService(MediaViewModel media, NativeSettingsEdito
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
-        if (_window is not null) _window.Closed -= OnClosed;
+        if (_window is not null)
+        {
+            _window.Closed -= OnClosed;
+            _window.PresentationVisibilityChanged -= OnPresentationVisibilityChanged;
+        }
         _window = null;
+        experience.UpdateMusicWindowVisibility(false);
     }
+    private void OnPresentationVisibilityChanged(object? sender, EventArgs args) =>
+        experience.UpdateMusicWindowVisibility(_window?.IsPresentationVisible == true);
     private void VerifyThread()
     {
         if (!_dispatcher.HasThreadAccess) throw new InvalidOperationException("Music presentation belongs to its UI dispatcher.");

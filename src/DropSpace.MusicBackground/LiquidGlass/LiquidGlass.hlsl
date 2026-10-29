@@ -8,6 +8,7 @@ cbuffer Frame : register(b0)
     float4 Shape;      // top radius, bottom radius, DPI, blur sigma
     float4 Optics;     // refraction multiplier, dispersion 0..1, dark multiplier, gradient
     float4 Crop;       // island origin in cropped background, blur direction
+    float4 Lens;       // expanded refraction width multiplier; compact remains 1
 };
 struct Vertex { float4 position : SV_Position; float2 uv : TEXCOORD0; };
 Vertex VS(uint id : SV_VertexID)
@@ -53,7 +54,10 @@ float4 Glass(Vertex v) : SV_Target
     if (alpha <= 0) return 0;
     float depth = max(-d, 0);
     float bevel = max(1, min(20 * Shape.z, min(Size.x, Size.y) * 0.32));
-    float t = saturate(depth / bevel);
+    // Width changes the inward reach of the lens shoulder, independently of
+    // displacement strength. Preserve the original bevel in the offset below.
+    float influenceWidth = max(1, min(bevel * Lens.x, min(Size.x, Size.y) * 0.5));
+    float t = saturate(depth / influenceWidth);
     // Rounded lens shoulder: Snell refraction falls continuously to zero at the flat center.
     float slope = (1 - t) * (1 - t) * 2.8;
     float3 normal = normalize(float3(direction * slope, 1));

@@ -207,7 +207,7 @@ public sealed class AiLyricsSettingsCard : UserControl
         if (_syncing || _translationTarget.SelectedItem is not ComboBoxItem { Tag: LyricsTranslationTarget target }) return;
         StartOperation(async (generation, _) =>
         {
-            await SaveAsync(generation, settings => settings with { LyricsTranslationTarget = target });
+            await SaveAsync(generation, settings => settings with { LyricsTranslationTarget = target, LyricsTranslationTargetExplicit = true });
         });
     }
 

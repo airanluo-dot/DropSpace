@@ -3,8 +3,9 @@
 ## AI lyric target and interface language
 
 The independently saved lyric target is permanently Simplified Chinese (`zh`) or English (`en`),
-regardless of interface language. Upgrade stores the previously effective target once;
-interface switching updates UI without retranslation. Follow the
+regardless of interface language. Until manually selected, Chinese interfaces default to Chinese
+and all other interfaces to English. Existing saved targets and new manual choices remain
+independent of later interface changes. Follow the
 [interface localization contract](docs/dev/interface-localization.md). Identify the complete original lyric body once
 with bundled offline fastText `lid.176.bin`. A reliable target-language original
 skips AI and can skip additional translation lookup. Other originals are Unknown.

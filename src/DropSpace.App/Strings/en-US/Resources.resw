@@ -914,7 +914,7 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Show logo when idle</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (disabled)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Lyrics translation target</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Choose Simplified Chinese or English independently of the interface language.</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Defaults to Chinese for a Chinese interface, or English otherwise. A manually selected translation language is kept independently.</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>Enabled</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>Disabled</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>Enable</value></data>
@@ -1025,8 +1025,8 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="AgentNameRequired" xml:space="preserve"><value>Enter a name for this agent.</value></data>
   <data name="AgentConfirmTitle" xml:space="preserve"><value>Allow agent action?</value></data>
   <data name="AgentConfirmAllow" xml:space="preserve"><value>Allow this action</value></data>
-  <data name="MusicWindowOpen" xml:space="preserve"><value>Open music window</value></data>
-  <data name="MusicWindowTitle" xml:space="preserve"><value>Music</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Music window</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Music window</value></data>
   <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Open music window</value></data>
   <data name="ShortcutUnassigned" xml:space="preserve"><value>Not assigned</value></data>
   <data name="HotkeyClearBinding" xml:space="preserve"><value>Clear shortcut</value></data>
@@ -1040,13 +1040,25 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>System volume</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>System volume is unavailable.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Clear selection</value></data>
-  <data name="IslandMaterialStyle" xml:space="preserve"><value>Island style</value></data>
-  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Desktop Acrylic</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Island material</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Acrylic</value></data>
   <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Liquid Glass</value></data>
   <data name="IslandGlassBlur" xml:space="preserve"><value>Liquid Glass background blur</value></data>
   <data name="IslandGlassRefraction" xml:space="preserve"><value>Liquid Glass refraction (%)</value></data>
   <data name="IslandGlassDispersion" xml:space="preserve"><value>Liquid Glass dispersion</value></data>
   <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Liquid Glass dark overlay (%)</value></data>
-  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Lingo style (black-to-glass gradient)</value></data>
-  <data name="IslandGlassDescription" xml:space="preserve"><value>Experimental. Liquid Glass is hidden in screenshots and recordings. If unavailable, the island uses its existing material.</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Ink glass</value></data>
+  <data name="IslandAppearanceLiquidGlass" xml:space="preserve"><value>Liquid Glass material</value></data>
+  <data name="IslandGlassRefreshRate" xml:space="preserve"><value>Liquid Glass refresh rate</value></data>
+  <data name="IslandGlassRefreshStandard" xml:space="preserve"><value>Standard (30 fps)</value></data>
+  <data name="IslandGlassRefreshHigh" xml:space="preserve"><value>High (60 fps)</value></data>
+  <data name="IslandGlassRefreshVeryHigh" xml:space="preserve"><value>Very high (120 fps)</value></data>
+  <data name="IslandGlassRefreshUltra" xml:space="preserve"><value>Ultra (follow display)</value></data>
+  <data name="IslandGlassRefractionWidth" xml:space="preserve"><value>Expanded Liquid Glass refraction width (%)</value></data>
+  <data name="WidgetMusicWindow.Text" xml:space="preserve">
+    <value>Music window</value>
+  </data>
+  <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
+    <value>Hide the island while the music window is visible</value>
+  </data>
 </root>

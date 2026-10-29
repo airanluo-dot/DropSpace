@@ -912,7 +912,7 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Mostrar logotipo quando ocioso</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (desativado)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Idioma da tradução de letras</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Escolha chinês simplificado ou inglês para as letras, independentemente do idioma da interface.</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Se a interface estiver em chinês, o idioma padrão da tradução será chinês; caso contrário, inglês. O idioma de tradução escolhido manualmente é mantido de forma independente.</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>Ativado</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>Desativado</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>Ativar</value></data>
@@ -1023,8 +1023,8 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="AgentNameRequired" xml:space="preserve"><value>Digite um nome para este agente.</value></data>
   <data name="AgentConfirmTitle" xml:space="preserve"><value>Permitir a ação do agente?</value></data>
   <data name="AgentConfirmAllow" xml:space="preserve"><value>Permitir esta ação</value></data>
-  <data name="MusicWindowOpen" xml:space="preserve"><value>Abrir janela de música</value></data>
-  <data name="MusicWindowTitle" xml:space="preserve"><value>Música</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Janela de música</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Janela de música</value></data>
   <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Abrir janela de música</value></data>
   <data name="ShortcutUnassigned" xml:space="preserve"><value>Não atribuído</value></data>
   <data name="HotkeyClearBinding" xml:space="preserve"><value>Remover atalho</value></data>
@@ -1038,13 +1038,25 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Volume do sistema</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>O volume do sistema está indisponível.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Limpar seleção</value></data>
-  <data name="IslandMaterialStyle" xml:space="preserve"><value>Estilo da ilha</value></data>
-  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Acrílico da área de trabalho</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Material da ilha</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Acrílico</value></data>
   <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Vidro líquido</value></data>
   <data name="IslandGlassBlur" xml:space="preserve"><value>Desfoque de fundo do vidro líquido</value></data>
   <data name="IslandGlassRefraction" xml:space="preserve"><value>Refração do vidro líquido (%)</value></data>
   <data name="IslandGlassDispersion" xml:space="preserve"><value>Dispersão do vidro líquido</value></data>
   <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Camada escura do vidro líquido (%)</value></data>
-  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Estilo Lingo (degradê de preto para vidro)</value></data>
-  <data name="IslandGlassDescription" xml:space="preserve"><value>Material experimental. No modo de vidro líquido, a ilha não aparece em capturas nem gravações de tela. Se estiver indisponível, o material anterior será usado.</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Vidro tingido de tinta</value></data>
+  <data name="IslandAppearanceLiquidGlass" xml:space="preserve"><value>Material de vidro líquido</value></data>
+  <data name="IslandGlassRefreshRate" xml:space="preserve"><value>Taxa de atualização do vidro líquido</value></data>
+  <data name="IslandGlassRefreshStandard" xml:space="preserve"><value>Padrão (30 fps)</value></data>
+  <data name="IslandGlassRefreshHigh" xml:space="preserve"><value>Alta (60 fps)</value></data>
+  <data name="IslandGlassRefreshVeryHigh" xml:space="preserve"><value>Muito alta (120 fps)</value></data>
+  <data name="IslandGlassRefreshUltra" xml:space="preserve"><value>Ultra (acompanhar a tela)</value></data>
+  <data name="IslandGlassRefractionWidth" xml:space="preserve"><value>Largura da refração do vidro líquido expandido (%)</value></data>
+  <data name="WidgetMusicWindow.Text" xml:space="preserve">
+    <value>Janela de música</value>
+  </data>
+  <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
+    <value>Ocultar a ilha enquanto a janela de música estiver visível</value>
+  </data>
 </root>

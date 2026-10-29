@@ -23,17 +23,20 @@ internal sealed class OverlayMaterialController : IDisposable
     private IslandAppearanceSettings _appearance = new();
     private OverlayVisualPreferences? _preferences;
     private bool _visible;
+    private readonly Func<double?> _monitorRefreshRate;
 
     public OverlayMaterialController(
         SystemBackdropElement backdrop,
         Border fallback,
         IWindowsCapabilityService capabilities,
         nint window,
-        Grid materialHost)
+        Grid materialHost,
+        Func<double?> monitorRefreshRate)
     {
         _backdrop = backdrop;
         _fallback = fallback;
         _capabilities = capabilities;
+        _monitorRefreshRate = monitorRefreshRate;
         _glass = new LiquidGlassSurface(window) { Opacity = 0 };
         materialHost.Children.Insert(0, _glass);
         _glass.StateChanged += OnGlassStateChanged;
@@ -47,12 +50,14 @@ internal sealed class OverlayMaterialController : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _preferences = preferences;
+        RefreshDisplayRate();
         var glassRequested = _visible && _appearance.MaterialStyle == IslandMaterialStyle.LiquidGlass &&
             preferences.AdvancedEffectsEnabled && preferences.TransparencyEnabled &&
             !preferences.HighContrast && !preferences.IsRemoteSession;
         _glass.SetState(glassRequested, new GlassOptions((float)_appearance.LiquidGlassBlur,
             (float)_appearance.LiquidGlassRefraction, (float)_appearance.LiquidGlassDispersion,
-            (float)_appearance.LiquidGlassDarkOverlay, _appearance.LiquidGlassBlackGradient));
+            (float)_appearance.LiquidGlassDarkOverlay, _appearance.LiquidGlassBlackGradient,
+            (float)_appearance.LiquidGlassRefractionWidth));
         _glass.Opacity = glassRequested && _glass.IsReady ? 1 : 0;
         if (_glass.Opacity > 0)
         {
@@ -117,18 +122,31 @@ internal sealed class OverlayMaterialController : IDisposable
         _fallback.CornerRadius = radius;
     }
 
-    internal void SetGeometry(OverlayRegionSignature geometry, double dpi = 1)
+    internal void SetGeometry(OverlayRegionSignature geometry, double dpi = 1, double expandedProgress = 0)
     {
         _geometry = geometry;
         _acrylic?.SetGeometry(geometry);
         _glass.SetGeometry(new GlassFrame(geometry.LeftPixels, geometry.TopPixels, geometry.WidthPixels,
-            geometry.HeightPixels, geometry.TopRadiusPixels, geometry.BottomRadiusPixels, (float)dpi));
+            geometry.HeightPixels, geometry.TopRadiusPixels, geometry.BottomRadiusPixels, (float)dpi,
+            (float)Math.Clamp(expandedProgress, 0, 1)));
     }
 
     internal void SetAppearance(IslandAppearanceSettings appearance)
     {
         _appearance = appearance;
         if (_preferences is { } preferences) Apply(preferences);
+    }
+    internal void RefreshDisplayRate()
+    {
+        var displayRate = _monitorRefreshRate() ?? 60d;
+        var rate = _appearance.LiquidGlassRefreshRate switch
+        {
+            IslandGlassRefreshRate.High => 60d,
+            IslandGlassRefreshRate.VeryHigh => 120d,
+            IslandGlassRefreshRate.Ultra => displayRate,
+            _ => 30d,
+        };
+        _glass.SetRefreshRate(rate, _appearance.LiquidGlassRefreshRate != IslandGlassRefreshRate.Standard, displayRate);
     }
     internal void SetVisible(bool visible)
     {
@@ -141,8 +159,13 @@ internal sealed class OverlayMaterialController : IDisposable
         if (!_disposed && _preferences is { } preferences) Apply(preferences);
     }
     internal object CaptureGlassState() => new { ready = _glass.IsReady, failure = _glass.Failure,
-        frames = _glass.PresentedFrames, requested = _appearance.MaterialStyle.ToString(), visible = _visible };
+        frames = _glass.PresentedFrames, requested = _appearance.MaterialStyle.ToString(), visible = _visible,
+        refreshRate = _appearance.LiquidGlassRefreshRate.ToString(), targetHz = _glass.TargetRefreshRate,
+        captureRateControl = _glass.HasCaptureRateControl };
     internal void FreezeGlassForDiagnosticCapture() => _glass.FreezeForDiagnosticCapture();
+    internal void BeginGlassMeasurement() => _glass.BeginDiagnosticMeasurement();
+    internal object? EndGlassMeasurement() => _glass.EndDiagnosticMeasurement();
+    internal object CompareGlassSampling(bool compareWidth = false) => _glass.CompareDiagnosticSampling(compareWidth);
 
     internal void SetMotion(IslandMotionBlurFrame frame)
     {

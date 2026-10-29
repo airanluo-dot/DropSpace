@@ -18,6 +18,7 @@ public enum NativeWidgetId
     Calculator,
     PinnedItems,
     WeekProgress,
+    MusicWindow,
 }
 
 public sealed record WidgetPlacement(NativeWidgetId Id, int Column, int Row, int ColumnSpan, int RowSpan);

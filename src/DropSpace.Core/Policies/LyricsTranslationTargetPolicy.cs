@@ -5,6 +5,16 @@ namespace DropSpace.Core.Policies;
 /// <summary>Settings boundary for the permanent English/Simplified Chinese lyric targets.</summary>
 public static class LyricsTranslationTargetPolicy
 {
+    public static LyricsTranslationTarget DefaultForInterface(AppLanguagePreference preference, IEnumerable<string?> systemLanguages) =>
+        AppLanguagePolicy.ResolveEffectiveLanguageTag(preference, systemLanguages).StartsWith("zh", StringComparison.OrdinalIgnoreCase)
+            ? LyricsTranslationTarget.SimplifiedChinese : LyricsTranslationTarget.English;
+
+    public static AppSettings ApplyDefault(AppSettings settings, IEnumerable<string?> systemLanguages) =>
+        settings.LyricsTranslationTargetExplicit ? settings : settings with
+        {
+            LyricsTranslationTarget = DefaultForInterface(settings.Language, systemLanguages),
+        };
+
     public static string ToLanguageTag(LyricsTranslationTarget target) =>
         target == LyricsTranslationTarget.SimplifiedChinese ? "zh" : "en";
 

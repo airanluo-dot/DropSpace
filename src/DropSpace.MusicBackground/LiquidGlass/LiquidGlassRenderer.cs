@@ -23,7 +23,8 @@ internal sealed class LiquidGlassRenderer : IDisposable
     private Texture? _crop, _horizontal, _vertical, _output;
     private bool _disposed;
     internal long PresentedFrames { get; private set; }
-    [StructLayout(LayoutKind.Sequential)] private struct Constants { internal Vector4 Size, Shape, Optics, Crop; }
+    internal GlassRefreshMeasurement? Measurement { get; set; }
+    [StructLayout(LayoutKind.Sequential)] private struct Constants { internal Vector4 Size, Shape, Optics, Crop, Lens; }
 
     internal LiquidGlassRenderer(SwapChainPanel panel)
     {
@@ -66,12 +67,14 @@ internal sealed class LiquidGlassRenderer : IDisposable
         Ensure(ref _output, shape.Width, shape.Height);
         _context.CopySubresourceRegion(_crop!.Image, 0, 0, 0, 0, frame, 0,
             new Vortice.Mathematics.Box(left, top, 0, right, bottom, 1));
+        Measurement?.CopiedRegion(w, h);
         var constants = new Constants
         {
             Size = new(shape.Width, shape.Height, w, h),
             Shape = new(shape.TopRadius, shape.BottomRadius, shape.Dpi, options.Blur * shape.Dpi),
             Optics = new(options.Refraction / 100, options.Dispersion / 100, options.DarkOverlay / 100, options.BlackGradient ? 1 : 0),
             Crop = new(x - left, y - top, 1, 0),
+            Lens = new(1 + (options.RefractionWidth / 100 - 1) * Math.Clamp(shape.ExpandedProgress, 0, 1), 0, 0, 0),
         };
         _context.IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
         _context.VSSetShader(_vertex); _context.PSSetConstantBuffer(0, _constants); _context.PSSetSampler(0, _sampler);
@@ -84,7 +87,9 @@ internal sealed class LiquidGlassRenderer : IDisposable
         Pass(options.Blur > 0 ? _vertical! : _crop, _output!, _glass, constants);
         _context.OMSetRenderTargets(0, Array.Empty<ID3D11RenderTargetView>(), null);
         _presenter.EnsureSize(shape.Width, shape.Height, panelScaleX, panelScaleY);
+        var measuredAt = Measurement is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
         _presenter.Present(_context, _output!.Image);
+        if (measuredAt != 0) Measurement?.Present(measuredAt);
         Device.DeviceRemovedReason.CheckError();
         PresentedFrames++;
     }
@@ -97,6 +102,46 @@ internal sealed class LiquidGlassRenderer : IDisposable
         _context.PSSetShader(shader); _context.PSSetShaderResource(0, source.Source);
         _context.Draw(3, 0);
         _context.PSSetShaderResources(0, 1, new ID3D11ShaderResourceView[] { null! });
+    }
+
+    // Explicit diagnostic only. Compare the old full-copy path with direct region
+    // sampling of exactly the same live source, including the final premultiplied alpha.
+    internal object CompareSampling(ID3D11Texture2D frame, int x, int y, GlassFrame shape, GlassOptions options,
+        float panelScaleX, float panelScaleY, bool compareWidth = false)
+    {
+        var description = frame.Description;
+        description.BindFlags = BindFlags.None; description.MiscFlags = ResourceOptionFlags.None;
+        using var fullCopy = Device.CreateTexture2D(description);
+        CopyFrame(fullCopy, frame);
+        Render(fullCopy, x, y, shape, compareWidth ? options with { RefractionWidth = 100 } : options, panelScaleX, panelScaleY);
+        var reference = ReadDiagnosticOutput();
+        Render(frame, x, y, shape, options, panelScaleX, panelScaleY);
+        var direct = ReadDiagnosticOutput();
+        var changedPixels = 0;
+        for (var offset = 0; offset < direct.Length; offset += 4)
+            if (!reference.AsSpan(offset, 4).SequenceEqual(direct.AsSpan(offset, 4))) changedPixels++;
+        return new { identical = changedPixels == 0, changedPixels, comparedBytes = direct.Length,
+            width = shape.Width, height = shape.Height, shape.ExpandedProgress,
+            referenceWidth = compareWidth ? 100 : options.RefractionWidth, options };
+    }
+
+    private byte[] ReadDiagnosticOutput()
+    {
+        var description = _output!.Image.Description;
+        description.Usage = ResourceUsage.Staging; description.BindFlags = BindFlags.None;
+        description.CPUAccessFlags = CpuAccessFlags.Read;
+        using var staging = Device.CreateTexture2D(description);
+        _context.CopyResource(staging, _output.Image);
+        _context.Map(staging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None, out var mapped).CheckError();
+        try
+        {
+            var stride = description.Width * 4;
+            var bytes = new byte[stride * description.Height];
+            for (var row = 0; row < description.Height; row++)
+                Marshal.Copy(mapped.DataPointer + row * mapped.RowPitch, bytes, row * stride, stride);
+            return bytes;
+        }
+        finally { _context.Unmap(staging, 0); }
     }
 
     private void Ensure(ref Texture? texture, int width, int height)

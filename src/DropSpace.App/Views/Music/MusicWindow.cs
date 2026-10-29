@@ -101,6 +101,8 @@ public sealed class MusicWindow : Window
     private double _coverScale = 1;
     private int _activeLyric = -1, _lastCentered = -1;
     private bool CanRender => _loaded && !_closed && !_minimized && AppWindow.IsVisible;
+    public bool IsPresentationVisible => !_closed && !_minimized && AppWindow.IsVisible;
+    public event EventHandler? PresentationVisibilityChanged;
 
     public MusicWindow(MediaViewModel media, NativeSettingsEditor editor, IAppStringLocalizer strings,
         WindowsVolumeActivityService volume, ILogger logger)
@@ -341,6 +343,7 @@ public sealed class MusicWindow : Window
         _minimized = minimized; _nativeVisible = visible; UpdateOwnership();
         if (!CanRender) { CancelRender(); CancelSeek(); _volumeCommit.Stop(); _queuedVolume = null; }
         else { _metadataDirty = _lyricsDirty = true; NotifyInteraction(); RequestRender(); }
+        PresentationVisibilityChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetLyricsVisible(bool visible)

@@ -24,6 +24,12 @@ public sealed class SettingsForm : UserControl
         Unloaded += async (_, _) => { _editor.PropertyChanged -= OnChanged; await _editor.FlushEditsAsync(); };
     }
     public void AddHeading(string key) => Rows.Children.Add(new TextBlock { Text = _strings.Get(key), FontSize = 20, TextWrapping = TextWrapping.Wrap, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new(0, 12, 0, 4) });
+    public void AddConditionalContent(FrameworkElement content, Func<AppSettings, bool> visible)
+    {
+        Rows.Children.Add(content);
+        _refresh.Add(() => content.Visibility = visible(_editor.Settings) ? Visibility.Visible : Visibility.Collapsed);
+        Refresh();
+    }
     public ToggleSwitch AddToggle(string key, Func<AppSettings, bool> read, Func<AppSettings, bool, AppSettings> write, Func<bool, Task<bool>>? beforeChange = null, Func<AppSettings, bool>? isEnabled = null)
     {
         var toggle = new ToggleSwitch(); AddRow(key, toggle);
@@ -46,11 +52,23 @@ public sealed class SettingsForm : UserControl
         return toggle;
     }
     public ComboBox AddChoice<T>(string key, IEnumerable<(T Value, string Label)> choices, Func<AppSettings, T> read, Func<AppSettings, T, AppSettings> write)
+        => AddChoice(key, _ => choices, read, write);
+
+    public ComboBox AddChoice<T>(string key, Func<AppSettings, IEnumerable<(T Value, string Label)>> choices, Func<AppSettings, T> read, Func<AppSettings, T, AppSettings> write)
     {
         var combo = new ComboBox { MinWidth = 150 };
-        foreach (var (value, label) in choices) combo.Items.Add(new ComboBoxItem { Content = label, Tag = value });
         AddRow(key, combo);
-        _refresh.Add(() => combo.SelectedItem = combo.Items.OfType<ComboBoxItem>().FirstOrDefault(item => EqualityComparer<T>.Default.Equals((T)item.Tag, read(_editor.Settings)))); Refresh();
+        _refresh.Add(() =>
+        {
+            var options = choices(_editor.Settings).ToArray();
+            var current = combo.Items.OfType<ComboBoxItem>().Select(item => ((T)item.Tag, (string)item.Content)).ToArray();
+            if (!current.SequenceEqual(options))
+            {
+                combo.Items.Clear();
+                foreach (var (value, label) in options) combo.Items.Add(new ComboBoxItem { Content = label, Tag = value });
+            }
+            combo.SelectedItem = combo.Items.OfType<ComboBoxItem>().FirstOrDefault(item => EqualityComparer<T>.Default.Equals((T)item.Tag, read(_editor.Settings)));
+        }); Refresh();
         combo.SelectionChanged += async (_, _) => { if (!_syncing && combo.SelectedItem is ComboBoxItem item) { var value = (T)item.Tag; await _editor.UpdateAsync(settings => write(settings, value)); } };
         return combo;
     }
@@ -115,6 +133,7 @@ public sealed class SettingsForm : UserControl
     }
     public void AddRow(string key, FrameworkElement control)
     {
+        control.VerticalAlignment = VerticalAlignment.Center;
         AutomationProperties.SetName(control, _strings.Get(key)); AutomationProperties.SetAutomationId(control, key);
         var grid = new Grid { ColumnSpacing = 20, Padding = new(14, 10, 14, 10) };
         grid.ColumnDefinitions.Add(new()); grid.ColumnDefinitions.Add(new() { Width = GridLength.Auto });

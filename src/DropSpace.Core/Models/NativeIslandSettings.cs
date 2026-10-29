@@ -55,15 +55,18 @@ public sealed record LyricsSettings
 }
 
 public enum IslandMaterialStyle { Acrylic = 0, LiquidGlass = 1 }
+public enum IslandGlassRefreshRate { Standard = 0, High = 1, VeryHigh = 2, Ultra = 3 }
 
 public sealed record IslandAppearanceSettings
 {
     public IslandMaterialStyle MaterialStyle { get; init; } = IslandMaterialStyle.LiquidGlass;
     public double LiquidGlassBlur { get; init; } = 1;
-    public double LiquidGlassRefraction { get; init; } = 400;
+    public double LiquidGlassRefraction { get; init; } = 100;
+    public double LiquidGlassRefractionWidth { get; init; } = 200;
     public double LiquidGlassDispersion { get; init; } = 75;
     public double LiquidGlassDarkOverlay { get; init; }
     public bool LiquidGlassBlackGradient { get; init; } = true;
+    public IslandGlassRefreshRate LiquidGlassRefreshRate { get; init; } = IslandGlassRefreshRate.Standard;
     // Independent from the settings window theme. Missing on upgrade keeps Windows app appearance.
     public ThemePreference Theme { get; init; } = ThemePreference.System;
     // Opt-in only. Missing fields in existing settings remain false; the old
@@ -71,6 +74,7 @@ public sealed record IslandAppearanceSettings
     public bool Resident { get; init; }
     public bool ShowLogoWhenIdle { get; init; }
     public bool ForceShowOverFullscreen { get; init; }
+    public bool HideWhileMusicWindowVisible { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
     public bool AutoHide { get; init; } = true;
     public int HideDelayMilliseconds { get; init; } = 3_000;

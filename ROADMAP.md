@@ -5,9 +5,9 @@
 The current Beta target is `v1.1.0-beta.4` (Beta 4).
 v1.1.0-beta.3 is the immediate upgrade baseline for this release.
 
-Add the requested liquid-glass island material and six native settings. Defaults are liquid glass, blur 1, refraction 400%, dispersion 75, dark overlay 0%, and the black-to-glass gradient enabled. Preserve island content, geometry, controls, animation and interaction. Retain user data and unchanged model/CUDA bytes.
+Add configurable liquid-glass island material with latest-frame capture, direct region processing, four refresh tiers and adjustable expanded refraction width. Defaults are liquid glass, blur 1, refraction 100%, expanded width 200%, dispersion 75, dark overlay 0%, Standard refresh and Ink glass enabled. Resident display and the idle logo default to off. Hide glass settings when Acrylic is selected. Preserve existing island content and layout. Add the optional Music window widget and visible-window island suppression, interface-aware translation defaults and focused alignment improvements. Retain user data and unchanged model/CUDA bytes.
 
-Deliver a local Beta4 test build with focused settings, native material/lifecycle and packaging evidence. See the [release notes](.github/release-notes/v1.1.0-beta.4.md) and [validation record](docs/dev/1.1-beta4-liquid-glass.md). Public promotion remains a separate operation. The pre-existing native heap crash investigation remains unresolved; this material update does not establish its resolution.
+The owner authorized publication after completion on October 29. Use full PR App/XAML compilation, one exact-main package producer and verified promotion, without broad regression/model reruns. See the [release notes](.github/release-notes/v1.1.0-beta.4.md), [material validation](docs/dev/1.1-beta4-liquid-glass.md) and [music-window validation](docs/dev/1.1-beta4-music-window.md). The pre-existing native heap crash investigation remains unresolved; this update does not establish its resolution.
 
 ## Published release: v0.3.1-beta.18
 

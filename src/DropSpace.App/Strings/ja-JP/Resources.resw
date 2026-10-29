@@ -912,7 +912,7 @@
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>アイドル時にロゴを表示する</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (無効)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌詞の翻訳先</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>画面の言語とは別に、簡体字中国語か英語を選択します。</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>中国語の画面では中国語、それ以外では英語が既定の翻訳先です。手動で選んだ翻訳言語は、画面の言語とは別に保持されます。</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>有効</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>無効</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>有効にする</value></data>
@@ -1023,8 +1023,8 @@
   <data name="AgentNameRequired" xml:space="preserve"><value>エージェント名を入力してください。</value></data>
   <data name="AgentConfirmTitle" xml:space="preserve"><value>エージェントの操作を許可しますか？</value></data>
   <data name="AgentConfirmAllow" xml:space="preserve"><value>この操作を許可</value></data>
-  <data name="MusicWindowOpen" xml:space="preserve"><value>音楽ウィンドウを開く</value></data>
-  <data name="MusicWindowTitle" xml:space="preserve"><value>音楽</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>音楽ウィンドウ</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>音楽ウィンドウ</value></data>
   <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>音楽ウィンドウを開く</value></data>
   <data name="ShortcutUnassigned" xml:space="preserve"><value>未割り当て</value></data>
   <data name="HotkeyClearBinding" xml:space="preserve"><value>ショートカットを解除</value></data>
@@ -1038,13 +1038,25 @@
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>システム音量</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>システム音量を利用できません。</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>選択を解除</value></data>
-  <data name="IslandMaterialStyle" xml:space="preserve"><value>アイランドのスタイル</value></data>
-  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>デスクトップ アクリル</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>アイランドの素材</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>アクリル</value></data>
   <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>リキッドガラス</value></data>
   <data name="IslandGlassBlur" xml:space="preserve"><value>リキッドガラスの背景ぼかし</value></data>
   <data name="IslandGlassRefraction" xml:space="preserve"><value>リキッドガラスの屈折強度 (%)</value></data>
   <data name="IslandGlassDispersion" xml:space="preserve"><value>リキッドガラスの色分散</value></data>
   <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>リキッドガラスの暗色オーバーレイ (%)</value></data>
-  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>リンゴスタイル（黒からガラスへのグラデーション）</value></data>
-  <data name="IslandGlassDescription" xml:space="preserve"><value>実験的な素材です。リキッドガラスの使用中はスクリーンショットや画面録画にアイランドが表示されません。利用できない場合は従来の素材に戻ります。</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>墨染めガラス</value></data>
+  <data name="IslandAppearanceLiquidGlass" xml:space="preserve"><value>リキッドガラス素材</value></data>
+  <data name="IslandGlassRefreshRate" xml:space="preserve"><value>リキッドガラスの更新レート</value></data>
+  <data name="IslandGlassRefreshStandard" xml:space="preserve"><value>標準（30 fps）</value></data>
+  <data name="IslandGlassRefreshHigh" xml:space="preserve"><value>高（60 fps）</value></data>
+  <data name="IslandGlassRefreshVeryHigh" xml:space="preserve"><value>最高（120 fps）</value></data>
+  <data name="IslandGlassRefreshUltra" xml:space="preserve"><value>Ultra（ディスプレイに合わせる）</value></data>
+  <data name="IslandGlassRefractionWidth" xml:space="preserve"><value>展開時のリキッドガラスの屈折幅 (%)</value></data>
+  <data name="WidgetMusicWindow.Text" xml:space="preserve">
+    <value>音楽ウィンドウ</value>
+  </data>
+  <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
+    <value>音楽ウィンドウの表示中はアイランドを隠す</value>
+  </data>
 </root>

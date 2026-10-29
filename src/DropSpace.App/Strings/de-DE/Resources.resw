@@ -912,7 +912,7 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Logo im Leerlauf anzeigen</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (deaktiviert)</value></data>
   <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Liedtext-Übersetzungsziel</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Wählen Sie unabhängig von der Sprache der Benutzeroberfläche vereinfachtes Chinesisch oder Englisch.</value></data>
+  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Bei chinesischer Oberfläche ist Chinesisch die Standardsprache für Übersetzungen, sonst Englisch. Eine manuell gewählte Übersetzungssprache bleibt unabhängig erhalten.</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>Aktiviert</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>Deaktiviert</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>Aktivieren</value></data>
@@ -1023,8 +1023,8 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="AgentNameRequired" xml:space="preserve"><value>Gib einen Namen für diesen Agent ein.</value></data>
   <data name="AgentConfirmTitle" xml:space="preserve"><value>Agent-Aktion erlauben?</value></data>
   <data name="AgentConfirmAllow" xml:space="preserve"><value>Diese Aktion erlauben</value></data>
-  <data name="MusicWindowOpen" xml:space="preserve"><value>Musikfenster öffnen</value></data>
-  <data name="MusicWindowTitle" xml:space="preserve"><value>Musik</value></data>
+  <data name="MusicWindowOpen" xml:space="preserve"><value>Musikfenster</value></data>
+  <data name="MusicWindowTitle" xml:space="preserve"><value>Musikfenster</value></data>
   <data name="ShortcutOpenMusicWindow" xml:space="preserve"><value>Musikfenster öffnen</value></data>
   <data name="ShortcutUnassigned" xml:space="preserve"><value>Nicht zugewiesen</value></data>
   <data name="HotkeyClearBinding" xml:space="preserve"><value>Tastenkürzel entfernen</value></data>
@@ -1038,13 +1038,25 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Systemlautstärke</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Die Systemlautstärke ist nicht verfügbar.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Auswahl aufheben</value></data>
-  <data name="IslandMaterialStyle" xml:space="preserve"><value>Inselstil</value></data>
-  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Desktop-Acryl</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Inselmaterial</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Acryl</value></data>
   <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Flüssigglas</value></data>
   <data name="IslandGlassBlur" xml:space="preserve"><value>Hintergrundunschärfe des Flüssigglases</value></data>
   <data name="IslandGlassRefraction" xml:space="preserve"><value>Lichtbrechung des Flüssigglases (%)</value></data>
   <data name="IslandGlassDispersion" xml:space="preserve"><value>Farbdispersion des Flüssigglases</value></data>
   <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Dunkle Überlagerung des Flüssigglases (%)</value></data>
-  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Lingo-Stil (Verlauf von Schwarz zu Glas)</value></data>
-  <data name="IslandGlassDescription" xml:space="preserve"><value>Experimentelles Material. Flüssigglas blendet die Insel in Screenshots und Bildschirmaufnahmen aus. Ist es nicht verfügbar, wird das bisherige Material verwendet.</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Tintenglas</value></data>
+  <data name="IslandAppearanceLiquidGlass" xml:space="preserve"><value>Flüssigglas-Material</value></data>
+  <data name="IslandGlassRefreshRate" xml:space="preserve"><value>Bildrate für Flüssigglas</value></data>
+  <data name="IslandGlassRefreshStandard" xml:space="preserve"><value>Standard (30 Bilder/s)</value></data>
+  <data name="IslandGlassRefreshHigh" xml:space="preserve"><value>Hoch (60 Bilder/s)</value></data>
+  <data name="IslandGlassRefreshVeryHigh" xml:space="preserve"><value>Sehr hoch (120 Bilder/s)</value></data>
+  <data name="IslandGlassRefreshUltra" xml:space="preserve"><value>Ultra (wie der Bildschirm)</value></data>
+  <data name="IslandGlassRefractionWidth" xml:space="preserve"><value>Breite der Lichtbrechung bei erweitertem Flüssigglas (%)</value></data>
+  <data name="WidgetMusicWindow.Text" xml:space="preserve">
+    <value>Musikfenster</value>
+  </data>
+  <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
+    <value>Island ausblenden, solange das Musikfenster sichtbar ist</value>
+  </data>
 </root>

@@ -11,6 +11,7 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     private OverlaySnapshot _files = new(OverlayState.Hidden, 0, false, 0);
     private bool _mediaAvailable, _mediaPlaying, _manual, _expanded, _resident, _allows = true, _dismissed, _hideCompleted;
+    private bool _musicWindowVisible, _hideWhileMusicWindowVisible;
     private string? _mediaIdentity;
     private IslandPage _page = IslandPage.Files;
     private bool _pageSelected;
@@ -52,8 +53,24 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     }
     public void UpdateSettings(IslandAppearanceSettings settings, bool fullscreenAllows)
     {
+        var wasSuppressed = _musicWindowVisible && _hideWhileMusicWindowVisible;
+        _hideWhileMusicWindowVisible = settings.HideWhileMusicWindowVisible;
+        if (!wasSuppressed && _musicWindowVisible && _hideWhileMusicWindowVisible) BeginMusicWindowSuppression();
         _resident = settings.Resident; _delay = NativeIslandSettingsPolicy.NormalizeHideDelay(settings.HideDelayMilliseconds);
         _allows = fullscreenAllows; Reconcile();
+    }
+    public void UpdateMusicWindowVisibility(bool visible, bool activated = false)
+    {
+        if (_musicWindowVisible == visible && !activated) return;
+        _musicWindowVisible = visible;
+        if (visible && _hideWhileMusicWindowVisible) BeginMusicWindowSuppression();
+        Reconcile();
+    }
+    private void BeginMusicWindowSuppression()
+    {
+        // Retire the open that launched the music widget, but preserve explicit dismissal
+        // and the user's page/content preferences. A later manual open remains available.
+        _manual = false; _expanded = false; _hideStarted = null; _hideCompleted = false; _generation++;
     }
     public void UpdateMedia(bool present, bool enabled, int hideDelayMilliseconds, bool autoHide = true, string? contentIdentity = null)
     {
@@ -118,7 +135,9 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         var hasReason = _resident || _mediaPlaying || IsManuallyOpen || _files.TemporaryItemCount > 0 ||
             _files.State is OverlayState.DragApproaching or OverlayState.DragReady || _files.ExpandedDropActive ||
             _notification > now || _volume > now;
-        var desired = hasReason && (_allows || IsManuallyOpen) && !_dismissed;
+        var dragging = _files.State is OverlayState.DragApproaching or OverlayState.DragReady || _files.ExpandedDropActive;
+        var musicSuppressed = _musicWindowVisible && _hideWhileMusicWindowVisible && !IsManuallyOpen && !dragging;
+        var desired = hasReason && (_allows || IsManuallyOpen) && !_dismissed && !musicSuppressed;
         var state = baseState.State;
         var content = baseState.CompactContent;
         var variant = content switch
@@ -138,8 +157,9 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         }
         else
         {
+            if (musicSuppressed) { _expanded = false; _hideStarted = null; }
             if (_hideCompleted) state = OverlayState.Hidden;
-            else if (_dismissed)
+            else if (_dismissed || musicSuppressed)
                 state = Current.State == OverlayState.Hidden ? OverlayState.Hidden : OverlayState.Dismissing;
             else if (_hideStarted is not null || Current.State is not (OverlayState.Hidden or OverlayState.Dismissing))
             {

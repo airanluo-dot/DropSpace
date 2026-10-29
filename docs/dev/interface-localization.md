@@ -9,8 +9,11 @@ and Brazilian Portuguese. Character conversion or copying English is not complet
 
 Interface language and lyric target are independently saved. The lyric target is permanently
 **Simplified Chinese or English**, forwarded in the existing Chinese/English target formats.
-Upgrade stores the previously effective target once, without migrating lyric configuration.
-Interface switching refreshes UI without retranslation; target switching reuses established
+New and unset targets default to Simplified Chinese when the effective interface is zh-CN or
+zh-TW, and English otherwise. Until explicitly selected, this default follows interface changes.
+Existing saved targets migrate as explicit choices, and subsequent interface changes preserve
+an explicit target. `LyricsTranslationTargetExplicit` persists this distinction independently
+of lyric configuration. Changing the effective target reuses established
 cancellation and stale-result isolation. Never pass new interface locales into lyric/AI paths.
 
 Only settings labels/bindings and necessary target forwarding may change. Preserve sources,

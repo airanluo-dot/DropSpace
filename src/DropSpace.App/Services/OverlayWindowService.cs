@@ -25,6 +25,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly OverlayStateMachine _stateMachine;
     private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
     private readonly MediaViewModel _mediaViewModel;
+    private readonly Media.MusicWindowService _musicWindow;
     private readonly WidgetViewModel _widgetViewModel;
     private readonly ClipboardIslandViewModel _clipboardViewModel;
     private readonly IslandRetrievalViewModel _retrievalViewModel;
@@ -84,6 +85,7 @@ public sealed class OverlayWindowService : IDisposable
         ClipboardIslandViewModel clipboardViewModel,
         SystemActivityViewModel systemActivityViewModel,
         IslandRetrievalViewModel retrievalViewModel,
+        Media.MusicWindowService musicWindow,
         Dlc.FeatureModuleRuntime? modules = null)
     {
         _viewModel = viewModel;
@@ -115,6 +117,7 @@ public sealed class OverlayWindowService : IDisposable
         _widgetViewModel = widgetViewModel;
         _clipboardViewModel = clipboardViewModel;
         _retrievalViewModel = retrievalViewModel;
+        _musicWindow = musicWindow;
     }
 
     public async Task InitializeAsync(Action openMainWindow, CancellationToken cancellationToken = default)
@@ -1010,6 +1013,7 @@ public sealed class OverlayWindowService : IDisposable
             if (glowTransfers is not null && glowTransfers.TryGetValue(monitor.Id, out var transfer))
                 window.StageGlowHandoff(transfer);
             window.ApplyTheme(_mediaViewModel.Settings.IslandAppearance.Theme);
+            window.MusicWindowRequested += (_, _) => { if (!_disposed) _musicWindow.Open(); };
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementEditRequested += OnOverlayPlacementEditRequested;
             window.PlacementCancelled += OnPlacementCancelled;
