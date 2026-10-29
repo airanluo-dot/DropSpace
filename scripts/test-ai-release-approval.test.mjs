@@ -391,7 +391,7 @@ test('Beta host authorization carries model limits without inventing semantic ap
 });
 
 for (const [label, mutate, expected] of [
-  ['future release', x => { x.write('RELEASE_VERSION', 'v1.1.0-beta.3'); x.scope.releaseVersion = 'v1.1.0-beta.3'; }, /release-specific/],
+  ['future release', x => { x.write('RELEASE_VERSION', 'v1.1.0-beta.5'); x.scope.releaseVersion = 'v1.1.0-beta.5'; }, /release-specific/],
   ['new model acceptance', x => { x.report.userAcceptance.releaseVersion = betaHostExperimentalModelsVersion; }, /Do not invent/],
   ['changed observations', x => { x.report.models[0].validation[0].status = 'complete-unreviewed'; }, /preserve original/],
 ]) test(`Beta host authorization rejects ${label}`, t => {
