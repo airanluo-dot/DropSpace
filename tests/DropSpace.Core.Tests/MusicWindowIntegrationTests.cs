@@ -11,6 +11,33 @@ namespace DropSpace.Core.Tests;
 public sealed class MusicWindowIntegrationTests
 {
     [TestMethod]
+    public void RestoreActivationKeepsPendingMusicSuppressionDismissalValid()
+    {
+        var coordinator = new IslandExperienceCoordinator();
+        coordinator.UpdateSettings(new() { Resident = true, HideWhileMusicWindowVisible = true }, true);
+        coordinator.UpdateMedia(true, true, true, 3000, "playing-track");
+        for (var cycle = 0; cycle < 2; cycle++)
+        {
+            coordinator.UpdateMusicWindowVisibility(true); // native restore notification starts the animation
+            var dismissal = coordinator.HideGeneration;
+            coordinator.UpdateMusicWindowVisibility(true, activated: true); // Open's explicit activation
+            Assert.IsTrue(coordinator.CompleteDismissal(dismissal));
+            Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
+            coordinator.UpdateMusicWindowVisibility(false);
+            Assert.AreEqual(OverlayState.Compact, coordinator.Current.State);
+        }
+        coordinator.UpdateMusicWindowVisibility(true);
+        coordinator.CompleteDismissal(coordinator.HideGeneration);
+        coordinator.Open(IslandPage.Widgets);
+        coordinator.UpdateMusicWindowVisibility(true, activated: true);
+        var manualDismissal = coordinator.HideGeneration;
+        coordinator.UpdateMusicWindowVisibility(true, activated: true);
+        Assert.IsFalse(coordinator.IsManuallyOpen);
+        Assert.IsTrue(coordinator.CompleteDismissal(manualDismissal));
+        Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
+    }
+
+    [TestMethod]
     public void VisibleMusicWindowSuppressesAutomaticReasonsAndRestoresCurrentRules()
     {
         var coordinator = new IslandExperienceCoordinator();
