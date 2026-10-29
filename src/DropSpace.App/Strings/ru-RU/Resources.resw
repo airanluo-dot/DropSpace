@@ -784,10 +784,10 @@
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcDescription" xml:space="preserve"><value>Управляйте дополнительными моделями, средами выполнения и компонентами функций. Загрузки начнутся только тогда, когда вы их выберете.</value></data>
   <data name="DlcManage" xml:space="preserve"><value>Управляйте загрузками в DLC</value></data>
-  <data name="DlcInstalled" xml:space="preserve"><value>Скачано</value></data>
-  <data name="DlcAvailable" xml:space="preserve"><value>Не загружено</value></data>
-  <data name="DlcEmptyInstalled" xml:space="preserve"><value>Нет загруженных компонентов.</value></data>
-  <data name="DlcEmptyAvailable" xml:space="preserve"><value>Все доступные компоненты уже скачаны.</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>Установлено</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>Не установлено</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>Нет установленных компонентов.</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>Все доступные компоненты установлены.</value></data>
   <data name="DlcRefresh" xml:space="preserve"><value>Обновить установленные компоненты</value></data>
   <data name="DlcModelPurpose" xml:space="preserve"><value>Перевод текста песен с ИИ без подключения к сети.</value></data>
   <data name="DlcLargeModelPurpose" xml:space="preserve"><value>Дополнительная модель большего размера для перевода текста песен с ИИ без подключения к сети.</value></data>
@@ -802,7 +802,7 @@
   <data name="DlcRetry" xml:space="preserve"><value>Повторить попытку</value></data>
   <data name="DlcCancel" xml:space="preserve"><value>Отменить загрузку</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>Проверка локальных компонентов…</value></data>
-  <data name="DlcNotInstalled" xml:space="preserve"><value>Не загружено</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>Не установлено</value></data>
   <data name="DlcReady" xml:space="preserve"><value>Установлено</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>Неполная загрузка. Возобновите или удалите загруженные файлы.</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>Загрузка…</value></data>

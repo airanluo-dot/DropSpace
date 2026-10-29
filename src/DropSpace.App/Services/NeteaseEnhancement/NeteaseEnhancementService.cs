@@ -47,7 +47,7 @@ public sealed class NeteaseEnhancementService(
         InfLinkDeploymentReceipt? receipt = null;
         try
         {
-            Publish(new(NeteaseEnhancementStage.Detecting));
+            Publish(new(NeteaseEnhancementStage.Detecting, Current.IsManaged, Current.Version));
             var installation = await installations.FindAsync(lifetime.Token).ConfigureAwait(false);
             if (installation is null) { Publish(new(NeteaseEnhancementStage.NotInstalled)); return; }
             receipt = await deployment.GetManagedReceiptAsync(installation, lifetime.Token).ConfigureAwait(false);
@@ -124,7 +124,14 @@ public sealed class NeteaseEnhancementService(
                 await deployment.RestartAsync(installation, token).ConfigureAwait(false); stopped = false;
                 Publish(new(NeteaseEnhancementStage.Removed)); return;
             }
-            var native = await verifier.VerifyAsync(TimeSpan.FromSeconds(60), true, token).ConfigureAwait(false);
+            // A forced reinstall cannot take the native-support shortcut. Do not spend
+            // a minute exercising the soon-to-be-replaced player before preparing it.
+            var native = NeteaseMediaCapabilities.Empty;
+            if (!reinstall)
+            {
+                Publish(new(NeteaseEnhancementStage.Verifying, previous is not null, previous?.PluginVersion));
+                native = await verifier.VerifyAsync(TimeSpan.FromSeconds(60), true, token).ConfigureAwait(false);
+            }
             if (native.Complete && previous is null && !reinstall)
             {
                 Publish(new(NeteaseEnhancementStage.Enhanced)); return;

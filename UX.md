@@ -17,8 +17,8 @@ The bundled offline language model adds no setup screen or first-use download.
 Music presents Now Playing and the bounded lyric viewport as separate Windows 11 card surfaces.
 The card boundary is the pointer-wheel safety boundary: page scrolling continues outside it and
 lyric scrolling is intentionally local inside it without also moving the page. The media source is playback metadata, not an
-unlabeled line between sections. Before enhancement, the NetEase card remains near Now Playing;
-after local installation is recognized, it moves below playback, lyric and application settings.
+unlabeled line between sections. Music keeps only a NetEase enhancement navigation entry at the
+bottom, after media application settings. Installation and management belong to Settings → DLC.
 
 Lyric loading is player-agnostic. Track and album artists are alternative credits, every online
 provider can recover from an overly narrow artist-qualified search with a bounded title-only
@@ -47,7 +47,11 @@ final target and holds it briefly until the player acknowledges it, preventing s
 
 ## NetEase enhancement card
 
-Music places a concise enhancement card below Now Playing. One confirmation names InfLink-rs,
+Settings → DLC owns the enhancement card and application-owned state, including install, update,
+reinstall and remove actions. It classifies the card under Installed or Not installed using verified
+package inventory, like other components. In-flight work retains its position; completed work is
+regrouped using the refreshed inventory. Music's bottom entry only navigates to DLC.
+One confirmation names InfLink-rs,
 independent third-party components, the player restart and brief playback-control verification.
 The operation survives navigation and reports detecting/preparing/installing/restarting/verifying
 states with an indeterminate progress indicator; no fabricated percentage. Only actual complete

@@ -49,7 +49,7 @@ public sealed partial class MainPage
 
     private void OpenDlcSettings() => _openDlcSettings?.Invoke();
 
-    private void BuildSettingsPages(NativeSettingsEditor editor, Services.Dlc.DlcManagerService dlc)
+    private void BuildSettingsPages(NativeSettingsEditor editor, Services.Dlc.DlcManagerService dlc, NeteaseEnhancementViewModel enhancement)
     {
         var groups = new Dictionary<string, StackPanel>();
         foreach (var key in new[] { "General", "Island", "Shortcuts", "Relay", "Agents", "Widgets", "DLC", "Downloads", "SystemActivities", "Devices", "Updates", "About" })
@@ -146,7 +146,7 @@ public sealed partial class MainPage
         island.AddToggle("IslandRightHoldMove", s => s.IslandAppearance.RightClickHoldToMove, (s,v) => s with { IslandAppearance = s.IslandAppearance with { RightClickHoldToMove = v } });
         groups["Island"].Children.Insert(0, island);
         groups["Widgets"].Children.Add(new WidgetEditorView(editor, _strings));
-        _dlcSettingsPage = new DlcPage(dlc, _strings, editor, _modules.RefreshCatalogAsync);
+        _dlcSettingsPage = new DlcPage(dlc, _strings, editor, enhancement, _modules.RefreshCatalogAsync);
         _downloadSettingsPanel = new DownloadPanel(editor, _strings, _windowHandle);
         groups["DLC"].Children.Add(_dlcSettingsPage);
         _moduleInventory = new FeatureModuleInventoryView(_modules, _strings,

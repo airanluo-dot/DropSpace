@@ -149,7 +149,8 @@ presence can project an Installed state without projecting Enhanced capability.
 
 `NeteaseEnhancementService` orchestrates separate installation/profile probes, official artifact
 deployment, prerequisite installation and event-driven `NeteaseSmtcVerifier` acceptance. A dedicated
-ViewModel projects installation state into Music. The general WindowsMediaSessionService has no
+ViewModel projects installation state into the DLC enhancement card; Music only links to DLC.
+The general WindowsMediaSessionService has no
 installer or NetEase-specific branch; Windows remains the sole runtime media protocol. Deployment
 receipts are local operational state under the DropSpace application-data root, independent of the
 item database and settings schema. Restart verification retires pre-restart sessions and

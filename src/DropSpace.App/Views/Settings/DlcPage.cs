@@ -17,6 +17,8 @@ public sealed class DlcPage : UserControl
     private readonly DlcManagerService _manager;
     private readonly IAppStringLocalizer _strings;
     private readonly ViewModels.NativeSettingsEditor _editor;
+    private readonly ViewModels.NeteaseEnhancementViewModel _enhancement;
+    private Music.NeteaseEnhancementCard _enhancementCard;
     private readonly StackPanel _installed = new() { Spacing = 12 };
     private readonly StackPanel _available = new() { Spacing = 12 };
     private readonly TextBlock _emptyInstalled;
@@ -31,11 +33,13 @@ public sealed class DlcPage : UserControl
     private int _renderQueued;
     private volatile bool _active;
 
-    public DlcPage(DlcManagerService manager, IAppStringLocalizer strings, ViewModels.NativeSettingsEditor editor, Func<CancellationToken, Task>? refreshModules = null)
+    public DlcPage(DlcManagerService manager, IAppStringLocalizer strings, ViewModels.NativeSettingsEditor editor, ViewModels.NeteaseEnhancementViewModel enhancement, Func<CancellationToken, Task>? refreshModules = null)
     {
         _manager = manager;
         _strings = strings;
         _editor = editor;
+        _enhancement = enhancement;
+        _enhancementCard = new Music.NeteaseEnhancementCard(enhancement, strings, manager);
         var body = new StackPanel { Spacing = 18 };
         body.Children.Add(new TextBlock { Text = strings.Get("DlcTitle"), FontSize = 22, FontWeight = FontWeights.SemiBold });
         body.Children.Add(new TextBlock { Text = strings.Get("DlcDescription"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
@@ -55,6 +59,7 @@ public sealed class DlcPage : UserControl
             try
             {
                 await _manager.RefreshAsync(force: true);
+                if (!enhancement.IsBusy) await enhancement.InspectAsync();
                 if (refreshModules is not null && _pageStop is { } owner)
                     await refreshModules(owner.Token);
             }
@@ -82,6 +87,7 @@ public sealed class DlcPage : UserControl
             if (_pageStop is not null) return;
             _pageStop = new();
             _manager.Changed += OnChanged;
+            _enhancement.PropertyChanged += OnEnhancementChanged;
             Render();
             await _manager.RefreshAsync();
             RefreshStorageSummary();
@@ -89,6 +95,7 @@ public sealed class DlcPage : UserControl
         Unloaded += (_, _) =>
         {
             _manager.Changed -= OnChanged;
+            _enhancement.PropertyChanged -= OnEnhancementChanged;
             var stop = _pageStop;
             _pageStop = null;
             stop?.Cancel();
@@ -152,6 +159,9 @@ public sealed class DlcPage : UserControl
         }
     }
 
+    private void OnEnhancementChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) =>
+        OnChanged(sender, EventArgs.Empty);
+
     private void Render()
     {
         if (!_active || _pageStop is null) return;
@@ -164,10 +174,30 @@ public sealed class DlcPage : UserControl
             _available.Children.Remove(card);
             _cards.Remove(obsolete);
         }
-        var busy = _manager.IsBusy || _confirming;
+        var busy = _manager.IsBusy || _confirming || _enhancement.IsBusy;
         _refresh.IsEnabled = !busy;
         foreach (var snapshot in snapshots)
         {
+            if (snapshot.Package.Id == "netease-music-enhancement")
+            {
+                // Use the same verified inventory classification as every other package.
+                // Keep progress in place during work; regroup only after it has finished.
+                var enhancementDestination = snapshot.Installation?.IsInstalled == true ? _installed : _available;
+                var enhancementOther = ReferenceEquals(enhancementDestination, _installed) ? _available : _installed;
+                var attached = _installed.Children.Contains(_enhancementCard) || _available.Children.Contains(_enhancementCard);
+                if ((!_enhancement.IsBusy || !attached) && !enhancementDestination.Children.Contains(_enhancementCard))
+                {
+                    if (attached)
+                    {
+                        // WinUI may deliver deferred Unloaded after a same-instance reparent.
+                        // Retire the old view and give the new group its own Loaded/dialog lifetime.
+                        enhancementOther.Children.Remove(_enhancementCard);
+                        _enhancementCard = new Music.NeteaseEnhancementCard(_enhancement, _strings, _manager, inspectOnLoad: false);
+                    }
+                    enhancementDestination.Children.Add(_enhancementCard);
+                }
+                continue;
+            }
             if (!_cards.TryGetValue(snapshot.Package.Id, out var card))
             {
                 card = new PackageCard(_strings, snapshot.Package.Id, action => _ = ActAsync(snapshot.Package.Id, action),

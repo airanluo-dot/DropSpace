@@ -2940,20 +2940,20 @@
       "6cdef13779f79ae2d3ab286dd63bca0a07ccdf4b7ffff6dbb32b8cfff6eb3c03"
     ],
     "DlcInstalled": [
-      "f0b0738f75b8bcd1dd40e42c6233d6d6f4f584bdcfa124741bceeb2c6c5b3249",
-      "e2f12da7faa682177811ed705f801a5c0c34c72beb0a7f0c67d7a11509737966"
+      "f8b32f4e92bd84ce1fcd177bec17d43093de3ee8303bb40c1b9ea521ed6a70f6",
+      "a8b6c39dcabfc14bb136596e34a95b424257b82d54c3ac49a7728b876ae58526"
     ],
     "DlcAvailable": [
-      "5569a4e0a4ce34feaef54ae5e3cebd9487ef3587f92345ca80bc69e26fc62b57",
-      "dccec95b65e15ff016a67b2619c054373c65940544153796861a8294f9004541"
+      "d177cdc09a4ea3f377e5b336e9ff52184be0dc032f29af2e5d346bc7390340a6",
+      "156219e305f6cebcd23d048931c6057beee0ab3eadb5b8e370edde3e7ff4e788"
     ],
     "DlcEmptyInstalled": [
-      "c374e8cd8c6aee73e4435e3f5ae80ad8760f67f377c9f4eab232610a71a826dd",
-      "44a463e6715fb6c2d4416d599482c9f93ed34f8953ac092b9420ff9f61f99cfb"
+      "64a07796182183cd7bfc932e3d2c851c47b49441bba11d542946685d77fe763c",
+      "e72f6eef222e4337a159426a8e8fd308fc5b9b682572f785ab19b4aed732ba95"
     ],
     "DlcEmptyAvailable": [
-      "5404abfba5d87abc6fc39dedee0e55a5df37e8c2b9ac6c803c0791e780ed0b81",
-      "c10bc6ec2bf270e26384fc5041c7c8f182ea982e21ee86068d0232d9958c0580"
+      "098d02b46ba725e7c333620113d8775f775e1544170fd2f912b6b8dc65c9d3b9",
+      "62cc306f56dfb827eb5f5013471aec92c429413e6969f68638a73108e459f60a"
     ],
     "DlcRefresh": [
       "5b5f4a228a9d59ef1e8f3d449dcf902f11619baf28e288c166519abcff60db35",
@@ -3012,8 +3012,8 @@
       "6460bbb8ed2ad3a1f1b9fb02de849279b0d5a2db394f24ea71075ce5769bd273"
     ],
     "DlcNotInstalled": [
-      "5569a4e0a4ce34feaef54ae5e3cebd9487ef3587f92345ca80bc69e26fc62b57",
-      "7176bc018a31210be672e3f45ec510cdf16d6bf1173be477ea9632eceb28bb0a"
+      "d177cdc09a4ea3f377e5b336e9ff52184be0dc032f29af2e5d346bc7390340a6",
+      "20f8c104225cc4eb3791083e469800de8f1470460d180653a796e4dd2bc86657"
     ],
     "DlcReady": [
       "f8b32f4e92bd84ce1fcd177bec17d43093de3ee8303bb40c1b9ea521ed6a70f6",
@@ -4208,14 +4208,18 @@
       "b43532fe2cd48ad51fa6540225e1e57cb75ca02bccf57f1db616af4f4b1e45b4"
     ]
   },
-  "reviewedBy": "Codex: reviewed global lyrics target terminology",
-  "reviewedAt": "2026-10-29T11:07:06.883Z",
+  "reviewedBy": "Codex: reviewed five DLC classification IDs on Beta4 baseline; preserved Beta4 review records",
+  "reviewedAt": "2026-10-29T15:17:55.273Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "LyricsTranslationTargetTitle"
+      "DlcInstalled",
+      "DlcAvailable",
+      "DlcEmptyInstalled",
+      "DlcEmptyAvailable",
+      "DlcNotInstalled"
     ],
-    "reviewedBy": "Codex: reviewed global lyrics target terminology",
-    "reviewedAt": "2026-10-29T11:07:06.883Z"
+    "reviewedBy": "Codex: reviewed five DLC classification IDs on Beta4 baseline; preserved Beta4 review records",
+    "reviewedAt": "2026-10-29T15:17:55.273Z"
   }
 }

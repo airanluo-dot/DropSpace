@@ -784,10 +784,10 @@ Um modelo será baixado para este computador. A conexão com a internet é usada
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcDescription" xml:space="preserve"><value>Gerencie modelos opcionais, tempos de execução e componentes de recursos. Os downloads só começam quando você os escolhe.</value></data>
   <data name="DlcManage" xml:space="preserve"><value>Gerenciar downloads em DLC</value></data>
-  <data name="DlcInstalled" xml:space="preserve"><value>Baixado</value></data>
-  <data name="DlcAvailable" xml:space="preserve"><value>Não baixado</value></data>
-  <data name="DlcEmptyInstalled" xml:space="preserve"><value>Nenhum componente baixado.</value></data>
-  <data name="DlcEmptyAvailable" xml:space="preserve"><value>Todos os componentes disponíveis são baixados.</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>Instalados</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>Não instalados</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>Nenhum componente instalado.</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>Todos os componentes disponíveis estão instalados.</value></data>
   <data name="DlcRefresh" xml:space="preserve"><value>Atualizar componentes instalados</value></data>
   <data name="DlcModelPurpose" xml:space="preserve"><value>Tradução de letras offline IA.</value></data>
   <data name="DlcLargeModelPurpose" xml:space="preserve"><value>Modelo maior opcional para tradução de letras offline IA.</value></data>
@@ -802,7 +802,7 @@ Um modelo será baixado para este computador. A conexão com a internet é usada
   <data name="DlcRetry" xml:space="preserve"><value>Tentar novamente</value></data>
   <data name="DlcCancel" xml:space="preserve"><value>Cancelar download</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>Verificando componentes locais…</value></data>
-  <data name="DlcNotInstalled" xml:space="preserve"><value>Não baixado</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>Não instalado</value></data>
   <data name="DlcReady" xml:space="preserve"><value>Instalado</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>Download incompleto. Retome ou remova os arquivos baixados.</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>Baixando…</value></data>

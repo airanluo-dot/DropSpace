@@ -784,10 +784,10 @@
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcDescription" xml:space="preserve"><value>선택적 모델, 런타임 및 기능 구성 요소를 관리합니다. 다운로드는 선택한 경우에만 시작됩니다.</value></data>
   <data name="DlcManage" xml:space="preserve"><value>DLC에서 다운로드 관리</value></data>
-  <data name="DlcInstalled" xml:space="preserve"><value>다운로드됨</value></data>
-  <data name="DlcAvailable" xml:space="preserve"><value>다운로드되지 않음</value></data>
-  <data name="DlcEmptyInstalled" xml:space="preserve"><value>다운로드한 구성요소가 없습니다.</value></data>
-  <data name="DlcEmptyAvailable" xml:space="preserve"><value>사용 가능한 모든 구성 요소를 다운로드했습니다.</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>설치됨</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>설치되지 않음</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>설치된 구성 요소가 없습니다.</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>사용 가능한 모든 구성 요소가 설치되어 있습니다.</value></data>
   <data name="DlcRefresh" xml:space="preserve"><value>설치된 구성 요소 상태 새로 고침</value></data>
   <data name="DlcModelPurpose" xml:space="preserve"><value>오프라인 AI 가사 번역.</value></data>
   <data name="DlcLargeModelPurpose" xml:space="preserve"><value>오프라인 AI 가사 번역을 위한 선택적인 대형 모델입니다.</value></data>
@@ -802,7 +802,7 @@
   <data name="DlcRetry" xml:space="preserve"><value>재시도</value></data>
   <data name="DlcCancel" xml:space="preserve"><value>다운로드 취소</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>로컬 구성요소 확인 중…</value></data>
-  <data name="DlcNotInstalled" xml:space="preserve"><value>다운로드되지 않음</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>설치되지 않음</value></data>
   <data name="DlcReady" xml:space="preserve"><value>설치됨</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>불완전한 다운로드. 다운로드한 파일을 재개하거나 제거합니다.</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>다운로드 중…</value></data>
