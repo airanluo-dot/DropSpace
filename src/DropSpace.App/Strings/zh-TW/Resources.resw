@@ -911,8 +911,7 @@
   <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>暫存空間</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>閒置時顯示標誌</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB（已停用）</value></data>
-  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌詞翻譯目標</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>中文介面預設翻譯為中文，其他介面語言預設翻譯為英文。手動選擇後，會獨立保留你的翻譯語言。</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>歌詞語言目標</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>已啟用</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>已停用</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>啟用</value></data>

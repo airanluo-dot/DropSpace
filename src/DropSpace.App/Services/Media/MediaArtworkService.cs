@@ -7,6 +7,7 @@ namespace DropSpace.App.Services.Media;
 
 public sealed class MediaArtworkService(DispatcherQueue dispatcher)
 {
+    private const uint MaximumDecodedEdge = 1024; // at most 4 MiB BGRA for the shared cover
     public async Task<BitmapImage?> DecodeAsync(byte[]? bytes, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -27,7 +28,11 @@ public sealed class MediaArtworkService(DispatcherQueue dispatcher)
         return await dispatcher.EnqueueAsync(async () =>
         {
             token.ThrowIfCancellationRequested();
-            var image = new BitmapImage { DecodePixelWidth = 192 };
+            // The shared image also fills the standalone music window. Keep the source's
+            // detail up to a bounded long edge; never enlarge a smaller provider thumbnail.
+            var image = decoder.PixelWidth >= decoder.PixelHeight
+                ? new BitmapImage { DecodePixelWidth = (int)Math.Min(decoder.PixelWidth, MaximumDecodedEdge) }
+                : new BitmapImage { DecodePixelHeight = (int)Math.Min(decoder.PixelHeight, MaximumDecodedEdge) };
             // BitmapImage and SetSourceAsync remain on the UI dispatcher. Only the
             // cancellation request is off-thread; the stream lives until native completion.
             await NativeAsyncLifetime.AwaitAsync(image.SetSourceAsync(stream), token);

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "owner-authorized-beta-host-experimental-models",
-  "reason": "Bind the owner-requested Beta4 host release to liquid-glass capture and controls, Music Window widget and visibility policy, unset translation-target initialization, and interface naming/alignment. Preserve all existing model/runtime identities, prompt/admission contracts and historical experimental observations. No new inference, native stability resolution or semantic approval is claimed. The final packaged active-playback check found a duplicate restore-activation generation conflict; the coordinator now retains the in-flight dismissal generation for duplicate notifications.",
+  "reason": "Bind the owner-requested Beta4 host release to liquid-glass capture and controls, Music Window widget and visibility policy, unset translation-target initialization, and interface naming/alignment. Preserve all existing model/runtime identities, prompt/admission contracts and historical experimental observations. No new inference, native stability resolution or semantic approval is claimed. The final packaged active-playback check found a duplicate restore-activation generation conflict; the coordinator now retains the in-flight dismissal generation for duplicate notifications. The owner additionally requested moving and renaming the global lyric target with no explanatory copy, and retaining higher-resolution source artwork through a bounded decode. Provider/AI target semantics and model execution are unchanged.",
   "scope": {
     "releaseVersion": "v1.1.0-beta.4",
     "shippingModels": [
@@ -729,7 +729,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
-          "sha256": "ed855244f76d8b7a1bad2c4250e2bb63aa6d19823d8f8f93562604b74be0aaf2"
+          "sha256": "84cce14822809d8856d2a527be242fa9c9b2d289a24a9ca7d7f44a72a557919b"
         },
         {
           "path": "src/DropSpace.App/Views/Settings/SettingsEditBehavior.cs",
@@ -749,7 +749,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs",
-          "sha256": "748e6590c2a401583a586189f760d42fabe43e60e336354921e63f4460efb4ee"
+          "sha256": "962df947fa9a15fe24850657a9c372d0e65348e7ea84b6f4c8fc3da83f9ebbe5"
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
@@ -905,43 +905,43 @@
         },
         {
           "path": "src/DropSpace.App/Strings/zh-TW/Resources.resw",
-          "sha256": "235de090eb3bee1636325e440c86797f171ed7cecaa54e07574b9304b0ce3341"
+          "sha256": "d86a7ca9ea91f577bf1a9b92188bf92f2ce604584c687ba42786effa5c8943bd"
         },
         {
           "path": "src/DropSpace.App/Strings/ja-JP/Resources.resw",
-          "sha256": "d3ff6df7a3effea184af0717c889c04487599060edf2dca2307b1e1e1754bb66"
+          "sha256": "2e73eb98100c4db7d1b254b0f4029436d13dddc107977d9c3aa2ed1fd92962d0"
         },
         {
           "path": "src/DropSpace.App/Strings/ko-KR/Resources.resw",
-          "sha256": "e292e8b20d2a6d906f547323e3ace5bf67f0afa4ea4263cfa799a298b492af9c"
+          "sha256": "40eecc89cec14bdbcc47ae1a7437690116ae4bb63239f3490bdda95bf519d8a7"
         },
         {
           "path": "src/DropSpace.App/Strings/de-DE/Resources.resw",
-          "sha256": "a71c485d9f7d6377f5cac0fe2e83df13f20cb8a8334c3c3c13374404a72ee988"
+          "sha256": "bd87230885607c5b7031fb463192769d17f2b6439bcb56aed65fe0fdecacea0b"
         },
         {
           "path": "src/DropSpace.App/Strings/fr-FR/Resources.resw",
-          "sha256": "e28403a0d0653031dc64db9b8185e8eafdc4c57367affd9467bb8eaeb9659567"
+          "sha256": "3e2b48afdfc72bf1c0d79f847ceb09864e1a54c6f39f952ff3bff6e1b8f5fe26"
         },
         {
           "path": "src/DropSpace.App/Strings/es-ES/Resources.resw",
-          "sha256": "9c79d45f79d796dfd1f530cd3f65099251e3e1b8e44b554c9b259805172cf127"
+          "sha256": "bc969d14c2eda545a6d8ab5f99f996b7a7559ca51a8116cbad7d1f525e088830"
         },
         {
           "path": "src/DropSpace.App/Strings/pt-BR/Resources.resw",
-          "sha256": "47270d657f9006660749cdf93d92df5cb3449a34fe1134e692b0f8848ed300e2"
+          "sha256": "9bba9dbff6899b145bf8282a8ef07bbda89fd64a0e28f7d61aaa1105ee612334"
         },
         {
           "path": "src/DropSpace.App/Strings/ru-RU/Resources.resw",
-          "sha256": "faa709a6c199c88e4a2b651a9e363cba8db17c02ae0c464501e1ed5ffc12d72d"
+          "sha256": "6a2ad74cdaa2db00f2b43e10fab95f3847c985241f72a884dbf6f05ad13261b3"
         },
         {
           "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
-          "sha256": "d2e1a8661b8e0fa5eb006f1f2e25a36e839b35d0fb57f1efdd4436d8d07e8876"
+          "sha256": "f226d124a1c62700df1e6762a19602d94da52a6196c65d5d497ffc8dd6789042"
         },
         {
           "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
-          "sha256": "735d88359056c3cbd6f757cfe756738f3fcc463c68ab4b49b266b733eb35841d"
+          "sha256": "09a7cbef5ca4cfeac28fac714f3207f4d98ead0e27798d3071626027e4cae6d8"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs",
@@ -953,7 +953,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaArtworkService.cs",
-          "sha256": "a9cc757f3ed9f7a9c71edd6f84e7b0a02942923959467ff219c8a99fbb769265"
+          "sha256": "422ea0fc7135e4d1eaf2eb62f76f54e7fbd4d3717c407d224a668fc396da5a0f"
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaEventSubscription.cs",
@@ -1344,7 +1344,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "8c947b63afd6b3fec9a92c661cbb4b1f82a0c502c4e9db86f59ca4bf1386c5d9"
+      "sha256": "a48dd3c7a477d91e1165561901933dfae523af75732791e86fbe75c6fc911def"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2788,6 +2788,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.4-host-review.json",
-    "sha256": "6e6eccf4279e02502c2773621985a19afbbafbc51acd01b928416d6182988d59"
+    "sha256": "fdf8876e2077da3a28926adacd243514e8288ac5cbda950d68161c3f705c328a"
   }
 }

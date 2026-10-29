@@ -3436,12 +3436,8 @@
       "84750d7ffed616764c00320bba9fa1b553cbce58f280774ede89e1b0558b8160"
     ],
     "LyricsTranslationTargetTitle": [
-      "2499b06d1b4c558b0b4a9624b7b1d429ff1d1a5d62575b11134fb710d22ab298",
-      "3998b1b407c7ba3890c89716e91459c8df60075824c1748c1b9f30ca735ae9fe"
-    ],
-    "LyricsTranslationTargetDescription": [
-      "d67d5df28d4eff88bef6445440585155236408610fa0573ab19cb2edde690378",
-      "34490df011cf28e37bb2c315e8d5367f673eecff90f4ce2a2a13a04a8211847b"
+      "1c5099c78145a0f9343e9013ca52f95f9b8023fd7c5fad1ca262dfcc96a7ec75",
+      "36cd1047d797c74a920c6890e1cb9b5615727616d1a593839a1230b78272faab"
     ],
     "Installer.LangOptions.LanguageName": [
       "ba118bf7fc9c1aedc1edb28a0aa86e0b43b681f222af6616e13c43be87815b06",
@@ -4212,18 +4208,14 @@
       "92905f4e96966c0add2aec38b65a6b330a600c45e7190e97e2f9b60ab6ff5877"
     ]
   },
-  "reviewedBy": "Unified music window name; removed explanatory copy",
-  "reviewedAt": "2026-10-29T10:21:37.989Z",
+  "reviewedBy": "Codex: reviewed global lyrics target terminology",
+  "reviewedAt": "2026-10-29T11:07:12.130Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "WidgetMusicWindow.Text",
-      "MusicWindowOpen",
-      "MusicWindowTitle",
-      "IslandHideWhileMusicWindowVisible",
-      "ShortcutOpenMusicWindow"
+      "LyricsTranslationTargetTitle"
     ],
-    "reviewedBy": "Unified music window name; removed explanatory copy",
-    "reviewedAt": "2026-10-29T10:21:37.989Z"
+    "reviewedBy": "Codex: reviewed global lyrics target terminology",
+    "reviewedAt": "2026-10-29T11:07:12.130Z"
   }
 }

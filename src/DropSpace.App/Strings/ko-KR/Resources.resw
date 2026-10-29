@@ -911,8 +911,7 @@
   <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>임시 공간</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>유휴 상태일 때 로고 표시</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0GB(비활성화됨)</value></data>
-  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>가사 번역 언어</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>인터페이스가 중국어이면 중국어를, 그 외에는 영어를 기본 번역 언어로 사용합니다. 직접 선택한 번역 언어는 별도로 유지됩니다.</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>가사 대상 언어</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>활성화됨</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>비활성화됨</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>활성화</value></data>

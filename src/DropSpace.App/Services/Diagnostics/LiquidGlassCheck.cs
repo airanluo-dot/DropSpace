@@ -113,6 +113,23 @@ internal static class LiquidGlassCheck
                             await File.WriteAllTextAsync(Path.Combine(output, $"{name}-pixels-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json"),
                                 JsonSerializer.Serialize(overlay.DiagnosticActiveWindow.CompareGlassSampling(name == "width-compare"), new JsonSerializerOptions { WriteIndented = true }));
                             break;
+                        case "artwork":
+                            if (media.Session.Artwork is { Length: > 0 } artwork)
+                            {
+                                using var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+                                using (var writer = new Windows.Storage.Streams.DataWriter(stream.GetOutputStreamAt(0)))
+                                { writer.WriteBytes(artwork); await writer.StoreAsync(); writer.DetachStream(); }
+                                stream.Seek(0);
+                                var decoder = await Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(stream);
+                                var image = media.Artwork as Microsoft.UI.Xaml.Media.Imaging.BitmapImage;
+                                await File.WriteAllTextAsync(Path.Combine(output, "artwork.json"), JsonSerializer.Serialize(new
+                                {
+                                    encodedBytes = artwork.Length, sourceWidth = decoder.PixelWidth, sourceHeight = decoder.PixelHeight,
+                                    bitmapPixelWidth = image?.PixelWidth, bitmapPixelHeight = image?.PixelHeight,
+                                    decodeWidthLimit = image?.DecodePixelWidth, decodeHeightLimit = image?.DecodePixelHeight,
+                                }, new JsonSerializerOptions { WriteIndented = true }));
+                            }
+                            break;
                         default: throw new ArgumentException("Unknown glass diagnostic action.");
                     }
                     await Task.Delay(600); await Snapshot();

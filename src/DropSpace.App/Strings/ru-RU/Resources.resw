@@ -911,8 +911,7 @@
   <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>Временное пространство</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Показывать логотип во время простоя</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 ГБ (отключено)</value></data>
-  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Язык перевода песен</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Для интерфейса на китайском языке перевод по умолчанию выполняется на китайский, для остальных — на английский. Выбранный вручную язык перевода сохраняется независимо.</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Целевой язык текста песни</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>Включён</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>Отключён</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>Включить</value></data>
