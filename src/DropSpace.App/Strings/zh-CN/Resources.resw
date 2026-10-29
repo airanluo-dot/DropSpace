@@ -1060,4 +1060,12 @@
   <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
     <value>音乐视窗显示时隐藏灵动岛</value>
   </data>
+  <data name="IslandAppearanceClearGlass" xml:space="preserve"><value>超透玻璃</value></data>
+  <data name="NeteaseEnhancementEntryDescription" xml:space="preserve"><value>补全网易云的播放控制和进度支持；未安装时，部分控制和进度可能不可用。</value></data>
+  <data name="NeteaseInstalledVersion" xml:space="preserve"><value>已安装：InfLink-rs {0}</value></data>
+  <data name="NeteaseUpdateAvailable" xml:space="preserve"><value>有新版本：{0}</value></data>
+  <data name="NeteaseUpdateChecking" xml:space="preserve"><value>正在检查更新…</value></data>
+  <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>已是最新版本</value></data>
+  <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>暂时无法检查，请稍后重试。</value></data>
+  <data name="NeteaseUpdateInstall" xml:space="preserve"><value>安装更新</value></data>
 </root>

@@ -383,3 +383,11 @@ Image cards prioritize resize, format conversion, and metadata removal when avai
 Windows visual, keyboard, high contrast, DPI, image codec, startup registration, and two-device acceptance are still required before claiming this update verified on Windows.
 
 Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.
+
+The Music enhancement entry briefly explains that it supplies playback controls and
+progress, which may be unavailable without the component. The DLC card reads the
+installed InfLink-rs version from the actual plugin manifest. Once per process, the
+first visible activation of the main window starts a read-only release check; tray-only
+startup does not. No notification, popup, badge elsewhere or automatic install is used.
+A newer version is shown only inside the enhancement card. Manual checking reports
+its result inline and offers installation separately when a newer version exists.

@@ -1058,4 +1058,12 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
     <value>Ocultar a ilha enquanto a janela de música estiver visível</value>
   </data>
+  <data name="IslandAppearanceClearGlass" xml:space="preserve"><value>Vidro ultratransparente</value></data>
+  <data name="NeteaseEnhancementEntryDescription" xml:space="preserve"><value>Completa os controles e o progresso de reprodução do NetEase. Sem a extensão, alguns recursos podem ficar indisponíveis.</value></data>
+  <data name="NeteaseInstalledVersion" xml:space="preserve"><value>Instalado: InfLink-rs {0}</value></data>
+  <data name="NeteaseUpdateAvailable" xml:space="preserve"><value>Nova versão: {0}</value></data>
+  <data name="NeteaseUpdateChecking" xml:space="preserve"><value>Verificando atualizações…</value></data>
+  <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>Está atualizado</value></data>
+  <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>Não foi possível verificar. Tente novamente mais tarde.</value></data>
+  <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Instalar atualização</value></data>
 </root>

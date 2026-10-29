@@ -8,7 +8,7 @@ Use Windows 11 Fluent design as a native utility, drawing structural cues from W
 
 ## 1.1 Beta4 island material
 
-The island's background defaults to liquid glass: blur 1, refraction 100%,
+The island's background defaults to liquid glass: blur 2, refraction 100%,
 dispersion 75, dark overlay 0%, and Ink glass (black-to-glass gradient) enabled. Only the
 background changes. Content, typography, toolbar, geometry, hit targets and motion
 retain their existing implementation. Settings can select the previous Desktop
@@ -17,8 +17,10 @@ transparency and remote sessions retain the existing Acrylic/solid fallback poli
 Live glass excludes the island from screenshots/recordings to prevent capture feedback.
 
 The material selector offers Acrylic and Liquid Glass. Acrylic collapses all five
-glass parameters, the Ink glass switch and the refresh-rate selector, retaining their values. Liquid Glass
-offers only Liquid Glass material in the appearance selector; switching back to
+glass parameters and the refresh-rate selector, retaining their values. Liquid Glass
+offers Ink glass and Ultra-clear glass in the appearance selector using the existing saved
+black-gradient setting. Both use light text and controls through the dark content theme,
+independent of the saved Acrylic theme. High-contrast resources remain system-owned. Switching back to
 Acrylic restores its original theme choices and saved selection. Resident display
 and the idle logo are off by default.
 
@@ -27,8 +29,10 @@ Glass refresh settings offer Standard (the existing 30 Hz consumption cadence), 
 Standard remains the default. Higher tiers consume fresh frames with bounded,
 coalesced notifications; unavailable frames are never interpolated or replayed.
 
-Expanded glass refraction width is adjustable from 50% to 300%, defaulting to
-200% after user review. 100% is the original lens-shoulder width. The setting
+Expanded glass refraction width is adjustable from 25% to 150%, defaulting to
+100%. Beta5 defines the previous 200% visual effect as the new 100% baseline.
+Persisted renderer units remain unchanged (UI percent × 2), preserving existing
+custom settings and appearance without a settings migration. The setting
 extends the inward influence range without multiplying displacement strength;
 compact glass remains at 100%. Existing expanded-content animation progress blends
 the width smoothly; no new content animation, geometry or hit target is introduced.

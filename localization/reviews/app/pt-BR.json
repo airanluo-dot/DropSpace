@@ -4206,20 +4206,54 @@
     "IslandHideWhileMusicWindowVisible": [
       "7701122903ac3fa432f53afa61deb3bfb71615ce45c6418488d51a71a1224db9",
       "92905f4e96966c0add2aec38b65a6b330a600c45e7190e97e2f9b60ab6ff5877"
+    ],
+    "IslandAppearanceClearGlass": [
+      "20676a4988c2e46ecd17d29b08b3b2d251ba24eddbba6bdbacf7b88476fd7f57",
+      "2d6aa18c5b06330e637415eda8353df56e51297ce83ec6f26a9b149827108d4c"
+    ],
+    "NeteaseEnhancementEntryDescription": [
+      "fc4e0b5d9aab40c1a22d3d94afb1fb041e24fce6102270c55cce8c7e57afc5ec",
+      "03f6504d2d98abb9ebbe6c911612038ad3aa68b4f745bd44e60318c63fbe80e7"
+    ],
+    "NeteaseInstalledVersion": [
+      "00587c38d5093b5e048e7a61435a1822664ecd30fb55426f31ff6d664924c343",
+      "81248964afd2307c541e6ecd55ecd65808f57c37d7d749c9586c12a102a8e2ff"
+    ],
+    "NeteaseUpdateAvailable": [
+      "68e4656ce0ff88abdfb7ae1c2475e7058391064a4670c5d924b1b5914c382e98",
+      "e2e6f1459377f1822f1e19596a935e13608718beda0d4e9a5d03cce86ac795d0"
+    ],
+    "NeteaseUpdateChecking": [
+      "497a19986d82eb1fb4f14a56eccac21d863459a8b5f94edc60c79a6c73f8d2e0",
+      "14c86eeb20f599bb4b92ca674b21182a550efa5709957f7dbad37d3dc628221d"
+    ],
+    "NeteaseUpdateCurrent": [
+      "ce29b7f85b9eaf7dac52e625accb4b0cb56a856ebe9a9de9a09b613b6d978dca",
+      "e6a8a66cbf9106ce2f34572c5b628d1a929a1ef1bd21c078f6d989602c8566f4"
+    ],
+    "NeteaseUpdateUnavailable": [
+      "1796cda1d795f69eea9ee8425004c816765a10f61ca2e4419013127c91aa5183",
+      "b45ce427e5b11a91c62620cd5e7ca0523b0fc79f609a7a76f824630e26e88862"
+    ],
+    "NeteaseUpdateInstall": [
+      "cada4215d34483e4475456df3ddd22c134acffb2173b251f785fe08ced4e7652",
+      "db7d184b9e3e2b55586c66af45894f8e04bfd5add97500ed3cd8a092c479a63d"
     ]
   },
-  "reviewedBy": "Codex: reviewed five DLC classification IDs on Beta4 baseline; preserved Beta4 review records",
-  "reviewedAt": "2026-10-29T15:18:00.887Z",
+  "reviewedBy": "Codex: reviewed NetEase version and inline update messages",
+  "reviewedAt": "2026-10-29T15:45:26.269Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "DlcInstalled",
-      "DlcAvailable",
-      "DlcEmptyInstalled",
-      "DlcEmptyAvailable",
-      "DlcNotInstalled"
+      "NeteaseEnhancementEntryDescription",
+      "NeteaseInstalledVersion",
+      "NeteaseUpdateAvailable",
+      "NeteaseUpdateChecking",
+      "NeteaseUpdateCurrent",
+      "NeteaseUpdateUnavailable",
+      "NeteaseUpdateInstall"
     ],
-    "reviewedBy": "Codex: reviewed five DLC classification IDs on Beta4 baseline; preserved Beta4 review records",
-    "reviewedAt": "2026-10-29T15:18:00.887Z"
+    "reviewedBy": "Codex: reviewed NetEase version and inline update messages",
+    "reviewedAt": "2026-10-29T15:45:26.269Z"
   }
 }

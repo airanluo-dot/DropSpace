@@ -1058,4 +1058,12 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
     <value>Island ausblenden, solange das Musikfenster sichtbar ist</value>
   </data>
+  <data name="IslandAppearanceClearGlass" xml:space="preserve"><value>Ultraklares Glas</value></data>
+  <data name="NeteaseEnhancementEntryDescription" xml:space="preserve"><value>Ergänzt Wiedergabesteuerung und Fortschritt für NetEase. Ohne die Erweiterung sind diese möglicherweise nur eingeschränkt verfügbar.</value></data>
+  <data name="NeteaseInstalledVersion" xml:space="preserve"><value>Installiert: InfLink-rs {0}</value></data>
+  <data name="NeteaseUpdateAvailable" xml:space="preserve"><value>Update verfügbar: {0}</value></data>
+  <data name="NeteaseUpdateChecking" xml:space="preserve"><value>Updates werden gesucht…</value></data>
+  <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>Auf dem neuesten Stand</value></data>
+  <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>Prüfung nicht möglich. Bitte später erneut versuchen.</value></data>
+  <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Update installieren</value></data>
 </root>

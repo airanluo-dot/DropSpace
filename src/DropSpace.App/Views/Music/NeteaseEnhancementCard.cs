@@ -19,6 +19,8 @@ public sealed class NeteaseEnhancementCard : UserControl
     private readonly TextBlock _size = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _error = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _version = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
+    private readonly TextBlock _updateStatus = new() { TextWrapping = TextWrapping.Wrap };
     private readonly ProgressBar _progress = new() { IsIndeterminate = true };
     private readonly Button _install, _update, _reinstall, _remove, _cancel;
     private bool _dialogOpen;
@@ -39,6 +41,8 @@ public sealed class NeteaseEnhancementCard : UserControl
         content.Children.Add(new TextBlock { Text = strings.Get("NeteaseEnhancementDescription"),
             TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         content.Children.Add(_size);
+        content.Children.Add(_version);
+        content.Children.Add(_updateStatus);
         _status.FontWeight = FontWeights.SemiBold;
         AutomationProperties.SetLiveSetting(_status, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
         AutomationProperties.SetLiveSetting(_error, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Assertive);
@@ -113,7 +117,11 @@ public sealed class NeteaseEnhancementCard : UserControl
     private void Changed(object? sender, PropertyChangedEventArgs args) { if (_lifetime is not null) Refresh(); }
     private async void Install(object sender, RoutedEventArgs args) => await StartConfirmationAsync(false);
     private async void Reinstall(object sender, RoutedEventArgs args) => await StartConfirmationAsync(true);
-    private async void Update(object sender, RoutedEventArgs args) => await StartConfirmationAsync(false);
+    private async void Update(object sender, RoutedEventArgs args)
+    {
+        if (_view.HasUpdate) await StartConfirmationAsync(false);
+        else await _view.CheckUpdateAsync();
+    }
     private async void Remove(object sender, RoutedEventArgs args) => await StartConfirmationAsync(false, remove: true);
 
     private Task StartConfirmationAsync(bool reinstall, bool remove = false)
@@ -168,6 +176,12 @@ public sealed class NeteaseEnhancementCard : UserControl
     }
     private void Refresh()
     {
+        _version.Text = _view.InstalledVersion;
+        _version.Visibility = string.IsNullOrEmpty(_version.Text) ? Visibility.Collapsed : Visibility.Visible;
+        _updateStatus.Text = _view.UpdateStatus;
+        _updateStatus.Visibility = string.IsNullOrEmpty(_updateStatus.Text) ? Visibility.Collapsed : Visibility.Visible;
+        ((TextBlock)_update.Content).Text = _strings.Get(_view.HasUpdate ? "NeteaseUpdateInstall" : "NeteaseEnhancementUpdate");
+        AutomationProperties.SetName(_update, ((TextBlock)_update.Content).Text);
         var inventory = _dlc?.Packages.FirstOrDefault(item => item.Package.Id == "netease-music-enhancement");
         _size.Visibility = inventory is null ? Visibility.Collapsed : Visibility.Visible;
         _size.Text = _strings.Format("DlcInstalledSize", inventory?.Installation?.InstalledBytes is { } bytes
@@ -187,5 +201,6 @@ public sealed class NeteaseEnhancementCard : UserControl
             _actionsInitialized = true;
         }
         foreach (var button in new[] { _install, _update, _reinstall, _remove }) button.IsEnabled = !_view.IsBusy && !_dialogOpen;
+        _update.IsEnabled &= !_view.IsCheckingUpdate;
     }
 }

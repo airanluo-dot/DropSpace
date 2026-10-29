@@ -118,3 +118,60 @@ UX.md now specifies a fixed position; ARCHITECTURE.md identifies the shared Musi
 - Remaining validation: actual installation/removal/cancellation against the player,
   graphical review of both entry points, narrow/large-text layout and navigation during
   a real deployment. Synthetic view-model tests do not establish those outcomes.
+
+## Beta5 glass appearance follow-up — 2026-10-29
+
+Fixed the island root theme: Liquid Glass selects the dark content palette without
+modifying the persisted Acrylic theme. The appearance selector maps Ink glass and
+Ultra-clear glass to the existing LiquidGlassBlackGradient boolean; the separate
+switch is removed. Existing glass values and Acrylic preferences are retained.
+
+Validation: app/XAML Debug Portable build passed with zero warnings/errors;
+localization integrity passed for 1052 IDs across ten languages. Only the new
+Ultra-clear glass label was translated/reviewed. Initial resource-generation attempt
+via the host python alias did not execute; reran with PowerShell successfully.
+Diff whitespace check passed. No new functional cases or native theme-switch tests
+were run; the user requested to handle interactive validation. New build is at
+artifacts/beta5-glass. Design-system wording and Beta5 draft notes were updated.
+
+Initial launch used a stale copied unpackaged PRI and failed on the new label. Regenerated the standalone PRI from current resources with Generate-PortableResourcesPri.ps1 before relaunching.
+
+## Inline version and foreground update check — 2026-10-29
+
+Music now includes a brief purpose/absence explanation. The DLC card reads the
+actual local InfLink-rs manifest version, rather than assuming the receipt is current.
+Main-window visible activation triggers one read-only release request per process;
+constructing the background window does not. Automatic failures are silent; manual
+checks show results inside the card. Installation remains an explicit separate action.
+The complete upstream BetterNCM/InfLink integration is preserved; the proposed custom
+fork was canceled, with no replacement made.
+
+Validation: app/XAML compiled, 3 focused NeteaseEnhancementPresentationTests passed
+(0 failed/skipped), and localization passed for 1059 IDs/10 languages. The new test
+covers no construction-time request, one first-open request, actual-version comparison,
+silent automatic network failure, and an inline manual failure. Existing two cases
+cover cancellation cleanup and queued-stage retirement. Native foreground/background
+launch scenarios and a real newer-release install were not exercised. Updated PRI
+copied into the Debug build before launch; user retains interactive validation.
+
+### Music entry layout correction
+
+Moved the explanation inside the enhancement settings card, below its title, with
+secondary 12-point text and wrapping. The DLC navigation button remains in the right
+column. SettingsForm.AddRow now accepts an optional description key so this layout
+uses the shared card padding, spacing, and styling. Removed the standalone text below
+the card. This is a layout-only correction; no functional tests were added.
+App/XAML build passed with zero warnings/errors; diff whitespace check passed. New layout build launched for user validation.
+
+### Glass defaults and percentage baseline correction
+
+Blur defaults and invalid-value fallback are now 2; existing explicit blur values
+are retained. Expanded refraction width uses the former 200% effect as the new
+100% UI baseline. UI bounds/step become 25–150% / 5%; read/write scale by 1/2 and 2
+against the unchanged persisted renderer units, preserving existing visual settings.
+The renderer itself and compact refraction are unchanged.
+
+Focused LiquidGlassSettingsTests: 2 passed, 0 failed/skipped. Initial --no-restore
+attempt failed NETSDK1004 because the Core test assets were absent in this worktree;
+normal restore and retry succeeded. No native visual scenarios were run.
+App/XAML build passed with zero warnings/errors; diff whitespace check passed. Updated build launched for user validation.

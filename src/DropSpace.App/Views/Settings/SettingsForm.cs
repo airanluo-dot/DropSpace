@@ -131,13 +131,17 @@ public sealed class SettingsForm : UserControl
         slider.LostFocus += async (_, _) => { if (pointer is null) { await _editor.FlushEditsAsync(); Refresh(); } };
         return slider;
     }
-    public void AddRow(string key, FrameworkElement control)
+    public void AddRow(string key, FrameworkElement control, string? descriptionKey = null)
     {
         control.VerticalAlignment = VerticalAlignment.Center;
         AutomationProperties.SetName(control, _strings.Get(key)); AutomationProperties.SetAutomationId(control, key);
         var grid = new Grid { ColumnSpacing = 20, Padding = new(14, 10, 14, 10) };
         grid.ColumnDefinitions.Add(new()); grid.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
-        grid.Children.Add(new TextBlock { Text = _strings.Get(key), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
+        var text = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock { Text = _strings.Get(key), TextWrapping = TextWrapping.Wrap });
+        if (descriptionKey is not null)
+            text.Children.Add(new TextBlock { Text = _strings.Get(descriptionKey), TextWrapping = TextWrapping.Wrap, Opacity = 0.72, FontSize = 12 });
+        grid.Children.Add(text);
         Grid.SetColumn(control, 1); grid.Children.Add(control);
         Rows.Children.Add(new Border { CornerRadius = new(8), Style = (Style)Application.Current.Resources["DropSpaceCardStyle"], Child = grid });
     }

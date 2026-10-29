@@ -62,6 +62,11 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         Services.Media.MusicWindowService musicWindow)
     {
         _viewModel = viewModel;
+        Activated += (_, args) =>
+        {
+            if (args.WindowActivationState != WindowActivationState.Deactivated && AppWindow.IsVisible)
+                _ = enhancement.CheckOnFirstOpenAsync();
+        };
         _media = media;
         _strings = strings;
         _logger = logger;

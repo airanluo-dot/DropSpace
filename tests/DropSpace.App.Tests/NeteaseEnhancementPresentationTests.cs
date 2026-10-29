@@ -9,6 +9,39 @@ namespace DropSpace.App.Tests;
 public sealed class NeteaseEnhancementPresentationTests
 {
     [TestMethod]
+    public async Task OpeningChecksOnceAndOnlyManualChecksReportNetworkFailure()
+    {
+        var controller = DispatcherQueueController.CreateOnDedicatedThread();
+        try
+        {
+            var service = new DeferredEnhancement();
+            service.Publish(new(NeteaseEnhancementStage.Installed, true, "3.2.11"));
+            var calls = 0;
+            var installed = "3.4.0";
+            using var view = new NeteaseEnhancementViewModel(service, IdentityAppStringLocalizer.Instance,
+                controller.DispatcherQueue, () => installed, _ =>
+                {
+                    calls++;
+                    return calls == 1 ? Task.FromResult<string?>("3.5.0")
+                        : Task.FromException<string?>(new HttpRequestException());
+                });
+            Assert.AreEqual(0, calls, "Creating the background window must not check updates.");
+            await view.CheckOnFirstOpenAsync();
+            await view.CheckOnFirstOpenAsync();
+            Assert.AreEqual(1, calls);
+            Assert.IsTrue(view.HasUpdate, "Compare actual package version, not receipt history.");
+            installed = "3.5.0";
+            await view.CheckUpdateAsync(silent: true);
+            Assert.IsFalse(view.HasUpdate);
+            Assert.AreEqual(string.Empty, view.UpdateStatus);
+            await view.CheckUpdateAsync();
+            Assert.AreEqual("NeteaseUpdateUnavailable", view.UpdateStatus);
+            Assert.IsFalse(service.Completion.Task.IsCompleted, "Checking does not install anything.");
+        }
+        finally { await controller.ShutdownQueueAsync(); }
+    }
+
+    [TestMethod]
     public async Task CancellationRemainsBusyUntilInstallerRecoveryCompletes()
     {
         var controller = DispatcherQueueController.CreateOnDedicatedThread();

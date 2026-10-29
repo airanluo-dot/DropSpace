@@ -1058,4 +1058,12 @@
   <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
     <value>音樂視窗顯示時隱藏靈動島</value>
   </data>
+  <data name="IslandAppearanceClearGlass" xml:space="preserve"><value>超透玻璃</value></data>
+  <data name="NeteaseEnhancementEntryDescription" xml:space="preserve"><value>補齊網易雲的播放控制與進度支援；未安裝時，部分控制與進度可能無法使用。</value></data>
+  <data name="NeteaseInstalledVersion" xml:space="preserve"><value>已安裝：InfLink-rs {0}</value></data>
+  <data name="NeteaseUpdateAvailable" xml:space="preserve"><value>有新版本：{0}</value></data>
+  <data name="NeteaseUpdateChecking" xml:space="preserve"><value>正在檢查更新…</value></data>
+  <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>已是最新版本</value></data>
+  <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>暫時無法檢查，請稍後再試。</value></data>
+  <data name="NeteaseUpdateInstall" xml:space="preserve"><value>安裝更新</value></data>
 </root>

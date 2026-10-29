@@ -13,9 +13,9 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 DropSpace **1.0** is the first stable release of the current application. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, Windows release automation, and the product/engineering specifications.
 
-The current Beta target is `v1.1.0-beta.4` (Beta 4). The application displays **1.1 Beta4**; Stable remains 1.0.
+The current Beta target is `v1.1.0-beta.5` (Beta 5). The application displays **1.1 Beta5**; Stable remains 1.0.
 
-Version 1.1 Beta4 adds a liquid-glass background to the existing Dynamic Island, with independent blur, refraction, dispersion, dark overlay and black-to-glass gradient settings. Island content, layout and interactions remain unchanged. See the [release notes](.github/release-notes/v1.1.0-beta.4.md) and [validation record](docs/dev/1.1-beta4-liquid-glass.md). This target describes the local test build; public availability is established separately by the Releases page and verified update metadata.
+Version 1.1 Beta5 improves NetEase enhancement management, installed-version reporting and quiet update checks, and corrects Liquid Glass foreground colors, appearance choices and defaults. See the [release notes](.github/release-notes/v1.1.0-beta.5.md) and [validation record](docs/dev/netease-enhancement-ui-20261029.md). Public availability is established by Releases and verified update metadata.
 
 Public upgrade baseline: [v1.0.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v1.0.0); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
@@ -27,7 +27,7 @@ The unchanged optional CUDA archive is reused from its [independent component re
 
 Beta16 bundled fastText `lid.176.bin` for one offline whole-track prediction. Originals already in the independently selected Chinese/English target language skip AI; any valid target-language provider translation disables AI for the entire track, including gaps. Only Unknown originals without valid target translations enter the existing optional Hy-MT2 progressive flow. Its historical validation remains in the [Beta16 audit](docs/dev/beta16-lyrics-audit.md); it does not establish Beta17 Windows acceptance.
 
-v1.1.0-beta.3 is the immediate upgrade baseline for this release.
+v1.1.0-beta.4 is the immediate upgrade baseline for this release.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables

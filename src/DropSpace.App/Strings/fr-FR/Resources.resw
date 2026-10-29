@@ -1058,4 +1058,12 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="IslandHideWhileMusicWindowVisible" xml:space="preserve">
     <value>Masquer l’îlot lorsque la fenêtre musicale est visible</value>
   </data>
+  <data name="IslandAppearanceClearGlass" xml:space="preserve"><value>Verre ultra-transparent</value></data>
+  <data name="NeteaseEnhancementEntryDescription" xml:space="preserve"><value>Complète les commandes et la progression de lecture de NetEase. Sans cette extension, certaines peuvent être indisponibles.</value></data>
+  <data name="NeteaseInstalledVersion" xml:space="preserve"><value>Installé : InfLink-rs {0}</value></data>
+  <data name="NeteaseUpdateAvailable" xml:space="preserve"><value>Mise à jour disponible : {0}</value></data>
+  <data name="NeteaseUpdateChecking" xml:space="preserve"><value>Recherche de mises à jour…</value></data>
+  <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>À jour</value></data>
+  <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>Vérification impossible. Réessayez plus tard.</value></data>
+  <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Installer la mise à jour</value></data>
 </root>

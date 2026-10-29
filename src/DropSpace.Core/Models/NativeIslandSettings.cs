@@ -60,8 +60,9 @@ public enum IslandGlassRefreshRate { Standard = 0, High = 1, VeryHigh = 2, Ultra
 public sealed record IslandAppearanceSettings
 {
     public IslandMaterialStyle MaterialStyle { get; init; } = IslandMaterialStyle.LiquidGlass;
-    public double LiquidGlassBlur { get; init; } = 1;
+    public double LiquidGlassBlur { get; init; } = 2;
     public double LiquidGlassRefraction { get; init; } = 100;
+    // Persist the original renderer units for compatibility; UI percent is half this value.
     public double LiquidGlassRefractionWidth { get; init; } = 200;
     public double LiquidGlassDispersion { get; init; } = 75;
     public double LiquidGlassDarkOverlay { get; init; }

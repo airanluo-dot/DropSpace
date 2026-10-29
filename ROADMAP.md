@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v1.1.0-beta.4
+## Release target: v1.1.0-beta.5
 
-The current Beta target is `v1.1.0-beta.4` (Beta 4).
-v1.1.0-beta.3 is the immediate upgrade baseline for this release.
+The current Beta target is `v1.1.0-beta.5` (Beta 5).
+v1.1.0-beta.4 is the immediate upgrade baseline for this release.
 
-Add configurable liquid-glass island material with latest-frame capture, direct region processing, four refresh tiers and adjustable expanded refraction width. Defaults are liquid glass, blur 1, refraction 100%, expanded width 200%, dispersion 75, dark overlay 0%, Standard refresh and Ink glass enabled. Resident display and the idle logo default to off. Hide glass settings when Acrylic is selected. Preserve existing island content and layout. Add the optional Music window widget and visible-window island suppression, interface-aware translation defaults and focused alignment improvements. Retain user data and unchanged model/CUDA bytes.
+Centralize NetEase enhancement management in DLC with reliable card lifetimes, installed-version reporting and quiet first-foreground update checks. Keep the bottom Music entry compact and descriptive. Correct Liquid Glass foreground colors, combine Ink/Ultra-clear appearance choices, default blur to 2 and normalize expanded width to a 100% visual baseline. Retain Beta4 features, existing settings and unchanged model/CUDA bytes.
 
-The owner authorized publication after completion on October 29. Use full PR App/XAML compilation, one exact-main package producer and verified promotion, without broad regression/model reruns. See the [release notes](.github/release-notes/v1.1.0-beta.4.md), [material validation](docs/dev/1.1-beta4-liquid-glass.md) and [music-window validation](docs/dev/1.1-beta4-music-window.md). The pre-existing native heap crash investigation remains unresolved; this update does not establish its resolution.
+The owner authorized publication after completion on October 29. Use full PR App/XAML compilation, one exact-main package producer and verified promotion, without broad regression/model reruns. See the [release notes](.github/release-notes/v1.1.0-beta.5.md), [material validation](docs/dev/1.1-beta4-liquid-glass.md) and [music-window validation](docs/dev/1.1-beta4-music-window.md). The pre-existing native heap crash investigation remains unresolved; this update does not establish its resolution.
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.1.0-beta.4 is the current Beta target; 1.0 remains the public Stable baseline.
+v1.1.0-beta.5 is the current Beta target; 1.0 remains the public Stable baseline.
 Published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

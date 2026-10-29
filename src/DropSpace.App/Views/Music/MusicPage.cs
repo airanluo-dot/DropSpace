@@ -215,7 +215,7 @@ public sealed class MusicPage : UserControl
         AutomationProperties.SetAutomationId(enhancementEntry, "NeteaseEnhancementOpenDlc");
         AutomationProperties.SetName(enhancementEntry, strings.Get("NeteaseEnhancementTitle") + " · " + strings.Get("DlcManage"));
         enhancementEntry.Click += (_, _) => openDlc();
-        form.AddRow("NeteaseEnhancementTitle", enhancementEntry);
+        form.AddRow("NeteaseEnhancementTitle", enhancementEntry, "NeteaseEnhancementEntryDescription");
         var scroll = new ScrollViewer { Content = _body, Padding = new(24), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         scroll.SizeChanged += (_, _) => _body.Width = Math.Clamp(scroll.ActualWidth - 48, 0, 780);
         IsTabStop = true;
