@@ -1038,4 +1038,13 @@
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>系統音量</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>系統音量目前無法使用。</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>取消選取</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>靈動島風格</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>桌面壓克力</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>液態玻璃</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>液態玻璃背景模糊</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>液態玻璃折射強度 (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>液態玻璃色散強度</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>液態玻璃深色遮罩 (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>靈言樣式（黑色–玻璃漸層）</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>實驗性材質。液態玻璃模式下，螢幕截圖和錄影中不會顯示靈動島；無法使用時會改用原有材質。</value></data>
 </root>

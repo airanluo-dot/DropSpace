@@ -54,8 +54,16 @@ public sealed record LyricsSettings
     public string LocalLrcDirectory { get; init; } = string.Empty;
 }
 
+public enum IslandMaterialStyle { Acrylic = 0, LiquidGlass = 1 }
+
 public sealed record IslandAppearanceSettings
 {
+    public IslandMaterialStyle MaterialStyle { get; init; } = IslandMaterialStyle.LiquidGlass;
+    public double LiquidGlassBlur { get; init; } = 1;
+    public double LiquidGlassRefraction { get; init; } = 400;
+    public double LiquidGlassDispersion { get; init; } = 75;
+    public double LiquidGlassDarkOverlay { get; init; }
+    public bool LiquidGlassBlackGradient { get; init; } = true;
     // Independent from the settings window theme. Missing on upgrade keeps Windows app appearance.
     public ThemePreference Theme { get; init; } = ThemePreference.System;
     // Opt-in only. Missing fields in existing settings remain false; the old

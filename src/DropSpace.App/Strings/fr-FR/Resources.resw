@@ -1038,4 +1038,13 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Volume du système</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Le volume système est indisponible.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Désélectionner</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Style de l’îlot</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Acrylique de bureau</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Verre liquide</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>Flou d’arrière-plan du verre liquide</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>Réfraction du verre liquide (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>Dispersion du verre liquide</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Voile sombre du verre liquide (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Style Lingo (dégradé du noir au verre)</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>Matériau expérimental. En mode verre liquide, l’îlot est masqué dans les captures d’écran et les enregistrements. S’il est indisponible, le matériau habituel est utilisé.</value></data>
 </root>

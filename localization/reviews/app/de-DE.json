@@ -4142,16 +4142,60 @@
     "RetrievalClearSelection.Content": [
       "cea4d2e010b8fd52bc28a66eca24ff0d616b2c7d982545757780c196c5cc04c7",
       "f4d1e48c718f895667f2ba055e6e8aebb4bed739bde927d694b9f3eec306adbe"
+    ],
+    "IslandMaterialStyle": [
+      "b8680a1aae7057c0a6645c3597354163d8e36e328c20f186b821ba2fd435329b",
+      "cd4fafda433d02b9cd05fb93b0e9bbb5d3f8664cd743c3ec87d0f294346bdaf8"
+    ],
+    "IslandMaterialAcrylic": [
+      "2c6a0cfc76163a03ee8c901a2304f94d7c363e9eb5e1a9d5992bd45e8100bece",
+      "05ed8e54d8242fb1da80968c18acfbd83dcc6daebe5277b5d229da5fd1cda78c"
+    ],
+    "IslandMaterialLiquidGlass": [
+      "29f87af4fb46de9584d7ff40f33d2d4713821c2031520cf08a7652d08c400c45",
+      "988bf955886f378d0e30c6c9325ecef372ee72c9d71305b6ac76f0094b1f0df7"
+    ],
+    "IslandGlassBlur": [
+      "7c4a34536f5bbdadeb4c870da6fad6015cb5e722330f0becfb17bd0507954472",
+      "899374b016353b789b153c8c496f1fd185e78f331363f08168957f9bad1bfa06"
+    ],
+    "IslandGlassRefraction": [
+      "e47f5016813c2270212bc004639794c130cb159272c5a942ffadb634f50c4cc1",
+      "ed499b754cf83b722f8b6cdbab442c72ba2f59f8cb43f81eb0d40c3f5427d2ce"
+    ],
+    "IslandGlassDispersion": [
+      "05681d2959b0cecbc4f0fc337f6a479c08e6c90a9d0684c18f080f73ade908d4",
+      "17096f97ce8dd022fde9aa43b4026ddcd97821e6086f4aeb6cfcd796e7abb364"
+    ],
+    "IslandGlassDarkOverlay": [
+      "9470f5be6e8a4eb12f8028fe771b17453ab2a36be8c2edcd63b95ee88d2ff5e6",
+      "52b427d986936378955626159f452170bb06c223d595d849a21b9c593795c373"
+    ],
+    "IslandGlassBlackGradient": [
+      "10cdb3ac11cc405e822d9f124fbbbad96c5cb3aaf0e9b207544ac4e434ccda05",
+      "d5e71b35e4cf02884e0f3859acb5b768e44d5a44e9ecca630a4677f469cd8fa1"
+    ],
+    "IslandGlassDescription": [
+      "b71367cd5a02a6f1cab90164928dc7e3acb6e3db39d72dbaff97d747c0e7bc78",
+      "4b3c30b22f863428fb093e35547d69c2f0a1022bd1f47b400d3a30929d479b5c"
     ]
   },
-  "reviewedBy": "Codex Beta2 clear-selection label review",
-  "reviewedAt": "2026-10-26T09:31:33.263Z",
+  "reviewedBy": "Codex: reviewed nine liquid-glass labels, ranges and capture fallback explanation",
+  "reviewedAt": "2026-10-29T06:21:14.970Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "RetrievalClearSelection.Content"
+      "IslandMaterialStyle",
+      "IslandMaterialAcrylic",
+      "IslandMaterialLiquidGlass",
+      "IslandGlassBlur",
+      "IslandGlassRefraction",
+      "IslandGlassDispersion",
+      "IslandGlassDarkOverlay",
+      "IslandGlassBlackGradient",
+      "IslandGlassDescription"
     ],
-    "reviewedBy": "Codex Beta2 clear-selection label review",
-    "reviewedAt": "2026-10-26T09:31:33.263Z"
+    "reviewedBy": "Codex: reviewed nine liquid-glass labels, ranges and capture fallback explanation",
+    "reviewedAt": "2026-10-29T06:21:14.970Z"
   }
 }

@@ -1038,4 +1038,13 @@
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>システム音量</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>システム音量を利用できません。</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>選択を解除</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>アイランドのスタイル</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>デスクトップ アクリル</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>リキッドガラス</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>リキッドガラスの背景ぼかし</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>リキッドガラスの屈折強度 (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>リキッドガラスの色分散</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>リキッドガラスの暗色オーバーレイ (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>リンゴスタイル（黒からガラスへのグラデーション）</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>実験的な素材です。リキッドガラスの使用中はスクリーンショットや画面録画にアイランドが表示されません。利用できない場合は従来の素材に戻ります。</value></data>
 </root>

@@ -1,13 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v1.1.0-beta.3
+## Release target: v1.1.0-beta.4
 
-The current Beta target is `v1.1.0-beta.3` (Beta 3).
-v1.1.0-beta.2 is the immediate upgrade baseline for this release.
+The current Beta target is `v1.1.0-beta.4` (Beta 4).
+v1.1.0-beta.3 is the immediate upgrade baseline for this release.
 
-Improve lyric search and selection using verified local Dynamic Notch 2.0.3 (176) configuration and observed mechanisms: bounded bilingual name lookup, broader same-source candidate comparison and temporary failure backoff. Preserve strict recording identity, preferred/backup source choices, progressive delivery, cancellation, native translation and optional AI boundaries. Retain user data and unchanged model/CUDA bytes.
+Add the requested liquid-glass island material and six native settings. Defaults are liquid glass, blur 1, refraction 400%, dispersion 75, dark overlay 0%, and the black-to-glass gradient enabled. Preserve island content, geometry, controls, animation and interaction. Retain user data and unchanged model/CUDA bytes.
 
-Publish Beta3 using the completed focused evidence, PR App/XAML qualification and exact-main package production. The owner explicitly authorized publication on 2026-10-28 and requested minimal redundant testing. See the [release notes](.github/release-notes/v1.1.0-beta.3.md) and [validation record](docs/dev/1.1-beta3-lyrics-matching.md). The pre-existing native heap crash investigation remains unresolved; lyrics matching changes do not establish its resolution.
+Deliver a local Beta4 test build with focused settings, native material/lifecycle and packaging evidence. See the [release notes](.github/release-notes/v1.1.0-beta.4.md) and [validation record](docs/dev/1.1-beta4-liquid-glass.md). Public promotion remains a separate operation. The pre-existing native heap crash investigation remains unresolved; this material update does not establish its resolution.
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +160,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.1.0-beta.3 is the current Beta target; 1.0 remains the public Stable baseline.
+v1.1.0-beta.4 is the current Beta target; 1.0 remains the public Stable baseline.
 Published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

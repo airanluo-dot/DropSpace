@@ -4,8 +4,9 @@
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap11="http://schemas.microsoft.com/appx/manifest/uap/windows10/11"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap3 rescap">
+  IgnorableNamespaces="uap uap3 uap11 rescap">
   <Identity Name="AiranLuo.DropSpace" Publisher="CN=airanluo-dot" Version="0.1.0.0" />
   <mp:PhoneIdentity PhoneProductId="b90d08d9-96ff-4df7-808b-d150f6400e0e" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
@@ -58,5 +59,6 @@
   <Capabilities>
     <uap3:Capability Name="userNotificationListener" />
     <rescap:Capability Name="runFullTrust" />
+    <uap11:Capability Name="graphicsCaptureWithoutBorder" />
   </Capabilities>
 </Package>

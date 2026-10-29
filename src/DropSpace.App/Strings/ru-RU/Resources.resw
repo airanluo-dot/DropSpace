@@ -1038,4 +1038,13 @@
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Системная громкость</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Системная громкость недоступна.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Снять выделение</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Стиль острова</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Акрил рабочего стола</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Жидкое стекло</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>Размытие фона жидкого стекла</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>Преломление жидкого стекла (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>Дисперсия жидкого стекла</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Тёмный слой жидкого стекла (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Стиль Lingo (градиент от чёрного к стеклу)</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>Экспериментальный материал. В режиме жидкого стекла остров не виден на снимках и записях экрана. Если режим недоступен, используется прежний материал.</value></data>
 </root>

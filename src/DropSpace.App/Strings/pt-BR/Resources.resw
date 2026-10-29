@@ -1038,4 +1038,13 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Volume do sistema</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>O volume do sistema está indisponível.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Limpar seleção</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Estilo da ilha</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Acrílico da área de trabalho</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Vidro líquido</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>Desfoque de fundo do vidro líquido</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>Refração do vidro líquido (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>Dispersão do vidro líquido</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Camada escura do vidro líquido (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Estilo Lingo (degradê de preto para vidro)</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>Material experimental. No modo de vidro líquido, a ilha não aparece em capturas nem gravações de tela. Se estiver indisponível, o material anterior será usado.</value></data>
 </root>

@@ -1038,4 +1038,13 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Systemlautstärke</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>Die Systemlautstärke ist nicht verfügbar.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Auswahl aufheben</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Inselstil</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Desktop-Acryl</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Flüssigglas</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>Hintergrundunschärfe des Flüssigglases</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>Lichtbrechung des Flüssigglases (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>Farbdispersion des Flüssigglases</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Dunkle Überlagerung des Flüssigglases (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Lingo-Stil (Verlauf von Schwarz zu Glas)</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>Experimentelles Material. Flüssigglas blendet die Insel in Screenshots und Bildschirmaufnahmen aus. Ist es nicht verfügbar, wird das bisherige Material verwendet.</value></data>
 </root>

@@ -69,6 +69,12 @@ public static class SettingsChangePolicy
 
     private static IslandAppearanceSettings MergeIsland(IslandAppearanceSettings baseline, IslandAppearanceSettings requested, IslandAppearanceSettings latest) => latest with
     {
+        MaterialStyle = Pick(baseline.MaterialStyle, requested.MaterialStyle, latest.MaterialStyle),
+        LiquidGlassBlur = Pick(baseline.LiquidGlassBlur, requested.LiquidGlassBlur, latest.LiquidGlassBlur),
+        LiquidGlassRefraction = Pick(baseline.LiquidGlassRefraction, requested.LiquidGlassRefraction, latest.LiquidGlassRefraction),
+        LiquidGlassDispersion = Pick(baseline.LiquidGlassDispersion, requested.LiquidGlassDispersion, latest.LiquidGlassDispersion),
+        LiquidGlassDarkOverlay = Pick(baseline.LiquidGlassDarkOverlay, requested.LiquidGlassDarkOverlay, latest.LiquidGlassDarkOverlay),
+        LiquidGlassBlackGradient = Pick(baseline.LiquidGlassBlackGradient, requested.LiquidGlassBlackGradient, latest.LiquidGlassBlackGradient),
         Theme = Pick(baseline.Theme, requested.Theme, latest.Theme),
         Resident = Pick(baseline.Resident, requested.Resident, latest.Resident),
         ShowLogoWhenIdle = Pick(baseline.ShowLogoWhenIdle, requested.ShowLogoWhenIdle, latest.ShowLogoWhenIdle),

@@ -17,6 +17,7 @@ internal sealed class SwapChainPanelPresenter : IDisposable
 
     private readonly SwapChainPanel panel;
     private readonly Action? firstFramePresented;
+    private readonly AlphaMode alphaMode;
     private ID3D11Device? device;
     private IntPtr panelReference;
     private IntPtr panelNative;
@@ -27,10 +28,12 @@ internal sealed class SwapChainPanelPresenter : IDisposable
 
     public SwapChainPanelPresenter(
         SwapChainPanel panel,
-        Action? firstFramePresented = null)
+        Action? firstFramePresented = null,
+        AlphaMode alphaMode = AlphaMode.Ignore)
     {
         this.panel = panel ?? throw new ArgumentNullException(nameof(panel));
         this.firstFramePresented = firstFramePresented;
+        this.alphaMode = alphaMode;
         AttachNativePanel();
     }
 
@@ -61,7 +64,7 @@ internal sealed class SwapChainPanelPresenter : IDisposable
                 2,
                 Scaling.Stretch,
                 SwapEffect.FlipSequential,
-                AlphaMode.Ignore,
+                alphaMode,
                 SwapChainFlags.None);
             swapChain = factory.CreateSwapChainForComposition(device, description, null);
             SetSwapChain(swapChain.NativePointer);

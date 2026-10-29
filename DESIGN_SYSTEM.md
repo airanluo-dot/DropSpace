@@ -6,6 +6,19 @@ Status: Fluent design specification v1. No visual prototype was generated in thi
 
 Use Windows 11 Fluent design as a native utility, drawing structural cues from Windows Settings and PowerToys: calm Mica foundation, restrained cards, compact rows, clear status, and native menus. Avoid dashboard metrics, oversized marketing headings, floating glass panels, and excessive gradients.
 
+## 1.1 Beta4 island material
+
+The island's background defaults to liquid glass: blur 1, refraction 400%,
+dispersion 75, dark overlay 0%, and black-to-glass gradient enabled. Only the
+background changes. Content, typography, toolbar, geometry, hit targets and motion
+retain their existing implementation. Settings can select the previous Desktop
+Acrylic material. Unavailable capture, high contrast, reduced effects, disabled
+transparency and remote sessions retain the existing Acrylic/solid fallback policy.
+Live glass excludes the island from screenshots/recordings to prevent capture feedback.
+
+The following Beta.25 shape and theme rules remain in force; its Acrylic-only
+material description is superseded by the user-requested Beta4 default above.
+
 ## Beta.25 island surface
 
 The fixed host remains transparent. Only the bounded SystemBackdropElement owns

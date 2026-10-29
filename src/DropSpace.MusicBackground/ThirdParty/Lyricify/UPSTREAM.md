@@ -40,4 +40,11 @@ DropSpace modifications (2026-10-26):
   The host uses the existing island audio-response mapping and process-loopback frames; no
   additional capture source, playback clock or audio monitor is introduced.
 
-The local `MusicFlowBackground.cs` control and its lifecycle adaptation are DropSpace code.
+DropSpace modifications (2026-10-29):
+
+- Allow an optional swap-chain alpha mode in `SwapChainPanelPresenter`. Music retains
+  its original Ignore mode; the independently implemented island material requests
+  premultiplied alpha for its existing rounded silhouette.
+
+The local `MusicFlowBackground.cs` control, its lifecycle adaptation, and the
+`LiquidGlass/` capture/renderer/shader are DropSpace code.

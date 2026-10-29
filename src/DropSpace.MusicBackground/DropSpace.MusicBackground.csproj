@@ -18,6 +18,7 @@
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="LiquidGlass\LiquidGlass.hlsl" LogicalName="DropSpace.LiquidGlass.hlsl" />
     <EmbeddedResource Include="ThirdParty\Lyricify\AppleMusicIosBackground.hlsl" LogicalName="Lyricify.Backgrounds.AppleMusicInspired.Ios.Shared.Resources.AppleMusicIosBackground.hlsl" />
     <Content Include="ThirdParty\Lyricify\LICENSE.txt" Link="Licenses\Lyricify-Backgrounds-Apache-2.0.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="ThirdParty\Lyricify\UPSTREAM.md" Link="Licenses\Lyricify-Backgrounds-NOTICE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

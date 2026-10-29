@@ -1038,4 +1038,13 @@
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>시스템 음량</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>시스템 볼륨을 사용할 수 없습니다.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>선택 해제</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>아일랜드 스타일</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>데스크톱 아크릴</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>리퀴드 글래스</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>리퀴드 글래스 배경 흐림</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>리퀴드 글래스 굴절 강도 (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>리퀴드 글래스 색 분산</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>리퀴드 글래스 어두운 오버레이 (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>링고 스타일 (검정에서 유리로 그라데이션)</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>실험적인 재질입니다. 리퀴드 글래스 모드에서는 스크린샷과 화면 녹화에 아일랜드가 표시되지 않습니다. 사용할 수 없으면 기존 재질로 돌아갑니다.</value></data>
 </root>

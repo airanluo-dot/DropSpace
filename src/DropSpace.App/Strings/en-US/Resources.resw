@@ -1040,4 +1040,13 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>System volume</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>System volume is unavailable.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Clear selection</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Island style</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Desktop Acrylic</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Liquid Glass</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>Liquid Glass background blur</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>Liquid Glass refraction (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>Liquid Glass dispersion</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Liquid Glass dark overlay (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Lingo style (black-to-glass gradient)</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>Experimental. Liquid Glass is hidden in screenshots and recordings. If unavailable, the island uses its existing material.</value></data>
 </root>

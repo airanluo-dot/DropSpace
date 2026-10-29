@@ -1038,4 +1038,13 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="MusicWindowSystemVolume" xml:space="preserve"><value>Volumen del sistema</value></data>
   <data name="MusicWindowVolumeUnavailable" xml:space="preserve"><value>El volumen del sistema no está disponible.</value></data>
   <data name="RetrievalClearSelection.Content" xml:space="preserve"><value>Quitar selección</value></data>
+  <data name="IslandMaterialStyle" xml:space="preserve"><value>Estilo de la isla</value></data>
+  <data name="IslandMaterialAcrylic" xml:space="preserve"><value>Acrílico de escritorio</value></data>
+  <data name="IslandMaterialLiquidGlass" xml:space="preserve"><value>Cristal líquido</value></data>
+  <data name="IslandGlassBlur" xml:space="preserve"><value>Desenfoque de fondo del cristal líquido</value></data>
+  <data name="IslandGlassRefraction" xml:space="preserve"><value>Refracción del cristal líquido (%)</value></data>
+  <data name="IslandGlassDispersion" xml:space="preserve"><value>Dispersión del cristal líquido</value></data>
+  <data name="IslandGlassDarkOverlay" xml:space="preserve"><value>Capa oscura del cristal líquido (%)</value></data>
+  <data name="IslandGlassBlackGradient" xml:space="preserve"><value>Estilo Lingo (degradado de negro a cristal)</value></data>
+  <data name="IslandGlassDescription" xml:space="preserve"><value>Material experimental. En el modo de cristal líquido, la isla no aparece en capturas ni grabaciones de pantalla. Si no está disponible, se utiliza el material habitual.</value></data>
 </root>

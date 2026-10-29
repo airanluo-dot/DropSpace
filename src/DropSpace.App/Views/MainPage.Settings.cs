@@ -77,6 +77,23 @@ public sealed partial class MainPage
         groups["Relay"].Children.Add(new FileRelayPanel(editor, _strings, _windowHandle));
         groups["Agents"].Children.Add(new AgentConnectionsPanel(editor.Agents.Value, editor.AgentSkill, _strings, _viewModel.CopyAgentInvitationAsync));
         var island = new SettingsForm(editor, _strings);
+        island.AddChoice("IslandMaterialStyle", new[]
+        {
+            (IslandMaterialStyle.Acrylic, _strings.Get("IslandMaterialAcrylic")),
+            (IslandMaterialStyle.LiquidGlass, _strings.Get("IslandMaterialLiquidGlass")),
+        }, s => s.IslandAppearance.MaterialStyle,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { MaterialStyle = v } });
+        island.AddSlider("IslandGlassBlur", 0, 30, 1, s => s.IslandAppearance.LiquidGlassBlur,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassBlur = v } }, v => v.ToString("0", _strings.Culture));
+        island.AddSlider("IslandGlassRefraction", 0, 400, 10, s => s.IslandAppearance.LiquidGlassRefraction,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassRefraction = v } }, v => v.ToString("0", _strings.Culture) + "%");
+        island.AddSlider("IslandGlassDispersion", 0, 100, 5, s => s.IslandAppearance.LiquidGlassDispersion,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassDispersion = v } }, v => v.ToString("0", _strings.Culture));
+        island.AddSlider("IslandGlassDarkOverlay", 0, 200, 10, s => s.IslandAppearance.LiquidGlassDarkOverlay,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassDarkOverlay = v } }, v => v.ToString("0", _strings.Culture) + "%");
+        island.AddToggle("IslandGlassBlackGradient", s => s.IslandAppearance.LiquidGlassBlackGradient,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { LiquidGlassBlackGradient = v } });
+        island.Rows.Children.Add(new TextBlock { Text = _strings.Get("IslandGlassDescription"), TextWrapping = TextWrapping.Wrap, Margin = new(14, 0, 14, 8) });
         island.AddChoice("IslandAppearance", new[]
         {
             (ThemePreference.System, _strings.Get("IslandAppearanceFollow")),

@@ -164,6 +164,7 @@ public enum OverlayMaterialTier
     Windows11Solid,
     DesktopAcrylic,
     DesktopAcrylicFast,
+    LiquidGlass,
 }
 
 public readonly record struct OverlayMaterialCapabilityMatrix(
