@@ -911,8 +911,7 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>Temporärer Bereich</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Logo im Leerlauf anzeigen</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (deaktiviert)</value></data>
-  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Liedtext-Übersetzungsziel</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Bei chinesischer Oberfläche ist Chinesisch die Standardsprache für Übersetzungen, sonst Englisch. Eine manuell gewählte Übersetzungssprache bleibt unabhängig erhalten.</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Zielsprache für Liedtexte</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>Aktiviert</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>Deaktiviert</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>Aktivieren</value></data>

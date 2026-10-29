@@ -831,14 +831,6 @@
     ],
     "src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs": [
       {
-        "expression": "Content = \"简体中文\"",
-        "reason": "Native name of the permanent Chinese lyric target"
-      },
-      {
-        "expression": "Content = \"English\"",
-        "reason": "Native name of the permanent English lyric target"
-      },
-      {
         "expression": "Content = \"Vulkan\"",
         "reason": "Graphics API identifier"
       },

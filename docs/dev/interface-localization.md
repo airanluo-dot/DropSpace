@@ -15,6 +15,8 @@ Existing saved targets migrate as explicit choices, and subsequent interface cha
 an explicit target. `LyricsTranslationTargetExplicit` persists this distinction independently
 of lyric configuration. Changing the effective target reuses established
 cancellation and stale-result isolation. Never pass new interface locales into lyric/AI paths.
+The target selector belongs in general Lyrics settings because it governs both provider
+translations and AI output; its label is “Lyrics target language” without explanatory copy.
 
 Only settings labels/bindings and necessary target forwarding may change. Preserve sources,
 queries, matching, sorting, fallback, timeout, language detection, provider translation priority,

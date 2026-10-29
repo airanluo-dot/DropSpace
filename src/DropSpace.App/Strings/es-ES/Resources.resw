@@ -911,8 +911,7 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>Espacio temporal</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Mostrar logotipo cuando esté inactivo</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 GB (deshabilitado)</value></data>
-  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Objetivo de traducción de letras</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>Si la interfaz está en chino, la traducción usa chino por defecto; en los demás casos, inglés. El idioma elegido manualmente para traducir se conserva de forma independiente.</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Idioma de destino de las letras</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>Activado</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>Desactivado</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>Activar</value></data>

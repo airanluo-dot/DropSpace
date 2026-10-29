@@ -911,8 +911,7 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="IslandContentPriorityTemporarySpace" xml:space="preserve"><value>Espace temporaire</value></data>
   <data name="IslandShowLogoWhenIdle" xml:space="preserve"><value>Afficher le logo en cas d'inactivité</value></data>
   <data name="LyricsCacheDisabled" xml:space="preserve"><value>0 Go (désactivé)</value></data>
-  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Cible de traduction des paroles</value></data>
-  <data name="LyricsTranslationTargetDescription" xml:space="preserve"><value>La traduction utilise le chinois par défaut si l’interface est en chinois, et l’anglais sinon. Une langue de traduction choisie manuellement est conservée indépendamment.</value></data>
+  <data name="LyricsTranslationTargetTitle" xml:space="preserve"><value>Langue cible des paroles</value></data>
   <data name="ModuleEnabled" xml:space="preserve"><value>Activé</value></data>
   <data name="ModuleDisabled" xml:space="preserve"><value>Désactivé</value></data>
   <data name="ModuleEnable" xml:space="preserve"><value>Activer</value></data>
