@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "owner-authorized-beta-host-experimental-models",
-  "reason": "Bind the owner-requested Beta4 host release to liquid-glass capture and controls, Music Window widget and visibility policy, unset translation-target initialization, and interface naming/alignment. Preserve all existing model/runtime identities, prompt/admission contracts and historical experimental observations. No new inference, native stability resolution or semantic approval is claimed.",
+  "reason": "Bind the owner-requested Beta4 host release to liquid-glass capture and controls, Music Window widget and visibility policy, unset translation-target initialization, and interface naming/alignment. Preserve all existing model/runtime identities, prompt/admission contracts and historical experimental observations. No new inference, native stability resolution or semantic approval is claimed. The final packaged active-playback check found a duplicate restore-activation generation conflict; the coordinator now retains the in-flight dismissal generation for duplicate notifications.",
   "scope": {
     "releaseVersion": "v1.1.0-beta.4",
     "shippingModels": [
@@ -713,7 +713,7 @@
         },
         {
           "path": "src/DropSpace.Core/Island/IslandExperienceCoordinator.cs",
-          "sha256": "acd02e55f0980796fa208fc4adda9c5da773deaad5518aecdc9de943a6895ddb"
+          "sha256": "c786c4b35e0c9181f0ceb25d76fbc084ddc3712c2fd54b4e6012a068b180cc45"
         },
         {
           "path": "src/DropSpace.Core/Island/IslandPresencePolicy.cs",
@@ -1344,7 +1344,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "efc7c639e3141f07b53ffe210e0e9b237fd7c320113b0c900fe73dacf428d763"
+      "sha256": "8c947b63afd6b3fec9a92c661cbb4b1f82a0c502c4e9db86f59ca4bf1386c5d9"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2788,6 +2788,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.4-host-review.json",
-    "sha256": "cd52580a849bdde85c2e48a3d8fe207294fc126593f939e582f93ecd313792b1"
+    "sha256": "6e6eccf4279e02502c2773621985a19afbbafbc51acd01b928416d6182988d59"
   }
 }

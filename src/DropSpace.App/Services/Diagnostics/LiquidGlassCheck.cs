@@ -124,6 +124,11 @@ internal static class LiquidGlassCheck
                 var windowService = services.GetRequiredService<MusicWindowService>();
                 var original = main.Settings.IslandAppearance;
                 var samples = new List<object>();
+                async Task Settle()
+                {
+                    await Task.Delay(100); // drain native presentation/settings notifications
+                    await overlay.DiagnosticActiveWindow.WaitForMotionSettledAsync().WaitAsync(TimeSpan.FromSeconds(5));
+                }
                 void Check(string phase, bool condition)
                 {
                     samples.Add(new { phase, passed = condition, window = windowService.GetState(), island = experience.Current });
@@ -133,21 +138,21 @@ internal static class LiquidGlassCheck
                 {
                     await main.UpdateSettingsAsync(main.Settings with { IslandAppearance = original with
                     { Resident = true, HideWhileMusicWindowVisible = true } });
-                    experience.Open(IslandPage.Widgets); await Task.Delay(650);
-                    overlay.DiagnosticActiveWindow.InvokeMusicWindowWidgetForDiagnostic(); await Task.Delay(650);
+                    experience.Open(IslandPage.Widgets); await Settle();
+                    overlay.DiagnosticActiveWindow.InvokeMusicWindowWidgetForDiagnostic(); await Settle();
                     var opened = windowService.CurrentWindow;
                     Check("widget-opens-and-hides", opened is not null && windowService.GetState().IsOpen && experience.Current.State == DropSpace.Core.Overlay.OverlayState.Hidden);
-                    opened!.SetMinimized(true); await Task.Delay(650);
+                    opened!.SetMinimized(true); await Settle();
                     Check("minimize-restores-resident", windowService.GetState().IsMinimized && experience.Current.State == DropSpace.Core.Overlay.OverlayState.Compact);
-                    windowService.Open(); await Task.Delay(650);
+                    windowService.Open(); await Settle();
                     Check("restore-reuses-and-hides", ReferenceEquals(opened, windowService.CurrentWindow) && !windowService.GetState().IsMinimized && experience.Current.State == DropSpace.Core.Overlay.OverlayState.Hidden);
                     await main.UpdateSettingsAsync(main.Settings with { IslandAppearance = main.Settings.IslandAppearance with { HideWhileMusicWindowVisible = false } });
-                    await Task.Delay(650);
+                    await Settle();
                     Check("disable-restores-current-rules", experience.Current.State == DropSpace.Core.Overlay.OverlayState.Compact);
                     await main.UpdateSettingsAsync(main.Settings with { IslandAppearance = main.Settings.IslandAppearance with { HideWhileMusicWindowVisible = true } });
-                    await Task.Delay(650);
+                    await Settle();
                     Check("reenable-hides", experience.Current.State == DropSpace.Core.Overlay.OverlayState.Hidden);
-                    windowService.Close(); await Task.Delay(650);
+                    windowService.Close(); await Settle();
                     Check("close-restores-resident", !windowService.GetState().IsOpen && experience.Current.State == DropSpace.Core.Overlay.OverlayState.Compact);
                 }
                 finally

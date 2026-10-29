@@ -61,9 +61,13 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     }
     public void UpdateMusicWindowVisibility(bool visible, bool activated = false)
     {
-        if (_musicWindowVisible == visible && !activated) return;
+        var visibilityChanged = _musicWindowVisible != visible;
+        if (!visibilityChanged && !activated) return;
+        // A native restore event can start dismissal before Open sends its activation.
+        // Keep that animation's generation valid; only retire a fresh manual open.
+        var retireManualOpen = activated && IsManuallyOpen;
         _musicWindowVisible = visible;
-        if (visible && _hideWhileMusicWindowVisible) BeginMusicWindowSuppression();
+        if (visible && _hideWhileMusicWindowVisible && (visibilityChanged || retireManualOpen)) BeginMusicWindowSuppression();
         Reconcile();
     }
     private void BeginMusicWindowSuppression()
