@@ -47,6 +47,24 @@ public sealed class ActionOutputPolicyTests
     }
 
     [TestMethod]
+    public async Task DirectoryCollisionUsesNextNameAndPreservesItsContents()
+    {
+        var occupied = Path.Combine(_root, "report.txt");
+        Directory.CreateDirectory(occupied);
+        var sentinel = Path.Combine(occupied, "keep.txt");
+        await File.WriteAllTextAsync(sentinel, "original");
+
+        using (var output = ActionOutputPolicy.CreateNewFile(_root, "report", ".txt", out var outputPath))
+        {
+            Assert.AreEqual(Path.Combine(_root, "report (1).txt"), outputPath);
+            await output.WriteAsync(new byte[] { 1, 2, 3 });
+        }
+
+        Assert.AreEqual("original", await File.ReadAllTextAsync(sentinel));
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(Path.Combine(_root, "report (1).txt")));
+    }
+
+    [TestMethod]
     [DataRow("CON.txt")]
     [DataRow("con")]
     [DataRow("LPT9.")]

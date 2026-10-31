@@ -364,7 +364,7 @@ public sealed class DropLinkHost(
                     return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "expired"));
                 }
 
-                if (!_usedHandoffSessions.TryReserve(request.PeerId, request.Message.SessionId, now))
+                if (!_usedHandoffSessions.TryReserve(request.PeerId, request.Message.SessionId, now, request.Message.CreatedAtUtc))
                 {
                     return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "duplicate-session"));
                 }

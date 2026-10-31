@@ -223,6 +223,7 @@ src/
   DropSpace.App/             WinUI startup, views, resources, composition root
   DropSpace.Core/            Domain models, policies, interfaces, pure logic
   DropSpace.Infrastructure/  SQLite, file/cache, Windows and Win32 adapters
+  DropSpace.MusicBackground/ Windows music-background and Liquid Glass rendering
 tests/
   DropSpace.Core.Tests/
   DropSpace.Infrastructure.Tests/
@@ -230,7 +231,10 @@ tests/
 docs/                        Optional future ADR/archive location
 ```
 
-Three production projects are sufficient. Do not create a project per service or feature.
+The three host layers remain App, Core and Infrastructure. The existing
+MusicBackground project isolates Windows visual rendering and is referenced only
+by App; it is not an additional business or persistence layer. Do not create a
+project per service or feature.
 
 ## Application layers
 
@@ -345,6 +349,7 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 ### SettingsService
 
 - Typed validated settings with defaults and versioned migration.
+- `JsonSettingsService` shares one persisted-settings migration path across load, atomic update and UI reset. Language, schema, appearance, privacy and legacy update-channel migrations run in the same order before validation, so changing an unrelated preference cannot bypass upgrade rules. Fresh-install defaults remain separate from persisted legacy choices.
 - UI candidates are preflighted through the running Overlay before atomic persistence. Invalid/malformed UI preferences quarantine only `settings.json`, preserve valid non-UI preferences when possible, fall back to Dynamic Island/System motion/Automatic monitor, and never delete the SQLite database or payloads.
 - `--reset-ui-settings` and `--safe-mode` reset only UI/Overlay preferences.
 - Small preferences use app-local settings; complex policies can live in SQLite.
@@ -417,11 +422,22 @@ Use short-lived connections and explicit transactions. Serialize writes through 
 - All long operations accept `CancellationToken`.
 - Bounded channels protect memory during clipboard bursts and thumbnail scrolling.
 - State updates carry item IDs/revisions to avoid stale completion overwriting current state.
+- Search failure feedback uses the same captured projection revision and request identity
+  as successful rows; cancelled or superseded queries cannot replace newer status.
+- Stop/disposal closes new admission before draining existing owners. Managed lifecycle
+  gates remain available to already queued stop callers until the owner can be collected;
+  native hotkey resources still stop and join through the existing shared completion.
+- Download persistence publishes accepted work and closes admission under one short gate.
+  Its idle-wait decision shares that gate with coalesced progress publication, while
+  repository IO, cancellation and retirement run outside it; disposal completion is shared.
 
 ## Caching
 
 - Memory cache has item-count and byte budgets.
 - Disk thumbnail cache is derived and can be completely rebuilt.
+- Preview-cache path/IO failures do not replace an otherwise valid source preview.
+  Persisted descriptors must include required metadata collections before UI publication;
+  invalid entries are closed, removed and regenerated within the same confined cache root.
 - Original clipboard image payload is not “cache”; retention deletion must remove it.
 - File availability cache has a short TTL and is invalidated before operations.
 - No `FileSystemWatcher` over arbitrary user folders in MVP.
@@ -436,10 +452,20 @@ Use short-lived connections and explicit transactions. Serialize writes through 
 ## Error handling and recovery
 
 - Boundary exceptions map to domain errors and user-safe messages.
+- Before a download response is handed to its caller, its transport owns disposal on
+  observer/redirect failure. Reapplying unchanged aggregate bandwidth settings preserves
+  spent tokens rather than granting another burst to active transfers.
+- Staging renewal and completion verify the active durable lease identity before touching
+  its root. A completed handle cannot reclaim a pathname subsequently reused by new work.
+- Resolving an existing lease-record path is side-effect free. Cleanup must not initialize
+  unrelated application storage directories before removing its owned plaintext.
 - Clipboard failure pauses/degrades capture; Space remains operational.
 - Database open/migration failure starts a recovery screen, not a blank database overwrite.
 - Pre-migration backup is retained until the next successful launch.
 - Corrupt derived thumbnails are deleted and regenerated.
+- Nearby-share input is validated before allocating a listener. Handoff replay reservations
+  cover the complete accepted timestamp window, including permitted future clock skew,
+  while retaining per-peer and process-wide entry limits.
 - Disk-full errors stop ingestion before committing orphan metadata and present cleanup guidance.
 
 ## Future action extensibility
@@ -536,11 +562,12 @@ The three-project graph is unchanged. SqliteDatabase owns the shared repository 
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.28` (Beta 28). All new prereleases use
-`vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 27 is the immediate upgrade baseline and
-preserves data/settings. Subsequent Beta updates are automatic according to
-user settings.
+`RELEASE_VERSION` is the single source for the current development target;
+`Directory.Build.props` derives assembly and package versions from it. New
+prereleases use `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta.
+Historical Preview releases remain immutable. Each release's notes identify its
+immediate upgrade baseline. Upgrades preserve data/settings and follow the user's
+update preferences.
 See [migration contract](docs/dev/beta-migration.md).
 
 ## Shared package downloads and DLC registration

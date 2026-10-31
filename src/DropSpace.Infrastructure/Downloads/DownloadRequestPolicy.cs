@@ -21,16 +21,26 @@ public sealed class DownloadRequestPolicy(HttpClient client, Func<Uri, bool> tru
             if (etag is not null) request.Headers.IfRange = new RangeConditionHeaderValue(EntityTagHeaderValue.Parse(etag));
             observer?.Invoke(uri.Host, null);
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-            observer?.Invoke(uri.Host, (int)response.StatusCode);
-            if (response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Found or HttpStatusCode.SeeOther or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect)
+            try
             {
-                var location = response.Headers.Location;
-                response.Dispose();
-                if (location is null) throw new InvalidDataException("Missing download redirect.");
-                uri = new Uri(uri, location);
-                continue;
+                observer?.Invoke(uri.Host, (int)response.StatusCode);
+                if (response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Found or HttpStatusCode.SeeOther or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect)
+                {
+                    var location = response.Headers.Location;
+                    response.Dispose();
+                    if (location is null) throw new InvalidDataException("Missing download redirect.");
+                    uri = new Uri(uri, location);
+                    continue;
+                }
+                return response;
             }
-            return response;
+            catch
+            {
+                // Until handoff to the caller, this method owns the response body.
+                // Observer/redirect failures must not leak its connection or stream.
+                response.Dispose();
+                throw;
+            }
         }
         throw new InvalidDataException("Too many download redirects.");
     }

@@ -13,6 +13,7 @@ public class ScriptedRepository : DispatchProxy
     private int _callCount;
 
     internal int CallCount => Volatile.Read(ref _callCount);
+    internal bool IgnoreCancellation { get; set; }
 
     internal static (IItemRepository Repository, ScriptedRepository Control) Create()
     {
@@ -30,7 +31,8 @@ public class ScriptedRepository : DispatchProxy
         if (targetMethod.Name != nameof(IItemRepository.QueryPageAsync))
             throw new NotSupportedException("Unexpected repository call: " + targetMethod.Name);
 
-        var call = new QueryCall((ItemQuery)args[0]!, (ItemQueryCursor?)args[1], (CancellationToken)args[2]!);
+        var call = new QueryCall((ItemQuery)args[0]!, (ItemQueryCursor?)args[1],
+            IgnoreCancellation ? CancellationToken.None : (CancellationToken)args[2]!);
         Interlocked.Increment(ref _callCount);
         if (!_calls.Writer.TryWrite(call)) throw new InvalidOperationException("Query fixture is unavailable.");
         return call.Completion;

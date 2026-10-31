@@ -17,6 +17,8 @@ public sealed class DownloadPersistenceWorker : IAsyncDisposable
     private readonly SemaphoreSlim _signal = new(0);
     private readonly CancellationTokenSource _stopSource = new();
     private readonly Task _worker;
+    private readonly object _admissionGate = new();
+    private Task? _disposeTask;
     private int _accepting = 1;
 
     public DownloadPersistenceWorker(IDownloadTaskRepository repository)
@@ -28,39 +30,53 @@ public sealed class DownloadPersistenceWorker : IAsyncDisposable
     public bool IsAccepting => Volatile.Read(ref _accepting) == 1;
     public Task DeleteAsync(Guid id)
     {
-        if (!IsAccepting) throw new ObjectDisposedException(nameof(DownloadPersistenceWorker));
-        _progress.TryRemove(id, out _);
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _critical.Enqueue(new CriticalWrite(null, completion, id));
-        ReleaseSignal();
-        return completion.Task;
+        lock (_admissionGate)
+        {
+            if (!IsAccepting) throw new ObjectDisposedException(nameof(DownloadPersistenceWorker));
+            _progress.TryRemove(id, out _);
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _critical.Enqueue(new CriticalWrite(null, completion, id));
+            ReleaseSignal();
+            return completion.Task;
+        }
     }
 
     public void EnqueueProgress(DownloadTaskSnapshot snapshot)
     {
-        if (!IsAccepting) return;
-        var wasEmpty = _progress.IsEmpty;
-        _progress.AddOrUpdate(
-            snapshot.Id,
-            snapshot,
-            (_, existing) => snapshot.UpdatedAt >= existing.UpdatedAt ? snapshot : existing);
-        if (wasEmpty) ReleaseSignal();
+        lock (_admissionGate)
+        {
+            if (!IsAccepting) return;
+            var wasEmpty = _progress.IsEmpty;
+            _progress.AddOrUpdate(
+                snapshot.Id,
+                snapshot,
+                (_, existing) => snapshot.UpdatedAt >= existing.UpdatedAt ? snapshot : existing);
+            if (wasEmpty) ReleaseSignal();
+        }
     }
 
     public Task EnqueueCriticalAsync(DownloadTaskSnapshot snapshot, CancellationToken cancellationToken = default)
     {
-        if (!IsAccepting) return Task.FromException(new ObjectDisposedException(nameof(DownloadPersistenceWorker)));
-        cancellationToken.ThrowIfCancellationRequested();
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _critical.Enqueue(new CriticalWrite(snapshot, completion));
-        ReleaseSignal();
-        return completion.Task;
+        lock (_admissionGate)
+        {
+            if (!IsAccepting) return Task.FromException(new ObjectDisposedException(nameof(DownloadPersistenceWorker)));
+            cancellationToken.ThrowIfCancellationRequested();
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _critical.Enqueue(new CriticalWrite(snapshot, completion));
+            ReleaseSignal();
+            return completion.Task;
+        }
     }
 
     public async Task DrainAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        Interlocked.Exchange(ref _accepting, 0);
-        ReleaseSignal();
+        // Publication and closing admission are one boundary: every accepted
+        // critical write must be visible before the worker can decide to exit.
+        lock (_admissionGate)
+        {
+            Volatile.Write(ref _accepting, 0);
+            ReleaseSignal();
+        }
         await _worker.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
     }
 
@@ -70,7 +86,14 @@ public sealed class DownloadPersistenceWorker : IAsyncDisposable
         {
             while (Volatile.Read(ref _accepting) == 1 || HasPending())
             {
-                var wait = GetProgressWait();
+                TimeSpan? wait;
+                lock (_admissionGate)
+                {
+                    // A producer may coalesce without signalling when progress was
+                    // already queued. Do not choose an idle wait between that
+                    // producer's emptiness check and its replacement publication.
+                    wait = GetProgressWait();
+                }
                 if (wait is null)
                 {
                     await _signal.WaitAsync(_stopSource.Token).ConfigureAwait(false);
@@ -92,6 +115,10 @@ public sealed class DownloadPersistenceWorker : IAsyncDisposable
                         else
                         {
                             await _repository.DeleteAsync(critical.DeleteId, CancellationToken.None).ConfigureAwait(false);
+                            // An in-flight progress write can fail and requeue itself after
+                            // DeleteAsync's admission-time purge. Retire that retry at the
+                            // serialized deletion boundary so it cannot recreate history.
+                            _progress.TryRemove(critical.DeleteId, out _);
                             _checkpoints.Remove(critical.DeleteId);
                             _retryNotBefore.Remove(critical.DeleteId);
                         }
@@ -199,14 +226,40 @@ public sealed class DownloadPersistenceWorker : IAsyncDisposable
         try { _signal.Release(); } catch (ObjectDisposedException) { }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        Interlocked.Exchange(ref _accepting, 0);
-        _stopSource.Cancel();
-        try { await _worker.ConfigureAwait(false); } catch (OperationCanceledException) { }
-        _stopSource.Dispose();
-        _signal.Dispose();
-        GC.SuppressFinalize(this);
+        TaskCompletionSource? completion = null;
+        Task disposal;
+        lock (_admissionGate)
+        {
+            if (_disposeTask is null)
+            {
+                Volatile.Write(ref _accepting, 0);
+                completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                _disposeTask = completion.Task;
+            }
+            disposal = _disposeTask;
+        }
+        // Cancellation and repository retirement never run under admission ownership.
+        if (completion is not null) _ = DisposeCoreAsync(completion);
+        return new ValueTask(disposal);
+    }
+
+    private async Task DisposeCoreAsync(TaskCompletionSource completion)
+    {
+        try
+        {
+            _stopSource.Cancel();
+            try { await _worker.ConfigureAwait(false); } catch (OperationCanceledException) { }
+            _stopSource.Dispose();
+            _signal.Dispose();
+            GC.SuppressFinalize(this);
+            completion.TrySetResult();
+        }
+        catch (Exception exception)
+        {
+            completion.TrySetException(exception);
+        }
     }
 
     private sealed record CriticalWrite(DownloadTaskSnapshot? Snapshot, TaskCompletionSource Completion, Guid DeleteId = default);

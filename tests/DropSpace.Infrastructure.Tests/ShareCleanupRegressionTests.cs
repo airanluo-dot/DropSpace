@@ -3,7 +3,6 @@ using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 namespace DropSpace.Infrastructure.Tests;
 
@@ -26,10 +25,10 @@ public sealed class ShareCleanupRegressionTests
     }
 
     [TestMethod]
-    public async Task CompletedShareStillReturnsItsSessionWhenLeaseRecordCleanupNeedsRetry()
+    public async Task CompletedShareStillReturnsItsSessionWhenUnrelatedStoragePathIsBlocked()
     {
         var leases = new StagingLeaseStore(_paths, NullLogger<StagingLeaseStore>.Instance);
-        var backend = new CleanupFailureBackend(_paths);
+        var backend = new BlockedStoragePathBackend(_paths);
         var client = new InternetShareClient(new ShareCryptoService(), backend, storagePaths: _paths, stagingLeases: leases);
 
         var result = await client.CreateWithSessionAsync([CreateSource()], TimeSpan.FromHours(1));
@@ -38,21 +37,21 @@ public sealed class ShareCleanupRegressionTests
         Assert.AreEqual(backend.Session, result.Session);
         Assert.AreEqual(2, backend.Uploads);
         Assert.AreEqual(0, backend.Revocations);
-        await AssertRetainedLeaseCanBeCompletedAsync(leases);
+        AssertCleanupFinishedDespiteUnrelatedStorageCollision();
     }
 
     [TestMethod]
-    public async Task FailedUploadPreservesItsOriginalErrorWhenLeaseRecordCleanupNeedsRetry()
+    public async Task FailedUploadPreservesItsOriginalErrorWhenUnrelatedStoragePathIsBlocked()
     {
         var leases = new StagingLeaseStore(_paths, NullLogger<StagingLeaseStore>.Instance);
-        var backend = new CleanupFailureBackend(_paths) { UploadFailure = new InvalidOperationException("upload failed") };
+        var backend = new BlockedStoragePathBackend(_paths) { UploadFailure = new InvalidOperationException("upload failed") };
         var client = new InternetShareClient(new ShareCryptoService(), backend, storagePaths: _paths, stagingLeases: leases);
 
         var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.CreateWithSessionAsync([CreateSource()], TimeSpan.FromHours(1)));
 
         Assert.AreSame(backend.UploadFailure, error);
         Assert.AreEqual(1, backend.Revocations, "The failed upload must still revoke its remote share.");
-        await AssertRetainedLeaseCanBeCompletedAsync(leases);
+        AssertCleanupFinishedDespiteUnrelatedStorageCollision();
     }
 
     [TestMethod]
@@ -83,18 +82,12 @@ public sealed class ShareCleanupRegressionTests
         { events.Add("revoke"); throw new IOException("fixture revoke failure"); }
     }
 
-    private async Task AssertRetainedLeaseCanBeCompletedAsync(StagingLeaseStore leases)
+    private void AssertCleanupFinishedDespiteUnrelatedStorageCollision()
     {
-        var leasePath = Directory.EnumerateFiles(_paths.StagingLeases, "*.json").Single();
-        var lease = JsonSerializer.Deserialize<StagingLease>(await File.ReadAllTextAsync(leasePath), new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        Assert.IsNotNull(lease);
-        Assert.IsTrue(lease.SensitivePlaintext);
-        Assert.AreEqual("internet-share", lease.Kind);
-        Assert.IsFalse(Directory.Exists(Path.Combine(_paths.Staging, lease.RelativeRoot)), "Uploaded plaintext should already be removed.");
-        File.Delete(_paths.Updates);
-        Directory.CreateDirectory(_paths.Updates);
-        Assert.IsTrue(await leases.CompleteAsync(lease), "A retained lease should remain available for a cleanup retry.");
-        Assert.IsFalse(File.Exists(leasePath));
+        Assert.IsTrue(File.Exists(_paths.Updates), "The fixture's unrelated path collision must remain in place.");
+        Assert.IsFalse(Directory.EnumerateFiles(_paths.Staging, "*", SearchOption.AllDirectories).Any(),
+            "Successful share cleanup must remove plaintext and its completed lease without initializing unrelated storage.");
+        Assert.IsEmpty(Directory.GetFiles(_paths.StagingLeases, "*.json"));
     }
 
     private static ShareFileSource CreateSource()
@@ -104,7 +97,7 @@ public sealed class ShareCleanupRegressionTests
             _ => Task.FromResult<Stream>(new MemoryStream(bytes, writable: false)));
     }
 
-    private sealed class CleanupFailureBackend(AppStoragePaths paths) : IShareBackendClient
+    private sealed class BlockedStoragePathBackend(AppStoragePaths paths) : IShareBackendClient
     {
         public ShareBackendUploadSession Session { get; } = new(
             new Uri("https://share.example.invalid/upload/"),

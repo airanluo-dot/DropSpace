@@ -170,7 +170,10 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
     private async Task DisposeCoreAsync()
     {
         await StopAsync(CancellationToken.None).ConfigureAwait(false);
-        _lifecycleGate.Dispose();
+        // Queued StopAsync calls still own an acquire/release cycle. Disposing
+        // this managed-only gate here can strand them or throw from their finally.
+        // Start admission is already closed by _disposed; let the gate be collected
+        // with this owner after every pending stop has observed the native exit.
     }
 
     private void MessageThreadMain()

@@ -91,7 +91,7 @@ public sealed class PreviewProviderRegistry(
                     request.Page, request.TargetPixelWidth, cancellationToken).ConfigureAwait(false);
                 if (cacheHit is not null) return cacheHit with { CacheGeneration = generation };
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
             {
                 logger.LogDebug(exception, "Preview cache unavailable; loading the source.");
             }
@@ -109,7 +109,7 @@ public sealed class PreviewProviderRegistry(
                 {
                     await cache.PutAsync(request, descriptor, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
                 {
                     logger.LogDebug(exception, "Preview cache write failed; the generated preview remains usable.");
                 }

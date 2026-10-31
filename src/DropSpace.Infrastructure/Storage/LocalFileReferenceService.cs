@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -16,12 +15,16 @@ public sealed class LocalFileReferenceService(
     private const int MaximumAvailabilityCacheEntries = 1_024;
     private readonly SemaphoreSlim _localGate = new(8, 8);
     private readonly SemaphoreSlim _remoteGate = new(2, 2);
-    private readonly ConcurrentDictionary<string, CachedAvailability> _availabilityCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _availabilityCacheGate = new();
+    private readonly Dictionary<string, CachedAvailability> _availabilityCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ILogger<LocalFileReferenceService>? _logger = logger;
     private readonly Func<string, FileCandidate> _inspectOperation = inspectOverride ?? Inspect;
     private readonly Func<FileReference, FileAvailabilityCheck> _availabilityOperation = availabilityOverride ?? CheckAvailability;
 
-    internal int AvailabilityCacheCount => _availabilityCache.Count;
+    internal int AvailabilityCacheCount
+    {
+        get { lock (_availabilityCacheGate) return _availabilityCache.Count; }
+    }
 
     public async Task<FileCandidate> InspectAsync(string path, CancellationToken cancellationToken = default)
     {
@@ -46,15 +49,23 @@ public sealed class LocalFileReferenceService(
         ArgumentNullException.ThrowIfNull(reference);
         var key = NormalizeForComparison(reference.OriginalPath);
         var remote = IsRemotePath(reference.OriginalPath);
-        if (remote && _availabilityCache.TryGetValue(key, out var cached))
+        var expectedDirectory = reference.EntryKind == FileEntryKind.Folder;
+        if (remote)
         {
-            if (DateTimeOffset.UtcNow - cached.CreatedAtUtc <= AvailabilityCacheLifetime)
+            lock (_availabilityCacheGate)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                return cached.Result;
-            }
+                if (_availabilityCache.TryGetValue(key, out var cached))
+                {
+                    if (cached.ExpectedDirectory == expectedDirectory &&
+                        DateTimeOffset.UtcNow - cached.CreatedAtUtc <= AvailabilityCacheLifetime)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return cached.Result;
+                    }
 
-            _availabilityCache.TryRemove(key, out _);
+                    _availabilityCache.Remove(key);
+                }
+            }
         }
 
         var gate = remote ? _remoteGate : _localGate;
@@ -68,8 +79,13 @@ public sealed class LocalFileReferenceService(
         cancellationToken.ThrowIfCancellationRequested();
         if (remote)
         {
-            PruneAvailabilityCache(key);
-            _availabilityCache[key] = new CachedAvailability(DateTimeOffset.UtcNow, result);
+            // The metadata gate is released before publication. Serialize prune/write
+            // together so concurrent completions cannot exceed the cache's hard cap.
+            lock (_availabilityCacheGate)
+            {
+                PruneAvailabilityCache(key);
+                _availabilityCache[key] = new CachedAvailability(DateTimeOffset.UtcNow, expectedDirectory, result);
+            }
         }
         return result;
     }
@@ -96,12 +112,11 @@ public sealed class LocalFileReferenceService(
     private void PruneAvailabilityCache(string currentKey)
     {
         var now = DateTimeOffset.UtcNow;
-        foreach (var pair in _availabilityCache)
+        foreach (var key in _availabilityCache
+                     .Where(pair => now - pair.Value.CreatedAtUtc > AvailabilityCacheLifetime)
+                     .Select(pair => pair.Key).ToArray())
         {
-            if (now - pair.Value.CreatedAtUtc > AvailabilityCacheLifetime)
-            {
-                _availabilityCache.TryRemove(pair.Key, out _);
-            }
+            _availabilityCache.Remove(key);
         }
 
         if (_availabilityCache.Count < MaximumAvailabilityCacheEntries || _availabilityCache.ContainsKey(currentKey))
@@ -113,9 +128,9 @@ public sealed class LocalFileReferenceService(
         foreach (var key in _availabilityCache
                      .OrderBy(pair => pair.Value.CreatedAtUtc)
                      .Take(removeCount)
-                     .Select(pair => pair.Key))
+                     .Select(pair => pair.Key).ToArray())
         {
-            _availabilityCache.TryRemove(key, out _);
+            _availabilityCache.Remove(key);
         }
     }
 
@@ -292,5 +307,6 @@ public sealed class LocalFileReferenceService(
 
     private sealed record CachedAvailability(
         DateTimeOffset CreatedAtUtc,
+        bool ExpectedDirectory,
         FileAvailabilityCheck Result);
 }

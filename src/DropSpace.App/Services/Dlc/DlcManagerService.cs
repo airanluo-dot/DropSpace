@@ -90,8 +90,12 @@ public sealed class DlcManagerService : IAsyncDisposable
     private void Publish(DlcPackageSnapshot snapshot)
     {
         lock (_sync) _snapshots[snapshot.Package.Id] = snapshot;
-        Changed?.Invoke(this, EventArgs.Empty);
+        NotifyChanged();
     }
+
+    // Presentation failures cannot change package transaction outcomes, prevent
+    // cancellation, or escape the ThreadPool timer used for progress notifications.
+    private void NotifyChanged() => NativeSubscriberNotification.Invoke(Changed, this, _logger);
 
     public Task RefreshAsync(bool force = false) => Task.Run(() => RefreshCoreAsync(force));
 
@@ -163,7 +167,7 @@ public sealed class DlcManagerService : IAsyncDisposable
             bool refresh;
             lock (_sync) { _activeId = null; refresh = _refreshPending && !_disposed; }
             _operation.Release();
-            Changed?.Invoke(this, EventArgs.Empty);
+            NotifyChanged();
             if (refresh) await RefreshCoreAsync(force: true);
         }
     }
@@ -179,7 +183,7 @@ public sealed class DlcManagerService : IAsyncDisposable
             stop = _downloadStop;
             _snapshots[packageId] = _snapshots[packageId] with { State = DlcPackageState.Canceling };
         }
-        Changed?.Invoke(this, EventArgs.Empty);
+        NotifyChanged();
         // Provider callbacks may wait for workers which publish progress. Never cancel under _sync.
         try { stop.Cancel(); }
         catch (ObjectDisposedException) { /* The completed operation already released its cancellation owner. */ }
@@ -262,7 +266,7 @@ public sealed class DlcManagerService : IAsyncDisposable
             }
             stop?.Dispose();
             _operation.Release();
-            Changed?.Invoke(this, EventArgs.Empty);
+            NotifyChanged();
             if (refresh) await RefreshAsync(force: true);
         }
     }
@@ -298,7 +302,7 @@ public sealed class DlcManagerService : IAsyncDisposable
             {
                 _owner._logger.LogInformation("DLC {PackageId} run {RunId}: {Stage}, bytes {Bytes}/{Total}, connections {Connections}, attempt {Attempt}, error {Error}",
                     _id, _run, value.Stage, value.DownloadedBytes, value.TotalBytes, value.ActiveConnections, value.Attempt, value.ErrorCode);
-                _owner.Changed?.Invoke(_owner, EventArgs.Empty);
+                _owner.NotifyChanged();
             }
         }
         private void Notify()
@@ -308,7 +312,7 @@ public sealed class DlcManagerService : IAsyncDisposable
                 _scheduled = false;
                 if (_disposed || !ReferenceEquals(_owner._downloadStop, _stop)) return;
             }
-            _owner.Changed?.Invoke(_owner, EventArgs.Empty);
+            _owner.NotifyChanged();
         }
         public void Dispose() { lock (_owner._sync) { _disposed = true; _timer.Dispose(); } }
     }

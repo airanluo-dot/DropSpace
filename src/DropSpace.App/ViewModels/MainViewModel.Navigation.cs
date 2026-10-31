@@ -1,5 +1,6 @@
 using DropSpace.App.Services;
 using DropSpace.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.ViewModels;
 
@@ -80,7 +81,7 @@ public sealed partial class MainViewModel
     public Task ReloadAsync(CancellationToken cancellationToken = default) =>
         ReloadProjectionAsync(reportNavigationFailure: false, cancellationToken);
 
-    private async Task ReloadProjectionAsync(bool reportNavigationFailure, CancellationToken cancellationToken)
+    private async Task ReloadProjectionAsync(bool reportNavigationFailure, CancellationToken cancellationToken, bool reportSearchFailure = false)
     {
         if (!IsCollectionVisible) return;
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -134,15 +135,16 @@ public sealed partial class MainViewModel
                 ? AppUiMessage.Resource("SearchNoMatches")
                 : AppUiMessage.Empty;
         }
-        catch (Exception exception) when (reportNavigationFailure)
+        catch (Exception exception) when (reportNavigationFailure || reportSearchFailure)
         {
-            // Late failures belong to the retired request, just like late successful pages.
+            // Search and navigation failures belong to the same request revision as
+            // successful pages. A cancelled search cannot publish a late provider error.
             if (!_disposed && revision == Volatile.Read(ref _reloadRevision) &&
-                ProjectionRequestStillCurrent(request))
+                ProjectionRequestStillCurrent(request) && (!reportSearchFailure ||
+                    !cancellationToken.IsCancellationRequested && exception is not OperationCanceledException))
             {
-                Status = AppUiMessage.Resource(exception is OperationCanceledException
-                    ? "ActionCancelled"
-                    : "OperationIncompleteContent");
+                Status = AppUiMessage.Resource(reportSearchFailure ? "SearchUnavailable" :
+                    exception is OperationCanceledException ? "ActionCancelled" : "OperationIncompleteContent");
             }
             throw;
         }
@@ -233,5 +235,29 @@ public sealed partial class MainViewModel
         public List<DropItem> Captures { get; } = [];
         public HashSet<Guid> RemovedIds { get; } = [];
         public bool CaptureOverflow { get; set; }
+    }
+
+    private async Task DebouncedReloadAsync()
+    {
+        _queryCancellation?.Cancel();
+        _queryCancellation?.Dispose();
+        _queryCancellation = new CancellationTokenSource();
+        var token = _queryCancellation.Token;
+        try
+        {
+            await Task.Delay(220, token);
+            if (!IsSettingsVisible)
+            {
+                await ReloadProjectionAsync(reportNavigationFailure: false, token, reportSearchFailure: true);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Search refresh failed.");
+        }
     }
 }

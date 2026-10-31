@@ -133,6 +133,10 @@ public sealed class NearbyShareServer : IAsyncDisposable
             total += item.Length;
         }
 
+        // Reject invalid admission before resolving an address or allocating a listener.
+        var requestedLifetime = lifetime ?? TimeSpan.FromMinutes(_limits.NearbyTtlMinutes);
+        if (requestedLifetime <= TimeSpan.Zero || requestedLifetime > TimeSpan.FromMinutes(_limits.NearbyTtlMinutes)) throw new ArgumentOutOfRangeException(nameof(lifetime));
+
         await _startGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         long previousRevision;
         lock (_shareGate) previousRevision = _shareRevision;
@@ -142,8 +146,6 @@ public sealed class NearbyShareServer : IAsyncDisposable
         var endpoint = _baseUri ?? throw new InvalidOperationException("Nearby network changed during startup.");
         var shareId = Guid.NewGuid();
         var token = Base64Url(System.Security.Cryptography.RandomNumberGenerator.GetBytes(_limits.NearbyTokenBytes));
-        var requestedLifetime = lifetime ?? TimeSpan.FromMinutes(_limits.NearbyTtlMinutes);
-        if (requestedLifetime <= TimeSpan.Zero || requestedLifetime > TimeSpan.FromMinutes(_limits.NearbyTtlMinutes)) throw new ArgumentOutOfRangeException(nameof(lifetime));
         var expires = _timeProvider.GetUtcNow().Add(requestedLifetime);
         var url = new Uri(string.Concat(endpoint, "s/", shareId.ToString("N"), "/", token));
         var descriptor = new ShareDescriptor(shareId, url, expires, items.Count, total, false, null);

@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.UI.Xaml.Media.Imaging
 {
@@ -28,6 +30,8 @@ namespace DropSpace.App.ViewModels
         private readonly Dictionary<ItemCardViewModel, AssetOwner> _assetOwners = [];
         private ProjectionLoadJournal? _clipboardReloadCaptures;
         private ItemQueryCursor? _projectionCursor;
+        private readonly ILogger<MainViewModel> _logger = NullLogger<MainViewModel>.Instance;
+        private CancellationTokenSource? _queryCancellation;
         private long _reloadRevision;
         private bool _disposed;
 
@@ -47,6 +51,15 @@ namespace DropSpace.App.ViewModels
         public ItemCardViewModel? SelectedItem { get; set; }
         private AppUiMessage Status { get; set; } = AppUiMessage.Empty;
 
+        internal Task DebouncedReloadForProbeAsync()
+        {
+            // Historical navigation sources did not include the debounce method.
+            // Keep their original scenario groups compilable without copying it.
+            var debounce = typeof(MainViewModel).GetMethod("DebouncedReloadAsync",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new NotSupportedException("Search scenarios require a navigation source containing the production debounce method.");
+            return (Task)debounce.Invoke(this, null)!;
+        }
         internal AppUiMessage ObservedStatus => Status;
         internal ItemQueryCursor? ObservedCursor => _projectionCursor;
         internal AssetOwner AssetFor(ItemCardViewModel card) => _assetOwners[card];
@@ -72,6 +85,8 @@ namespace DropSpace.App.ViewModels
         {
             if (_disposed) return;
             _disposed = true;
+            _queryCancellation?.Cancel();
+            _queryCancellation?.Dispose();
             CancelAllMainCardAssets();
             _projectionLoadGate.Dispose();
         }

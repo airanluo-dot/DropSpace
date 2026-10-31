@@ -7,6 +7,7 @@
     <NavigationSourcePath Condition="'$(NavigationSourcePath)' == ''">../../src/DropSpace.App/ViewModels/MainViewModel.Navigation.cs</NavigationSourcePath>
   </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
     <Compile Include="$(NavigationSourcePath)" Link="Production/MainViewModel.Navigation.cs" />

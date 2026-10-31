@@ -93,14 +93,8 @@ public sealed class StorageAndRepositoryTests
         await service.SaveAsync(expected);
         var actual = await service.LoadAsync();
 
-        Assert.AreEqual(expected with
-        {
-            IslandActivity = expected.IslandActivity with { AllowedMediaSourceAppIds = actual.IslandActivity.AllowedMediaSourceAppIds },
-            CustomOverlayPlacements = actual.CustomOverlayPlacements,
-            OverlayPlacements = actual.OverlayPlacements,
-            ClipboardPeerModes = actual.ClipboardPeerModes,
-            SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
-        }, actual);
+        // Persisted values must round-trip even when lists/dictionaries have new instances.
+        Assert.AreEqual(JsonSerializer.Serialize(expected), JsonSerializer.Serialize(actual));
         Assert.AreEqual(new OverlayCustomPlacement(640, 24), actual.CustomOverlayPlacements["DISPLAY-1"]);
         Assert.AreEqual(
             new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 640, 24),
@@ -345,13 +339,7 @@ public sealed class StorageAndRepositoryTests
 
         var actual = await service.LoadAsync();
 
-        Assert.AreEqual(new AppSettings
-        {
-            CustomOverlayPlacements = actual.CustomOverlayPlacements,
-            OverlayPlacements = actual.OverlayPlacements,
-            ClipboardPeerModes = actual.ClipboardPeerModes,
-            SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
-        }, actual);
+        Assert.AreEqual(JsonSerializer.Serialize(new AppSettings()), JsonSerializer.Serialize(actual));
         Assert.IsTrue(service.LastLoadRecovery.Recovered);
         Assert.IsFalse(service.LastLoadRecovery.PreservedNonUiPreferences);
         Assert.IsTrue(File.Exists(databaseSentinel));

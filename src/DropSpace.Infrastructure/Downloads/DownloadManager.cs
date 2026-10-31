@@ -206,9 +206,10 @@ public sealed class DownloadManager : IAsyncDisposable
                     // Do not attempt another throwing checkpoint while reporting a failed checkpoint.
                 }
             }
-            // Only a fully traversed journal completes recovery. Cancelled reads or
-            // partial recovery remain retryable under the same serialized action gate.
-            _restored = true;
+            // Repository reads can return usable rows together with an enumeration/read
+            // error. Preserve those owners, but allow a later restore to recover rows
+            // that were temporarily inaccessible instead of treating the read as complete.
+            _restored = RecoveryError is null;
         }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
         {

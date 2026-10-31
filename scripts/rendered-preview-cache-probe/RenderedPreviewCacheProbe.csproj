@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <PreviewSourcePath Condition="'$(PreviewSourcePath)' == ''">../../src/DropSpace.App/Services/QuickPreviewService.cs</PreviewSourcePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Compile Include="$(PreviewSourcePath)" Link="Production/QuickPreviewService.cs" />
+  </ItemGroup>
+</Project>

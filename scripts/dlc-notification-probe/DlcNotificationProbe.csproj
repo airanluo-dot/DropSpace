@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <DlcSourcePath Condition="'$(DlcSourcePath)' == ''">../../src/DropSpace.App/Services/Dlc/DlcManagerService.cs</DlcSourcePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Compile Include="$(DlcSourcePath)" Link="Production/DlcManagerService.cs" />
+    <Compile Include="../../src/DropSpace.App/Services/NativeSubscriberNotification.cs" Link="Production/NativeSubscriberNotification.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Storage/AppStoragePaths.cs" Link="Production/AppStoragePaths.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Storage/LocalStorageMetrics.cs" Link="Production/LocalStorageMetrics.cs" />
+  </ItemGroup>
+</Project>

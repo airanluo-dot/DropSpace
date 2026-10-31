@@ -54,17 +54,20 @@ public sealed class InternetShareClient(
         if (sources.Count is < 1 or > ShareLimits.DefaultInternetMaxItems || sources.Count > _limits.MaxItems) throw new ArgumentOutOfRangeException(nameof(sources));
         if (lifetime <= TimeSpan.Zero || lifetime > TimeSpan.FromDays(7)) throw new ArgumentOutOfRangeException(nameof(lifetime));
         if (sources.Any(source => source is null || source.Length < 0)) throw new InvalidDataException("An Internet share item length cannot be negative.");
+        // The caller may impose a smaller preparation budget than the fixed
+        // Internet protocol ceiling. Reject it before staging or backend creation.
+        var maximumBytes = Math.Min(_limits.MaxTotalBytes, ShareLimits.DefaultInternetMaxBytes);
         var totalBytes = 0L;
         foreach (var source in sources)
         {
             ValidateSource(source);
-            if (source.Length > ShareLimits.DefaultInternetMaxBytes - totalBytes)
+            if (source.Length > maximumBytes - totalBytes)
             {
                 throw new InvalidDataException("The Internet share byte limit was exceeded.");
             }
             totalBytes += source.Length;
         }
-        if (totalBytes < 1 || totalBytes > ShareLimits.DefaultInternetMaxBytes) throw new InvalidDataException("The Internet share byte limit was exceeded.");
+        if (totalBytes < 1 || totalBytes > maximumBytes) throw new InvalidDataException("The Internet share byte limit was exceeded.");
 
         var shareId = Guid.NewGuid();
         var masterKey = crypto.CreateMasterKey();

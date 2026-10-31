@@ -1,5 +1,4 @@
 // Ported from NovaClip Beta8, b798c571dad1cae03c16129e4b4c43b85b428d7a.
-using System.Diagnostics;
 
 namespace DropSpace.Infrastructure.Downloads;
 
@@ -7,10 +6,20 @@ namespace DropSpace.Infrastructure.Downloads;
 public sealed class DownloadBandwidthLimiter
 {
     private readonly object _gate = new();
+    private readonly TimeProvider _clock;
     private long _rate;
     private double _tokens;
-    private long _updated = Stopwatch.GetTimestamp();
+    private long _updated;
     private TaskCompletionSource _changed = NewSignal();
+
+    public DownloadBandwidthLimiter() : this(TimeProvider.System) { }
+
+    internal DownloadBandwidthLimiter(TimeProvider clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        _clock = clock;
+        _updated = clock.GetTimestamp();
+    }
 
     public long BytesPerSecond { get { lock (_gate) return _rate; } }
 
@@ -19,9 +28,12 @@ public sealed class DownloadBandwidthLimiter
         if (bytesPerSecond is < 0 or > 1_073_741_824) throw new ArgumentOutOfRangeException(nameof(bytesPerSecond));
         lock (_gate)
         {
+            // Settings transactions also publish unchanged limits. They must not
+            // mint a fresh burst or wake every blocked transfer without a rate change.
+            if (_rate == bytesPerSecond) return;
             _rate = bytesPerSecond;
             _tokens = Math.Max(1, _rate / 10d);
-            _updated = Stopwatch.GetTimestamp();
+            _updated = _clock.GetTimestamp();
             var old = _changed;
             _changed = NewSignal();
             old.TrySetResult();
@@ -40,9 +52,9 @@ public sealed class DownloadBandwidthLimiter
             lock (_gate)
             {
                 if (_rate == 0) return;
-                var now = Stopwatch.GetTimestamp();
+                var now = _clock.GetTimestamp();
                 var capacity = Math.Max(1, _rate / 10d);
-                _tokens = Math.Min(capacity, _tokens + Stopwatch.GetElapsedTime(_updated, now).TotalSeconds * _rate);
+                _tokens = Math.Min(capacity, _tokens + _clock.GetElapsedTime(_updated, now).TotalSeconds * _rate);
                 _updated = now;
                 var granted = (int)Math.Min(remaining, Math.Floor(_tokens));
                 _tokens -= granted;

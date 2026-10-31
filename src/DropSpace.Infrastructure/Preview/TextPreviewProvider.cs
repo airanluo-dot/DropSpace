@@ -47,13 +47,17 @@ public sealed class TextPreviewProvider(IItemContentResolver contentResolver, Pr
         PreviewRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (request.Item.Text is not null)
+        cancellationToken.ThrowIfCancellationRequested();
+        if (request.Item.Text is { } text)
         {
-            var bytes = Encoding.UTF8.GetBytes(request.Item.Text);
-            if (bytes.LongLength > Limits.MaxTextBytes)
+            // UTF-8 may need several bytes per character. Check the budget before
+            // allocating the encoded copy, including when large clipboard text is rejected.
+            if (text.Length > Limits.MaxTextBytes || Encoding.UTF8.GetByteCount(text) > Limits.MaxTextBytes)
             {
                 throw new InvalidDataException("The text preview exceeds the configured limit.");
             }
+            cancellationToken.ThrowIfCancellationRequested();
+            var bytes = Encoding.UTF8.GetBytes(text);
             return CreateDescriptor(request, bytes);
         }
 

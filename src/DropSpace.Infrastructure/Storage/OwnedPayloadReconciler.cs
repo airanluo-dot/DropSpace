@@ -98,7 +98,8 @@ public sealed class OwnedPayloadReconciler(
 
     private IEnumerable<string> EnumerateFilesSafely(string root, CancellationToken cancellationToken)
     {
-        var files = new List<string>();
+        // Process each directory's files as traversal advances rather than retaining
+        // every payload path until the entire tree has been inspected.
         var pending = new Stack<string>();
         pending.Push(Path.GetFullPath(root));
         while (pending.Count > 0)
@@ -155,12 +156,10 @@ public sealed class OwnedPayloadReconciler(
                 }
                 else
                 {
-                    files.Add(entry);
+                    yield return entry;
                 }
             }
         }
-
-        return files;
     }
 
     private static string NormalizeRelativePath(string path) =>

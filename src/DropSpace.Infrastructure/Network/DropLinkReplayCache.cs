@@ -20,9 +20,14 @@ public sealed class DropLinkReplayCache
         }
     }
 
-    public bool TryReserve(Guid peerId, Guid sessionId, DateTimeOffset now)
+    public bool TryReserve(Guid peerId, Guid sessionId, DateTimeOffset now) =>
+        TryReserve(peerId, sessionId, now, now);
+
+    public bool TryReserve(Guid peerId, Guid sessionId, DateTimeOffset now, DateTimeOffset createdAtUtc)
     {
-        if (peerId == Guid.Empty || sessionId == Guid.Empty)
+        if (peerId == Guid.Empty || sessionId == Guid.Empty ||
+            createdAtUtc < now - DropLinkProtocolPolicy.HandoffReplayRetention ||
+            createdAtUtc > now + DropLinkProtocolPolicy.HandoffMaximumFutureSkew)
         {
             return false;
         }
@@ -40,7 +45,10 @@ public sealed class DropLinkReplayCache
                 return false;
             }
 
-            _entries.Add(key, now);
+            // A sender's permitted future clock skew extends the message's validity.
+            // Keep its reservation until that entire validity window has elapsed.
+            var retainedFrom = createdAtUtc > now ? createdAtUtc : now;
+            _entries.Add(key, retainedFrom + DropLinkProtocolPolicy.HandoffReplayRetention);
             return true;
         }
     }
@@ -68,8 +76,7 @@ public sealed class DropLinkReplayCache
 
     private void RemoveExpired(DateTimeOffset now)
     {
-        foreach (var entry in _entries.Where(entry =>
-                     now - entry.Value > DropLinkProtocolPolicy.HandoffReplayRetention).ToArray())
+        foreach (var entry in _entries.Where(entry => now > entry.Value).ToArray())
         {
             _entries.Remove(entry.Key);
         }

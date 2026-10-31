@@ -271,8 +271,15 @@ public sealed class ItemCardViewModel : ObservableObject
             return null;
         }
 
-        var singleLine = value.Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal).Trim();
-        return singleLine.Length <= 220 ? singleLine : string.Concat(singleLine.AsSpan(0, 219), "…");
+        // Trim and bound the retained span before copying/replacing clipboard text.
+        // CR/LF replacement preserves length, so the existing 220-character limit
+        // does not require materializing the rest of a potentially large body.
+        var retained = value.AsSpan().Trim();
+        var truncated = retained.Length > 220;
+        var length = truncated ? 219 : retained.Length;
+        if (truncated && char.IsHighSurrogate(retained[length - 1]) && char.IsLowSurrogate(retained[length])) length--;
+        var singleLine = retained[..length].ToString().Replace('\r', ' ').Replace('\n', ' ');
+        return truncated ? string.Concat(singleLine, "…") : singleLine;
     }
 
     private string FormatBytes(long bytes)

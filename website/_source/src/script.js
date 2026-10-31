@@ -204,11 +204,11 @@ function applyCurrentReleases(releases) {
   const stable = releases.filter((release) => !release.isDraft && !release.isPrerelease)
     .sort((left, right) => compareReleaseVersions(right.tagName, left.tagName))[0];
   if (!stable) return false;
-  currentStable = stable;
   const assets = Object.fromEntries(
     Object.entries(releaseArtifacts).map(([kind, name]) =>
       [kind, stable.assets.find((asset) => asset.name === name)?.downloadUrl]));
   if (Object.values(assets).some((url) => !url)) return false;
+  currentStable = stable;
   for (const kind of ["installer", "portable", "msix", "checksums"]) {
     for (const link of document.querySelectorAll(`[data-download="${kind}"]`)) {
       if (assets[kind]) link.href = assets[kind];

@@ -367,6 +367,11 @@ public sealed class RecentItemsService(
                 return;
             }
             var candidate = await files.InspectAsync(reference.OriginalPath, cancellationToken).ConfigureAwait(false);
+            // An unavailable path has no observed entry kind. Inspect falls back to
+            // File for a missing folder; retain the reference's identity so restoring
+            // that folder does not subsequently look like a file-to-folder replacement.
+            if (candidate.Status != ItemStatus.Available)
+                candidate = candidate with { EntryKind = reference.EntryKind, Extension = reference.Extension };
             if (IsReparseFile(reference.OriginalPath) || candidate.Status == ItemStatus.Available && candidate.EntryKind != reference.EntryKind)
             {
                 await MarkUnavailableAsync(item, "Entry type changed", cancellationToken).ConfigureAwait(false);

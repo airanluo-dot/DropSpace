@@ -28,7 +28,7 @@
   <data name="ClipboardRecording" xml:space="preserve"><value>正在记录 · 已捕获 {0} 项</value></data>
   <data name="ClipboardResumed" xml:space="preserve"><value>已恢复剪贴板记录。</value></data>
   <data name="ClipboardStarting" xml:space="preserve"><value>正在启动…</value></data>
-  <data name="CloseToTrayContent" xml:space="preserve"><value>窗口关闭后，DropSpace 会留在系统托盘并继续记录剪贴板。你可以在设置中改为直接退出。</value></data>
+  <data name="CloseToTrayContent" xml:space="preserve"><value>关闭窗口后，DropSpace 会在系统托盘中保持后台运行。你可以在“设置”中改为直接退出应用。</value></data>
   <data name="CloseToTrayTitle" xml:space="preserve"><value>DropSpace 将在后台继续运行</value></data>
   <data name="CommonAcknowledge" xml:space="preserve"><value>知道了</value></data>
   <data name="CommonCancel" xml:space="preserve"><value>取消</value></data>
@@ -41,9 +41,9 @@
   <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>添加到 DropSpace</value></data>
   <data name="EmptyClipboardDescription" xml:space="preserve"><value>复制文本、图片、文件或文件夹后，支持的内容会出现在这里。</value></data>
   <data name="EmptyClipboardTitle" xml:space="preserve"><value>暂无剪贴板记录</value></data>
-  <data name="EmptyPinnedDescription" xml:space="preserve"><value>固定临时空间或剪贴板中的项目，它们就会集中显示在这里。</value></data>
+  <data name="EmptyPinnedDescription" xml:space="preserve"><value>将常用内容固定后，它们会集中显示在这里。</value></data>
   <data name="EmptyPinnedTitle" xml:space="preserve"><value>暂无固定项目</value></data>
-  <data name="EmptySpaceDescription" xml:space="preserve"><value>DropSpace 只保存引用，不会移动或删除原始文件。</value></data>
+  <data name="EmptySpaceDescription" xml:space="preserve"><value>拖入文件、文本或链接即可暂存。DropSpace 绝不会移动或删除你的原始文件。</value></data>
   <data name="EmptySpaceTitle" xml:space="preserve"><value>把文件或文件夹拖到这里</value></data>
   <data name="ExportJpegImage" xml:space="preserve"><value>JPEG 图片</value></data>
   <data name="ExportOnlyClipboardImages" xml:space="preserve"><value>只能导出剪贴板图片。</value></data>
@@ -87,13 +87,13 @@
   <data name="OperationIncompleteTitle" xml:space="preserve"><value>操作未完成</value></data>
   <data name="OverlayClassicDragTitle" xml:space="preserve"><value>拖到顶部以暂存</value></data>
   <data name="OverlayDragSubtitle" xml:space="preserve"><value>原始文件不会被移动或删除</value></data>
-  <data name="OverlayDropSubtitle" xml:space="preserve"><value>松开即可添加文件或文件夹引用</value></data>
+  <data name="OverlayDropSubtitle" xml:space="preserve"><value>松开即可暂存文件或文件夹</value></data>
   <data name="OverlayDropTitle" xml:space="preserve"><value>放到 DropSpace</value></data>
   <data name="OverlayItemCount" xml:space="preserve"><value>{0} 个项目</value></data>
   <data name="OverlaySmartDragTitle" xml:space="preserve"><value>拖到出现的 DropSpace</value></data>
   <data name="OverlayTitle" xml:space="preserve"><value>DropSpace</value></data>
   <data name="PageDescriptionClipboard" xml:space="preserve"><value>自动记录复制的文本、图片、文件与文件夹引用。</value></data>
-  <data name="PageDescriptionPinned" xml:space="preserve"><value>来自临时空间和剪贴板的固定项目，不会因保留期限自动清理。</value></data>
+  <data name="PageDescriptionPinned" xml:space="preserve"><value>已固定的内容不会被自动清理。</value></data>
   <data name="PageDescriptionSettings" xml:space="preserve"><value>本地存储、隐私、外观和窗口行为。</value></data>
   <data name="PageDescriptionSpace" xml:space="preserve"><value>把暂时无处归类的文件与文件夹拖到这里。</value></data>
   <data name="PageTitleClipboard" xml:space="preserve"><value>剪贴板</value></data>
@@ -106,14 +106,13 @@
   <data name="RemoveStoredItemContent" xml:space="preserve"><value>将移除“{0}”及 DropSpace 保存的本地副本。</value></data>
   <data name="SearchNoMatches" xml:space="preserve"><value>没有找到匹配项目。</value></data>
   <data name="SearchUnavailable" xml:space="preserve"><value>搜索暂时不可用。</value></data>
-  <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace 只接受 Windows 分享中的文件和文件夹。</value></data>
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>文件或文件夹未能加入临时空间。</value></data>
-  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>分享内容中没有 DropSpace 可以访问的文件或文件夹。</value></data>
+  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>无法导入分享的内容。请确认格式受支持且 DropSpace 拥有访问权限。</value></data>
   <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace 无法处理本次分享。请重试或使用顶部拖放入口。</value></data>
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace 未能完成启动，部分后台服务可能仍在运行。请先退出应用，再检查或恢复数据目录，并查看本地诊断日志。</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace 无法安全启动</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>正在计算…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>缓存占用：{0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>应用数据占用：{0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>暂时无法计算</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>清除剪贴板历史…</value></data>
   <data name="TrayExit" xml:space="preserve"><value>退出</value></data>
@@ -138,7 +137,7 @@
   <data name="UpdateInstallStateFailed" xml:space="preserve"><value>无法保存更新恢复状态，更新暂时不能安装。</value></data>
   <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>已验证的安装程序无法启动。</value></data>
   <data name="UpdateInstalling" xml:space="preserve"><value>正在启动更新安装程序…</value></data>
-  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>上次更新下载未完成，已丢弃不完整文件。</value></data>
+  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>上次下载的更新包无法通过校验，请重新下载。</value></data>
   <data name="UpdateLastInstallIncomplete" xml:space="preserve"><value>上次更新安装未完成；已验证的更新可以重试。</value></data>
   <data name="UpdateManagedByWindows" xml:space="preserve"><value>此 Windows 包由 Windows 管理更新。</value></data>
   <data name="UpdateNoDowngrade" xml:space="preserve"><value>没有更新的稳定版可用。DropSpace 不会降级当前构建。</value></data>
@@ -152,7 +151,7 @@
   <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>更新发布者不受信任，无法无人值守安装。</value></data>
   <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace 已是最新版本。</value></data>
   <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>可通过 Windows 分享菜单发送到 DropSpace。</value></data>
-  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>此版本不支持 Windows 分享菜单，可拖入文件。</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>当前安装方式不支持 Windows 系统分享菜单，请直接将内容拖入 DropSpace。</value></data>
 
   <!-- XAML 界面文本，包括辅助功能名称。 -->
   <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
@@ -198,7 +197,7 @@
   <data name="MoreItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>更多项目操作</value></data>
   <data name="ShowInFolderMenuItem.Text" xml:space="preserve"><value>在文件夹中显示</value></data>
   <data name="RemoveItemMenuItem.Text" xml:space="preserve"><value>从 DropSpace 移除</value></data>
-  <data name="DropHintTitle.Text" xml:space="preserve"><value>松开以添加引用</value></data>
+  <data name="DropHintTitle.Text" xml:space="preserve"><value>松开以添加至 DropSpace</value></data>
   <data name="DropHintDescription.Text" xml:space="preserve"><value>原始文件不会被移动</value></data>
   <data name="ClipboardPrivacySection.Text" xml:space="preserve"><value>剪贴板与隐私</value></data>
   <data name="PauseRecordingTitle.Text" xml:space="preserve"><value>暂停记录</value></data>
@@ -233,7 +232,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>可在首次设置或此处开启，使用当前用户启动项，无需管理员权限。</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>开机自启动</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>显示语言</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>仅更改界面文案。歌词翻译使用独立的语言设置。</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>更改应用界面语言。歌词翻译语言可在音乐设置中单独指定。</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>显示语言</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>跟随系统</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -254,16 +253,14 @@
   <data name="OverlayMonitorChoice" xml:space="preserve"><value>显示器 {0}</value></data>
   <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>显示器 {0}（主显示器）</value></data>
   <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>关闭窗口时</value></data>
-  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>隐藏到托盘时会继续记录剪贴板。</value></data>
+  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>隐藏到系统托盘时在后台保持运行。</value></data>
   <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>隐藏到托盘</value></data>
   <data name="CloseBehaviorExit.Content" xml:space="preserve"><value>直接退出</value></data>
   <data name="UpdatesSection.Text" xml:space="preserve"><value>更新</value></data>
   <data name="AutoCheckUpdatesTitle.Text" xml:space="preserve"><value>自动检查更新</value></data>
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>每次 DropSpace 进程启动最多检查一次；不会运行后台定时器。</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>自动下载更新</value></data>
-  <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>仅下载到 DropSpace 自有缓存，完成大小与 SHA-256 验证后才可安装。</value></data>
   <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>自动安装更新</value></data>
-  <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>只有更新通过可信 Authenticode 发布者验证时才可用；当前未签名构建保持关闭。</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>更新通道</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable 只接收正式版；Beta 接收正式版和测试版，并按数字版本顺序选择更新。</value></data>
   <data name="UpdateChannelStable.Content" xml:space="preserve"><value>稳定版</value></data>
@@ -273,15 +270,15 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>立即更新</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>打开下载位置</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>查看更新内容</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>缓存占用</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>本地数据占用</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>存储位置</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>清除最近一小时</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>清除今天</value></data>
   <data name="ClearAllButton.Content" xml:space="preserve"><value>清除全部历史</value></data>
-  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>清理默认保留固定项目；不会删除临时空间中引用的原始文件。</value></data>
+  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>清理历史记录时会保留已固定的内容，且绝不会删除你电脑上的原始文件。</value></data>
   <data name="AddTextUrlMenuItem.Text" xml:space="preserve"><value>添加文本或网址…</value></data>
   <data name="AddTextUrlTitle" xml:space="preserve"><value>添加文本或网址到临时空间</value></data>
-  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>粘贴或输入文本，或 https:// 网址</value></data>
+  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>输入或粘贴文本、链接</value></data>
   <data name="AddTextUrlConfirm" xml:space="preserve"><value>添加</value></data>
   <data name="Cancel" xml:space="preserve"><value>取消</value></data>
   <data name="DropBatchLabel" xml:space="preserve"><value>拖放批次 · {0} 项</value></data>
@@ -290,7 +287,6 @@
   <data name="PinBatchButton.Content" xml:space="preserve"><value>固定整组</value></data>
   <data name="RemoveBatchButton.Content" xml:space="preserve"><value>移除整组</value></data>
   <data name="IslandPlacementTitle.Text" xml:space="preserve"><value>灵动岛位置</value></data>
-  <data name="IslandPlacementDescription.Text" xml:space="preserve"><value>自定义 X/Y 使用相对于所选显示器工作区的 DIP。临时夹取不会覆盖保存值。方向键移动 1 DIP，Shift+方向键移动 10，Enter 应用，Esc 回滚编辑。</value></data>
   <data name="IslandPlacementAutomatic.Content" xml:space="preserve"><value>自动</value></data>
   <data name="IslandPlacementCustom.Content" xml:space="preserve"><value>自定义</value></data>
   <data name="IslandPlacementX.Header" xml:space="preserve"><value>X（DIP）</value></data>
@@ -308,7 +304,7 @@
   <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>复制智能拖拽兼容性报告</value></data>
   <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>已复制不含路径的智能拖拽兼容性报告。</value></data>
   <data name="PreviewItemMenuItem.Text" xml:space="preserve"><value>快速预览</value></data>
-  <data name="PreviewUnavailable" xml:space="preserve"><value>此项目没有可用的受限预览。</value></data>
+  <data name="PreviewUnavailable" xml:space="preserve"><value>此项目暂不支持预览。</value></data>
   <data name="ActionCompleted" xml:space="preserve"><value>操作已成功完成。</value></data>
   <data name="ActionUnavailable" xml:space="preserve"><value>当前选择无法使用此操作。</value></data>
   <data name="ActionParametersRequired" xml:space="preserve"><value>请先选择所有必需的操作参数。</value></data>
@@ -342,9 +338,8 @@
   <data name="ActionGenerateQr.Text" xml:space="preserve"><value>生成二维码</value></data>
   <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>调整图片大小</value></data>
   <data name="ActionConvertImage.Text" xml:space="preserve"><value>转换图片格式</value></data>
-  <data name="ActionStripMetadata.Text" xml:space="preserve"><value>移除图片隐私信息</value></data>
+  <data name="ActionStripMetadata.Text" xml:space="preserve"><value>清除图片元数据</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>设备与分享</value></data>
-  <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows 到 Windows 的设备交接和剪贴板同步默认关闭。附近链接仅限私有网络；互联网分享需要明确配置 HTTPS 后端。</value></data>
   <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>设备交接</value></data>
   <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>向已配对的设备发送内容。</value></data>
   <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用 Windows 设备交接</value></data>
@@ -352,7 +347,7 @@
   <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>仅与已配对的 Windows 设备同步。开启时同时启用设备连接；关闭设备连接也会停止同步。</value></data>
   <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用跨设备剪贴板</value></data>
   <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>新设备默认剪贴板模式</value></data>
-  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>新配对设备使用所选模式；配对本身不会开启自动同步。</value></data>
+  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>新配对的设备将默认采用此同步方式。</value></data>
   <data name="ClipboardSyncModeOff.Content" xml:space="preserve"><value>关闭</value></data>
   <data name="ClipboardSyncModeManual.Content" xml:space="preserve"><value>手动</value></data>
   <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>自动同步文本和网址</value></data>
@@ -371,7 +366,7 @@
   <data name="DevicesFound" xml:space="preserve"><value>发现 {0} 台兼容设备。</value></data>
   <data name="PairedDevice" xml:space="preserve"><value>已与 {0} 配对。该设备使用所选的默认剪贴板模式。</value></data>
   <data name="DeviceServiceUnavailable" xml:space="preserve"><value>设备服务不可用：{0}</value></data>
-  <data name="DeviceServiceReady" xml:space="preserve"><value>设备交接已就绪。Windows 防火墙状态仍需通过明确的接收能力检查确认。</value></data>
+  <data name="DeviceServiceReady" xml:space="preserve"><value>设备接力已启动。若无法接收内容，请检查 Windows 防火墙是否已放行 DropSpace。</value></data>
   <data name="DeviceServiceBlocked" xml:space="preserve"><value>接收不可用：{0}</value></data>
   <data name="DeviceServiceStarting" xml:space="preserve"><value>正在启动本地 DropLink 服务…</value></data>
   <data name="PairingSasTitle" xml:space="preserve"><value>确认配对代码</value></data>
@@ -414,7 +409,7 @@
   <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} / {1}</value></data>
   <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>取消向 {1} 传输 {0}</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>已发送传输</value></data>
-  <data name="TransferSentContent" xml:space="preserve"><value>可信设备已接受传输，DropSpace 在提交前完成了内容校验。</value></data>
+  <data name="TransferSentContent" xml:space="preserve"><value>对方设备已成功接收并验证内容。</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>传输不可用</value></data>
   <data name="TransferBusyContent" xml:space="preserve"><value>其他传输仍在进行或收尾。请等待其中一项结束后再试。</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>所选内容中的文件或文件夹过多，或路径过长。请选择更少的项目或较小的子文件夹，然后重试。</value></data>
@@ -447,7 +442,7 @@
   <data name="PdfNextPage" xml:space="preserve"><value>下一页</value></data>
   <data name="PdfPageIndicator" xml:space="preserve"><value>第 {0} 页，共 {1} 页</value></data>
   <data name="QuickActionsSection" xml:space="preserve"><value>快捷操作</value></data>
-  <data name="QuickActionsDescription" xml:space="preserve"><value>为每项内容选择最多三个直接显示的操作。“自动”会遵循可用操作注册表；不可用的选择会被安全跳过。</value></data>
+  <data name="QuickActionsDescription" xml:space="preserve"><value>为每项内容选择最多 3 个快捷操作。“自动”会根据内容类型选择操作，并隐藏不适用的操作。</value></data>
   <data name="QuickActionFiles" xml:space="preserve"><value>文件和文件夹</value></data>
   <data name="QuickActionImages" xml:space="preserve"><value>图像</value></data>
   <data name="QuickActionText" xml:space="preserve"><value>文本和代码</value></data>
@@ -481,7 +476,7 @@
   <data name="CopyHashResult" xml:space="preserve"><value>复制校验值</value></data>
   <data name="OpenOutputFolder" xml:space="preserve"><value>打开导出文件夹</value></data>
   <data name="MoreItemButton.Content" xml:space="preserve"><value>更多功能</value></data>
-  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>请先在设置中开启此功能并完成设备配对或服务配置。</value></data>
+  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>请先在设置中开启此功能，并按需完成配置。</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>未能完整恢复原设置。请重启 DropSpace 后再修改设置。诊断编号：{1}。</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>恢复设置</value></data>
   <data name="MediaControlFailed" xml:space="preserve"><value>播放器未能完成此操作，请重试。</value></data>
@@ -520,7 +515,6 @@
   <data name="MusicApplicationsEmpty" xml:space="preserve"><value>播放音乐后会在这里显示媒体应用。</value></data>
   <data name="WidgetCenter" xml:space="preserve"><value>中间</value></data>
   <data name="LyricsProvider" xml:space="preserve"><value>首选歌词来源</value></data>
-  <data name="LyricsFallbackHelp" xml:space="preserve"><value>按“首选源 → 可选备用源 → 已启用时的其余来源”依次匹配。未选择备用源且未开启其余来源搜索时，只使用首选源；本地模式不会联网。</value></data>
   <data name="LyricsBackupProvider" xml:space="preserve"><value>备用歌词来源</value></data>
   <data name="LyricsBackupProviderNone" xml:space="preserve"><value>不使用</value></data>
   <data name="LyricsSearchRemainingProviders" xml:space="preserve"><value>搜索其余未选来源</value></data>
@@ -544,7 +538,6 @@
   <data name="MusicArtwork" xml:space="preserve"><value>显示专辑封面</value></data>
   <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>本地 LRC</value></data>
   <data name="IslandHideDelay" xml:space="preserve"><value>隐藏延迟</value></data>
-  <data name="WidgetRight" xml:space="preserve"><value>右侧</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>左侧</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>启用歌词</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>正在加载歌词……</value></data>
@@ -562,7 +555,7 @@
   <data name="LyricsProviderNetEase" xml:space="preserve"><value>网易云音乐</value></data>
   <data name="LyricsLocal" xml:space="preserve"><value>本地 LRC</value></data>
   <data name="WidgetsEditorMode" xml:space="preserve"><value>小组件编辑模式</value></data>
-  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>无法保存这项更改，已恢复先前设置。</value></data>
+  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>无法保存更改，请重试。</value></data>
   <data name="WidgetsCompactMode" xml:space="preserve"><value>紧凑 · 左 / 中 / 右</value></data>
   <data name="IslandExpandedScale" xml:space="preserve"><value>展开界面缩放</value></data>
   <data name="WidgetsReset" xml:space="preserve"><value>恢复默认布局</value></data>
@@ -641,7 +634,7 @@
   <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>系统盘可用空间</value></data>
   <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>网络连接</value></data>
   <data name="WidgetCalculator.Text" xml:space="preserve"><value>计算器</value></data>
-  <data name="WidgetPinnedItems.Text" xml:space="preserve"><value>置顶项目</value></data>
+  <data name="WidgetPinnedItems.Text" xml:space="preserve"><value>已固定项目</value></data>
   <data name="WidgetWeekProgress.Text" xml:space="preserve"><value>本周周数与进度</value></data>
   <data name="WidgetNetworkConnected" xml:space="preserve"><value>已连接</value></data>
   <data name="WidgetNetworkDisconnected" xml:space="preserve"><value>未连接</value></data>
@@ -655,7 +648,6 @@
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>静夜里，歌声仍在继续。</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>恢复默认歌词字号</value></data>
   <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌词</value></data>
-  <data name="AiLyricsDescription" xml:space="preserve"><value>在本机将缺失的译文补充为您所选的简体中文或 English，优先使用语言匹配的歌词源译文。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。已完成的译文会逐行显示。AI 可能误译含义；不会为 AI 翻译上传歌词。</value></data>
   <data name="AiLyricsEnabled" xml:space="preserve"><value>启用 AI 歌词翻译</value></data>
   <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU 加速</value></data>
   <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>优先使用兼容的 GPU 加速 AI 翻译；GPU 不可用或运行失败时自动改用 CPU。关闭后仅使用 CPU。调整此选项不会启用 AI 或下载模型。</value></data>
@@ -720,16 +712,14 @@
   <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>恢复 AI 翻译</value></data>
   <data name="AiLyricsDeleteModel" xml:space="preserve"><value>删除模型</value></data>
   <data name="AiLyricsClearCache" xml:space="preserve"><value>清理歌词缓存</value></data>
-  <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>删除{0}及未完成的下载？如果它正在启用，将关闭 AI 翻译。其他模型和原歌词会保留。</value></data>
   <data name="AiLyricsModelDeleted" xml:space="preserve"><value>模型已删除，需要时可重新下载。</value></data>
   <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>删除缓存的原歌词、来源译文和 AI 译文？当前推理将停止。已下载模型和你的歌词文件会保留。</value></data>
   <data name="AiLyricsCacheCleared" xml:space="preserve"><value>歌词缓存已清理。</value></data>
-  <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>离线运行时已随 App 内置，无需额外下载，解压运行时额外占用最多约 {0} MiB 磁盘空间。请为模型下载和恢复额外预留 64 MiB 可用磁盘空间。</value></data>
   <data name="AiLyricsTranslating" xml:space="preserve"><value>正在本地翻译，首次完成整首歌词翻译可能需要几分钟。已完成的译文会逐行显示，未完成的部分继续显示原歌词。</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>暂时无法进行 AI 翻译，原歌词不受影响。</value></data>
   <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI 译文已就绪。</value></data>
-  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>在线歌词会将当前歌曲名、歌手、专辑和时长发送给当前设置允许查询的歌词来源。全新安装时默认开启：首选网易云，无备用来源，并开启查找其余未选择来源。可随时关闭歌词或调整来源。选择本地 LRC 可读取自己的歌词文件，不请求在线来源；AI 翻译本身始终在本机运行。</value></data>
-  <data name="AiLyricsClearingCache" xml:space="preserve"><value>正在清理 AI 翻译缓存…</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>在线歌词会将当前歌曲的标题、歌手、专辑和时长发送至你允许的歌词源（默认优先使用网易云音乐，不设备用源并允许搜索其余来源）。你可以随时关闭歌词或切换来源，也可选择“本地 LRC”完全离线读取。AI 歌词翻译全程在本机完成。</value></data>
+  <data name="AiLyricsClearingCache" xml:space="preserve"><value>正在清理歌词缓存…</value></data>
   <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>选择后台功能</value></data>
   <data name="FirstRunPrivacyBody" xml:space="preserve"><value>无需开启剪贴板记录，也能使用临时空间。开启后，DropSpace 会在本地保存复制的文本、图片和文件引用，窗口关闭到托盘后仍会记录。你可以在剪贴板和设置中暂停、清理记录或修改保留期限。关闭到托盘不等于退出；选择“退出”才会停止 DropSpace。这些选项之后都能修改。</value></data>
   <data name="FirstRunClipboardChoice" xml:space="preserve"><value>开启本地剪贴板记录</value></data>
@@ -745,7 +735,7 @@
   <data name="MusicReconnectFailed" xml:space="preserve"><value>音乐重新连接失败，请再次点击刷新重试。</value></data>
   <data name="MediaNextLyricLabel" xml:space="preserve"><value>即将播放的歌词</value></data>
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>全屏时强制显示灵动岛</value></data>
-  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>允许已有内容或已开启常驻的灵动岛在全屏应用上显示。关闭后按隐藏延迟收起。</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>当灵动岛有内容或开启“常驻灵动岛”时，允许在全屏应用上方显示；关闭后将按延迟时间自动隐藏。</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>显示 AI 歌词标识</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>当前无法确认有足够的可用内存进行本地翻译。请释放内存或选择较小模型后重试。</value></data>
   <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU 后端</value></data>
@@ -802,16 +792,16 @@
   <data name="DlcResume" xml:space="preserve"><value>继续下载</value></data>
   <data name="DlcDelete" xml:space="preserve"><value>卸载</value></data>
   <data name="DlcRetry" xml:space="preserve"><value>重试</value></data>
-  <data name="DlcCancel" xml:space="preserve"><value>取消下载</value></data>
+  <data name="DlcCancel" xml:space="preserve"><value>取消操作</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>正在检查本地组件…</value></data>
   <data name="DlcNotInstalled" xml:space="preserve"><value>尚未安装</value></data>
   <data name="DlcReady" xml:space="preserve"><value>已安装</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>下载尚未完成，可继续下载或卸载已下载文件。</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>正在下载…</value></data>
   <data name="DlcVerifying" xml:space="preserve"><value>正在校验和安装…</value></data>
-  <data name="DlcCanceling" xml:space="preserve"><value>正在取消下载…</value></data>
-  <data name="DlcCanceled" xml:space="preserve"><value>下载已取消，可选择继续下载。</value></data>
-  <data name="DlcRemoving" xml:space="preserve"><value>正在停止 AI 并卸载…</value></data>
+  <data name="DlcCanceling" xml:space="preserve"><value>正在取消…</value></data>
+  <data name="DlcCanceled" xml:space="preserve"><value>下载已取消。点击“继续下载”即可恢复。</value></data>
+  <data name="DlcRemoving" xml:space="preserve"><value>正在移除并清理组件…</value></data>
   <data name="DlcDownloadFailed" xml:space="preserve"><value>下载失败，可重试继续下载。</value></data>
   <data name="DlcDeleteFailed" xml:space="preserve"><value>卸载失败，可重试释放资源并卸载组件。</value></data>
   <data name="DlcInspectFailed" xml:space="preserve"><value>无法检查本地组件，请重试。</value></data>
@@ -823,7 +813,7 @@
   <data name="DlcSource" xml:space="preserve"><value>来源：{0}</value></data>
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} 下载进度</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}：{1}</value></data>
-  <data name="DlcOperationFailed" xml:space="preserve"><value>无法打开此操作，请重试。</value></data>
+  <data name="DlcOperationFailed" xml:space="preserve"><value>未能完成此操作，请重试。</value></data>
   <data name="DlcCudaPurpose" xml:space="preserve"><value>在兼容的 NVIDIA 显卡上加速离线 AI 歌词翻译，复用已安装模型。</value></data>
   <data name="DlcCudaUnsupported" xml:space="preserve"><value>需要兼容的 NVIDIA 驱动。</value></data>
   <data name="DownloadCustom" xml:space="preserve"><value>下载自定义文件</value></data>
@@ -836,7 +826,7 @@
   <data name="DownloadChoose" xml:space="preserve"><value>选择</value></data>
   <data name="DownloadSettings" xml:space="preserve"><value>下载设置</value></data>
   <data name="DownloadConcurrentCount" xml:space="preserve"><value>同时下载数量</value></data>
-  <data name="DownloadConnections" xml:space="preserve"><value>最大线程数（1–256）</value></data>
+  <data name="DownloadConnections" xml:space="preserve"><value>最大连接数（1–256）</value></data>
   <data name="DownloadConnectionsHint" xml:space="preserve"><value>所有文件、模型和组件共享此连接上限。连接会随实际下载进展逐渐增加，小文件或不支持安全分段的服务器使用较少连接。</value></data>
   <data name="DownloadSpeed" xml:space="preserve"><value>速度限制（MiB/s）</value></data>
   <data name="DownloadUnlimited" xml:space="preserve"><value>不限速 · 0 表示不限速；1 MiB/s = 1,048,576 字节/秒</value></data>
@@ -888,7 +878,7 @@
   <data name="DownloadRemoveHistory" xml:space="preserve"><value>移除记录</value></data>
   <data name="DownloadRecoveryWarning" xml:space="preserve"><value>部分下载记录暂时无法恢复，请检查磁盘或目录权限。</value></data>
   <data name="DownloadQueueTimedOut" xml:space="preserve"><value>等待下载超时，请重试。</value></data>
-  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>下载超时，已保留可恢复的进度。</value></data>
+  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>下载超时，请重试。</value></data>
   <data name="DownloadStageChecking" xml:space="preserve"><value>检查已有文件</value></data>
   <data name="DownloadStageQueued" xml:space="preserve"><value>等待下载</value></data>
   <data name="DownloadStageWaitingConnection" xml:space="preserve"><value>等待可用连接</value></data>
@@ -905,7 +895,7 @@
   <data name="IslandResident" xml:space="preserve"><value>常驻灵动岛</value></data>
   <data name="IslandDelaySeconds" xml:space="preserve"><value>{0} 秒</value></data>
   <data name="IslandAppearance" xml:space="preserve"><value>灵动岛外观</value></data>
-  <data name="IslandAppearanceFollow" xml:space="preserve"><value>跟随</value></data>
+  <data name="IslandAppearanceFollow" xml:space="preserve"><value>跟随系统</value></data>
   <data name="IslandAppearanceLight" xml:space="preserve"><value>浅色</value></data>
   <data name="IslandAppearanceDark" xml:space="preserve"><value>深色</value></data>
   <data name="IslandContentPriority" xml:space="preserve"><value>灵动岛内容优先级</value></data>
@@ -952,7 +942,7 @@
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>请按快捷键</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>保存</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>快捷键不可用或已被占用，请换一个组合。</value></data>
-  <data name="DlcStorageSummary" xml:space="preserve"><value>DLC 总占用：{0}</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>扩展组件占用：{0}</value></data>
   <data name="ReferenceWindowTitle" xml:space="preserve"><value>临时参照</value></data>
   <data name="ReferenceKeepOnTop" xml:space="preserve"><value>置顶</value></data>
   <data name="ReferenceFitImage" xml:space="preserve"><value>适应窗口</value></data>
@@ -981,7 +971,7 @@
   <data name="RetrievalAll.Content" xml:space="preserve"><value>全部</value></data>
   <data name="RetrievalRecent.Content" xml:space="preserve"><value>最近</value></data>
   <data name="RetrievalPinned.Content" xml:space="preserve"><value>固定</value></data>
-  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>无匹配资料，可在设置中添加新文件接力目录。</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>没有找到匹配的内容。</value></data>
   <data name="RetrievalCopy.Content" xml:space="preserve"><value>复制</value></data>
   <data name="RetrievalPreview.Content" xml:space="preserve"><value>预览</value></data>
   <data name="RetrievalReference.Content" xml:space="preserve"><value>参照</value></data>

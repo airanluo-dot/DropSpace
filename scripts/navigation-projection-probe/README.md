@@ -34,11 +34,26 @@ before settings preflight; the actual MainPage preflight, Settings deep link, Wi
 Island caller, search setter/debounce, and native focus guards are not source-linked or executed.
 Only the selected scenario group runs. The default invocation retains the original five.
 
+Run only the three debounce failure-ownership scenarios:
+
+```sh
+dotnet run --project scripts/navigation-projection-probe/NavigationProjectionProbe.csproj -- --search-only
+# An optional path after --search-only writes those three results as JSON.
+```
+
+This group links the actual 220 ms debounce method alongside projection/navigation.
+It checks an old search failing after newer navigation, a cancelled synchronous
+provider later failing after a new empty search, and retained current-search error
+feedback. The fixture changes SearchText directly; the real setter, binding,
+focus and WinUI dispatcher are still outside the probe. A saved custom navigation
+source must include the debounce method to run this group; older extraction files
+continue to support their original groups.
+
 The repository boundary implements only `QueryPageAsync` using controlled completion sources.
 Query construction and `Task.Run` scheduling are production code. A managed single-thread
 synchronization context serializes continuations. The fixture supplies view-model state and
 instrumented asset-owner tokens; it does not duplicate navigation algorithms. Quick Action
-evaluation, thumbnail/storage loading, property-change bindings, search debounce, SQLite,
+evaluation, thumbnail/storage loading, property-change bindings, SQLite,
 WinUI controls, UI focus, accessibility, and actual asset cleanup remain outside this probe.
 
 For a before/after comparison, extract the same real methods from a fixed prior revision:

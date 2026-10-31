@@ -43,10 +43,20 @@ public sealed class FilePreviewCache(AppStoragePaths paths) : IPreviewCache
                 TryDelete(path);
                 return null;
             }
-            await using var stream = ReparseSafeFileOpen.OpenRead(path);
-            if (stream.Length > MaximumEntryBytes) return null;
-            var descriptor = await JsonSerializer.DeserializeAsync<PreviewDescriptor>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
-            return descriptor?.ItemId == itemId && descriptor.Kind == kind ? descriptor : null;
+            PreviewDescriptor? descriptor;
+            await using (var stream = ReparseSafeFileOpen.OpenRead(path))
+            {
+                if (stream.Length > MaximumEntryBytes) return null;
+                descriptor = await JsonSerializer.DeserializeAsync<PreviewDescriptor>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
+            }
+            // JSON null bypasses non-nullable constructor annotations. Derived cache
+            // data must satisfy the collections the UI reads, or be rebuilt from source.
+            if (descriptor is null || descriptor.ItemId != itemId || descriptor.Kind != kind || descriptor.Metadata is null)
+            {
+                TryDelete(path);
+                return null;
+            }
+            return descriptor;
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
         {
