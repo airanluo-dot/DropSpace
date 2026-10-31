@@ -68,9 +68,11 @@ public static class ActionOutputPolicy
                 path = candidate;
                 return output;
             }
-            catch (IOException) when (File.Exists(candidate) && index < MaximumCollisionAttempts - 1)
+            catch (Exception exception) when ((exception is IOException or UnauthorizedAccessException) &&
+                (File.Exists(candidate) || Directory.Exists(candidate)) && index < MaximumCollisionAttempts - 1)
             {
-                // Another process won this name between the existence check and CreateNew.
+                // Both files and directories occupy a name. A directory collision may
+                // surface as access denied; only retry while the candidate is occupied.
             }
         }
 

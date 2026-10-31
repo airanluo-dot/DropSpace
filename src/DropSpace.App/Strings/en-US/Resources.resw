@@ -28,7 +28,7 @@
   <data name="ClipboardRecording" xml:space="preserve"><value>Recording · {0} captured</value></data>
   <data name="ClipboardResumed" xml:space="preserve"><value>Clipboard recording resumed.</value></data>
   <data name="ClipboardStarting" xml:space="preserve"><value>Starting…</value></data>
-  <data name="CloseToTrayContent" xml:space="preserve"><value>When you close the window, DropSpace stays in the system tray and continues recording the clipboard. You can change this to exit directly in Settings.</value></data>
+  <data name="CloseToTrayContent" xml:space="preserve"><value>When you close the window, DropSpace keeps running in the system tray. You can change this in Settings.</value></data>
   <data name="CloseToTrayTitle" xml:space="preserve"><value>DropSpace will continue running in the background</value></data>
   <data name="CommonAcknowledge" xml:space="preserve"><value>Got it</value></data>
   <data name="CommonCancel" xml:space="preserve"><value>Cancel</value></data>
@@ -41,9 +41,9 @@
   <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>Add to DropSpace</value></data>
   <data name="EmptyClipboardDescription" xml:space="preserve"><value>Copy text, images, files, or folders and supported content will appear here.</value></data>
   <data name="EmptyClipboardTitle" xml:space="preserve"><value>No clipboard history</value></data>
-  <data name="EmptyPinnedDescription" xml:space="preserve"><value>Pin items from Temporary Space or Clipboard and they will appear together here.</value></data>
+  <data name="EmptyPinnedDescription" xml:space="preserve"><value>Pin important items to keep them handy in one place.</value></data>
   <data name="EmptyPinnedTitle" xml:space="preserve"><value>No pinned items</value></data>
-  <data name="EmptySpaceDescription" xml:space="preserve"><value>DropSpace stores references only. It never moves or deletes your original files.</value></data>
+  <data name="EmptySpaceDescription" xml:space="preserve"><value>Drop files, text, or links here for quick access. Your original files are never moved or deleted.</value></data>
   <data name="EmptySpaceTitle" xml:space="preserve"><value>Drop files or folders here</value></data>
   <data name="ExportJpegImage" xml:space="preserve"><value>JPEG image</value></data>
   <data name="ExportOnlyClipboardImages" xml:space="preserve"><value>Only clipboard images can be exported.</value></data>
@@ -87,13 +87,13 @@
   <data name="OperationIncompleteTitle" xml:space="preserve"><value>Operation incomplete</value></data>
   <data name="OverlayClassicDragTitle" xml:space="preserve"><value>Drag to the top to save</value></data>
   <data name="OverlayDragSubtitle" xml:space="preserve"><value>Original files will not be moved or deleted</value></data>
-  <data name="OverlayDropSubtitle" xml:space="preserve"><value>Release to add file or folder references</value></data>
+  <data name="OverlayDropSubtitle" xml:space="preserve"><value>Release to drop files or folders</value></data>
   <data name="OverlayDropTitle" xml:space="preserve"><value>Drop on DropSpace</value></data>
   <data name="OverlayItemCount" xml:space="preserve"><value>{0} item(s)</value></data>
   <data name="OverlaySmartDragTitle" xml:space="preserve"><value>Drag to the appearing DropSpace</value></data>
   <data name="OverlayTitle" xml:space="preserve"><value>DropSpace</value></data>
   <data name="PageDescriptionClipboard" xml:space="preserve"><value>Automatically records copied text, images, files, and folder references.</value></data>
-  <data name="PageDescriptionPinned" xml:space="preserve"><value>Pinned items from Temporary Space and Clipboard are not cleared automatically by retention rules.</value></data>
+  <data name="PageDescriptionPinned" xml:space="preserve"><value>Pinned items won’t be removed by automatic cleanup.</value></data>
   <data name="PageDescriptionSettings" xml:space="preserve"><value>Local storage, privacy, appearance, and window behavior.</value></data>
   <data name="PageDescriptionSpace" xml:space="preserve"><value>Drag files and folders here when they do not have a permanent home yet.</value></data>
   <data name="PageTitleClipboard" xml:space="preserve"><value>Clipboard</value></data>
@@ -106,14 +106,13 @@
   <data name="RemoveStoredItemContent" xml:space="preserve"><value>“{0}” and the local copy kept by DropSpace will be removed.</value></data>
   <data name="SearchNoMatches" xml:space="preserve"><value>No matching items found.</value></data>
   <data name="SearchUnavailable" xml:space="preserve"><value>Search is temporarily unavailable.</value></data>
-  <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace accepts only files and folders from Windows Share.</value></data>
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>The files or folders could not be added to Temporary Space.</value></data>
-  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>The shared content contains no files or folders that DropSpace can access.</value></data>
+  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>Couldn’t import the shared content. Make sure it’s supported and accessible to DropSpace.</value></data>
   <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace could not process this share. Try again or use the top-edge drop target.</value></data>
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace could not finish starting. Some background services may still be running. Exit the app before inspecting or restoring its data directory, and check the local diagnostic log.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace could not start safely</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Calculating…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>Cache usage: {0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>App data usage: {0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>Unavailable</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>Clear clipboard history…</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Exit</value></data>
@@ -138,7 +137,7 @@
   <data name="UpdateInstallStateFailed" xml:space="preserve"><value>The update could not be prepared for installation because its recovery state could not be saved.</value></data>
   <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>The verified installer could not be started.</value></data>
   <data name="UpdateInstalling" xml:space="preserve"><value>Starting update installer…</value></data>
-  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>The previous update download was incomplete and has been discarded.</value></data>
+  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>The previous update file couldn’t be verified. Please download it again.</value></data>
   <data name="UpdateLastInstallIncomplete" xml:space="preserve"><value>The previous update installation did not finish. The verified update is ready to retry.</value></data>
   <data name="UpdateManagedByWindows" xml:space="preserve"><value>This Windows package is updated by Windows.</value></data>
   <data name="UpdateNoDowngrade" xml:space="preserve"><value>No newer stable update is available. DropSpace will not downgrade this build.</value></data>
@@ -152,7 +151,7 @@
   <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>Unattended installation is unavailable because the update publisher is not trusted.</value></data>
   <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace is up to date.</value></data>
   <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>Send to DropSpace from the Windows share menu.</value></data>
-  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>Windows share integration is unavailable in this version. Drag files into DropSpace instead.</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>Windows Share integration isn’t available for this installation. Drag items directly into DropSpace instead.</value></data>
 
   <!-- XAML surface strings, including automation names. -->
   <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
@@ -198,7 +197,7 @@
   <data name="MoreItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>More item actions</value></data>
   <data name="ShowInFolderMenuItem.Text" xml:space="preserve"><value>Show in folder</value></data>
   <data name="RemoveItemMenuItem.Text" xml:space="preserve"><value>Remove from DropSpace</value></data>
-  <data name="DropHintTitle.Text" xml:space="preserve"><value>Release to add references</value></data>
+  <data name="DropHintTitle.Text" xml:space="preserve"><value>Release to add to DropSpace</value></data>
   <data name="DropHintDescription.Text" xml:space="preserve"><value>Original files will not be moved</value></data>
   <data name="ClipboardPrivacySection.Text" xml:space="preserve"><value>Clipboard and privacy</value></data>
   <data name="PauseRecordingTitle.Text" xml:space="preserve"><value>Pause recording</value></data>
@@ -233,7 +232,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Choose this during first setup or in Settings. Uses the current-user startup entry without administrator privileges.</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>Display language</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>Changes interface text only. Lyric translation has its own language setting.</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>Changes the app interface language. Lyric translation language can be set separately.</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Display language</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>System default</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -254,16 +253,14 @@
   <data name="OverlayMonitorChoice" xml:space="preserve"><value>Display {0}</value></data>
   <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>Display {0} (Primary)</value></data>
   <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>When closing the window</value></data>
-  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>Clipboard recording continues when the app is hidden to the tray.</value></data>
+  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>Keeps running in the background when hidden to the tray.</value></data>
   <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>Hide to tray</value></data>
   <data name="CloseBehaviorExit.Content" xml:space="preserve"><value>Exit directly</value></data>
   <data name="UpdatesSection.Text" xml:space="preserve"><value>Updates</value></data>
   <data name="AutoCheckUpdatesTitle.Text" xml:space="preserve"><value>Check for updates automatically</value></data>
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>Checks at most once per DropSpace process launch; no background timer runs.</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>Download updates automatically</value></data>
-  <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>Downloads only to DropSpace’s own cache and installs only after size and SHA-256 verification.</value></data>
   <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Automatically install updates</value></data>
-  <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Available only when the update passes trusted Authenticode publisher verification; it remains off for unsigned builds.</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Update channel</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable receives release versions only. Beta receives Stable and prerelease versions, ordered by release number.</value></data>
   <data name="UpdateChannelStable.Content" xml:space="preserve"><value>Stable</value></data>
@@ -273,15 +270,15 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Update now</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>Open download location</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>View release notes</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>Cache usage</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>Local data usage</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>Storage location</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>Clear last hour</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>Clear today</value></data>
   <data name="ClearAllButton.Content" xml:space="preserve"><value>Clear all history</value></data>
-  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>Cleanup keeps pinned items by default and never deletes original files referenced in Temporary Space.</value></data>
+  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>Clearing history keeps your pinned items and never deletes original files on your computer.</value></data>
   <data name="AddTextUrlMenuItem.Text" xml:space="preserve"><value>Add text or URL…</value></data>
   <data name="AddTextUrlTitle" xml:space="preserve"><value>Add text or URL to Temporary Space</value></data>
-  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>Paste or type text or an https:// URL</value></data>
+  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>Paste or type text or a link</value></data>
   <data name="AddTextUrlConfirm" xml:space="preserve"><value>Add</value></data>
   <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="DropBatchLabel" xml:space="preserve"><value>Drop batch · {0} items</value></data>
@@ -290,7 +287,6 @@
   <data name="PinBatchButton.Content" xml:space="preserve"><value>Pin group</value></data>
   <data name="RemoveBatchButton.Content" xml:space="preserve"><value>Remove group</value></data>
   <data name="IslandPlacementTitle.Text" xml:space="preserve"><value>Dynamic Island position</value></data>
-  <data name="IslandPlacementDescription.Text" xml:space="preserve"><value>Custom X/Y values are DIPs relative to the selected monitor work area. Temporary clamping never overwrites your saved values. Arrow keys move 1 DIP; Shift+Arrow moves 10; Enter applies; Esc rolls back the editor.</value></data>
   <data name="IslandPlacementAutomatic.Content" xml:space="preserve"><value>Automatic</value></data>
   <data name="IslandPlacementCustom.Content" xml:space="preserve"><value>Custom</value></data>
   <data name="IslandPlacementX.Header" xml:space="preserve"><value>X (DIP)</value></data>
@@ -308,7 +304,7 @@
   <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>Copy Smart Drag compatibility report</value></data>
   <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>Path-free Smart Drag compatibility report copied.</value></data>
   <data name="PreviewItemMenuItem.Text" xml:space="preserve"><value>Quick preview</value></data>
-  <data name="PreviewUnavailable" xml:space="preserve"><value>No bounded preview is available for this item.</value></data>
+  <data name="PreviewUnavailable" xml:space="preserve"><value>Preview isn’t available for this item.</value></data>
   <data name="ActionCompleted" xml:space="preserve"><value>The action completed successfully.</value></data>
   <data name="ActionUnavailable" xml:space="preserve"><value>This action is unavailable for the current selection.</value></data>
   <data name="ActionParametersRequired" xml:space="preserve"><value>Choose all required action parameters before continuing.</value></data>
@@ -344,7 +340,6 @@
   <data name="ActionConvertImage.Text" xml:space="preserve"><value>Convert image format</value></data>
   <data name="ActionStripMetadata.Text" xml:space="preserve"><value>Remove image metadata</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>Devices &amp; Sharing</value></data>
-  <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows-to-Windows handoff and clipboard sync are opt-in. Nearby links stay on a private network; Internet Share needs an explicitly configured HTTPS backend.</value></data>
   <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>Device Handoff</value></data>
   <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>Send content to paired devices.</value></data>
   <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable Windows Device Handoff</value></data>
@@ -352,7 +347,7 @@
   <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>Sync with paired Windows devices only. Enabling sync also enables device connection; disabling device connection stops sync.</value></data>
   <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable cross-device Clipboard</value></data>
   <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>Default peer Clipboard mode</value></data>
-  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>New peers start in the selected mode; pairing itself never enables automatic sync.</value></data>
+  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>Newly paired devices will use this sync mode by default.</value></data>
   <data name="ClipboardSyncModeOff.Content" xml:space="preserve"><value>Off</value></data>
   <data name="ClipboardSyncModeManual.Content" xml:space="preserve"><value>Manual</value></data>
   <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>Automatic text + URL</value></data>
@@ -371,7 +366,7 @@
   <data name="DevicesFound" xml:space="preserve"><value>Found {0} compatible device(s).</value></data>
   <data name="PairedDevice" xml:space="preserve"><value>Paired with {0}. The peer uses the selected default Clipboard mode.</value></data>
   <data name="DeviceServiceUnavailable" xml:space="preserve"><value>Device service unavailable: {0}</value></data>
-  <data name="DeviceServiceReady" xml:space="preserve"><value>Device Handoff is ready. Windows Firewall status still requires the explicit receive capability check.</value></data>
+  <data name="DeviceServiceReady" xml:space="preserve"><value>Device Handoff is running. If you can’t receive items, make sure DropSpace is allowed through Windows Firewall.</value></data>
   <data name="DeviceServiceBlocked" xml:space="preserve"><value>Receiving is unavailable: {0}</value></data>
   <data name="DeviceServiceStarting" xml:space="preserve"><value>Starting the local DropLink service…</value></data>
   <data name="PairingSasTitle" xml:space="preserve"><value>Confirm pairing code</value></data>
@@ -414,7 +409,7 @@ Nothing will be opened automatically.</value></data>
   <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} of {1}</value></data>
   <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>Cancel transfer of {0} to {1}</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Transfer sent</value></data>
-  <data name="TransferSentContent" xml:space="preserve"><value>The trusted device accepted the transfer and DropSpace verified the content before commit.</value></data>
+  <data name="TransferSentContent" xml:space="preserve"><value>The receiving device accepted and verified the content.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Transfer unavailable</value></data>
   <data name="TransferBusyContent" xml:space="preserve"><value>Other transfers are still running or finishing. Try again after one completes.</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>This selection contains too many folder entries or paths that are too long. Select fewer items or a smaller subfolder and try again.</value></data>
@@ -447,7 +442,7 @@ Nothing will be opened automatically.</value></data>
   <data name="PdfNextPage" xml:space="preserve"><value>Next</value></data>
   <data name="PdfPageIndicator" xml:space="preserve"><value>Page {0} of {1}</value></data>
   <data name="QuickActionsSection" xml:space="preserve"><value>Quick Actions</value></data>
-  <data name="QuickActionsDescription" xml:space="preserve"><value>Choose up to three actions shown directly on each item. Automatic follows the available action registry; unavailable choices are skipped safely.</value></data>
+  <data name="QuickActionsDescription" xml:space="preserve"><value>Choose up to three quick actions for each item. Automatic selects actions by item type and hides unavailable ones.</value></data>
   <data name="QuickActionFiles" xml:space="preserve"><value>Files and folders</value></data>
   <data name="QuickActionImages" xml:space="preserve"><value>Images</value></data>
   <data name="QuickActionText" xml:space="preserve"><value>Text and code</value></data>
@@ -481,7 +476,7 @@ Nothing will be opened automatically.</value></data>
   <data name="CopyHashResult" xml:space="preserve"><value>Copy checksum</value></data>
   <data name="OpenOutputFolder" xml:space="preserve"><value>Open output folder</value></data>
   <data name="MoreItemButton.Content" xml:space="preserve"><value>More actions</value></data>
-  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Enable this feature in Settings and complete pairing or service setup first.</value></data>
+  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Turn on this feature in Settings and complete any required setup.</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>Previous settings could not be fully restored. Restart DropSpace before changing settings again. Diagnostic ID: {1}.</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>Restore settings</value></data>
   <data name="MediaControlFailed" xml:space="preserve"><value>The player could not complete this action. Try again.</value></data>
@@ -520,7 +515,6 @@ Nothing will be opened automatically.</value></data>
   <data name="MusicApplicationsEmpty" xml:space="preserve"><value>Play music to discover media applications.</value></data>
   <data name="WidgetCenter" xml:space="preserve"><value>Center</value></data>
   <data name="LyricsProvider" xml:space="preserve"><value>Preferred lyrics provider</value></data>
-  <data name="LyricsFallbackHelp" xml:space="preserve"><value>Lookup follows preferred provider → optional backup → remaining providers when enabled. Without a backup or remaining-provider search, only the preferred provider is used. Local mode stays offline.</value></data>
   <data name="LyricsBackupProvider" xml:space="preserve"><value>Backup lyrics provider</value></data>
   <data name="LyricsBackupProviderNone" xml:space="preserve"><value>None</value></data>
   <data name="LyricsSearchRemainingProviders" xml:space="preserve"><value>Search remaining providers</value></data>
@@ -544,7 +538,6 @@ Nothing will be opened automatically.</value></data>
   <data name="MusicArtwork" xml:space="preserve"><value>Show album artwork</value></data>
   <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>Local LRC</value></data>
   <data name="IslandHideDelay" xml:space="preserve"><value>Hide delay</value></data>
-  <data name="WidgetRight" xml:space="preserve"><value>Right</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>Left</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Loading lyrics…</value></data>
@@ -562,7 +555,7 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsProviderNetEase" xml:space="preserve"><value>NetEase Cloud Music</value></data>
   <data name="LyricsLocal" xml:space="preserve"><value>Local LRC</value></data>
   <data name="WidgetsEditorMode" xml:space="preserve"><value>Widget editor mode</value></data>
-  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>Could not save this change. Your previous settings were restored.</value></data>
+  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>Couldn’t save this change. Please try again.</value></data>
   <data name="WidgetsCompactMode" xml:space="preserve"><value>Compact · Left / Center / Right</value></data>
   <data name="IslandExpandedScale" xml:space="preserve"><value>Expanded scale</value></data>
   <data name="WidgetsReset" xml:space="preserve"><value>Reset widget layout</value></data>
@@ -655,7 +648,6 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>Preview of translated lyrics</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>Reset lyric sizes</value></data>
   <data name="AiLyricsTitle" xml:space="preserve"><value>AI lyrics</value></data>
-  <data name="AiLyricsDescription" xml:space="preserve"><value>Translate lyrics that lack a matching translation into your chosen Simplified Chinese or English target on this computer. Matching source translations take priority. The first full translation may take several minutes, depending on your device and lyric length. Completed translations appear line by line. AI may mistranslate the meaning; lyrics are not uploaded for AI translation.</value></data>
   <data name="AiLyricsEnabled" xml:space="preserve"><value>Use AI lyric translation</value></data>
   <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU acceleration</value></data>
   <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>Prefer a compatible GPU for AI translation. If GPU acceleration is unavailable or fails, the app uses the CPU instead. Turn this off to use only the CPU. Changing this preference does not turn on AI or download a model.</value></data>
@@ -720,16 +712,14 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>Resume AI translation</value></data>
   <data name="AiLyricsDeleteModel" xml:space="preserve"><value>Delete model</value></data>
   <data name="AiLyricsClearCache" xml:space="preserve"><value>Clear lyrics cache</value></data>
-  <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>Delete {0} and its partial download? If this model is enabled, AI translation will be turned off. Other models and original lyrics are kept.</value></data>
   <data name="AiLyricsModelDeleted" xml:space="preserve"><value>Model removed. You can download it again later.</value></data>
   <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>Remove cached original lyrics, provider translations, and AI translations? Current inference will stop. Downloaded models and your lyric files are kept.</value></data>
   <data name="AiLyricsCacheCleared" xml:space="preserve"><value>Lyrics cache cleared.</value></data>
-  <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>The offline runtime is included in the App; no additional runtime download is required. Runtime extraction uses up to approximately {0} MiB of additional disk space. Allow an extra 64 MiB of free disk space for model download and recovery.</value></data>
   <data name="AiLyricsTranslating" xml:space="preserve"><value>Translating locally… The first full translation may take several minutes. Completed translations appear line by line; unfinished lines keep the original lyrics.</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>AI translation is temporarily unavailable. Original lyrics are unchanged.</value></data>
   <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI translation ready.</value></data>
-  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Online lyrics sends the current song title, artist, album and duration to the lyric providers allowed by your settings. Fresh installations enable online lyrics with NetEase first, no backup, and remaining-provider search enabled. You can disable lyrics or change providers at any time. Choose Local LRC to read your own lyric files without provider requests. AI translation itself stays on this device.</value></data>
-  <data name="AiLyricsClearingCache" xml:space="preserve"><value>Clearing AI translation cache…</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Online lyrics sends the current song title, artist, album, and duration to your enabled lyric sources. New installations use NetEase first, with no fallback source set and other-source search enabled. You can turn lyrics off, change sources, or choose Local LRC for offline reading. AI translation always runs on your device.</value></data>
+  <data name="AiLyricsClearingCache" xml:space="preserve"><value>Clearing lyrics cache…</value></data>
   <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>Choose what runs in the background</value></data>
   <data name="FirstRunPrivacyBody" xml:space="preserve"><value>Temporary Space works without clipboard recording. If enabled, DropSpace saves copied text, images and file references locally, including while its window is closed to the tray. You can pause recording, clear history and change retention in Clipboard and Settings. Closing to the tray does not exit; use Exit to stop DropSpace. These choices can be changed later.</value></data>
   <data name="FirstRunClipboardChoice" xml:space="preserve"><value>Enable local clipboard recording</value></data>
@@ -745,7 +735,7 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="MusicReconnectFailed" xml:space="preserve"><value>Couldn’t reconnect music. Try the refresh button again.</value></data>
   <data name="MediaNextLyricLabel" xml:space="preserve"><value>Upcoming lyric</value></data>
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>Force Dynamic Island over fullscreen</value></data>
-  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Allow an island with content or residence enabled to appear over fullscreen apps. When off, use the hide delay.</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Show the island over fullscreen apps when it has content or Keep Dynamic Island visible is on. When off, it hides after the set delay.</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>Show AI lyrics label</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>Local translation could not confirm enough available memory. Free memory or choose the smaller model, then retry.</value></data>
   <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU backend</value></data>
@@ -802,16 +792,16 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="DlcResume" xml:space="preserve"><value>Resume download</value></data>
   <data name="DlcDelete" xml:space="preserve"><value>Uninstall</value></data>
   <data name="DlcRetry" xml:space="preserve"><value>Retry</value></data>
-  <data name="DlcCancel" xml:space="preserve"><value>Cancel download</value></data>
+  <data name="DlcCancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>Checking local components…</value></data>
   <data name="DlcNotInstalled" xml:space="preserve"><value>Not installed</value></data>
   <data name="DlcReady" xml:space="preserve"><value>Installed</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>Incomplete download. Resume or remove downloaded files.</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>Downloading…</value></data>
   <data name="DlcVerifying" xml:space="preserve"><value>Verifying and installing…</value></data>
-  <data name="DlcCanceling" xml:space="preserve"><value>Canceling download…</value></data>
-  <data name="DlcCanceled" xml:space="preserve"><value>Download canceled. Choose Download to continue.</value></data>
-  <data name="DlcRemoving" xml:space="preserve"><value>Stopping AI and uninstalling…</value></data>
+  <data name="DlcCanceling" xml:space="preserve"><value>Canceling…</value></data>
+  <data name="DlcCanceled" xml:space="preserve"><value>Download canceled. Choose Resume download to continue.</value></data>
+  <data name="DlcRemoving" xml:space="preserve"><value>Removing and cleaning up…</value></data>
   <data name="DlcDownloadFailed" xml:space="preserve"><value>Download failed. Retry to continue.</value></data>
   <data name="DlcDeleteFailed" xml:space="preserve"><value>Uninstall failed. Retry to release resources and remove the component.</value></data>
   <data name="DlcInspectFailed" xml:space="preserve"><value>Could not check local components. Retry.</value></data>
@@ -823,7 +813,7 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="DlcSource" xml:space="preserve"><value>Source: {0}</value></data>
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} download progress</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}: {1}</value></data>
-  <data name="DlcOperationFailed" xml:space="preserve"><value>Could not open this action. Try again.</value></data>
+  <data name="DlcOperationFailed" xml:space="preserve"><value>Couldn’t complete this action. Please try again.</value></data>
   <data name="DlcCudaPurpose" xml:space="preserve"><value>Offline AI lyrics acceleration on compatible NVIDIA GPUs; reuses installed models.</value></data>
   <data name="DlcCudaUnsupported" xml:space="preserve"><value>A compatible NVIDIA driver is required.</value></data>
   <data name="DownloadCustom" xml:space="preserve"><value>Download a custom file</value></data>
@@ -888,7 +878,7 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="DownloadRemoveHistory" xml:space="preserve"><value>Remove from history</value></data>
   <data name="DownloadRecoveryWarning" xml:space="preserve"><value>Some downloads could not be restored. Check available storage and folder permissions.</value></data>
   <data name="DownloadQueueTimedOut" xml:space="preserve"><value>The download queue wait expired. Please retry.</value></data>
-  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>The download timed out. Resumable progress has been kept.</value></data>
+  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>The download timed out. Please try again.</value></data>
   <data name="DownloadStageChecking" xml:space="preserve"><value>Checking existing files</value></data>
   <data name="DownloadStageQueued" xml:space="preserve"><value>Waiting to download</value></data>
   <data name="DownloadStageWaitingConnection" xml:space="preserve"><value>Waiting for a connection</value></data>
@@ -952,7 +942,7 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Press a shortcut</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>Save</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Shortcut unavailable or already in use. Choose another combination.</value></data>
-  <data name="DlcStorageSummary" xml:space="preserve"><value>Total DLC usage: {0}</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>Add-on storage used: {0}</value></data>
   <data name="ReferenceWindowTitle" xml:space="preserve"><value>Temporary reference</value></data>
   <data name="ReferenceKeepOnTop" xml:space="preserve"><value>Keep on top</value></data>
   <data name="ReferenceFitImage" xml:space="preserve"><value>Fit image</value></data>
@@ -981,7 +971,7 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="RetrievalAll.Content" xml:space="preserve"><value>All</value></data>
   <data name="RetrievalRecent.Content" xml:space="preserve"><value>Recent</value></data>
   <data name="RetrievalPinned.Content" xml:space="preserve"><value>Pinned</value></data>
-  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>No matching items. Add a folder in Settings to receive new files.</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>No matching items found.</value></data>
   <data name="RetrievalCopy.Content" xml:space="preserve"><value>Copy</value></data>
   <data name="RetrievalPreview.Content" xml:space="preserve"><value>Preview</value></data>
   <data name="RetrievalReference.Content" xml:space="preserve"><value>Reference</value></data>

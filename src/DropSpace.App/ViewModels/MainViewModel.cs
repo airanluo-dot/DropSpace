@@ -1408,31 +1408,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
         IsEmpty = Items.Count == 0;
     }
 
-    private async Task DebouncedReloadAsync()
-    {
-        _queryCancellation?.Cancel();
-        _queryCancellation?.Dispose();
-        _queryCancellation = new CancellationTokenSource();
-        var token = _queryCancellation.Token;
-        try
-        {
-            await Task.Delay(220, token);
-            if (!IsSettingsVisible)
-            {
-                await ReloadAsync(token);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            return;
-        }
-        catch (Exception exception)
-        {
-            _logger.LogWarning(exception, "Search refresh failed.");
-            Status = AppUiMessage.Resource("SearchUnavailable");
-        }
-    }
-
     private async Task LoadThumbnailSafelyAsync(ItemCardViewModel card, CancellationToken cancellationToken)
     {
         try

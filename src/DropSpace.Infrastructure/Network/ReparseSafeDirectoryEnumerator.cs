@@ -72,7 +72,9 @@ public static class ReparseSafeDirectoryEnumerator
             var rootName = TransferManifestPolicy.SafeDisplayName(
                 Path.GetFileName(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
             var relativeRoot = NormalizeRelativePath(rootName, limits.MaxRelativePathLength);
-            if (result.Count >= limits.MaxItems || totalBytes >= limits.MaxTotalBytes)
+            // A directory may contain zero-byte files even when prior roots fill
+            // the byte budget exactly. Its children enforce the remaining budget.
+            if (result.Count >= limits.MaxItems)
                 throw new InvalidDataException("The transfer enumeration limit was exceeded.");
 
             var entries = EnumerateDirectoryCore(full, relativeRoot,

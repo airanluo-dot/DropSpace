@@ -5,9 +5,17 @@ using NavigationProjectionProbe;
 
 var results = new List<ScenarioResult>();
 var ownershipOnly = args.Length > 0 && args[0] == "--ownership-only";
-var outputPath = ownershipOnly ? args.ElementAtOrDefault(1) : args.ElementAtOrDefault(0);
+var searchOnly = args.Length > 0 && args[0] == "--search-only";
+var outputPath = ownershipOnly || searchOnly ? args.ElementAtOrDefault(1) : args.ElementAtOrDefault(0);
 ProbeDispatcher.Run(async () =>
 {
+    if (searchOnly)
+    {
+        await RunScenario("retired-search-failure-after-navigation", RetiredSearchFailureAfterNavigation);
+        await RunScenario("cancelled-search-failure-after-new-search", CancelledSearchFailureAfterNewSearch);
+        await RunScenario("current-search-failure-feedback", CurrentSearchFailureFeedback);
+        return;
+    }
     if (ownershipOnly)
     {
 #if NAVIGATION_OWNERSHIP
@@ -37,6 +45,66 @@ async Task RunScenario(string name, Func<Checks, Task> scenario)
     results.Add(new(name, checks.Failures.Count == 0, checks.Failures.ToArray()));
     Console.WriteLine((checks.Failures.Count == 0 ? "PASS " : "FAIL ") + name);
     foreach (var failure in checks.Failures) Console.WriteLine("  " + failure);
+}
+
+static async Task RetiredSearchFailureAfterNavigation(Checks check)
+{
+    var (repository, control) = ScriptedRepository.Create();
+    using var view = new MainViewModel(repository);
+    await Seed(view, control);
+    view.SearchText = "old-search";
+    var older = view.DebouncedReloadForProbeAsync();
+    using var oldQuery = await control.NextAsync();
+    var navigation = view.NavigateAsync("Pinned");
+    using var currentQuery = await control.NextAsync();
+    currentQuery.Reply(new([], null, false));
+    await navigation;
+    var acceptedStatus = view.ObservedStatus;
+    check.That(acceptedStatus.ResourceKey == "SearchNoMatches", "new navigation did not own its empty-search feedback");
+
+    oldQuery.Fail(new IOException("retired search failed after navigation completed"));
+    await older;
+    check.That(ReferenceEquals(view.ObservedStatus, acceptedStatus), "retired debounce failure replaced current navigation feedback");
+    check.That(view.CurrentSection == "Pinned" && view.IsEmpty && !view.IsBusy,
+        "retired search changed accepted navigation state");
+}
+
+static async Task CancelledSearchFailureAfterNewSearch(Checks check)
+{
+    var (repository, control) = ScriptedRepository.Create();
+    using var view = new MainViewModel(repository);
+    await Seed(view, control);
+    // Synchronous provider IO may ignore cancellation and later throw an IO error.
+    control.IgnoreCancellation = true;
+    view.SearchText = "old-search";
+    var older = view.DebouncedReloadForProbeAsync();
+    using var oldQuery = await control.NextAsync();
+    view.SearchText = "current-search";
+    var current = view.DebouncedReloadForProbeAsync();
+    using var currentQuery = await control.NextAsync();
+    currentQuery.Reply(new([], null, false));
+    await current;
+    var acceptedStatus = view.ObservedStatus;
+    check.That(acceptedStatus.ResourceKey == "SearchNoMatches", "new search did not own its empty-result feedback");
+
+    oldQuery.Fail(new IOException("cancelled provider failed late"));
+    await older;
+    check.That(ReferenceEquals(view.ObservedStatus, acceptedStatus), "cancelled debounce failure replaced newer search feedback");
+    check.That(view.IsEmpty && !view.IsBusy, "cancelled search changed the current empty projection");
+}
+
+static async Task CurrentSearchFailureFeedback(Checks check)
+{
+    var (repository, control) = ScriptedRepository.Create();
+    using var view = new MainViewModel(repository);
+    await Seed(view, control);
+    view.SearchText = "current-search";
+    var refresh = view.DebouncedReloadForProbeAsync();
+    using var query = await control.NextAsync();
+    query.Fail(new IOException("current search provider failed"));
+    await refresh;
+    check.That(view.ObservedStatus.ResourceKey == "SearchUnavailable", "current search failure lost its existing feedback");
+    check.That(!view.IsBusy, "failed current search retained busy ownership");
 }
 
 static async Task CrossSectionFailure(Checks check)

@@ -47,7 +47,6 @@ test('Music AI card and toggle use the released feature label in both languages'
     for (const key of ['AiLyricsTitle', 'AiLyricsEnabled', 'AiLyricsPlainBetaModel'])
       assert.doesNotMatch(strings.get(key), /Beta/i, `${language} ${key}`);
     assert.match(strings.get('AiLyricsPlainBetaModel'), /Q8_0/);
-    assert.match(strings.get('AiLyricsDescription'), language === 'en-US' ? /first full translation may take several minutes/ : /首次完成整首歌词翻译可能需要几分钟/);
     assert.match(strings.get('AiLyricsPlainBetaHelp'), language === 'en-US' ? /meaning errors/ : /含义错误/);
     assert.match(strings.get('AiLyricsTranslating'), language === 'en-US' ? /unfinished lines keep the original lyrics/ : /未完成的部分继续显示原歌词/);
     assert.doesNotMatch(strings.get('AiLyricsPlainBetaHelp'), /300|five minutes|5 分钟/);

@@ -478,9 +478,10 @@
         "value": "{0} s",
         "languages": [
           "ja-JP",
-          "de-DE"
+          "de-DE",
+          "pt-BR"
         ],
-        "reason": "Independently reviewed natural same-spelling ja-JP UI term; not a fallback copy"
+        "reason": "Seconds SI symbol with numeric placeholder and no translatable prose; explicitly reviewed in the listed locales"
       },
       "ItemKindCode": {
         "value": "Code",

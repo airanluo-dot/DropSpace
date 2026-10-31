@@ -28,7 +28,7 @@
   <data name="ClipboardRecording" xml:space="preserve"><value>Grabación · {0} capturado</value></data>
   <data name="ClipboardResumed" xml:space="preserve"><value>Se reanudó la grabación del portapapeles.</value></data>
   <data name="ClipboardStarting" xml:space="preserve"><value>Empezando…</value></data>
-  <data name="CloseToTrayContent" xml:space="preserve"><value>Cuando cierras la ventana, DropSpace permanece en la bandeja del sistema y continúa grabando en el portapapeles. Puede cambiar esto para salir directamente en Configuración.</value></data>
+  <data name="CloseToTrayContent" xml:space="preserve"><value>Al cerrar la ventana, DropSpace sigue ejecutándose en la bandeja del sistema. Puedes cambiar este comportamiento en Configuración.</value></data>
   <data name="CloseToTrayTitle" xml:space="preserve"><value>DropSpace continuará ejecutándose en segundo plano</value></data>
   <data name="CommonAcknowledge" xml:space="preserve"><value>Lo tengo</value></data>
   <data name="CommonCancel" xml:space="preserve"><value>Cancelar</value></data>
@@ -41,9 +41,9 @@
   <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>Agregar a DropSpace</value></data>
   <data name="EmptyClipboardDescription" xml:space="preserve"><value>Copie texto, imágenes, archivos o carpetas y el contenido compatible aparecerá aquí.</value></data>
   <data name="EmptyClipboardTitle" xml:space="preserve"><value>Sin historial del portapapeles</value></data>
-  <data name="EmptyPinnedDescription" xml:space="preserve"><value>Fija elementos de Espacio temporal o Portapapeles y aparecerán juntos aquí.</value></data>
+  <data name="EmptyPinnedDescription" xml:space="preserve"><value>Fija los elementos importantes para tenerlos a mano en un solo lugar.</value></data>
   <data name="EmptyPinnedTitle" xml:space="preserve"><value>No hay elementos fijados</value></data>
-  <data name="EmptySpaceDescription" xml:space="preserve"><value>DropSpace almacena solo referencias. Nunca mueve ni elimina sus archivos originales.</value></data>
+  <data name="EmptySpaceDescription" xml:space="preserve"><value>Arrastra aquí archivos, texto o enlaces para acceder a ellos rápidamente. Tus archivos originales nunca se mueven ni se eliminan.</value></data>
   <data name="EmptySpaceTitle" xml:space="preserve"><value>Suelte archivos o carpetas aquí</value></data>
   <data name="ExportJpegImage" xml:space="preserve"><value>JPEG imagen</value></data>
   <data name="ExportOnlyClipboardImages" xml:space="preserve"><value>Sólo se pueden exportar imágenes del portapapeles.</value></data>
@@ -87,13 +87,13 @@
   <data name="OperationIncompleteTitle" xml:space="preserve"><value>Operación incompleta</value></data>
   <data name="OverlayClassicDragTitle" xml:space="preserve"><value>Arrastra hacia arriba para guardar</value></data>
   <data name="OverlayDragSubtitle" xml:space="preserve"><value>Los archivos originales no se moverán ni eliminarán</value></data>
-  <data name="OverlayDropSubtitle" xml:space="preserve"><value>Lanzamiento para agregar referencias de archivos o carpetas</value></data>
+  <data name="OverlayDropSubtitle" xml:space="preserve"><value>Suelta para añadir archivos o carpetas</value></data>
   <data name="OverlayDropTitle" xml:space="preserve"><value>Soltar en DropSpace</value></data>
   <data name="OverlayItemCount" xml:space="preserve"><value>{0} elemento(s)</value></data>
   <data name="OverlaySmartDragTitle" xml:space="preserve"><value>Arrastre hasta el DropSpace que aparece</value></data>
   <data name="OverlayTitle" xml:space="preserve"><value>DropSpace</value></data>
   <data name="PageDescriptionClipboard" xml:space="preserve"><value>Registra automáticamente texto, imágenes, archivos y referencias de carpetas copiados.</value></data>
-  <data name="PageDescriptionPinned" xml:space="preserve"><value>Los elementos fijados de Espacio temporal y el Portapapeles no se borran automáticamente según las reglas de retención.</value></data>
+  <data name="PageDescriptionPinned" xml:space="preserve"><value>La limpieza automática no elimina los elementos fijados.</value></data>
   <data name="PageDescriptionSettings" xml:space="preserve"><value>Almacenamiento local, privacidad, apariencia y comportamiento de las ventanas.</value></data>
   <data name="PageDescriptionSpace" xml:space="preserve"><value>Arrastre archivos y carpetas aquí cuando aún no tengan un hogar permanente.</value></data>
   <data name="PageTitleClipboard" xml:space="preserve"><value>portapapeles</value></data>
@@ -106,14 +106,13 @@
   <data name="RemoveStoredItemContent" xml:space="preserve"><value>Se eliminarán “{0}” y la copia local conservada por DropSpace.</value></data>
   <data name="SearchNoMatches" xml:space="preserve"><value>No se encontraron artículos coincidentes.</value></data>
   <data name="SearchUnavailable" xml:space="preserve"><value>La búsqueda no está disponible temporalmente.</value></data>
-  <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace acepta solo archivos y carpetas de Windows Compartir.</value></data>
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>Los archivos o carpetas no se pudieron agregar a Espacio temporal.</value></data>
-  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>El contenido compartido no contiene archivos ni carpetas a los que DropSpace pueda acceder.</value></data>
+  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>No se pudo importar el contenido compartido. Comprueba que DropSpace admita el contenido y pueda acceder a él.</value></data>
   <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace no pudo procesar este recurso compartido. Inténtelo de nuevo o utilice el objetivo de caída del borde superior.</value></data>
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace no pudo terminar de iniciar. Es posible que algunos servicios en segundo plano aún se estén ejecutando. Salga de la aplicación antes de inspeccionar o restaurar su directorio de datos y verifique el registro de diagnóstico local.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace no pudo iniciarse de forma segura</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Calculando…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>Espacio de caché: {0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>Uso de datos de la aplicación: {0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>No disponible</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>Borrar el historial del portapapeles...</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Salir</value></data>
@@ -138,7 +137,7 @@
   <data name="UpdateInstallStateFailed" xml:space="preserve"><value>No se pudo preparar la actualización para su instalación porque no se pudo guardar su estado de recuperación.</value></data>
   <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>No se pudo iniciar el instalador verificado.</value></data>
   <data name="UpdateInstalling" xml:space="preserve"><value>Iniciando el instalador de actualizaciones…</value></data>
-  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>La descarga de la actualización anterior estaba incompleta y se descartó.</value></data>
+  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>No se pudo verificar el archivo de actualización anterior. Descárgalo de nuevo.</value></data>
   <data name="UpdateLastInstallIncomplete" xml:space="preserve"><value>La instalación de la actualización anterior no finalizó. La actualización verificada está lista para volver a intentarlo.</value></data>
   <data name="UpdateManagedByWindows" xml:space="preserve"><value>Este paquete Windows es actualizado por Windows.</value></data>
   <data name="UpdateNoDowngrade" xml:space="preserve"><value>No hay ninguna actualización estable más nueva disponible. DropSpace no degradará esta compilación.</value></data>
@@ -152,7 +151,7 @@
   <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>La instalación desatendida no está disponible porque no se confía en el editor de la actualización.</value></data>
   <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace está actualizado.</value></data>
   <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>Envía a DropSpace desde el menú compartir Windows.</value></data>
-  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>Windows la integración compartida no está disponible en esta versión. En su lugar, arrastre los archivos a DropSpace.</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>La integración con Compartir de Windows no está disponible para esta instalación. Arrastra los elementos directamente a DropSpace.</value></data>
   <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
   <data name="MainTitleBar.Title" xml:space="preserve"><value>DropSpace</value></data>
   <data name="MainTitleBar.Subtitle" xml:space="preserve"><value>Espacio de trabajo de contenido temporal</value></data>
@@ -196,7 +195,7 @@
   <data name="MoreItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Más acciones de elementos</value></data>
   <data name="ShowInFolderMenuItem.Text" xml:space="preserve"><value>Mostrar en carpeta</value></data>
   <data name="RemoveItemMenuItem.Text" xml:space="preserve"><value>Eliminar de DropSpace</value></data>
-  <data name="DropHintTitle.Text" xml:space="preserve"><value>Liberar para agregar referencias</value></data>
+  <data name="DropHintTitle.Text" xml:space="preserve"><value>Suelta para añadir a DropSpace</value></data>
   <data name="DropHintDescription.Text" xml:space="preserve"><value>Los archivos originales no se moverán</value></data>
   <data name="ClipboardPrivacySection.Text" xml:space="preserve"><value>Portapapeles y privacidad</value></data>
   <data name="PauseRecordingTitle.Text" xml:space="preserve"><value>Pausar registro</value></data>
@@ -231,7 +230,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Elija esto durante la primera configuración o en Configuración. Utiliza la entrada de inicio del usuario actual sin privilegios de administrador.</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Iniciar con Windows</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>Idioma de visualización</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>Cambia solo el texto de la interfaz. La traducción de letras tiene su propia configuración de idioma.</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>Cambia el idioma de la interfaz de la aplicación. El idioma de traducción de las letras se puede configurar por separado.</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Idioma de visualización</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>Valor predeterminado del sistema</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -249,19 +248,17 @@
   <data name="MonitorDescription.Text" xml:space="preserve"><value>El modo automático aparece en la pantalla donde se produce un arrastre de archivo.</value></data>
   <data name="MonitorAutomatic.Content" xml:space="preserve"><value>Automático</value></data>
   <data name="MonitorPrimary.Content" xml:space="preserve"><value>monitor primario</value></data>
-  <data name="OverlayMonitorChoice" xml:space="preserve"><value>Mostrar {0}</value></data>
-  <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>Mostrar {0} (Primario)</value></data>
+  <data name="OverlayMonitorChoice" xml:space="preserve"><value>Pantalla {0}</value></data>
+  <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>Pantalla {0} (Principal)</value></data>
   <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>Al cerrar la ventana</value></data>
-  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>La grabación del portapapeles continúa cuando la aplicación está oculta en la bandeja.</value></data>
+  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>Sigue ejecutándose en segundo plano al ocultarse en la bandeja del sistema.</value></data>
   <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>Ocultar en la bandeja</value></data>
   <data name="CloseBehaviorExit.Content" xml:space="preserve"><value>Salir directamente</value></data>
   <data name="UpdatesSection.Text" xml:space="preserve"><value>Actualizaciones</value></data>
   <data name="AutoCheckUpdatesTitle.Text" xml:space="preserve"><value>Buscar actualizaciones automáticamente</value></data>
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>Comprueba como máximo una vez por cada DropSpace inicio del proceso; no se ejecuta ningún temporizador en segundo plano.</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>Descargar actualizaciones automáticamente</value></data>
-  <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>Se descarga solo en la propia caché de DropSpace y se instala solo después de la verificación del tamaño y SHA-256.</value></data>
   <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Instalar actualizaciones automáticamente</value></data>
-  <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Disponible solo cuando la actualización pasa la verificación del editor confiable de Authenticode; permanece desactivado para compilaciones sin firmar.</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Canal de actualización</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Estable solo recibe versiones de lanzamiento. Beta recibe versiones estable y preliminar, ordenadas por número de versión.</value></data>
   <data name="UpdateChannelStable.Content" xml:space="preserve"><value>Estable</value></data>
@@ -271,24 +268,23 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Actualizar ahora</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>Abrir ubicación de descarga</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>Ver notas de la versión</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>Espacio de caché</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>Uso de datos locales</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>Ubicación de almacenamiento</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>Borrar la última hora</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>Borrar el historial de hoy</value></data>
   <data name="ClearAllButton.Content" xml:space="preserve"><value>Borrar todo el historial</value></data>
-  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>La limpieza mantiene los elementos fijados de forma predeterminada y nunca elimina los archivos originales a los que se hace referencia en Espacio temporal.</value></data>
+  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>Al borrar el historial se conservan los elementos fijados y nunca se eliminan los archivos originales de tu equipo.</value></data>
   <data name="AddTextUrlMenuItem.Text" xml:space="preserve"><value>Añadir texto o URL…</value></data>
   <data name="AddTextUrlTitle" xml:space="preserve"><value>Agregue texto o URL a Espacio temporal</value></data>
-  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>Pegue o escriba texto o https:// URL</value></data>
+  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>Pega o escribe texto o un enlace</value></data>
   <data name="AddTextUrlConfirm" xml:space="preserve"><value>Añadir</value></data>
   <data name="Cancel" xml:space="preserve"><value>Cancelar</value></data>
-  <data name="DropBatchLabel" xml:space="preserve"><value>Eliminar lote · {0} artículos</value></data>
+  <data name="DropBatchLabel" xml:space="preserve"><value>Lote arrastrado · {0} elementos</value></data>
   <data name="CollapseBatch" xml:space="preserve"><value>Contraer</value></data>
   <data name="ExpandBatch" xml:space="preserve"><value>Expandir</value></data>
   <data name="PinBatchButton.Content" xml:space="preserve"><value>Fijar grupo</value></data>
   <data name="RemoveBatchButton.Content" xml:space="preserve"><value>Quitar grupo</value></data>
   <data name="IslandPlacementTitle.Text" xml:space="preserve"><value>Isla dinámica posición</value></data>
-  <data name="IslandPlacementDescription.Text" xml:space="preserve"><value>Las coordenadas X/Y personalizadas se expresan en DIP respecto al área de trabajo del monitor seleccionado. Limitar temporalmente la posición a los bordes de esa área no sobrescribe los valores guardados. Las flechas mueven 1 DIP; Shift+flecha, 10; Enter aplica y Esc cancela la edición.</value></data>
   <data name="IslandPlacementAutomatic.Content" xml:space="preserve"><value>Automático</value></data>
   <data name="IslandPlacementCustom.Content" xml:space="preserve"><value>personalizado</value></data>
   <data name="IslandPlacementX.Header" xml:space="preserve"><value>X (DIP)</value></data>
@@ -306,7 +302,7 @@
   <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>Copiar informe de compatibilidad de Smart Drag</value></data>
   <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>Se copió el informe de compatibilidad de Smart Drag sin ruta.</value></data>
   <data name="PreviewItemMenuItem.Text" xml:space="preserve"><value>Vista previa rápida</value></data>
-  <data name="PreviewUnavailable" xml:space="preserve"><value>No hay una vista previa limitada disponible para este artículo.</value></data>
+  <data name="PreviewUnavailable" xml:space="preserve"><value>La vista previa no está disponible para este elemento.</value></data>
   <data name="ActionCompleted" xml:space="preserve"><value>La acción se completó con éxito.</value></data>
   <data name="ActionUnavailable" xml:space="preserve"><value>Esta acción no está disponible para la selección actual.</value></data>
   <data name="ActionParametersRequired" xml:space="preserve"><value>Elija todos los parámetros de acción requeridos antes de continuar.</value></data>
@@ -319,7 +315,7 @@
   <data name="ActionOutputSaved" xml:space="preserve"><value>Salida guardada en: {0}</value></data>
   <data name="QuickActionParametersTitle" xml:space="preserve"><value>Parámetros de acción</value></data>
   <data name="QuickActionParametersDescription" xml:space="preserve"><value>Elija un tamaño y formato para exportar una nueva imagen. El original permanece sin cambios.</value></data>
-  <data name="QuickActionDestination" xml:space="preserve"><value>Exportar carpeta</value></data>
+  <data name="QuickActionDestination" xml:space="preserve"><value>Carpeta de destino</value></data>
   <data name="QuickActionDefaultDestination" xml:space="preserve"><value>DropSpace exportaciones (predeterminado)</value></data>
   <data name="QuickActionChooseFolder" xml:space="preserve"><value>Elige…</value></data>
   <data name="QuickActionOutputFormat" xml:space="preserve"><value>Formato de salida</value></data>
@@ -342,7 +338,6 @@
   <data name="ActionConvertImage.Text" xml:space="preserve"><value>Convertir formato de imagen</value></data>
   <data name="ActionStripMetadata.Text" xml:space="preserve"><value>Eliminar metadatos de imagen</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>Dispositivos y uso compartido</value></data>
-  <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>La transferencia de Windows a Windows y la sincronización del portapapeles son opcionales. Los enlaces cercanos permanecen en una red privada; Internet Share necesita un backend HTTPS configurado explícitamente.</value></data>
   <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>Transferencia de dispositivo</value></data>
   <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>Envía contenido a dispositivos emparejados.</value></data>
   <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Habilitar Windows transferencia de dispositivo</value></data>
@@ -350,7 +345,7 @@
   <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>Sincronización solo con dispositivos Windows emparejados. Habilitar la sincronización también habilita la conexión del dispositivo; Al desactivar la conexión del dispositivo se detiene la sincronización.</value></data>
   <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Habilitar portapapeles entre dispositivos</value></data>
   <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>Modo Portapapeles del mismo nivel predeterminado</value></data>
-  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>Los nuevos compañeros comienzan en el modo seleccionado; El emparejamiento en sí nunca permite la sincronización automática.</value></data>
+  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>Los dispositivos que se emparejen usarán este modo de sincronización de forma predeterminada.</value></data>
   <data name="ClipboardSyncModeOff.Content" xml:space="preserve"><value>Apagado</value></data>
   <data name="ClipboardSyncModeManual.Content" xml:space="preserve"><value>Manual</value></data>
   <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>Texto automático + URL</value></data>
@@ -366,10 +361,10 @@
   <data name="DevicesDisabledTitle" xml:space="preserve"><value>Los dispositivos están deshabilitados</value></data>
   <data name="DevicesDisabledContent" xml:space="preserve"><value>Habilite Device Handoff antes de buscar en la red local.</value></data>
   <data name="NoDevicesFound" xml:space="preserve"><value>No se encontraron dispositivos DropSpace compatibles en la red privada.</value></data>
-  <data name="DevicesFound" xml:space="preserve"><value>Se encontraron dispositivos compatibles con {0}.</value></data>
+  <data name="DevicesFound" xml:space="preserve"><value>Se encontraron {0} dispositivos compatibles.</value></data>
   <data name="PairedDevice" xml:space="preserve"><value>Emparejado con {0}. El interlocutor utiliza el modo Portapapeles predeterminado seleccionado.</value></data>
   <data name="DeviceServiceUnavailable" xml:space="preserve"><value>Servicio de dispositivo no disponible: {0}</value></data>
-  <data name="DeviceServiceReady" xml:space="preserve"><value>La transferencia del dispositivo está lista. Windows El estado del firewall aún requiere la verificación explícita de la capacidad de recepción.</value></data>
+  <data name="DeviceServiceReady" xml:space="preserve"><value>La transferencia entre dispositivos está activa. Si no puedes recibir elementos, comprueba que el Firewall de Windows permita el acceso a DropSpace.</value></data>
   <data name="DeviceServiceBlocked" xml:space="preserve"><value>La recepción no está disponible: {0}</value></data>
   <data name="DeviceServiceStarting" xml:space="preserve"><value>Iniciando el servicio DropLink local…</value></data>
   <data name="PairingSasTitle" xml:space="preserve"><value>Confirmar código de emparejamiento</value></data>
@@ -412,7 +407,7 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} de {1}</value></data>
   <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>Cancelar la transferencia de {0} a {1}</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Transferencia enviada</value></data>
-  <data name="TransferSentContent" xml:space="preserve"><value>El dispositivo confiable aceptó la transferencia y DropSpace verificó el contenido antes de la confirmación.</value></data>
+  <data name="TransferSentContent" xml:space="preserve"><value>El dispositivo receptor ha aceptado y verificado el contenido.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Transferencia no disponible</value></data>
   <data name="TransferBusyContent" xml:space="preserve"><value>Hay otras transferencias en curso o finalizando. Vuelva a intentarlo cuando termine una de ellas.</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>La selección contiene demasiadas entradas de carpetas o rutas demasiado largas. Seleccione menos elementos o una subcarpeta más pequeña e inténtelo de nuevo.</value></data>
@@ -440,12 +435,12 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="RevokeShareButton" xml:space="preserve"><value>Revocar enlace</value></data>
   <data name="RevokeShareTitle" xml:space="preserve"><value>Revocar recurso compartido seguro</value></data>
   <data name="RevokeShareContent" xml:space="preserve"><value>Esto invalida el enlace y elimina sus objetos cifrados del backend configurado. ¿Continuar?</value></data>
-  <data name="RevokeShareCompleted" xml:space="preserve"><value>La acción segura fue revocada.</value></data>
+  <data name="RevokeShareCompleted" xml:space="preserve"><value>Se revocó el enlace compartido seguro.</value></data>
   <data name="PdfPreviousPage" xml:space="preserve"><value>Anterior</value></data>
   <data name="PdfNextPage" xml:space="preserve"><value>Siguiente</value></data>
   <data name="PdfPageIndicator" xml:space="preserve"><value>Página {0} de {1}</value></data>
   <data name="QuickActionsSection" xml:space="preserve"><value>Acciones Rápidas</value></data>
-  <data name="QuickActionsDescription" xml:space="preserve"><value>Elija hasta tres acciones que se muestran directamente en cada elemento. Automático sigue el registro de acciones disponibles; las opciones no disponibles se omiten de forma segura.</value></data>
+  <data name="QuickActionsDescription" xml:space="preserve"><value>Elige hasta tres acciones rápidas para cada elemento. El modo automático selecciona las acciones según el tipo de elemento y oculta las que no están disponibles.</value></data>
   <data name="QuickActionFiles" xml:space="preserve"><value>Archivos y carpetas</value></data>
   <data name="QuickActionImages" xml:space="preserve"><value>Imágenes</value></data>
   <data name="QuickActionText" xml:space="preserve"><value>Texto y código</value></data>
@@ -479,17 +474,17 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="CopyHashResult" xml:space="preserve"><value>Copiar suma de verificación</value></data>
   <data name="OpenOutputFolder" xml:space="preserve"><value>Abrir carpeta de salida</value></data>
   <data name="MoreItemButton.Content" xml:space="preserve"><value>Más acciones</value></data>
-  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Habilite esta función en Configuración y primero complete el emparejamiento o la configuración del servicio.</value></data>
+  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Activa esta función en Configuración y completa los ajustes necesarios.</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>La configuración anterior no se pudo restaurar por completo. Reinicie DropSpace antes de volver a cambiar la configuración. ID de diagnóstico: {1}.</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>Restaurar configuración</value></data>
-  <data name="MediaControlFailed" xml:space="preserve"><value>El jugador no pudo completar esta acción. Intentar otra vez.</value></data>
+  <data name="MediaControlFailed" xml:space="preserve"><value>El reproductor no pudo completar esta acción. Inténtalo de nuevo.</value></data>
   <data name="MediaNoSession.Text" xml:space="preserve"><value>Reproduce música en un reproductor compatible para verla aquí.</value></data>
   <data name="WidgetClock.Text" xml:space="preserve"><value>Reloj</value></data>
   <data name="WidgetCalendar.Text" xml:space="preserve"><value>Calendario</value></data>
   <data name="MediaPlayLabel" xml:space="preserve"><value>Reproducir</value></data>
   <data name="IslandNextPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Página de la siguiente isla</value></data>
   <data name="MediaPrevious.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Pista anterior</value></data>
-  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>Posición estimada. Este reproductor no proporciona una línea de tiempo confiable; Es posible que las letras no estén sincronizadas y la búsqueda no esté disponible.</value></data>
+  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>Posición estimada. Este reproductor no ofrece una línea de tiempo precisa; la letra podría desincronizarse y no es posible adelantar o retroceder la pista.</value></data>
   <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Página anterior de la isla</value></data>
   <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Siguiente pista</value></data>
   <data name="MediaPauseLabel" xml:space="preserve"><value>Pausa</value></data>
@@ -518,7 +513,6 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="MusicApplicationsEmpty" xml:space="preserve"><value>Reproduzca música para descubrir aplicaciones multimedia.</value></data>
   <data name="WidgetCenter" xml:space="preserve"><value>Centro</value></data>
   <data name="LyricsProvider" xml:space="preserve"><value>Proveedor de letras preferido</value></data>
-  <data name="LyricsFallbackHelp" xml:space="preserve"><value>La búsqueda sigue al proveedor preferido → copia de seguridad opcional → proveedores restantes cuando está habilitado. Sin una copia de seguridad o una búsqueda de proveedor restante, solo se utiliza el proveedor preferido. El modo local permanece fuera de línea.</value></data>
   <data name="LyricsBackupProvider" xml:space="preserve"><value>Proveedor de letras de respaldo</value></data>
   <data name="LyricsBackupProviderNone" xml:space="preserve"><value>Ninguno</value></data>
   <data name="LyricsSearchRemainingProviders" xml:space="preserve"><value>Buscar proveedores restantes</value></data>
@@ -542,7 +536,6 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="MusicArtwork" xml:space="preserve"><value>Mostrar carátula del álbum</value></data>
   <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>Locales LRC</value></data>
   <data name="IslandHideDelay" xml:space="preserve"><value>Retraso para ocultar</value></data>
-  <data name="WidgetRight" xml:space="preserve"><value>Derecha</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>Izquierda</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Habilitar letras</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Cargando letras…</value></data>
@@ -560,7 +553,7 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="LyricsProviderNetEase" xml:space="preserve"><value>NetEase Cloud Music</value></data>
   <data name="LyricsLocal" xml:space="preserve"><value>Locales LRC</value></data>
   <data name="WidgetsEditorMode" xml:space="preserve"><value>Modo editor de widgets</value></data>
-  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>No se pudo guardar este cambio. Se restauraron sus configuraciones anteriores.</value></data>
+  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>No se pudo guardar este cambio. Inténtalo de nuevo.</value></data>
   <data name="WidgetsCompactMode" xml:space="preserve"><value>Compacto · Izquierda / Centro / Derecha</value></data>
   <data name="IslandExpandedScale" xml:space="preserve"><value>Escala del modo ampliado</value></data>
   <data name="WidgetsReset" xml:space="preserve"><value>Restablecer el diseño del widget</value></data>
@@ -653,7 +646,6 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>Vista previa de letras traducidas</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>Restablecer tamaños de letras</value></data>
   <data name="AiLyricsTitle" xml:space="preserve"><value>Letras con IA</value></data>
-  <data name="AiLyricsDescription" xml:space="preserve"><value>Traduce localmente las letras sin traducción al idioma elegido: chino simplificado o inglés. Las traducciones del proveedor en el idioma elegido tienen prioridad. La primera traducción completa puede tardar varios minutos, según el equipo y la longitud de la letra. Las líneas traducidas aparecen a medida que están listas. La IA puede traducir mal el sentido; las letras no se envían para traducirlas mediante IA.</value></data>
   <data name="AiLyricsEnabled" xml:space="preserve"><value>Utilice la traducción de letras IA</value></data>
   <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU aceleración</value></data>
   <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>Prefiere una traducción GPU compatible para IA. Si la aceleración GPU no está disponible o falla, la aplicación utiliza CPU en su lugar. Desactívelo para usar solo CPU. Cambiar esta preferencia no activa IA ni descarga un modelo.</value></data>
@@ -718,16 +710,14 @@ Se descargará un modelo en este equipo. La conexión a Internet solo se utiliza
   <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>Reanudar traducción IA</value></data>
   <data name="AiLyricsDeleteModel" xml:space="preserve"><value>Eliminar modelo</value></data>
   <data name="AiLyricsClearCache" xml:space="preserve"><value>Borrar caché de letras</value></data>
-  <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>¿Eliminar {0} y su descarga parcial? Si este modelo está habilitado, la traducción IA se desactivará. Se mantienen otros modelos y letras originales.</value></data>
   <data name="AiLyricsModelDeleted" xml:space="preserve"><value>Modelo eliminado. Puedes descargarlo nuevamente más tarde.</value></data>
   <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>¿Eliminar letras originales almacenadas en caché, traducciones de proveedores y traducciones IA? La inferencia actual se detendrá. Los modelos descargados y sus archivos de letras se conservan.</value></data>
   <data name="AiLyricsCacheCleared" xml:space="preserve"><value>Caché de letras borrado.</value></data>
-  <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>El tiempo de ejecución sin conexión está incluido en la aplicación; no se requiere descarga de tiempo de ejecución adicional. La extracción en tiempo de ejecución utiliza hasta aproximadamente {0} MiB de espacio adicional en disco. Permita 64 MiB adicionales de espacio libre en disco para la descarga y recuperación del modelo.</value></data>
   <data name="AiLyricsTranslating" xml:space="preserve"><value>Traduciendo localmente... La primera traducción completa puede tardar varios minutos. Las traducciones completas aparecen línea por línea; Las líneas inacabadas mantienen la letra original.</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>La traducción IA no está disponible temporalmente. Las letras originales no cambian.</value></data>
   <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>Traducción de IA lista.</value></data>
-  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Las letras en línea envían el título de la canción actual, el artista, el álbum y la duración a los proveedores de letras permitidos por su configuración. Las instalaciones nuevas permiten letras en línea con NetEase primero, sin respaldo y con la búsqueda del proveedor restante habilitada. Puedes desactivar las letras o cambiar de proveedor en cualquier momento. Elija Local LRC para leer sus propios archivos de letras sin solicitudes del proveedor. La traducción IA permanece en este dispositivo.</value></data>
-  <data name="AiLyricsClearingCache" xml:space="preserve"><value>Borrando la caché de traducción IA…</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Las letras en línea envían el título, el artista, el álbum y la duración de la canción actual a las fuentes de letras que tengas habilitadas. Las instalaciones nuevas usan NetEase como primera opción, sin una fuente alternativa configurada y con la búsqueda en otras fuentes activada. Puedes desactivar las letras, cambiar de fuente o elegir LRC local para leer sin conexión. La traducción con IA siempre se realiza en tu dispositivo.</value></data>
+  <data name="AiLyricsClearingCache" xml:space="preserve"><value>Borrando la caché de letras…</value></data>
   <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>Elige lo que se ejecuta en segundo plano</value></data>
   <data name="FirstRunPrivacyBody" xml:space="preserve"><value>El Espacio temporal funciona sin registrar el portapapeles. Si activas el registro, DropSpace guarda localmente el texto, las imágenes y las referencias de archivos copiados, incluso cuando cierras la ventana y queda en la bandeja. En Portapapeles y Configuración puedes pausar el registro, borrar el historial y cambiar las reglas de conservación. Cerrar la ventana y dejarla en la bandeja no cierra la aplicación; selecciona Salir para detener DropSpace. Puedes cambiar estas opciones más adelante.</value></data>
   <data name="FirstRunClipboardChoice" xml:space="preserve"><value>Habilitar la grabación del portapapeles local</value></data>
@@ -743,10 +733,10 @@ Se descargará un modelo en este equipo. La conexión a Internet solo se utiliza
   <data name="MusicReconnectFailed" xml:space="preserve"><value>No se pudo volver a conectar la música. Pruebe el botón de actualización nuevamente.</value></data>
   <data name="MediaNextLyricLabel" xml:space="preserve"><value>Próxima letra</value></data>
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>Mostrar Isla dinámica sobre aplicaciones a pantalla completa</value></data>
-  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Permita que una isla con contenido o residencia habilitada aparezca en aplicaciones de pantalla completa. Cuando esté desactivado, utilice el retardo para ocultar.</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Mostrar la isla sobre aplicaciones en pantalla completa cuando tenga contenido o la visualización permanente esté activada. Al desactivarse, se aplicará el retardo de ocultación.</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>Mostrar IA etiqueta de letra</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>La traducción local no pudo confirmar suficiente memoria disponible. Libere memoria o elija el modelo más pequeño y luego vuelva a intentarlo.</value></data>
-  <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU servidor</value></data>
+  <data name="AiLyricsGpuBackend" xml:space="preserve"><value>Motor de GPU</value></data>
   <data name="AiLyricsGpuAutomatic" xml:space="preserve"><value>Automático</value></data>
   <data name="AiLyricsCudaComponents" xml:space="preserve"><value>Abra el administrador de componentes DLC</value></data>
   <data name="AiLyricsCudaTitle" xml:space="preserve"><value>Descargar CUDA componentes de aceleración</value></data>
@@ -760,8 +750,8 @@ Se descargará un modelo en este equipo. La conexión a Internet solo se utiliza
   <data name="AiLyricsLastBackend" xml:space="preserve"><value>Última inferencia completada: {0} ({1})</value></data>
   <data name="AiLyricsRuntimeFailure" xml:space="preserve"><value>Registro de tiempo de ejecución: solicitado {0}, intentado {1}; {2}; motivo: {3}; código de salida: {4}.</value></data>
   <data name="AiLyricsExitNotObserved" xml:space="preserve"><value>no observado</value></data>
-  <data name="AiLyricsWorkerStopped" xml:space="preserve"><value>La aplicación despidió a este trabajador.</value></data>
-  <data name="AiLyricsWorkerExited" xml:space="preserve"><value>No se solicitó ningún despido forzoso.</value></data>
+  <data name="AiLyricsWorkerStopped" xml:space="preserve"><value>La aplicación detuvo este proceso en segundo plano.</value></data>
+  <data name="AiLyricsWorkerExited" xml:space="preserve"><value>No se solicitó el cierre forzoso del proceso.</value></data>
   <data name="AiLyricsCpuFallbackAttempted" xml:space="preserve"><value>Se intentó recurrir a CPU; consulte la última inferencia completa para obtener un resultado exitoso.</value></data>
   <data name="AiLyricsInferenceFailed" xml:space="preserve"><value>Este intento no se completó.</value></data>
   <data name="AiLyricsRetryGpu" xml:space="preserve"><value>Reintentar GPU en la siguiente inferencia</value></data>
@@ -800,16 +790,16 @@ Se descargará un modelo en este equipo. La conexión a Internet solo se utiliza
   <data name="DlcResume" xml:space="preserve"><value>Reanudar descarga</value></data>
   <data name="DlcDelete" xml:space="preserve"><value>Desinstalar</value></data>
   <data name="DlcRetry" xml:space="preserve"><value>Reintentar</value></data>
-  <data name="DlcCancel" xml:space="preserve"><value>Cancelar descarga</value></data>
+  <data name="DlcCancel" xml:space="preserve"><value>Cancelar</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>Comprobando componentes locales...</value></data>
   <data name="DlcNotInstalled" xml:space="preserve"><value>No instalado</value></data>
   <data name="DlcReady" xml:space="preserve"><value>Instalado</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>Descarga incompleta. Reanudar o eliminar archivos descargados.</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>Descargando…</value></data>
   <data name="DlcVerifying" xml:space="preserve"><value>Verificando e instalando...</value></data>
-  <data name="DlcCanceling" xml:space="preserve"><value>Cancelando descarga…</value></data>
-  <data name="DlcCanceled" xml:space="preserve"><value>Descarga cancelada. Elija Descargar para continuar.</value></data>
-  <data name="DlcRemoving" xml:space="preserve"><value>Deteniendo IA y desinstalando…</value></data>
+  <data name="DlcCanceling" xml:space="preserve"><value>Cancelando…</value></data>
+  <data name="DlcCanceled" xml:space="preserve"><value>Descarga cancelada. Selecciona «Reanudar descarga» para continuar.</value></data>
+  <data name="DlcRemoving" xml:space="preserve"><value>Eliminando y limpiando…</value></data>
   <data name="DlcDownloadFailed" xml:space="preserve"><value>La descarga falló. Vuelva a intentar continuar.</value></data>
   <data name="DlcDeleteFailed" xml:space="preserve"><value>La desinstalación falló. Vuelva a intentar liberar recursos y eliminar el componente.</value></data>
   <data name="DlcInspectFailed" xml:space="preserve"><value>No se pudieron comprobar los componentes locales. Vuelva a intentarlo.</value></data>
@@ -821,18 +811,18 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="DlcSource" xml:space="preserve"><value>Fuente: {0}</value></data>
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} progreso de descarga</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}: {1}</value></data>
-  <data name="DlcOperationFailed" xml:space="preserve"><value>No se pudo abrir esta acción. Intentar otra vez.</value></data>
+  <data name="DlcOperationFailed" xml:space="preserve"><value>No se pudo completar esta acción. Inténtalo de nuevo.</value></data>
   <data name="DlcCudaPurpose" xml:space="preserve"><value>Aceleración de letras IA sin conexión en GPU NVIDIA compatibles; reutiliza los modelos instalados.</value></data>
   <data name="DlcCudaUnsupported" xml:space="preserve"><value>Se requiere un controlador NVIDIA compatible.</value></data>
   <data name="DownloadCustom" xml:space="preserve"><value>Descargar un archivo personalizado</value></data>
-  <data name="DownloadUrl" xml:space="preserve"><value>Descargar URL</value></data>
+  <data name="DownloadUrl" xml:space="preserve"><value>URL de descarga</value></data>
   <data name="DownloadSaveTo" xml:space="preserve"><value>Guardar en</value></data>
   <data name="DownloadFileName" xml:space="preserve"><value>Nombre de archivo</value></data>
   <data name="DownloadAutoName" xml:space="preserve"><value>Déjelo en blanco para inferir del URL</value></data>
   <data name="DownloadStart" xml:space="preserve"><value>Iniciar descarga</value></data>
   <data name="DownloadOpenFolder" xml:space="preserve"><value>Abrir carpeta</value></data>
   <data name="DownloadChoose" xml:space="preserve"><value>elegir</value></data>
-  <data name="DownloadSettings" xml:space="preserve"><value>Descargar configuración</value></data>
+  <data name="DownloadSettings" xml:space="preserve"><value>Ajustes de descarga</value></data>
   <data name="DownloadConcurrentCount" xml:space="preserve"><value>Descargas simultáneas</value></data>
   <data name="DownloadConnections" xml:space="preserve"><value>Conexiones máximas (1–256)</value></data>
   <data name="DownloadConnectionsHint" xml:space="preserve"><value>Compartido por archivos, modelos y componentes. Las conexiones aumentan a medida que avanza la transferencia. Los archivos pequeños y los servidores sin soporte de rango seguro utilizan menos conexiones.</value></data>
@@ -886,7 +876,7 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="DownloadRemoveHistory" xml:space="preserve"><value>Eliminar del historial</value></data>
   <data name="DownloadRecoveryWarning" xml:space="preserve"><value>Algunas descargas no se pudieron restaurar. Verifique el almacenamiento disponible y los permisos de carpetas.</value></data>
   <data name="DownloadQueueTimedOut" xml:space="preserve"><value>La cola de espera de descarga expiró. Vuelva a intentarlo.</value></data>
-  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>La descarga expiró. Se han mantenido avances reanudables.</value></data>
+  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>Se agotó el tiempo de espera de la descarga. Inténtalo de nuevo.</value></data>
   <data name="DownloadStageChecking" xml:space="preserve"><value>Comprobando archivos existentes</value></data>
   <data name="DownloadStageQueued" xml:space="preserve"><value>Esperando para descargar</value></data>
   <data name="DownloadStageWaitingConnection" xml:space="preserve"><value>Esperando una conexión</value></data>
@@ -950,7 +940,7 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Pulsa el atajo</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>Guardar</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>El atajo no está disponible o ya está en uso. Elige otra combinación.</value></data>
-  <data name="DlcStorageSummary" xml:space="preserve"><value>Espacio total de DLC: {0}</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>Espacio usado por complementos: {0}</value></data>
   <data name="ReferenceWindowTitle" xml:space="preserve"><value>Referencia temporal</value></data>
   <data name="ReferenceKeepOnTop" xml:space="preserve"><value>Mantener en primer plano</value></data>
   <data name="ReferenceFitImage" xml:space="preserve"><value>Ajustar imagen</value></data>
@@ -979,7 +969,7 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="RetrievalAll.Content" xml:space="preserve"><value>Todos</value></data>
   <data name="RetrievalRecent.Content" xml:space="preserve"><value>Recientes</value></data>
   <data name="RetrievalPinned.Content" xml:space="preserve"><value>Fijados</value></data>
-  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>No hay elementos coincidentes. Añade una carpeta en Ajustes para recibir archivos nuevos.</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>No se encontraron elementos coincidentes.</value></data>
   <data name="RetrievalCopy.Content" xml:space="preserve"><value>Copiar</value></data>
   <data name="RetrievalPreview.Content" xml:space="preserve"><value>Vista previa</value></data>
   <data name="RetrievalReference.Content" xml:space="preserve"><value>Referencia</value></data>

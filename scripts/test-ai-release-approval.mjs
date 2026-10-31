@@ -349,7 +349,7 @@ export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
 export const betaHostExperimentalModelsStatus = 'owner-authorized-beta-host-experimental-models';
-export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.5';
+export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.6';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));

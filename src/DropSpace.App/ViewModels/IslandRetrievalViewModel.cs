@@ -30,6 +30,7 @@ public sealed class IslandRetrievalViewModel : ObservableObject, IDisposable
     private int _filter;
     private ItemCardViewModel? _selected;
     private AppUiMessage _status = AppUiMessage.Empty;
+    private bool _statusFromRefresh;
 
     public IslandRetrievalViewModel(MainViewModel main, IRecentItemsService recent,
         ClipboardCaptureService clipboard, QuickPreviewService previews, ReferenceWindowService reference,
@@ -144,13 +145,21 @@ public sealed class IslandRetrievalViewModel : ObservableObject, IDisposable
             // A passive refresh must also preserve the deliberate absence of a selection.
             // Arrow navigation or an explicit click chooses a result; arrival never does.
             SelectedItem = Items.FirstOrDefault(card => card.Id == selectedId);
+            // Only this query's previous failure is repaired by a successful read.
+            // Passive arrivals must not erase copy/validation/action feedback.
+            if (_statusFromRefresh)
+            {
+                _statusFromRefresh = false;
+                _status = AppUiMessage.Empty;
+                OnPropertyChanged(nameof(Status));
+            }
             OnPropertyChanged(nameof(Empty)); OnPropertyChanged(nameof(CanKeep)); OnPropertyChanged(nameof(CanReference));
         }
         catch (OperationCanceledException) { }
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "Island retrieval query failed.");
-            if (revision == _revision) SetStatus("SearchUnavailable");
+            if (revision == _revision) SetStatus("SearchUnavailable", fromRefresh: true);
         }
     }
 
@@ -224,7 +233,8 @@ public sealed class IslandRetrievalViewModel : ObservableObject, IDisposable
 
     private void ReportFailure(Exception exception)
     { _logger.LogWarning(exception, "Island retrieval action failed."); SetStatus("ClipboardIslandActionFailed"); }
-    private void SetStatus(string key) { _status = AppUiMessage.Resource(key); OnPropertyChanged(nameof(Status)); }
+    private void SetStatus(string key, bool fromRefresh = false)
+    { _statusFromRefresh = fromRefresh; _status = AppUiMessage.Resource(key); OnPropertyChanged(nameof(Status)); }
     private void OnRecentChanged(object? sender, EventArgs args) => RequestRefresh();
     private void OnCaptured(object? sender, DropItem item) => RequestRefresh();
     private void OnSpaceChanged(object? sender, SpaceProjectionChangedEventArgs args) => RequestRefresh();

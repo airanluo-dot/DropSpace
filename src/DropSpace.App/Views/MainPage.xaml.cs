@@ -1500,7 +1500,7 @@ public sealed partial class MainPage : Page
         {
             var confirmed = await ShowConfirmationAsync(
                 _strings.Get("RemoveConfirmTitle"),
-                card.IsFileReference
+                card.IsFileReference && card.Item.Payload is null
                     ? _strings.Format("RemoveFileReferenceContent", card.Title)
                     : _strings.Format("RemoveStoredItemContent", card.Title),
                 _strings.Get("RemoveConfirmButton"));

@@ -112,8 +112,8 @@
       "b3e37d48d233099af47e2df57da73336401e0459eda9cc8e55207df66514253f"
     ],
     "CloseToTrayContent": [
-      "5b45d669328ecdf8e4579164abf9602c00cd7ebaf991bc73d046087393b55683",
-      "6084966b9305b4de6de6cb238ed49163f750ffea93480ebca37811fd61bef561"
+      "a9d8c6251eace642fe084611891f7c795d0a02f27b9209fb4d77bcdffbf1d350",
+      "07d78eb3079e74d8b11cd4c671161a1cbb54f5ce06f8ea4bcc3d62087c097b76"
     ],
     "CloseToTrayTitle": [
       "ccc8262dc47a066098d02b1f6e4cdc67308c268d51ed0e387074aedef54bb928",
@@ -164,16 +164,16 @@
       "e9b3dabdb5c7808b2447c33cdd3cecf7833889841d5bac857ef428258fda311b"
     ],
     "EmptyPinnedDescription": [
-      "c5871a0239510f85a16ee7f557ad6f47120a71718af81867be9624078c3f23d5",
-      "5327cc70b7f1f622a6cef15958bb5f9b64934203879b7b3ce3ef32b213d4dd67"
+      "6f451b8666d04f01d889e9cd6d560922572fd9649cceaf93c7d9ede0615333a0",
+      "7d5d237fb363cf2b22b4d94848cd5d22de51f70684dcb9932371800d91bfcd68"
     ],
     "EmptyPinnedTitle": [
       "efb116778b9c756e1185ca37695a0703ac5ec390a0e10841190fed2b8ee008a1",
       "c9e1e426401ac82d777e8224004033250b781e09f862ae29b45e4a1fbb3a654e"
     ],
     "EmptySpaceDescription": [
-      "0047b3f290da9c4e5afe1cf0ce4d061efd865e4a81c19d09ce19140ac798fbcd",
-      "308a3b947a5bde0a09a2f9bd6e079d53bb63794bec0964a936782024ae170a71"
+      "0499d5c7a68171358e13b5b120764a974a9f0e19c09da4199deb1ec898be078b",
+      "8d86a222bde2904fc985c89599be8b69b5936e52f44c7cf4b71f3eda7be681f3"
     ],
     "EmptySpaceTitle": [
       "e21d7bef1015b38d64d40b5c0c2cce6c69c7660561d08ff85dc658bc9177fb5b",
@@ -348,8 +348,8 @@
       "ff59257ce9cdf9a04147efa9e566ee3f49d56afb92ddc8764724a3166b0f3358"
     ],
     "OverlayDropSubtitle": [
-      "12f49242d3444bb889d7770640ed7cc012e514246312c1247064376b19ec3bff",
-      "24790e2175d5f8f38b4b31a2286999840cfe7e96ed80abf7164137ddb8407413"
+      "109be0546c1b1aabc87a6c4a26948c0529c2c8d16e5f97f533d0fafe2ddc61aa",
+      "3a1b51d867c5275cb6234d952086091c437312ece81e9c791225225a11ee299d"
     ],
     "OverlayDropTitle": [
       "c302b0656ff7dcb2f817337df444fac1fd2584e3ae2c9cd0c7cd33da06ac0f39",
@@ -372,8 +372,8 @@
       "3b4862dfc72a40814d168f698a078cfa8bda9fb904140988f0a8d27586ff7786"
     ],
     "PageDescriptionPinned": [
-      "1f7f46feb8455279c6484bcf6793ddb0e66cea2ee32764fcb3fd562e11d1d739",
-      "f6f84d7b85e88d6269d3ea336d1fc83cfd40f9c79def0e6fd55b151a03923afe"
+      "75b45ec3829d50c7240b593703c9e86b9cc98c843e85d643ea9097904b7f5bac",
+      "86a351c234482fa5403ad5d3fc9e108deb3953246ae50f32cc4d1152892fa86d"
     ],
     "PageDescriptionSettings": [
       "2ae611997635c1196c93e315c5d339cd5d7f4fc43ec93b46d141c9d6f76678f5",
@@ -423,17 +423,13 @@
       "2492ae897900ed2dd480abe6ac5c0e32035b71514ffac8985928620b3509a97c",
       "9caca57d59acf14b375c9a55e576c064c925044881bb6182ea9e071cf975c13b"
     ],
-    "ShareFilesFoldersOnly": [
-      "dc793ab68fb43e17e951c02e2bc6a9281e4827e8fd9490e4a756f0a1a9d4f0f5",
-      "6437c44433ad321849a0d814a4be990921e8431088b072c39c59ab9970861f9c"
-    ],
     "ShareItemsNotAdded": [
       "9512b5c02bad1ea0e44c61162833c175e6d338af3d75428f422864147f0bb574",
       "52aa2e4213c99d2622f6eacf420ff440d1516ade689530d79152a4bfe2cdb91c"
     ],
     "ShareNoAccessibleItems": [
-      "71b5374e66c71138568f48dfa1fb030a0c9660edfee4c613ac3b4fdc4cea3328",
-      "3a558602fe96bbe09e6505cf0222494f794f98d8c2380d482b04381019b216bf"
+      "36ce1a57050353514ecb1bcf12e16775f1810d9e3054becc5f0af4de975f60fa",
+      "c04cef1d55e139f8a85dd1f019340d6852dc3d6cf7c9650c6af03539c239465d"
     ],
     "ShareProcessingFailed": [
       "db14b1cbb2d5b78fe287e23c9098568af7d0ade058f3a8434e830001cc590203",
@@ -452,8 +448,8 @@
       "bd316fdd45a0f78f7c9bc174d0b489dd26ade13f364a9b11b65cd35b836ff7e9"
     ],
     "StorageSummary": [
-      "10fef6a3bfbeb36fefdd8fa6aea1989d928648242bb97ac5f927efd74bd1bf52",
-      "6d8c6fd861d90f9823ff610424b0beb9486501d7ad2c98ef92c0bfea767751fc"
+      "24e21cc50e14c092f8ed5343c56908a367d96e900659dbae5c5fa2b77170ae1b",
+      "a6ef65d71cb8bc333baf0978412aabdacd96557985973b7c53abf9bd81aed5f7"
     ],
     "StorageUnavailable": [
       "ca184496974204a0bd3fd4925e0540bc4b0df6fcc232994d29754272b7183812",
@@ -552,8 +548,8 @@
       "f8c1797bcf41b2c57610822398e830a8f3e69c019827217719e7d3087bcfac5f"
     ],
     "UpdateLastDownloadIncomplete": [
-      "692273fa28a8daab6787e84dd5a456d0a6f503988c1bf34344bd807126658796",
-      "007e2006bac58a2c5b1437390e0c945cc287ae3eaf2d82a1739858b9e26c47d3"
+      "d2046bd7adcf62abe94e3e4d7274c1a05924eb741a091b62b12a1cf8a7e89aff",
+      "e20265647dbcadfe115370dc5a181978fc7eab6eb3e0f1c712c0a7944c49277b"
     ],
     "UpdateLastInstallIncomplete": [
       "1d9f408b3039c9d282b03f8199aab4d01cce4e88c88bb71c9ff44d49bd6299bb",
@@ -608,8 +604,8 @@
       "4be22b5b7bb9d95478a5642164d8a9187f53b993299e73a00a073696ea13bd31"
     ],
     "WindowsSharePortableStatus": [
-      "a34d1ca9979da0eff740a9f1c72cce0a407297d7678e2bba6bb5e5bba47b691d",
-      "f517c23a5a350de00e33131c988c275102e5824402f844840c8fbcfc1f4cf550"
+      "ec1033fe2bdb0955807806e94b3729dcc4f5d93d80d716aedefc6232eff19634",
+      "299b258f25557a8fbed13a001b7af3593ac56de19c7afc5c3fa5af6a70e15117"
     ],
     "MainWindow.Title": [
       "f2cb1cc7b7060170fc26b22a4bd564c1dc219cb96bd5bc1fb5abd92afc299633",
@@ -784,8 +780,8 @@
       "93a294f3110696ddf985380e1a4a61ffcd2f0f2d21ee177571e72f1378db64ad"
     ],
     "DropHintTitle.Text": [
-      "2f7ecbd095f2da79b9b235a440d6f448d5801980dd4445b56c2121ab1a4f42dd",
-      "af570e2fc4e7c6c9191b6071ac72ce033cc1a9da17954e8674e5459816ab9d83"
+      "95580549125fc807a1f95ff73b19d7386d908d1f8d93d4380e055334ff9a21b4",
+      "edee798fba41008210be6c5caae631a7788d1ec15fda18ccc9ed7579f4ef8ef3"
     ],
     "DropHintDescription.Text": [
       "08e1eff3c4f84b80b187e6d6d4b7349b6ee8effd94179a8a87d22bf46d0e944f",
@@ -924,8 +920,8 @@
       "91a03501028067925c51d605a10ef79c3f90fb1fc8e846b05798d793464e81d0"
     ],
     "LanguageDescription.Text": [
-      "debe95c35b2ee4dea2975be4638d2813f8a93910535707e0d6ddc15c3c9bb333",
-      "6a8a4e25d94f977c267c11d399b4148a8a69cbf216c09aef91d8e829eab29662"
+      "2deea3a84ff37c912c8bad542ac05085e31308b2ae692c57d63bb9bc644dedd3",
+      "9f52e5d895d59120bfedc48828284c55005e0f0c1d94069ee01e4b22fecadb72"
     ],
     "LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name": [
       "11a045e402c3075300872244d81b30ab2c60da8d3f4c535bdc57d8226c6e77bb",
@@ -1008,8 +1004,8 @@
       "e4816563b8ee998784998372365b1ec9fbe11f44583d20cfdabae39369829a79"
     ],
     "CloseBehaviorDescription.Text": [
-      "00fb6f1df2bf59032865d2e7451a8c99dd159420565686b92ff4a3f369fdd385",
-      "8930f5561787bbff28c0c5ab8986dd96deb467c19634dcf4b8e4988d1fe4dec0"
+      "086f8d4ee4dec39db3c919e84a8c7e6240254e8bb466ad44c094f2aedb6c6b80",
+      "8069190eaa35e25f9a5013066057b0a91bb3c8655418c703553282ecb2928718"
     ],
     "CloseBehaviorHideToTray.Content": [
       "fac215487bcb7078f043c9191cb477ffc83ea78b9f6c2b6cb8f7cc0ae7a9e89a",
@@ -1035,21 +1031,13 @@
       "3c8cb277ccda975fe92f91f777e41ac357bf6634b6f7f36fbcfba9d2c7bd05f9",
       "7f73e7a5ab5ee2ee53cc5e8c537dac26fb9cf0820047b92b3680fe0873fdbbaf"
     ],
-    "AutoDownloadUpdatesDescription.Text": [
-      "07910aa9c95d56776293ef25b14feb4cb1a76527cd62a6632728e44c6eb4d5fd",
-      "dc481c6d77d9404c25565f5d4c1197f0bbfce49f59d9163322926b01c9611ac7"
-    ],
     "AutoInstallUpdatesTitle.Text": [
       "291fc4545a24fb98bf8b23ddcba8f9cb84aaea5f28581d8fec5518d192e91f59",
       "99dce3f21ecfb3a9f4fc64aa6da56a3dc24c4a6021d32194a959237641b9a04f"
     ],
-    "AutoInstallUpdatesDescription.Text": [
-      "90f50d708ac8b8b0f5e30df26d88db24a784b3a294a55ea5b9b6e84709ac8eee",
-      "84d0703a6a1aa53c9894c6508cc215ba98ff8367a72353dff2b043d394ff7359"
-    ],
     "UpdateChannelTitle.Text": [
       "d4fc4230730665f7ebdf52d3ae8071025bd92e41eb56efc7a0d8200d665addf4",
-      "c0f7de648c95ba114546313f04a9a87517d6f1ce503cc87ef7b0dee29acd1a42"
+      "b970b1675ae347eb505b86e98ad6e9bbf52ef13caef66c70235ec48a41d5311d"
     ],
     "UpdateChannelDescription.Text": [
       "362a24c136cbf24e5a5a0845083b0a134969c1b28d011df647f28bd0c38d6be1",
@@ -1084,8 +1072,8 @@
       "bc916c24bbc46ee2c93acef5a2abb4314db9f499a31b517b8d1e43eec2f0af9d"
     ],
     "LocalDataSection.Text": [
-      "222e5641c34487e3fc16d3066c0ee2b3619edab5bedeec283ed100419e0fe496",
-      "c2b6cacf1832c8fe7066a8808a1c50eee7901a3a41d82cda45b67d012c7b86d0"
+      "c0e21fcb045d04eff19b387ac935f00d5c720231fb6e65d72b17025ba56bf0df",
+      "575d66540a25be71cace3991c245d8d985f3d840f0d52f583407777896a8e722"
     ],
     "StorageLocationTitle.Text": [
       "a59e289477fe678fc83004fa3aedea5488f52993c3e9d4af683dc2da0a6b9eed",
@@ -1104,8 +1092,8 @@
       "b617c7fc7f9c1ca1284a6d32037703744e0f9c07ffcfcc1e0a0d841bf95e7a65"
     ],
     "ClearHistoryDescription.Text": [
-      "5a91a8e3dab432ae0a5e635805f9b800d2184d08e98daf31f990f8df897ece04",
-      "c51ec810a78973f4dc0cdfebd2e70687a1273e85b0b43fd3d0ff667d160773ce"
+      "40795082dad14d86a10e8939fd5b2f792d88743b0a7a64c08a2e418d9224a30c",
+      "c3b15a3e0807cf448da893fed2681c2233f5be46039374d3ee7366fef6219431"
     ],
     "AddTextUrlMenuItem.Text": [
       "be617e96fe834016b722275338d00311fa06e9ea0b6ffe3fb7177a463995b3cf",
@@ -1116,8 +1104,8 @@
       "39e04e00d6b69d3ad66df500c7bda70ddb4adccf1fd87f562493d23196223635"
     ],
     "AddTextUrlPlaceholder": [
-      "413f51df49266428ab88a8f3f89bff4e45272c287e8b2bbf5b73c5212e78b720",
-      "5596bdf712ce1d0f27f1fb8b97e16bb1917c14728ff38fe5bca5b69d978f03b2"
+      "4badb88dda7c7579291d446dc8c1082c29f7944862bd03c441b9cdcf1f184577",
+      "7f5aef6cfd1706334ed4cdde4d654feff77f0d172d6efbca59cc4147361838a4"
     ],
     "AddTextUrlConfirm": [
       "9fd728c66c9a256b121472dabf32a34317aed01d8427d70ec830289cf23a7cc8",
@@ -1129,7 +1117,7 @@
     ],
     "DropBatchLabel": [
       "ae1606f05a492a1ecf3f75395c83aa8ce06730f98cf0f079af0b9df426d8d99f",
-      "68ccdff48b528133d252705f9f2d41c2815a5b2226426c07cb40fcd3fa4c6a1a"
+      "e13f7c978849632bf89984d9396d18639f4d86bec468598ab2ded0aff54d0ac8"
     ],
     "CollapseBatch": [
       "be6eb1fc3b05bf9dceebad2eac7841d1b2f40bda9aa2da34df8ca22af02bc3ed",
@@ -1150,10 +1138,6 @@
     "IslandPlacementTitle.Text": [
       "2b4eee50696d42229f01982da84420af0fa95718a40cc0cc3f0e3d6f9495ef93",
       "15b9b716b3f3719e4fd91b4475e74933e7df623036c95d6f8bf92033eaceeacc"
-    ],
-    "IslandPlacementDescription.Text": [
-      "24f20299e20064ad58084a654db09970f9836758f630f17d4f7d098379e54a45",
-      "e0725dc8f907051c382f71c7e456167808ab0a4ffd862ad423088f9cf272ed52"
     ],
     "IslandPlacementAutomatic.Content": [
       "d461a493a3753877c9486cffa3444265a33370af8a7fff242fb119b71750839c",
@@ -1224,8 +1208,8 @@
       "7619a307f23de408d571d9241d21df533c96245bc921e9d2f75759581a6f5551"
     ],
     "PreviewUnavailable": [
-      "442b27c18a69752818e44c98dfa74b5c7cf9d148a66d44e7527ce50320ce50a5",
-      "afda035db84a05a848f9f0fb5a453c1c5ffdf06974532a7f3f9250d3d0218a95"
+      "23acede4d26b537baa5ebf430656c30002fb936fb34bc5115d46404dde554539",
+      "ef41aba7b12582f9c1649ac95e28811cd6e56591ec5186adf38242b1144b4431"
     ],
     "ActionCompleted": [
       "8060fc60fb92ee75920ead4140df83561dbd2bae6b20597f9a63f3fff7394893",
@@ -1277,7 +1261,7 @@
     ],
     "QuickActionDestination": [
       "b41ff597266f615fc803d36be3d68c05533d7090fd70467c86fc059174124840",
-      "a983cda3992aa4c3f08ed5cd8d13aa3b660261a914fa146aa21d03a67eda7d57"
+      "44c4dbe70e84b4f6ba313f018a552162ea90f9693c90d7743502c5bbb480099f"
     ],
     "QuickActionDefaultDestination": [
       "842d400efdf292b0115218687aed0b6a70708d99bff3de84cd2b83696ffdaf86",
@@ -1367,10 +1351,6 @@
       "1613ea09dbd0c65d988166d7fe8ffa6634eff521f190ede887defe3331312c0c",
       "3ab3dacd86177206f3a2ab2b4af8b3db9addc58afd368bca3b2f52485d96dff8"
     ],
-    "DevicesSharingDescription.Text": [
-      "e843c3e68d340e5f42adaee67dab3f99f4e067906f7a68abd83c6659e6b7d84d",
-      "92b5e5bf5225f73306dc22a7d3aaa1c500572e36d37cbcda1a20d8f7c8f61142"
-    ],
     "DeviceHandoffTitle.Text": [
       "3777c17bc32450659d226c1e9815667d6b58082fc9e6891457cf2b7cf6761f5d",
       "6d09771869de29e4d01ee7d0a83c4c8e601f9e01b74b4646aea996f991674a9b"
@@ -1400,8 +1380,8 @@
       "ce7b78efa5889ee23f99505a8bb8b5c711afdf9d209d3738de1edebea6d7ab8c"
     ],
     "DefaultClipboardSyncModeDescription.Text": [
-      "a2290679840f5989af79d2976ae5f88e50a03c34f8a9e9fd5f718585256668b4",
-      "581a19cf9df6f90755a013f26bfb1587282f95a447d8657a3692f4c63eccdfc7"
+      "f84cdf03503092c5db0ef43a040c6d416e4f33fc2a7e2a3311591b0919e1d652",
+      "4abac10aefff3eee44b411246052544a2ce2421c8486eca5174dc436db84f9d3"
     ],
     "ClipboardSyncModeOff.Content": [
       "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1",
@@ -1476,8 +1456,8 @@
       "8bccbf1fd5fd7574d0578dbee0bc5cdc59a6732ef03dbeb083effad6f2ef863f"
     ],
     "DeviceServiceReady": [
-      "68565cb9f3a27d94fb0316da41360e5e4c7c6960eb995951b2d2aa81f18ca888",
-      "f65216895046b7766bd1eec17ed6f20afc70998f34ae21bdcf66ac99105027af"
+      "1898a67be587edbd7620be8a58af7ab7a29cd05792ea8b44c4cb583a358bf2c3",
+      "40f528ddb78ede815f7f40f62038392cd432c21220133bf6c7d3d6da9a73d5c6"
     ],
     "DeviceServiceBlocked": [
       "258386990ad3bc734114895098dacae5b9d721627ecd7c37ffff6fb356b501e9",
@@ -1505,7 +1485,7 @@
     ],
     "IncomingTransferTitle": [
       "7707ba3286f7a50db516d275eaa51f88515fcd0c76d88812fa7117a3b8b5d264",
-      "207ff8d9e4c58be00281e354ae5a95bd1b3e2eba54177843c75e654d8ae16fb7"
+      "6ed8adb067bc49983b53177d2ccbe04bf4dc80a6c5bc3244044b488c0bf477fd"
     ],
     "IncomingTransferContent": [
       "92051c848e523d8ab8b6256828716ed4fe695257acd9f9b34595afb9eca9cbe1",
@@ -1552,8 +1532,8 @@
       "fdcbbf01220b1b922d04c2929eca4972a808470e36868ca4b366ec0a4cb7738e"
     ],
     "TransferSentContent": [
-      "51a3a5660b8e12fff18d31d28f147f4b83b12f5bf80612f55965deb3a8420c7b",
-      "cc22e39225724cc9440e96ea998c8cde19e2d5210d91de9894a768f065a50bc2"
+      "137d4cb0944e5472fc1775b870d9aa94046d7f4ff170ee5ee1fd95055843b9a3",
+      "0b800fe403a868c7e5cf4c362912cc821f82f612968046a5b0d46fde8f6ce179"
     ],
     "TransferUnavailableTitle": [
       "59a362959398911763417d8690deab34b43f1b0bd2f5084e10bc382d643c43ec",
@@ -1628,8 +1608,8 @@
       "553c43c9d58923ba5757157f90360c2c72caa0f64ebfd9ca1244f4e715507c37"
     ],
     "QuickActionsDescription": [
-      "b026969b2de047174dca2ad90cb2ffbde35f7c4845c03798202fff5a5fb89619",
-      "489b451f9b4d110c39751cb5aee0d818ea349b763605ff55eff36a666e7727da"
+      "4ef4637ed02b545b5378a22937a8d5bd7513fd95c36722818ee5bdcf770c3bbc",
+      "9ff98db1f0e21818047ce8d94cd296f16acf14968897a68124ff99400f500443"
     ],
     "QuickActionFiles": [
       "f78cb14a525d9ab25ff880832d77d418e2b646dc784e6b4fb1a23ac46b553305",
@@ -1764,8 +1744,8 @@
       "27426243337371bef54385e3fadb7708543cd4cb82096263053e4664feac26ff"
     ],
     "NetworkActionSetupRequired": [
-      "4ddb53aacfe9e71504323b7e28839f442275fe3eb62c0370dbc4c85968d7d644",
-      "5500761cb59e24e833b4b7d042b43a4e491e0952e13eb09934e7f354eb35c9d8"
+      "acd08028acbab6bd2bf749f31d54588ea53c1cdf81302dd6d93120045cc66921",
+      "c97258651d63f60c7dcc8c4435a5669339636784ed7e765e59e512bc87ea5880"
     ],
     "SettingsRecoveryFailed": [
       "e09329b4310a698c6d358e1d780c4b05ccd70e8eafe1f2c09eecc5fdfe8896e3",
@@ -1805,7 +1785,7 @@
     ],
     "MediaEstimatedTimeline": [
       "78937ab73b9d5e6b38bdb67a9dce94c7d8a37e3bfb966cfedb968781d7dc89a0",
-      "aeec31029c2ba5a17c77abc9192b3b364979da6c745d239c512e6ab3a08ced2e"
+      "5c69e24377d430565e2ae962ca2e32a8d8782f4974ad8bbc29f6fa1f3ba98c7d"
     ],
     "IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name": [
       "360928fabffc1afad9f502e01f86509fd71c5e9908af7d93adb22dd4165ced22",
@@ -1919,10 +1899,6 @@
       "7d23be8d640dcc57db9e11facb7e597ded469182248757c2ab0ca6d40b2af033",
       "a07f2ee66717f67c47a836b20bf77f6b2cb4857e15f78a1de64a30646209d4d2"
     ],
-    "LyricsFallbackHelp": [
-      "7dce82fc2335f5f2a6bc5d540f0ffb8e9ef6c19bc3d5402133f833112aa779f1",
-      "e9bb6e90a18e47e6a66ba7a37bd8717cb973af8a1a8e826c236889cb95ffde1d"
-    ],
     "LyricsBackupProvider": [
       "89e558bc03c71a2ceb8659bf844d7115969bde87aa106d958114a8830d76c048",
       "54e084612f564807e4a09205c44ef9599e707b4b1f1c3281a8efa478826868a4"
@@ -2015,10 +1991,6 @@
       "87e2a93c73fa4120771ff3a19081e1c6e10921167e2080fd8b821a08aff3fc42",
       "aeff07ebeadc2ef30a2b1906b443cfc43903b94066525e69894f1035ea1f9399"
     ],
-    "WidgetRight": [
-      "883361d5d682a1574410961ce51450b6e036a779c9f098dec71e28aec832bfa6",
-      "f594aa6a15b9381c0df796aa189e6a211a5b84d6f846c83fcab4ea7ffe7cff2b"
-    ],
     "WidgetLeft": [
       "58eb9032e3bb83f0e39d644ebc87ca254117b95bf458483bec7379bea0b419d0",
       "dc0103c11a2b107bbc7ce002fd88efdafb47bd221ad5547ff155a6d8d7ac85d5"
@@ -2088,8 +2060,8 @@
       "2579fd963c5c8fa1366884ac6ef419a909f7e3352a4ed229a2c08161b17dbe36"
     ],
     "NativeSettingsSaveFailed": [
-      "f004b406b97b0e9aba5731e5c09ff2e94c49a042e1862b1531dd3b34fa05c67f",
-      "87d332661202d41d0e3c7d1f7e7e1c59472b0a0883a29722344da84dac2d9706"
+      "e8427e4fa5c744fe2dea7ee316955df2b851aaff5ca764570278d4569f41e0dd",
+      "5861dca1d2ad3eb5e712b762323250eb6e4f59799ff8475370cab4f296f9b148"
     ],
     "WidgetsCompactMode": [
       "d091c9fa6b4f03f6fb816b80dd0fc1d97e864205a32c450537002769d8dcb05e",
@@ -2443,10 +2415,6 @@
       "7664bf7caae622ab919c02451ebf6bc23e584829c6655b07bdad52da23e28004",
       "20c96d3bc51f8a22f600d30d536519e0c1a3028b284dab613088fd634cb7345c"
     ],
-    "AiLyricsDescription": [
-      "fe31d489d1e9b41224b28d29aafccbf6f14ad74fa10bc5545ff99e63dc50030b",
-      "cb510678581955a4cd4bd2ca53cdf780dfcfc6f97a12dcc1fa79bf1bdc24c7c2"
-    ],
     "AiLyricsEnabled": [
       "75cd351a42c965e1c631a5db4e4c4264ac5093b9df4c0409da075889e8e8cb61",
       "0aabbfc20ca7ec6761698c593458a1a7937016e160b9e41bcd1de6c10d04df0a"
@@ -2675,10 +2643,6 @@
       "47f8637b156002bc7994d895675b9b6a72912c8ef624b199c1c7f207cb0c18cc",
       "bebb42258d14ddfd6bf3c219cfe67c3d6206528100f1354804a64ea3b6f5ac4e"
     ],
-    "AiLyricsDeleteConfirm": [
-      "fa8cf78be958bd789f5384fdf25f85eeb962f698d6ff9475b7d2a91b2e8c0102",
-      "e589a9f88fddeed762ec21f9e6a4ebac39bdabd1b665854c53b657469271fc2b"
-    ],
     "AiLyricsModelDeleted": [
       "65f30d969d5e18aa1b2bf26fe810bd4520985c9f8e9382c29a1056afa2231dda",
       "229f451488ede84587773280adf7ab721bbbc9f02fbd7b3ee9cc1c60fb767f48"
@@ -2690,10 +2654,6 @@
     "AiLyricsCacheCleared": [
       "02ffbb8b1e52e446672c894163cca15a41964fe8674471b6735d3944bbccc5dc",
       "fa995fe6453ce42a838043deefdaff1fc587735b84918e718ad2e227a3bdad3c"
-    ],
-    "AiLyricsRuntimeIncluded": [
-      "94215aa63d0472259f81a66731dce91753a31006188143a2e997d84aff38f586",
-      "3799b8d0b460231f737fc9f69dbb668965766e5906ee76551d13fa012be6795d"
     ],
     "AiLyricsTranslating": [
       "e7898ca1f1db9418a56ec292ad8312799695f5d5d9f57741e5998f5e0d6a6dbf",
@@ -2708,12 +2668,12 @@
       "94f404afb2ec7971874989046aab33593cbd57cba6bfd16bffdad313945360f4"
     ],
     "LyricsOnlinePrivacyHelp": [
-      "4d0fa70536640c0f4baccec835466e9696823f5262131a1632cdb23ebd0123d7",
-      "cc70f389e80563d41ee0c959888e60ad7a0b427458ecdd5da9e4f6c2cae0bf91"
+      "e5d2563c419d2e3b8fee0a59c3bdf301c0ee3d232599af7557e763a870003a16",
+      "f64b464bc97ca314fdd32c441a15bf355da3ff8bb64e75118a7db3c3425d99df"
     ],
     "AiLyricsClearingCache": [
-      "c2ff9d4b18fa45af845f2f44578c05e9b67f39ba2f6d8b2059cc33d2cde41a85",
-      "51e1b18a4393cd0830dfdfba6190b661a97a700af968c6d8cef83c7f519a41d7"
+      "3b8ed8fe41a1f3328861729f626ae2c66cf4e1e8c5ac86de661b44b8e81d4abd",
+      "bc2c972b6116094cea40533a7e40c442d2893fa5aaf3cabfa19c1bb083abddc0"
     ],
     "FirstRunPrivacyTitle": [
       "8813f7d5a38e5065bc757d7c3497244d49c2e9faf722df66500971af2bc81209",
@@ -2776,8 +2736,8 @@
       "541c5ae8196295ea9f1a6c22fee8134e9c145e7d8f7bb5756aadfe826bc9f693"
     ],
     "IslandForceShowOverFullscreenDescription": [
-      "601de8b9e3e17f340f8a07928589214467d3e4266286b92881243d22149a7a6a",
-      "8336f7f496830d356039ed8d70a68c5e25d5707c66b0283c92cbd59577584397"
+      "94aab3cf862cf28748db843bee23024ef040d78fbc75f432cd8c5e241890e561",
+      "e3fa8b7e64b33be438cf3d102397ab44e6337ea248675cadc1aa2d532ae5308c"
     ],
     "LyricsShowAiLabel": [
       "819c23787903714233e69867da7842af220072b6a4456729aa2dccb26a27c006",
@@ -3004,8 +2964,8 @@
       "1d9e7fda2b3ac5d5bdc415a9f4e3170adce6efee0017d1ea6e7278cbc4a338c2"
     ],
     "DlcCancel": [
-      "de5b23e69cd1763bd3a1f436568f3f1c3bd278fd3b4802fce5df4eb6c7a8c67f",
-      "1125c68f3c22e2b03095cf22036a4d22492fbfed23b1b3cba69f9bf5cb4aca92"
+      "19766ed6ccb2f4a32778eed80d1928d2c87a18d7c275ccb163ec6709d3eb2e27",
+      "be876433993ab7ba221512b5703b32060626f390aa50d7ed464a847a34539a6c"
     ],
     "DlcChecking": [
       "1a5e29c2fccbca832f4904eea43cc5d64ce2736fd50ba9914c804e8144d3b0a5",
@@ -3032,16 +2992,16 @@
       "9bbe866d227347e8eb450abe1f82b96221b0fa507b07c20dbea6c359256bcfcc"
     ],
     "DlcCanceling": [
-      "2cae5d12affa4d13e8dfc5e749dea00ef1eb2d7d83ba569b871210ccc7ac17f4",
-      "0f37ddbe841b2d9dd0afa6b5c825427a74e2edf3a4b73010b6da50d29e93485c"
+      "7d0901a3f2e3575306e3a2bab9fd02016d095826ff41884234b12a26e5922132",
+      "6978544ed97b044f74d46146bd1e2c787e5f2a328ddc044b57a274bb66932cb7"
     ],
     "DlcCanceled": [
-      "c235ffec71d93eb2d14dfb513ec691fd7d53f5703f2bd7dabbc7ae6be238ae9b",
-      "cbf7def9e7e1e762b15bd0eb154071e6a40755aad117c6ea53fe593de96cd183"
+      "1394a87886fccb2601ca6575f15fb732a73d8f9fcd3eb59c8539a707008dc74e",
+      "a02788658cea9ea3c89da6d9d7e4629775bcc9879315ec3ecb79f2b7f6346a90"
     ],
     "DlcRemoving": [
-      "f0bac1e8ebf3ba55acbb87df30b1ccd79ffa3e9c327c77b750474fa373695b27",
-      "2354a89f22eb9190741a8e44b73bf0ad364afc70dfb0310724008d946142a6dd"
+      "79fc8d42a237fe9d1abface87d97adb7a8aedc55a4fc2cf0d369dcd60fccc578",
+      "53b8c3753926beb5c53b90670721373329c3a19d842898e7778cc68c62b56ffd"
     ],
     "DlcDownloadFailed": [
       "302b53730d090d6726812f8894c6a447f7df6253e140bdd871885930610e31c0",
@@ -3076,8 +3036,8 @@
       "fb62fe2ae6b2ae6cd472717ded838cce62600f4789e31aa5873e7e69407848bc"
     ],
     "DlcOperationFailed": [
-      "ae03b46d3f37297c9cb4fe8851746a5bd9f993ee6dd1102eb5e7b2177b1f09fb",
-      "688f9081e3d9c67e5c8461c6d11fbef871d978527ddca558dc46055ea596c6c1"
+      "0507b13c101079aa93faed6c74d1d5d84edc1bd3d8d4b87be4c401b2e8aa992c",
+      "f92aaf8acb5041a1bd5981e1f3edc609219b5886cb64970430ada7033e5b4211"
     ],
     "DlcCudaPurpose": [
       "57e4ce05b8a7ba4aeaa50eda54321be68f6ac7e9aa6fdcd1b9bf22c026dfe430",
@@ -3336,8 +3296,8 @@
       "c183203045016e79b6935f1006917c4f2b9f5521bcf7decee62ffeb81c99881a"
     ],
     "DownloadTransferTimedOut": [
-      "fa7cdba89943711ffd2c47f2e02e291bcb7ebf22417ab4b4e3f92e751b1da874",
-      "7a63bb62ee97e53c33f5ad1b6ee786033a150228e4f330c6217c7c7912bcffff"
+      "dcac54beef2b2becaac5a72196ad5e6c2b1b861f2d4503d2ca836f75e9027b39",
+      "588a6942812bf64309cc1c861c17a1aba6aafec4c3eaab42cee23e18704b96ab"
     ],
     "DownloadStageChecking": [
       "b88c90b382b5574c349c9b5893bc7973119048505b5aa7f91d3e79ba35a2d853",
@@ -3792,8 +3752,8 @@
       "f861d01c41a4038dc0ed9987792d749a5cf4c85b783ab13e086d352cdd546723"
     ],
     "DlcStorageSummary": [
-      "a5806f0f95ded3ab4c34cbd9759e144101875f1a1e5f7be4c5230eb0ed364cdc",
-      "601d1672508671dbb091852ea653e5f257f601342ce3fc14cc6b38c7c1589795"
+      "22ab8a14cc6c2f3af524802330d2251924d65d3353bc9a22cc3b0bc3e22beca9",
+      "1dda5dcc8ab3db52b5ba9ac797dc7b70f4b30f0168a85a10f169f8bbd1ebc062"
     ],
     "ReferenceWindowTitle": [
       "9a907caccba6a7ea3d0393fbeff0871bd4bd0f1a6e3bbdc68c0dcbe5c248116a",
@@ -3900,8 +3860,8 @@
       "1300f4beec768477cfb46e28bfc1129d7fc83e6be2ab166e92336e0568fdf933"
     ],
     "RetrievalEmpty.Text": [
-      "3f5bdde42c429f7360924ef49d53b9a6b82c0228466c9271d40c1b3b54a28735",
-      "f0286aeb54d478bf3742bdce7c420a6684fae35cb47af8528ca75205eb6acdfc"
+      "dbbbc8ef498aa0d3e5d547a0219bc0c7120dc9be0866cd450f38b47c363d30e1",
+      "420a8574c8f7b77953f2284267b6d48e3a11ae35c0af2c3eb24f9fd3cf91dfd4"
     ],
     "RetrievalCopy.Content": [
       "e21f935f11d7e966dbbae78da9daa378fe8142a14e7c0cd7434183005faa6c5c",
@@ -4240,20 +4200,51 @@
       "c157b43366aa28acf9bb8c1f6a325c9e66bcecd30a444c612edc7c7d91853dda"
     ]
   },
-  "reviewedBy": "Codex: reviewed NetEase version and inline update messages",
-  "reviewedAt": "2026-10-29T15:45:23.755Z",
+  "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
+  "reviewedAt": "2026-10-31T11:22:27.205Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "NeteaseEnhancementEntryDescription",
-      "NeteaseInstalledVersion",
-      "NeteaseUpdateAvailable",
-      "NeteaseUpdateChecking",
-      "NeteaseUpdateCurrent",
-      "NeteaseUpdateUnavailable",
-      "NeteaseUpdateInstall"
+      "AddTextUrlPlaceholder",
+      "AiLyricsClearingCache",
+      "ClearHistoryDescription.Text",
+      "CloseBehaviorDescription.Text",
+      "CloseToTrayContent",
+      "DefaultClipboardSyncModeDescription.Text",
+      "DeviceServiceReady",
+      "DlcCancel",
+      "DlcCanceled",
+      "DlcCanceling",
+      "DlcOperationFailed",
+      "DlcRemoving",
+      "DlcStorageSummary",
+      "DownloadTransferTimedOut",
+      "DropBatchLabel",
+      "DropHintTitle.Text",
+      "EmptyPinnedDescription",
+      "EmptySpaceDescription",
+      "IncomingTransferTitle",
+      "IslandForceShowOverFullscreenDescription",
+      "LanguageDescription.Text",
+      "LocalDataSection.Text",
+      "LyricsOnlinePrivacyHelp",
+      "MediaEstimatedTimeline",
+      "NativeSettingsSaveFailed",
+      "NetworkActionSetupRequired",
+      "OverlayDropSubtitle",
+      "PageDescriptionPinned",
+      "PreviewUnavailable",
+      "QuickActionDestination",
+      "QuickActionsDescription",
+      "RetrievalEmpty.Text",
+      "ShareNoAccessibleItems",
+      "StorageSummary",
+      "TransferSentContent",
+      "UpdateChannelTitle.Text",
+      "UpdateLastDownloadIncomplete",
+      "WindowsSharePortableStatus"
     ],
-    "reviewedBy": "Codex: reviewed NetEase version and inline update messages",
-    "reviewedAt": "2026-10-29T15:45:23.755Z"
+    "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
+    "reviewedAt": "2026-10-31T11:22:27.205Z"
   }
 }

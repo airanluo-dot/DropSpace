@@ -60,6 +60,26 @@ public sealed class DownloadManagerRecoveryTests
     }
 
     [TestMethod]
+    public async Task PartialJournalReadPreservesRecoveredRowsAndRetriesUnavailableRows()
+    {
+        await using var fixture = new RecoveryFixture();
+        fixture.Repository.PartialFirstRead = true;
+        await fixture.Manager.RestoreAsync().WaitAsync(Budget);
+        Assert.AreEqual(nameof(IOException), fixture.Manager.RecoveryError);
+        var recovered = fixture.Manager.Tasks.Single();
+
+        await fixture.Manager.RestoreAsync().WaitAsync(Budget);
+
+        Assert.AreEqual(2, fixture.Repository.ReadCount);
+        Assert.IsNull(fixture.Manager.RecoveryError);
+        Assert.AreSame(recovered, fixture.Manager.Tasks.Single(item => item.Id == recovered.Id));
+        AssertRecovered(fixture);
+        Assert.HasCount(2, fixture.Repository.Writes, "A partial read retry must checkpoint only newly recovered rows.");
+        await fixture.Manager.RestoreAsync().WaitAsync(Budget);
+        Assert.AreEqual(2, fixture.Repository.ReadCount, "A successful retry completes recovery.");
+    }
+
+    [TestMethod]
     public async Task FailedJournalReadCanRecoverWithoutRestartingManager()
     {
         await using var fixture = new RecoveryFixture();
@@ -121,15 +141,23 @@ public sealed class DownloadManagerRecoveryTests
         public TaskCompletionSource FirstReadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool BlockFirstRead { get; set; }
         public bool FailFirstRead { get; set; }
+        public bool PartialFirstRead { get; set; }
+        public string? RecoveryError { get; private set; }
         public int ReadCount { get; private set; }
 
         public async Task<IReadOnlyList<DownloadTaskSnapshot>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            RecoveryError = null;
             if (++ReadCount == 1)
             {
                 FirstReadStarted.TrySetResult();
                 if (FailFirstRead) throw new IOException("Fixture journal is temporarily unavailable.");
                 if (BlockFirstRead) await Task.Delay(Timeout.Infinite, cancellationToken);
+                if (PartialFirstRead)
+                {
+                    RecoveryError = nameof(IOException);
+                    return [Snapshots[0]];
+                }
             }
             cancellationToken.ThrowIfCancellationRequested();
             return Snapshots;

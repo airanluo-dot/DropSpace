@@ -28,7 +28,7 @@
   <data name="ClipboardRecording" xml:space="preserve"><value>Запись · сохранено: {0}</value></data>
   <data name="ClipboardResumed" xml:space="preserve"><value>Запись в буфер обмена возобновилась.</value></data>
   <data name="ClipboardStarting" xml:space="preserve"><value>Начало…</value></data>
-  <data name="CloseToTrayContent" xml:space="preserve"><value>Когда вы закрываете окно, DropSpace остается на панели задач и продолжает запись в буфер обмена. Вы можете изменить это, чтобы выйти прямо в настройках.</value></data>
+  <data name="CloseToTrayContent" xml:space="preserve"><value>После закрытия окна DropSpace продолжает работать в системном трее. Это поведение можно изменить в настройках.</value></data>
   <data name="CloseToTrayTitle" xml:space="preserve"><value>DropSpace продолжит работать в фоновом режиме</value></data>
   <data name="CommonAcknowledge" xml:space="preserve"><value>понял</value></data>
   <data name="CommonCancel" xml:space="preserve"><value>Отмена</value></data>
@@ -41,9 +41,9 @@
   <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>Добавить в DropSpace</value></data>
   <data name="EmptyClipboardDescription" xml:space="preserve"><value>Здесь появится скопированный текст, изображения, файлы или папки и поддерживаемый контент.</value></data>
   <data name="EmptyClipboardTitle" xml:space="preserve"><value>Нет истории буфера обмена</value></data>
-  <data name="EmptyPinnedDescription" xml:space="preserve"><value>Закрепите элементы из Временное пространство или буфера обмена, и они появятся здесь вместе.</value></data>
+  <data name="EmptyPinnedDescription" xml:space="preserve"><value>Закрепите важные элементы, чтобы держать их под рукой в одном месте.</value></data>
   <data name="EmptyPinnedTitle" xml:space="preserve"><value>Нет закрепленных элементов</value></data>
-  <data name="EmptySpaceDescription" xml:space="preserve"><value>DropSpace хранит только ссылки. Он никогда не перемещает и не удаляет исходные файлы.</value></data>
+  <data name="EmptySpaceDescription" xml:space="preserve"><value>Перетащите сюда файлы, текст или ссылки для быстрого доступа. Исходные файлы никогда не перемещаются и не удаляются.</value></data>
   <data name="EmptySpaceTitle" xml:space="preserve"><value>Перетащите сюда файлы или папки</value></data>
   <data name="ExportJpegImage" xml:space="preserve"><value>JPEG изображение</value></data>
   <data name="ExportOnlyClipboardImages" xml:space="preserve"><value>Экспортировать можно только изображения из буфера обмена.</value></data>
@@ -87,13 +87,13 @@
   <data name="OperationIncompleteTitle" xml:space="preserve"><value>Операция не завершена</value></data>
   <data name="OverlayClassicDragTitle" xml:space="preserve"><value>Перетащите вверх, чтобы сохранить</value></data>
   <data name="OverlayDragSubtitle" xml:space="preserve"><value>Исходные файлы не будут перемещены или удалены.</value></data>
-  <data name="OverlayDropSubtitle" xml:space="preserve"><value>Отпустите, чтобы добавить ссылки на файлы или папки.</value></data>
+  <data name="OverlayDropSubtitle" xml:space="preserve"><value>Отпустите, чтобы добавить файлы или папки</value></data>
   <data name="OverlayDropTitle" xml:space="preserve"><value>Падение на DropSpace</value></data>
   <data name="OverlayItemCount" xml:space="preserve"><value>{0} элемент(ы)</value></data>
   <data name="OverlaySmartDragTitle" xml:space="preserve"><value>Перетащите на появившийся DropSpace</value></data>
   <data name="OverlayTitle" xml:space="preserve"><value>DropSpace</value></data>
   <data name="PageDescriptionClipboard" xml:space="preserve"><value>Автоматически записывает скопированный текст, изображения, файлы и ссылки на папки.</value></data>
-  <data name="PageDescriptionPinned" xml:space="preserve"><value>Закрепленные элементы из Временное пространство и буфера обмена не удаляются автоматически правилами хранения.</value></data>
+  <data name="PageDescriptionPinned" xml:space="preserve"><value>Закреплённые элементы не удаляются при автоматической очистке.</value></data>
   <data name="PageDescriptionSettings" xml:space="preserve"><value>Локальное хранилище, конфиденциальность, внешний вид и поведение окон.</value></data>
   <data name="PageDescriptionSpace" xml:space="preserve"><value>Перетащите сюда файлы и папки, если у них еще нет постоянного дома.</value></data>
   <data name="PageTitleClipboard" xml:space="preserve"><value>Буфер обмена</value></data>
@@ -106,14 +106,13 @@
   <data name="RemoveStoredItemContent" xml:space="preserve"><value>«{0}» и локальная копия, хранящаяся у DropSpace, будут удалены.</value></data>
   <data name="SearchNoMatches" xml:space="preserve"><value>Соответствующие элементы не найдены.</value></data>
   <data name="SearchUnavailable" xml:space="preserve"><value>Поиск временно недоступен.</value></data>
-  <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace принимает только файлы и папки из Windows общего ресурса.</value></data>
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>Файлы или папки не удалось добавить в Временное пространство.</value></data>
-  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>Общий контент не содержит файлов или папок, к которым DropSpace может получить доступ.</value></data>
+  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>Не удалось импортировать содержимое, которым поделились. Убедитесь, что оно поддерживается и доступно DropSpace.</value></data>
   <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace не удалось обработать этот общий ресурс. Попробуйте еще раз или используйте цель перетаскивания верхнего края.</value></data>
   <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace не удалось завершить запуск. Некоторые фоновые службы могут все еще работать. Выйдите из приложения перед проверкой или восстановлением каталога данных и проверьте локальный журнал диагностики.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace не удалось безопасно запустить</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Расчет…</value></data>
-  <data name="StorageSummary" xml:space="preserve"><value>Объём кэша: {0}</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>Объём данных приложения: {0}</value></data>
   <data name="StorageUnavailable" xml:space="preserve"><value>Недоступно</value></data>
   <data name="TrayClearClipboard" xml:space="preserve"><value>Очистить историю буфера обмена…</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Выход</value></data>
@@ -138,7 +137,7 @@
   <data name="UpdateInstallStateFailed" xml:space="preserve"><value>Обновление не удалось подготовить к установке, поскольку не удалось сохранить состояние его восстановления.</value></data>
   <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>Не удалось запустить проверенный установщик.</value></data>
   <data name="UpdateInstalling" xml:space="preserve"><value>Запускаем установщик обновлений…</value></data>
-  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>Предыдущая загрузка обновления была неполной и была удалена.</value></data>
+  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>Не удалось проверить предыдущий файл обновления. Загрузите его ещё раз.</value></data>
   <data name="UpdateLastInstallIncomplete" xml:space="preserve"><value>Установка предыдущего обновления не завершилась. Подтвержденное обновление готово к повторной попытке.</value></data>
   <data name="UpdateManagedByWindows" xml:space="preserve"><value>Обновлением этого пакета управляет Windows.</value></data>
   <data name="UpdateNoDowngrade" xml:space="preserve"><value>Более нового стабильного обновления не существует. DropSpace не будет понижать версию этой сборки.</value></data>
@@ -152,7 +151,7 @@
   <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>Автоматическая установка недоступна, поскольку издатель обновления не является доверенным.</value></data>
   <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace обновлен.</value></data>
   <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>Отправьте на DropSpace из меню общего доступа Windows.</value></data>
-  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>Интеграция с общим доступом Windows недоступна в этой версии. Вместо этого перетащите файлы в DropSpace.</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>Интеграция с функцией общего доступа Windows недоступна для этой установки. Вместо этого перетащите элементы прямо в DropSpace.</value></data>
   <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
   <data name="MainTitleBar.Title" xml:space="preserve"><value>DropSpace</value></data>
   <data name="MainTitleBar.Subtitle" xml:space="preserve"><value>Рабочая область временного контента</value></data>
@@ -196,7 +195,7 @@
   <data name="MoreItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Дополнительные действия с объектами</value></data>
   <data name="ShowInFolderMenuItem.Text" xml:space="preserve"><value>Показать в папке</value></data>
   <data name="RemoveItemMenuItem.Text" xml:space="preserve"><value>Удалить из DropSpace</value></data>
-  <data name="DropHintTitle.Text" xml:space="preserve"><value>Отпустите, чтобы добавить ссылки</value></data>
+  <data name="DropHintTitle.Text" xml:space="preserve"><value>Отпустите, чтобы добавить в DropSpace</value></data>
   <data name="DropHintDescription.Text" xml:space="preserve"><value>Исходные файлы не будут перемещены.</value></data>
   <data name="ClipboardPrivacySection.Text" xml:space="preserve"><value>Буфер обмена и конфиденциальность</value></data>
   <data name="PauseRecordingTitle.Text" xml:space="preserve"><value>Приостановить запись</value></data>
@@ -231,7 +230,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Выберите это во время первой настройки или в настройках. Использует запись запуска текущего пользователя без прав администратора.</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Запуск вместе с Windows</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>Язык интерфейса</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>Меняет только текст интерфейса. Язык перевода песен выбирается отдельно.</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>Меняет язык интерфейса приложения. Язык перевода текстов песен можно настроить отдельно.</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Язык интерфейса</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>Следовать языку системы</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -249,20 +248,18 @@
   <data name="MonitorDescription.Text" xml:space="preserve"><value>На экране появляется автоматический режим, где происходит перетаскивание файла.</value></data>
   <data name="MonitorAutomatic.Content" xml:space="preserve"><value>Автоматический</value></data>
   <data name="MonitorPrimary.Content" xml:space="preserve"><value>Основной монитор</value></data>
-  <data name="OverlayMonitorChoice" xml:space="preserve"><value>Отобразить {0}</value></data>
+  <data name="OverlayMonitorChoice" xml:space="preserve"><value>Монитор {0}</value></data>
   <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>Дисплей {0} (Основной)</value></data>
   <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>При закрытии окна</value></data>
-  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>Запись в буфер обмена продолжается, когда приложение скрыто в трее.</value></data>
+  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>Приложение продолжает работать в фоновом режиме, когда скрыто в трее.</value></data>
   <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>Скрыть в трее</value></data>
   <data name="CloseBehaviorExit.Content" xml:space="preserve"><value>Завершать работу</value></data>
   <data name="UpdatesSection.Text" xml:space="preserve"><value>Обновления</value></data>
   <data name="AutoCheckUpdatesTitle.Text" xml:space="preserve"><value>Автоматическая проверка обновлений</value></data>
   <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>Проверяется не более одного раза при каждом запуске процесса DropSpace; фоновый таймер не запускается.</value></data>
   <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>Загружать обновления автоматически</value></data>
-  <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>Загружает только в собственный кэш DropSpace и устанавливает только после проверки размера и SHA-256.</value></data>
   <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Автоматически устанавливать обновления</value></data>
-  <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Доступно только в том случае, если обновление прошло проверку доверенного издателя Authenticode; он остается отключенным для неподписанных сборок.</value></data>
-  <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Обновить канал</value></data>
+  <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Канал обновлений</value></data>
   <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Стабильная версия получает только релизные версии. Бета-версия получает стабильную и предварительную версии, упорядоченные по номеру выпуска.</value></data>
   <data name="UpdateChannelStable.Content" xml:space="preserve"><value>Стабильный</value></data>
   <data name="UpdateChannelBeta.Content" xml:space="preserve"><value>Beta</value></data>
@@ -271,24 +268,23 @@
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Обновить сейчас</value></data>
   <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>Открыть место загрузки</value></data>
   <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>Посмотреть примечания к выпуску</value></data>
-  <data name="LocalDataSection.Text" xml:space="preserve"><value>Объём кэша</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>Объём локальных данных</value></data>
   <data name="StorageLocationTitle.Text" xml:space="preserve"><value>Место хранения</value></data>
   <data name="ClearLastHourButton.Content" xml:space="preserve"><value>Очистить в последний час</value></data>
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>Очистить историю за сегодня</value></data>
   <data name="ClearAllButton.Content" xml:space="preserve"><value>Очистить всю историю</value></data>
-  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>Программа очистки по умолчанию сохраняет закрепленные элементы и никогда не удаляет исходные файлы, указанные в Временное пространство.</value></data>
+  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>При очистке истории закреплённые элементы сохраняются, а исходные файлы на компьютере никогда не удаляются.</value></data>
   <data name="AddTextUrlMenuItem.Text" xml:space="preserve"><value>Добавьте текст или URL…</value></data>
   <data name="AddTextUrlTitle" xml:space="preserve"><value>Добавьте текст или URL к Временное пространство</value></data>
-  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>Вставьте или введите текст или https:// URL</value></data>
+  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>Вставьте или введите текст или ссылку</value></data>
   <data name="AddTextUrlConfirm" xml:space="preserve"><value>Добавить</value></data>
   <data name="Cancel" xml:space="preserve"><value>Отмена</value></data>
-  <data name="DropBatchLabel" xml:space="preserve"><value>Выбросить партию · {0} предметов</value></data>
+  <data name="DropBatchLabel" xml:space="preserve"><value>Группа объектов · {0} шт.</value></data>
   <data name="CollapseBatch" xml:space="preserve"><value>Свернуть</value></data>
   <data name="ExpandBatch" xml:space="preserve"><value>Развернуть</value></data>
   <data name="PinBatchButton.Content" xml:space="preserve"><value>Закрепить группу</value></data>
   <data name="RemoveBatchButton.Content" xml:space="preserve"><value>Удалить группу</value></data>
   <data name="IslandPlacementTitle.Text" xml:space="preserve"><value>Положение Динамического острова</value></data>
-  <data name="IslandPlacementDescription.Text" xml:space="preserve"><value>Значения X/Y задаются в DIP относительно рабочей области выбранного монитора. Временное ограничение позиции не перезаписывает сохранённые значения. Стрелки перемещают на 1 DIP, Shift+стрелка — на 10 DIP. Enter применяет изменения, Esc отменяет правки.</value></data>
   <data name="IslandPlacementAutomatic.Content" xml:space="preserve"><value>Автоматический</value></data>
   <data name="IslandPlacementCustom.Content" xml:space="preserve"><value>Пользовательский</value></data>
   <data name="IslandPlacementX.Header" xml:space="preserve"><value>X (DIP)</value></data>
@@ -302,11 +298,11 @@
   <data name="QuickPanelHotkeyTitle.Text" xml:space="preserve"><value>Горячая клавиша панели быстрого доступа</value></data>
   <data name="QuickPanelHotkeyDescription.Text" xml:space="preserve"><value>Открывает существующий Динамический остров с помощью клавиатуры. По умолчанию: Win+Shift+Space.</value></data>
   <data name="SmartDragExclusionsTitle.Text" xml:space="preserve"><value>Исключения приложений умного перетаскивания</value></data>
-  <data name="SmartDragExclusionsDescription.Text" xml:space="preserve"><value>Имена процессов, разделенные запятыми. Это лучшее, что можно сделать: некоторые исходные приложения с повышенными, защищенными или недолговечными исходными данными могут быть не идентифицированы.</value></data>
+  <data name="SmartDragExclusionsDescription.Text" xml:space="preserve"><value>Имена процессов через запятую. Распознавание работает без гарантии: некоторые защищённые, кратковременные или запущенные от имени администратора приложения могут не определяться.</value></data>
   <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>Копировать отчет о совместимости Smart Drag</value></data>
   <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>Отчет о совместимости Smart Drag без путей скопирован.</value></data>
   <data name="PreviewItemMenuItem.Text" xml:space="preserve"><value>Быстрый просмотр</value></data>
-  <data name="PreviewUnavailable" xml:space="preserve"><value>Для этого элемента ограниченный предварительный просмотр недоступен.</value></data>
+  <data name="PreviewUnavailable" xml:space="preserve"><value>Предварительный просмотр этого элемента недоступен.</value></data>
   <data name="ActionCompleted" xml:space="preserve"><value>Действие завершилось успешно.</value></data>
   <data name="ActionUnavailable" xml:space="preserve"><value>Это действие недоступно для текущего выбора.</value></data>
   <data name="ActionParametersRequired" xml:space="preserve"><value>Прежде чем продолжить, выберите все необходимые параметры действия.</value></data>
@@ -319,7 +315,7 @@
   <data name="ActionOutputSaved" xml:space="preserve"><value>Вывод сохранен в: {0}</value></data>
   <data name="QuickActionParametersTitle" xml:space="preserve"><value>Параметры действия</value></data>
   <data name="QuickActionParametersDescription" xml:space="preserve"><value>Выберите размер и формат для экспорта нового изображения. Оригинал остается неизменным.</value></data>
-  <data name="QuickActionDestination" xml:space="preserve"><value>Экспортировать папку</value></data>
+  <data name="QuickActionDestination" xml:space="preserve"><value>Папка для экспорта</value></data>
   <data name="QuickActionDefaultDestination" xml:space="preserve"><value>DropSpace экспорт (по умолчанию)</value></data>
   <data name="QuickActionChooseFolder" xml:space="preserve"><value>Выберите…</value></data>
   <data name="QuickActionOutputFormat" xml:space="preserve"><value>Выходной формат</value></data>
@@ -342,7 +338,6 @@
   <data name="ActionConvertImage.Text" xml:space="preserve"><value>Преобразование формата изображения</value></data>
   <data name="ActionStripMetadata.Text" xml:space="preserve"><value>Удалить метаданные изображения</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>Устройства и обмен</value></data>
-  <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Передача обслуживания Windows-к-Windows и синхронизация буфера обмена включены. Соседние ссылки остаются в частной сети; Internet Share требуется явно настроенная серверная часть HTTPS.</value></data>
   <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>Передача устройства</value></data>
   <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>Отправляйте контент на сопряженные устройства.</value></data>
   <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Включить Windows передачу обслуживания устройства</value></data>
@@ -350,7 +345,7 @@
   <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>Синхронизируйте только с сопряженными устройствами Windows. Включение синхронизации также позволяет подключить устройство; отключение подключения устройства останавливает синхронизацию.</value></data>
   <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Включить буфер обмена на нескольких устройствах</value></data>
   <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>Режим буфера обмена однорангового узла по умолчанию</value></data>
-  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>Новые пиры запускаются в выбранном режиме; само сопряжение никогда не включает автоматическую синхронизацию.</value></data>
+  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>Для новых сопряжённых устройств по умолчанию будет использоваться этот режим синхронизации.</value></data>
   <data name="ClipboardSyncModeOff.Content" xml:space="preserve"><value>Выкл.</value></data>
   <data name="ClipboardSyncModeManual.Content" xml:space="preserve"><value>Вручную</value></data>
   <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>Автоматический текст + URL</value></data>
@@ -369,14 +364,14 @@
   <data name="DevicesFound" xml:space="preserve"><value>Обнаружено {0} совместимое устройство(а).</value></data>
   <data name="PairedDevice" xml:space="preserve"><value>В сочетании с {0}. Узел использует выбранный по умолчанию режим буфера обмена.</value></data>
   <data name="DeviceServiceUnavailable" xml:space="preserve"><value>Служба устройства недоступна: {0}</value></data>
-  <data name="DeviceServiceReady" xml:space="preserve"><value>Передача устройства готова. Windows Статус брандмауэра по-прежнему требует явной проверки возможности приема.</value></data>
+  <data name="DeviceServiceReady" xml:space="preserve"><value>Передача между устройствами запущена. Если не удаётся принимать элементы, убедитесь, что DropSpace разрешён в брандмауэре Windows.</value></data>
   <data name="DeviceServiceBlocked" xml:space="preserve"><value>Прием недоступен: {0}</value></data>
   <data name="DeviceServiceStarting" xml:space="preserve"><value>Запуск локальной службы DropLink…</value></data>
   <data name="PairingSasTitle" xml:space="preserve"><value>Подтвердите код сопряжения</value></data>
   <data name="PairingSasTitleWithDevice" xml:space="preserve"><value>Подтвердите сопряжение с {0}</value></data>
   <data name="PairingSasContent" xml:space="preserve"><value>Убедитесь, что на другом устройстве отображается тот же шестизначный код: {0}. Продолжайте, только если оба экрана совпадают.</value></data>
   <data name="PairingSasConfirm" xml:space="preserve"><value>Доверяйте этому устройству</value></data>
-  <data name="IncomingTransferTitle" xml:space="preserve"><value>Входящий перевод</value></data>
+  <data name="IncomingTransferTitle" xml:space="preserve"><value>Входящая передача</value></data>
   <data name="IncomingTransferContent" xml:space="preserve"><value>Доверенное устройство хочет отправить {0} элементов общим объёмом {1} байт. Файлы будут проверены перед сохранением в Downloads\DropSpace.</value></data>
   <data name="IncomingTransferAccept" xml:space="preserve"><value>Принять</value></data>
   <data name="IncomingTransferReject" xml:space="preserve"><value>Отклонить</value></data>
@@ -412,7 +407,7 @@
   <data name="FileTransferByteProgress" xml:space="preserve"><value>{0} из {1}</value></data>
   <data name="FileTransferCancelAutomationName" xml:space="preserve"><value>Отменить передачу {0} на {1}</value></data>
   <data name="TransferSentTitle" xml:space="preserve"><value>Передача отправлена</value></data>
-  <data name="TransferSentContent" xml:space="preserve"><value>Доверенное устройство приняло передачу и DropSpace проверило содержимое перед фиксацией.</value></data>
+  <data name="TransferSentContent" xml:space="preserve"><value>Принимающее устройство приняло и проверило содержимое.</value></data>
   <data name="TransferUnavailableTitle" xml:space="preserve"><value>Передача недоступна</value></data>
   <data name="TransferBusyContent" xml:space="preserve"><value>Другие передачи ещё выполняются или завершаются. Повторите попытку после завершения одной из них.</value></data>
   <data name="TransferPreparationLimitContent" xml:space="preserve"><value>Выбранное содержимое включает слишком много элементов папок или слишком длинные пути. Выберите меньше элементов или подпапку меньшего размера и повторите попытку.</value></data>
@@ -440,12 +435,12 @@
   <data name="RevokeShareButton" xml:space="preserve"><value>Отозвать ссылку</value></data>
   <data name="RevokeShareTitle" xml:space="preserve"><value>Отменить защищенный общий доступ</value></data>
   <data name="RevokeShareContent" xml:space="preserve"><value>Это делает ссылку недействительной и удаляет ее зашифрованные объекты из настроенной серверной части. Продолжать?</value></data>
-  <data name="RevokeShareCompleted" xml:space="preserve"><value>Безопасная доля была отозвана.</value></data>
+  <data name="RevokeShareCompleted" xml:space="preserve"><value>Безопасная ссылка для обмена отозвана.</value></data>
   <data name="PdfPreviousPage" xml:space="preserve"><value>Предыдущий</value></data>
   <data name="PdfNextPage" xml:space="preserve"><value>Далее</value></data>
   <data name="PdfPageIndicator" xml:space="preserve"><value>Страница {0} из {1}</value></data>
   <data name="QuickActionsSection" xml:space="preserve"><value>Быстрые действия</value></data>
-  <data name="QuickActionsDescription" xml:space="preserve"><value>Выберите до трех действий, отображаемых непосредственно над каждым элементом. Автоматически следует реестру доступных действий; недоступные варианты безопасно пропускаются.</value></data>
+  <data name="QuickActionsDescription" xml:space="preserve"><value>Выберите до трёх быстрых действий для каждого элемента. Автоматический режим выбирает действия по типу элемента и скрывает недоступные.</value></data>
   <data name="QuickActionFiles" xml:space="preserve"><value>Файлы и папки</value></data>
   <data name="QuickActionImages" xml:space="preserve"><value>Изображения</value></data>
   <data name="QuickActionText" xml:space="preserve"><value>Текст и код</value></data>
@@ -479,17 +474,17 @@
   <data name="CopyHashResult" xml:space="preserve"><value>Копировать контрольную сумму</value></data>
   <data name="OpenOutputFolder" xml:space="preserve"><value>Открыть выходную папку</value></data>
   <data name="MoreItemButton.Content" xml:space="preserve"><value>Дополнительные действия</value></data>
-  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Включите эту функцию в настройках и сначала завершите сопряжение или настройку службы.</value></data>
+  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Включите эту функцию в настройках и при необходимости завершите её настройку.</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>Предыдущие настройки не удалось полностью восстановить. Перезапустите DropSpace перед повторным изменением настроек. Идентификатор диагностики: {1}.</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>Восстановить настройки</value></data>
-  <data name="MediaControlFailed" xml:space="preserve"><value>Игроку не удалось выполнить это действие. Попробуйте еще раз.</value></data>
+  <data name="MediaControlFailed" xml:space="preserve"><value>Медиаплееру не удалось выполнить это действие. Попробуйте ещё раз.</value></data>
   <data name="MediaNoSession.Text" xml:space="preserve"><value>Включите музыку в поддерживаемом проигрывателе, чтобы увидеть ее здесь.</value></data>
   <data name="WidgetClock.Text" xml:space="preserve"><value>Часы</value></data>
   <data name="WidgetCalendar.Text" xml:space="preserve"><value>Календарь</value></data>
   <data name="MediaPlayLabel" xml:space="preserve"><value>Воспроизвести</value></data>
   <data name="IslandNextPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Следующая страница острова</value></data>
   <data name="MediaPrevious.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Предыдущий трек</value></data>
-  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>Предполагаемая позиция. Этот проигрыватель не предоставляет достоверной временной шкалы; тексты песен могут быть не синхронизированы, и поиск недоступен.</value></data>
+  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>Приблизительная позиция. Этот плеер не передаёт точную шкалу времени: текст может не совпадать, а перемотка недоступна.</value></data>
   <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Предыдущая страница острова</value></data>
   <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Следующий трек</value></data>
   <data name="MediaPauseLabel" xml:space="preserve"><value>Пауза</value></data>
@@ -518,7 +513,6 @@
   <data name="MusicApplicationsEmpty" xml:space="preserve"><value>Воспроизводите музыку, чтобы открыть для себя мультимедийные приложения.</value></data>
   <data name="WidgetCenter" xml:space="preserve"><value>По центру</value></data>
   <data name="LyricsProvider" xml:space="preserve"><value>Предпочитаемый поставщик текстов песен</value></data>
-  <data name="LyricsFallbackHelp" xml:space="preserve"><value>Поиск следует за предпочтительным поставщиком → необязательным резервным копированием → оставшимися поставщиками, если он включен. Без поиска резервного или оставшегося провайдера используется только предпочтительный провайдер. Локальный режим остается в автономном режиме.</value></data>
   <data name="LyricsBackupProvider" xml:space="preserve"><value>Резервный поставщик текстов песен</value></data>
   <data name="LyricsBackupProviderNone" xml:space="preserve"><value>Нет</value></data>
   <data name="LyricsSearchRemainingProviders" xml:space="preserve"><value>Поиск оставшихся провайдеров</value></data>
@@ -542,7 +536,6 @@
   <data name="MusicArtwork" xml:space="preserve"><value>Показать обложку альбома</value></data>
   <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>Локальный LRC</value></data>
   <data name="IslandHideDelay" xml:space="preserve"><value>Задержка скрытия</value></data>
-  <data name="WidgetRight" xml:space="preserve"><value>Справа</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>Слева</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Включить тексты песен</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Загрузка текста…</value></data>
@@ -560,7 +553,7 @@
   <data name="LyricsProviderNetEase" xml:space="preserve"><value>NetEase Cloud Music</value></data>
   <data name="LyricsLocal" xml:space="preserve"><value>Локальный LRC</value></data>
   <data name="WidgetsEditorMode" xml:space="preserve"><value>Режим редактора виджетов</value></data>
-  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>Не удалось сохранить это изменение. Ваши предыдущие настройки были восстановлены.</value></data>
+  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>Не удалось сохранить изменение. Попробуйте ещё раз.</value></data>
   <data name="WidgetsCompactMode" xml:space="preserve"><value>Компактный · Левый/Центр/Правый</value></data>
   <data name="IslandExpandedScale" xml:space="preserve"><value>Масштаб в развёрнутом виде</value></data>
   <data name="WidgetsReset" xml:space="preserve"><value>Сбросить макет виджета</value></data>
@@ -613,7 +606,7 @@
   <data name="NeteaseEnhancementPreparing" xml:space="preserve"><value>Подготовка компонентов улучшения…</value></data>
   <data name="NeteaseEnhancementInstalling" xml:space="preserve"><value>Установка InfLink-rs…</value></data>
   <data name="NeteaseEnhancementRestarting" xml:space="preserve"><value>Перезапуск NetEase Music…</value></data>
-  <data name="NeteaseEnhancementVerifying" xml:space="preserve"><value>Проверка средств массовой информации…</value></data>
+  <data name="NeteaseEnhancementVerifying" xml:space="preserve"><value>Проверка управления мультимедиа…</value></data>
   <data name="NeteaseEnhancementInstalled" xml:space="preserve"><value>✓ Установлены компоненты расширения.</value></data>
   <data name="NeteaseEnhancementEnhanced" xml:space="preserve"><value>✓ Улучшено — включен полный контроль мультимедиа.</value></data>
   <data name="NeteaseEnhancementRemoving" xml:space="preserve"><value>Удаление улучшения…</value></data>
@@ -653,7 +646,6 @@
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>Предварительный просмотр переведенных текстов</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>Сбросить размеры текста</value></data>
   <data name="AiLyricsTitle" xml:space="preserve"><value>Текст песни с ИИ</value></data>
-  <data name="AiLyricsDescription" xml:space="preserve"><value>Тексты без перевода переводятся локально на выбранный язык: упрощённый китайский или английский. Готовые переводы поставщика на выбранном языке имеют приоритет. Первый полный перевод может занять несколько минут в зависимости от устройства и длины текста. Готовые строки отображаются по мере завершения. ИИ может неверно передать смысл; тексты песен не отправляются для перевода с помощью ИИ.</value></data>
   <data name="AiLyricsEnabled" xml:space="preserve"><value>Использовать перевод песен с ИИ</value></data>
   <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU ускорение</value></data>
   <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>Предпочитайте совместимый перевод GPU для AI. Если ускорение GPU недоступно или не работает, приложение вместо этого использует CPU. Выключите это, чтобы использовать только CPU. Изменение этого предпочтения не включает AI и не загружает модель.</value></data>
@@ -718,16 +710,14 @@
   <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>Возобновить перевод AI</value></data>
   <data name="AiLyricsDeleteModel" xml:space="preserve"><value>Удалить модель</value></data>
   <data name="AiLyricsClearCache" xml:space="preserve"><value>Очистить кеш песен</value></data>
-  <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>Удалить {0} и его частичную загрузку? Если эта модель включена, перевод AI будет отключен. Другие модели и оригинальные тексты песен сохранены.</value></data>
   <data name="AiLyricsModelDeleted" xml:space="preserve"><value>Модель удалена. Вы сможете загрузить его снова позже.</value></data>
   <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>Удалить кэшированные оригинальные тексты песен, переводы поставщиков и переводы AI? Текущий вывод будет остановлен. Загруженные модели и файлы с текстами песен сохраняются.</value></data>
   <data name="AiLyricsCacheCleared" xml:space="preserve"><value>Кэш песен очищен.</value></data>
-  <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>Автономная среда выполнения включена в приложение; дополнительная загрузка среды выполнения не требуется. Извлечение во время выполнения занимает примерно {0} MiB дополнительного дискового пространства. Выделите дополнительные 64 MiB свободного дискового пространства для загрузки и восстановления модели.</value></data>
   <data name="AiLyricsTranslating" xml:space="preserve"><value>Локальный перевод… Первый полный перевод может занять несколько минут. Завершенные переводы отображаются построчно; незаконченные строки сохраняют оригинальный текст.</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>Перевод AI временно недоступен. Оригинальные тексты песен не изменены.</value></data>
   <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>Перевод с ИИ готов.</value></data>
-  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Онлайн-тексты отправляют текущее название песни, исполнителя, альбом и продолжительность поставщикам текстов, разрешенным вашими настройками. Новые установки позволяют использовать онлайн-тексты песен с помощью NetEase в первую очередь, без резервного копирования и с включенным поиском оставшихся поставщиков. Вы можете отключить тексты песен или сменить поставщика в любое время. Выберите «Локальный LRC», чтобы читать собственные файлы с текстами песен без запросов провайдера. Сам перевод AI остается на этом устройстве.</value></data>
-  <data name="AiLyricsClearingCache" xml:space="preserve"><value>Очистка кеша перевода AI…</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>При получении текстов песен из Интернета название текущей песни, исполнитель, альбом и длительность отправляются включённым источникам текстов песен. При новой установке первым используется NetEase; резервный источник не задан, а поиск в остальных источниках включён. Вы можете отключить тексты песен, сменить источники или выбрать «Локальный LRC» для чтения без подключения к сети. AI-перевод всегда выполняется на вашем устройстве.</value></data>
+  <data name="AiLyricsClearingCache" xml:space="preserve"><value>Очистка кэша текстов песен…</value></data>
   <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>Выберите, что работает в фоновом режиме</value></data>
   <data name="FirstRunPrivacyBody" xml:space="preserve"><value>Временное пространство работает без записи истории буфера обмена. Если включить запись, DropSpace сохраняет скопированный текст, изображения и ссылки на файлы локально, в том числе после закрытия окна в системный трей. В разделах «Буфер обмена» и «Настройки» можно приостановить запись, очистить историю и изменить срок хранения. Закрытие окна в трей не завершает работу приложения. Выберите «Выйти», чтобы остановить DropSpace. Эти параметры можно изменить позже.</value></data>
   <data name="FirstRunClipboardChoice" xml:space="preserve"><value>Включить локальную запись в буфер обмена</value></data>
@@ -743,7 +733,7 @@
   <data name="MusicReconnectFailed" xml:space="preserve"><value>Не удалось повторно подключить музыку. Попробуйте нажать кнопку «Обновить» еще раз.</value></data>
   <data name="MediaNextLyricLabel" xml:space="preserve"><value>Следующая строка песни</value></data>
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>Показывать Динамический остров поверх полноэкранных приложений</value></data>
-  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Позволяет острову с содержимым или включённым постоянным отображением появляться поверх полноэкранных приложений. Если выключено, применяется задержка скрытия.</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Показывать остров поверх полноэкранных приложений, если на нём есть содержимое или включён параметр «Держите Динамический остров видимым». Если выключено, остров скрывается после заданной задержки.</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>Показывать пометку перевода с ИИ</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>Локальный перевод не смог подтвердить наличие достаточного количества доступной памяти. Освободите память или выберите меньшую модель и повторите попытку.</value></data>
   <data name="AiLyricsGpuBackend" xml:space="preserve"><value>Бэкенд GPU</value></data>
@@ -788,7 +778,7 @@
   <data name="DlcAvailable" xml:space="preserve"><value>Не установлено</value></data>
   <data name="DlcEmptyInstalled" xml:space="preserve"><value>Нет установленных компонентов.</value></data>
   <data name="DlcEmptyAvailable" xml:space="preserve"><value>Все доступные компоненты установлены.</value></data>
-  <data name="DlcRefresh" xml:space="preserve"><value>Обновить установленные компоненты</value></data>
+  <data name="DlcRefresh" xml:space="preserve"><value>Проверить статус компонентов</value></data>
   <data name="DlcModelPurpose" xml:space="preserve"><value>Перевод текста песен с ИИ без подключения к сети.</value></data>
   <data name="DlcLargeModelPurpose" xml:space="preserve"><value>Дополнительная модель большего размера для перевода текста песен с ИИ без подключения к сети.</value></data>
   <data name="DlcLegacyModelPurpose" xml:space="preserve"><value>Ранее скачанная модель; доступен только для удаления.</value></data>
@@ -800,16 +790,16 @@
   <data name="DlcResume" xml:space="preserve"><value>Возобновить загрузку</value></data>
   <data name="DlcDelete" xml:space="preserve"><value>Удалить</value></data>
   <data name="DlcRetry" xml:space="preserve"><value>Повторить попытку</value></data>
-  <data name="DlcCancel" xml:space="preserve"><value>Отменить загрузку</value></data>
+  <data name="DlcCancel" xml:space="preserve"><value>Отмена</value></data>
   <data name="DlcChecking" xml:space="preserve"><value>Проверка локальных компонентов…</value></data>
   <data name="DlcNotInstalled" xml:space="preserve"><value>Не установлено</value></data>
   <data name="DlcReady" xml:space="preserve"><value>Установлено</value></data>
   <data name="DlcIncomplete" xml:space="preserve"><value>Неполная загрузка. Возобновите или удалите загруженные файлы.</value></data>
   <data name="DlcDownloading" xml:space="preserve"><value>Загрузка…</value></data>
   <data name="DlcVerifying" xml:space="preserve"><value>Проверка и установка…</value></data>
-  <data name="DlcCanceling" xml:space="preserve"><value>Отмена загрузки…</value></data>
-  <data name="DlcCanceled" xml:space="preserve"><value>Загрузка отменена. Выберите «Загрузить», чтобы продолжить.</value></data>
-  <data name="DlcRemoving" xml:space="preserve"><value>Остановка AI и удаление…</value></data>
+  <data name="DlcCanceling" xml:space="preserve"><value>Отмена…</value></data>
+  <data name="DlcCanceled" xml:space="preserve"><value>Загрузка отменена. Выберите «Возобновить загрузку», чтобы продолжить.</value></data>
+  <data name="DlcRemoving" xml:space="preserve"><value>Удаление и очистка…</value></data>
   <data name="DlcDownloadFailed" xml:space="preserve"><value>Загрузка не удалась. Повторите попытку, чтобы продолжить.</value></data>
   <data name="DlcDeleteFailed" xml:space="preserve"><value>Удаление не удалось. Повторите попытку освобождения ресурсов и удаления компонента.</value></data>
   <data name="DlcInspectFailed" xml:space="preserve"><value>Не удалось проверить локальные компоненты. Повторить попытку.</value></data>
@@ -821,7 +811,7 @@
   <data name="DlcSource" xml:space="preserve"><value>Источник: {0}</value></data>
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} прогресс загрузки</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}: {1}</value></data>
-  <data name="DlcOperationFailed" xml:space="preserve"><value>Не удалось открыть это действие. Попробуйте еще раз.</value></data>
+  <data name="DlcOperationFailed" xml:space="preserve"><value>Не удалось выполнить это действие. Попробуйте ещё раз.</value></data>
   <data name="DlcCudaPurpose" xml:space="preserve"><value>Ускорение локального перевода песен с ИИ на совместимых GPU NVIDIA; используются уже установленные модели.</value></data>
   <data name="DlcCudaUnsupported" xml:space="preserve"><value>Требуется совместимый драйвер NVIDIA.</value></data>
   <data name="DownloadCustom" xml:space="preserve"><value>Загрузите пользовательский файл</value></data>
@@ -886,7 +876,7 @@
   <data name="DownloadRemoveHistory" xml:space="preserve"><value>Удалить из истории</value></data>
   <data name="DownloadRecoveryWarning" xml:space="preserve"><value>Некоторые загрузки не удалось восстановить. Проверьте доступное хранилище и права доступа к папкам.</value></data>
   <data name="DownloadQueueTimedOut" xml:space="preserve"><value>Ожидание в очереди загрузки истекло. Пожалуйста, повторите попытку.</value></data>
-  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>Время загрузки истекло. Возобновляемый прогресс сохранен.</value></data>
+  <data name="DownloadTransferTimedOut" xml:space="preserve"><value>Время ожидания загрузки истекло. Попробуйте ещё раз.</value></data>
   <data name="DownloadStageChecking" xml:space="preserve"><value>Проверка существующих файлов</value></data>
   <data name="DownloadStageQueued" xml:space="preserve"><value>Ожидание загрузки</value></data>
   <data name="DownloadStageWaitingConnection" xml:space="preserve"><value>Ожидание соединения</value></data>
@@ -950,7 +940,7 @@
   <data name="HotkeyRecordPrompt" xml:space="preserve"><value>Нажмите сочетание клавиш</value></data>
   <data name="HotkeySave" xml:space="preserve"><value>Сохранить</value></data>
   <data name="HotkeyUnavailable" xml:space="preserve"><value>Сочетание недоступно или уже используется. Выберите другое.</value></data>
-  <data name="DlcStorageSummary" xml:space="preserve"><value>Общий объём DLC: {0}</value></data>
+  <data name="DlcStorageSummary" xml:space="preserve"><value>Занято дополнительными компонентами: {0}</value></data>
   <data name="ReferenceWindowTitle" xml:space="preserve"><value>Временный просмотр</value></data>
   <data name="ReferenceKeepOnTop" xml:space="preserve"><value>Поверх всех окон</value></data>
   <data name="ReferenceFitImage" xml:space="preserve"><value>Вписать изображение</value></data>
@@ -979,7 +969,7 @@
   <data name="RetrievalAll.Content" xml:space="preserve"><value>Все</value></data>
   <data name="RetrievalRecent.Content" xml:space="preserve"><value>Недавние</value></data>
   <data name="RetrievalPinned.Content" xml:space="preserve"><value>Закреплённые</value></data>
-  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>Совпадений нет. Добавьте папку в настройках, чтобы принимать новые файлы.</value></data>
+  <data name="RetrievalEmpty.Text" xml:space="preserve"><value>Совпадений не найдено.</value></data>
   <data name="RetrievalCopy.Content" xml:space="preserve"><value>Копировать</value></data>
   <data name="RetrievalPreview.Content" xml:space="preserve"><value>Просмотр</value></data>
   <data name="RetrievalReference.Content" xml:space="preserve"><value>Отдельное окно</value></data>

@@ -274,24 +274,44 @@ test("receiver decrypts and downloads a real encrypted file", async () => {
   const salt = Uint8Array.from([0x33,0x22,0x11,0,0x55,0x44,0x77,0x66,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff]);
   const enc = text => new TextEncoder().encode(text);
   const derive = async info => crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: enc(info) }, await crypto.subtle.importKey("raw", master, "HKDF", false, ["deriveKey"]), { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
-  const bytes = enc("DropSpace encrypted download regression");
+  // Cross the production chunk boundary so nonce/AAD/hash handling is exercised twice.
+  const chunkBytes = 5 * 1024 * 1024;
+  const bytes = Uint8Array.from({ length: chunkBytes + 37 }, (_, index) => index % 251);
   const prefix = crypto.getRandomValues(new Uint8Array(8));
-  const nonce = new Uint8Array(12); nonce.set(prefix);
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce, additionalData: enc(`DropSpaceShare:v1\n${shareId}\n${fileOne}\n0\n${bytes.length}`) }, await derive("file:" + fileOne), bytes);
-  const item = { fileId: fileOne, displayName: "regression.txt", mimeType: "text/plain", plainLength: bytes.length, chunkCount: 1, noncePrefix: Buffer.from(prefix).toString("base64"), sha256: createHash("sha256").update(bytes).digest("hex") };
+  const fileKey = await derive("file:" + fileOne);
+  const ciphertexts = [];
+  for (let index = 0; index * chunkBytes < bytes.length; index++) {
+    const chunk = bytes.subarray(index * chunkBytes, (index + 1) * chunkBytes);
+    const nonce = new Uint8Array(12); nonce.set(prefix);
+    new DataView(nonce.buffer).setUint32(8, index, false);
+    ciphertexts.push(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce,
+      additionalData: enc(`DropSpaceShare:v1\n${shareId}\n${fileOne}\n${index}\n${chunk.length}`) }, fileKey, chunk));
+  }
+  const item = { fileId: fileOne, displayName: "regression.bin", mimeType: "application/octet-stream", plainLength: bytes.length, chunkCount: ciphertexts.length, noncePrefix: Buffer.from(prefix).toString("base64"), sha256: createHash("sha256").update(bytes).digest("hex") };
   const manifestNonce = crypto.getRandomValues(new Uint8Array(12));
   const encryptedManifest = await crypto.subtle.encrypt({ name: "AES-GCM", iv: manifestNonce, additionalData: enc(`DropSpaceShare:v1\n${shareId}`) }, await derive("manifest"), enc(JSON.stringify({ shareId, items: [item] })));
   const packedManifest = new Uint8Array(12 + encryptedManifest.byteLength); packedManifest.set(manifestNonce); packedManifest.set(new Uint8Array(encryptedManifest), 12);
   const page = await worker.fetch(new Request("https://share.invalid/s/" + shareId), { SHARE_COORDINATOR: { idFromName: name => name, get: () => ({ fetch: async () => new Response("{}") }) }, SHARES: { async get() { return new Response(JSON.stringify({ shareId, expiresAt: Date.now() + 3600000, itemCount: 1, totalBytes: bytes.length })); } } });
   const script = (await page.text()).match(/<script nonce="[^"]+">([\s\S]*)<\/script>/)[1];
-  const buttons = [], alerts = [], fetched = [];
+  const buttons = [], alerts = [], fetched = [], derivedKeys = [];
+  const receiverCrypto = { subtle: {
+    importKey: (...args) => crypto.subtle.importKey(...args),
+    deriveKey: (...args) => {
+      derivedKeys.push(new TextDecoder().decode(args[0].info));
+      return crypto.subtle.deriveKey(...args);
+    },
+    decrypt: (...args) => crypto.subtle.decrypt(...args),
+  } };
   let downloaded;
   const status = {};
   const context = {
-    crypto, TextEncoder, TextDecoder, Uint8Array, Uint32Array, DataView, Blob, atob, btoa,
+    crypto: receiverCrypto, TextEncoder, TextDecoder, Uint8Array, Uint32Array, DataView, Blob, atob, btoa,
     location: { hash: "#k=" + Buffer.from(master).toString("base64url") }, window: {},
     document: { getElementById: id => id === "status" ? status : { appendChild() {} }, createElement: kind => kind === "button" ? (buttons.push({}), buttons.at(-1)) : { appendChild() {}, click() {} } },
-    fetch: async path => { fetched.push(path); return new Response(path.endsWith("manifest.bin") ? packedManifest : ciphertext); },
+    fetch: async path => {
+      fetched.push(path);
+      return new Response(path.endsWith("manifest.bin") ? packedManifest : ciphertexts[Number(path.match(/\.(\d+)\.bin$/)[1])]);
+    },
     URL: { createObjectURL(blob) { downloaded = blob; return "blob:download"; }, revokeObjectURL() {} },
     alert: error => alerts.push(error), setTimeout: callback => callback(),
   };
@@ -299,8 +319,10 @@ test("receiver decrypts and downloads a real encrypted file", async () => {
   assert.equal(buttons.length, 1);
   await buttons[0].onclick();
   assert.deepEqual(alerts, []);
-  assert.equal(fetched[1], "/v1/shares/" + shareId + "/objects/" + fileOne + ".0.bin");
-  assert.equal(await downloaded.text(), new TextDecoder().decode(bytes));
+  assert.deepEqual(fetched, ["manifest.bin", fileOne + ".0.bin", fileOne + ".1.bin"]
+    .map(name => "/v1/shares/" + shareId + "/objects/" + name));
+  assert.deepEqual(new Uint8Array(await downloaded.arrayBuffer()), bytes);
+  assert.deepEqual(derivedKeys, ["manifest", "file:" + fileOne], "Derive the manifest key and each file key only once.");
 });
 
 

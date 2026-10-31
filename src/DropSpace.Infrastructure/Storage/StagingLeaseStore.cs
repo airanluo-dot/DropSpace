@@ -116,7 +116,9 @@ public sealed class StagingLeaseStore(
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var renewed = lease with { ExpiresAtUtc = DateTimeOffset.UtcNow.Add(leaseLifetime) };
+            var active = ReadActiveLease(lease)
+                ?? throw new InvalidOperationException("A completed staging lease cannot be renewed.");
+            var renewed = active with { ExpiresAtUtc = DateTimeOffset.UtcNow.Add(leaseLifetime) };
             var root = ResolveAndValidateRelativeRoot(renewed.RelativeRoot);
             EnsureDirectoryConfined(root);
             renewed = renewed with { RootPath = root };
@@ -143,7 +145,11 @@ public sealed class StagingLeaseStore(
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var root = ResolveAndValidateRelativeRoot(lease.RelativeRoot);
+            // A completed handle no longer owns this pathname. Another operation may
+            // already have acquired a fresh lease for the same relative root.
+            var active = ReadActiveLease(lease);
+            if (active is null) return true;
+            var root = ResolveAndValidateRelativeRoot(active.RelativeRoot);
             if (!TryDeleteConfinedTree(root, cancellationToken))
             {
                 logger.LogWarning("Staging lease cleanup retained a lease because its root could not be removed.");
@@ -236,6 +242,25 @@ public sealed class StagingLeaseStore(
         {
             _gate.Release();
         }
+    }
+
+    private StagingLease? ReadActiveLease(StagingLease supplied)
+    {
+        StagingLease? active;
+        // Looking up an existing owner must not initialize unrelated storage folders:
+        // cleanup still needs to reach its plaintext root when another area is unavailable.
+        try { active = ReadLease(GetLeasePath(supplied.LeaseId)); }
+        catch (FileNotFoundException) { return null; }
+        catch (DirectoryNotFoundException) { return null; }
+        // Expiry may have advanced through renewal, but the custody identity must
+        // still match the durable record before any directory is created or removed.
+        if (active is null || active.OwnerId != supplied.OwnerId || active.Kind != supplied.Kind ||
+            active.CreatedAtUtc != supplied.CreatedAtUtc || active.SensitivePlaintext != supplied.SensitivePlaintext ||
+            !string.Equals(active.RelativeRoot, supplied.RelativeRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("The staging lease does not match its active ownership record.");
+        }
+        return active;
     }
 
     private StagingLease? ReadLease(string path)
@@ -415,7 +440,6 @@ public sealed class StagingLeaseStore(
             throw new InvalidDataException("The staging lease ID is invalid.");
         }
 
-        paths.EnsureCreated();
         return Path.Combine(paths.StagingLeases, string.Concat(leaseId, ".json"));
     }
 

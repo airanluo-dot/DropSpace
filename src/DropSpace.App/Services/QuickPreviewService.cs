@@ -48,7 +48,7 @@ public sealed class QuickPreviewService(
                 descriptor,
                 cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             logger.LogDebug("Rendered preview remains usable despite cache write failure ({Category}).", exception.GetType().Name);
         }

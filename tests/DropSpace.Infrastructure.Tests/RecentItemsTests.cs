@@ -314,6 +314,32 @@ public sealed class RecentItemsTests
     }
 
     [TestMethod]
+    public async Task FolderRefresh_PreservesMissingReferenceKindAndRecoversWhenRestored()
+    {
+        await using var service = CreateService();
+        var path = Directory.CreateDirectory(Path.Combine(_root, "restored.folder")).FullName;
+        var item = await _repository.AddSpaceFileAsync(await _files.InspectAsync(path), null);
+        Directory.Delete(path);
+
+        await service.RefreshAsync(item.Id);
+        var missing = (await _repository.GetAsync(item.Id))!;
+        Assert.AreEqual(ItemStatus.Missing, missing.Status);
+        Assert.AreEqual(ItemKind.Folder, missing.Kind);
+        Assert.AreEqual(FileEntryKind.Folder, missing.File!.EntryKind);
+        Assert.IsNull(missing.File.Extension);
+        await service.RefreshAsync(item.Id);
+        Assert.AreEqual(missing.Revision, (await _repository.GetAsync(item.Id))!.Revision);
+
+        Directory.CreateDirectory(path);
+        await service.RefreshAsync(item.Id);
+        var restored = (await _repository.GetAsync(item.Id))!;
+        Assert.AreEqual(ItemStatus.Available, restored.Status);
+        Assert.AreEqual(ItemKind.Folder, restored.Kind);
+        Assert.AreEqual(FileEntryKind.Folder, restored.File!.EntryKind);
+        Assert.IsTrue(Directory.Exists(path));
+    }
+
+    [TestMethod]
     public async Task FileReplacement_WithDirectoryIsUnavailableWithoutChangingTheOriginalReferenceKind()
     {
         await using var service = CreateService();

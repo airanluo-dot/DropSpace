@@ -46,6 +46,8 @@ public sealed class ModuleWorkerClient : IAsyncDisposable
 
     public static async Task<ModuleWorkerClient> StartAsync(string executable, string dataDirectory, ModuleManifest manifest, CancellationToken token)
     {
+        // A canceled activation must not acquire a native job or start an executable.
+        token.ThrowIfCancellationRequested();
         var worker = new ModuleWorkerClient(executable, dataDirectory, manifest.Data.Version);
         try
         {

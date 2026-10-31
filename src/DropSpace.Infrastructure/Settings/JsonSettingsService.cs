@@ -60,41 +60,19 @@ public sealed class JsonSettingsService : ISettingsService
             AppSettings? settings = null;
             try
             {
-                var hadUpdateChannel = false;
                 var bytes = await SettingsIoPolicy.ReadBoundedAsync(
                         _paths.Settings,
                         cancellationToken)
                     .ConfigureAwait(false);
                 using var document = JsonDocument.Parse(bytes);
-                hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
-                    document.RootElement.EnumerateObject().Any(property =>
-                        string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
                 settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions)
                     ?? throw new JsonException("Settings must be an object.");
-                var beforePrivacyMigration = settings;
-                settings = MigrateLanguagePreferences(document.RootElement, settings);
-                settings = SettingsMigration15.Apply(settings, document.RootElement);
-                settings = IslandAppearanceMigration.Apply(settings, document.RootElement);
-                settings = MigratePrivacyChoice(document.RootElement, settings);
-                var migratedVersion = document.RootElement.EnumerateObject().Any(property =>
-                    string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase) &&
-                    (property.Value.ValueKind == JsonValueKind.Number ||
-                     property.Value.ValueKind == JsonValueKind.String && string.Equals(property.Value.GetString(), "preview", StringComparison.OrdinalIgnoreCase)));
-                if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
-                {
-                    settings = SettingsMigration14.Apply(settings);
-                    settings = settings with
-                    {
-                        Version = AppSettings.CurrentVersion,
-                        // A legacy settings file without an update channel belongs to the Preview-era
-                        // installed population. Fresh builds use the channel selected by their release kind.
-                        UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Beta,
-                    };
-                    migratedVersion = true;
-                }
-
+                settings = MigrateSettings(document.RootElement, settings);
                 var validated = settings.Validate();
-                if (migratedVersion || !ReferenceEquals(beforePrivacyMigration, settings))
+                // Record equality can differ solely because validation copied a list.
+                // Compare persisted JSON values to retain normalization without rewriting
+                // an unchanged file (property order and formatting are irrelevant).
+                if (!JsonElement.DeepEquals(document.RootElement, JsonSerializer.SerializeToElement(validated, SerializerOptions)))
                 {
                     try
                     {
@@ -227,12 +205,32 @@ public sealed class JsonSettingsService : ISettingsService
                 cancellationToken)
             .ConfigureAwait(false);
         using var document = JsonDocument.Parse(bytes);
-        var settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
-        if (settings is { Version: >= 1 and < AppSettings.CurrentVersion })
-            settings = SettingsMigration14.Apply(SettingsMigration15.Apply(settings, document.RootElement)) with { Version = AppSettings.CurrentVersion };
-        return settings is null ? throw new JsonException("Settings must be an object.") :
-            MigratePrivacyChoice(document.RootElement, IslandAppearanceMigration.Apply(
-                MigrateLanguagePreferences(document.RootElement, settings), document.RootElement));
+        var settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions)
+            ?? throw new JsonException("Settings must be an object.");
+        return MigrateSettings(document.RootElement, settings);
+    }
+
+    // Every entry point must interpret the same persisted choices before validation or mutation.
+    private static AppSettings MigrateSettings(JsonElement root, AppSettings settings)
+    {
+        var channel = root.EnumerateObject().FirstOrDefault(property =>
+            string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase)).Value;
+        settings = MigrateLanguagePreferences(root, settings);
+        settings = SettingsMigration15.Apply(settings, root);
+        settings = IslandAppearanceMigration.Apply(settings, root);
+        settings = MigratePrivacyChoice(root, settings);
+        if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
+        {
+            settings = SettingsMigration14.Apply(settings) with
+            {
+                Version = AppSettings.CurrentVersion,
+                // A legacy file without a channel belongs to the Preview-era population.
+                // Fresh settings retain the channel selected by their release kind.
+                UpdateChannel = channel.ValueKind == JsonValueKind.Undefined ? UpdateChannel.Beta : settings.UpdateChannel,
+            };
+        }
+
+        return settings;
     }
 
     private async Task SaveCoreAsync(AppSettings settings, CancellationToken cancellationToken)

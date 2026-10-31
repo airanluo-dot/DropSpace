@@ -319,9 +319,11 @@ async function download(id,master,item){
   const hash = new Sha256();
   let written = 0;
   try {
+    // File key material is constant across chunks; only the nonce index and AAD change.
+    const fileKey=await hkdf(master,uuidBytes(id),"file:"+item.fileId.replaceAll("-","")),noncePrefix=fromB64(item.noncePrefix);
     for(let i=0;i<item.chunkCount;i++){
-      const packed=await get(API_PREFIX+"/shares/"+id+"/objects/"+item.fileId.replaceAll("-","")+"."+i+".bin"),cipher=packed.slice(0,-${AUTH_TAG_BYTES}),tag=packed.slice(-${AUTH_TAG_BYTES}),fileKey=await hkdf(master,uuidBytes(id),"file:"+item.fileId.replaceAll("-","")),nonce=new Uint8Array(${MANIFEST_NONCE_BYTES});
-      nonce.set(fromB64(item.noncePrefix),0);
+      const packed=await get(API_PREFIX+"/shares/"+id+"/objects/"+item.fileId.replaceAll("-","")+"."+i+".bin"),cipher=packed.slice(0,-${AUTH_TAG_BYTES}),tag=packed.slice(-${AUTH_TAG_BYTES}),nonce=new Uint8Array(${MANIFEST_NONCE_BYTES});
+      nonce.set(noncePrefix,0);
       new DataView(nonce.buffer).setUint32(8,i,false);
       const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:nonce,additionalData:enc("${SHARE_AAD_PREFIX}\\n"+id+"\\n"+item.fileId.replaceAll("-","")+"\\n"+i+"\\n"+Math.min(${CHUNK_PLAIN_BYTES},plainLength-i*${CHUNK_PLAIN_BYTES}))},fileKey,concat(cipher,tag));
       const bytes=new Uint8Array(plain);
