@@ -143,6 +143,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
 
     public event EventHandler<SpaceProjectionChangedEventArgs>? SpaceProjectionChanged;
 
+    public event EventHandler? ReleaseHistoryRequested;
+    public void OpenReleaseHistory() => ReleaseHistoryRequested?.Invoke(this, EventArgs.Empty);
+
     public event EventHandler<string>? OverlayPlacementEditRequested;
 
     /// <summary>

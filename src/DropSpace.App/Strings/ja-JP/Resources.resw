@@ -1056,4 +1056,6 @@
   <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>最新バージョンです</value></data>
   <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>確認できませんでした。後でもう一度お試しください。</value></data>
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>更新をインストール</value></data>
+  <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>ロゴをクリックして更新内容を確認</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>更新内容</value></data>
 </root>

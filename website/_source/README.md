@@ -22,7 +22,13 @@ Evergreen features, interface labels, demonstration controls and accessibility t
 
 The lyric story describes two permanent translation targets: Simplified Chinese and English, chosen independently of the interface language. The illustration does not perform website AI inference. Only its interface explanation and controls are localized; the original sample lyrics and translated sample pair remain unchanged.
 
-Latest release summaries, all newly authored release notes and version highlights have one English body, marked `lang="en"`, whichever interface language is selected. Existing release history is retained. Both static snapshots and runtime updates read the validated release API and `createLatestChangeApi`; highlights remain attached to their own release tag. The `latest-change.json` compatibility `en` and `zh-CN` fields both carry the same English content. Column headings, buttons and channel labels are interface resources. Main downloads continue to follow Stable; Beta stays available through its existing channel and release history.
+The full changelog and homepage highlights use the shared, hand-edited
+[`localization/release-history.json`](../../localization/release-history.json). The changelog lists
+all dated entries. The homepage pairs the latest release from the validated feed with its entry by tag.
+English is the static default. The language selector renders Simplified or Traditional Chinese
+summaries in those interfaces. The [release history guide](../../docs/dev/interface-localization.md#release-history)
+covers new entries and Island design. The homepage refreshes from the same curated highlights in `latest-change.json`. Stable download links and the updater feed
+continue to use validated release metadata.
 
 ## Build and focused verification
 

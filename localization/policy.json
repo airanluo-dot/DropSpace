@@ -847,7 +847,7 @@
       "website/_source/data/releases.json"
     ],
     "htmlMarker": "data-i18n-exempt=release-body with lang=en",
-    "reason": "New version summaries, changelog bodies and highlights are maintained only in English; surrounding UI remains translated"
+    "reason": "Full release notes and updater summaries use English. The static website starts in English and switches hand-written release highlights to the selected Chinese interface."
   },
   "excludedInternalDomains": [
     {

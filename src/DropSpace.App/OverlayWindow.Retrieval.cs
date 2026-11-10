@@ -16,7 +16,7 @@ public sealed partial class OverlayWindow
         RememberRetrievalForeground(returnWindow);
         _retrievalVisible = true;
         RetrievalView.ResetPreview();
-        ApplyPageTransition(); ApplyRetrievalVisibility();
+        ApplyPageTransition(); UpdateExpandedContentLayout();
         RetrievalView.SetActive(true);
     }
 
@@ -35,17 +35,19 @@ public sealed partial class OverlayWindow
         RetrievalView.ResetPreview();
         RetrievalView.SetActive(false);
         RetrievalView.Visibility = Visibility.Collapsed;
-        ApplyPageTransition(); ApplyRetrievalVisibility();
+        ApplyPageTransition(); UpdateExpandedContentLayout();
     }
 
-    private void ApplyRetrievalVisibility()
+    private void UpdateExpandedContentLayout()
     {
         ExpandedContentRoot.Width = ExpandedNaturalWidth;
         ExpandedContentRoot.Height = ExpandedNaturalHeight;
         RetrievalView.Visibility = _retrievalVisible ? Visibility.Visible : Visibility.Collapsed;
-        ExpandedToolbar.Visibility = _retrievalVisible ? Visibility.Collapsed : Visibility.Visible;
-        RetrievalOpenButton.Visibility = _retrievalVisible ? Visibility.Collapsed : Visibility.Visible;
-        if (_retrievalVisible)
+        HistoryView.Visibility = _historyVisible ? Visibility.Visible : Visibility.Collapsed;
+        var standalone = _retrievalVisible || _historyVisible;
+        ExpandedToolbar.Visibility = standalone ? Visibility.Collapsed : Visibility.Visible;
+        RetrievalOpenButton.Visibility = standalone ? Visibility.Collapsed : Visibility.Visible;
+        if (standalone)
         {
             PreviousPageRail.Visibility = Visibility.Collapsed;
             NextPageRail.Visibility = Visibility.Collapsed;
@@ -63,7 +65,7 @@ public sealed partial class OverlayWindow
     private void OnRetrievalPreviewChanged(object? sender, EventArgs args)
     {
         if (_closing || _presentationSnapshot is null) return;
-        ApplyRetrievalVisibility();
+        UpdateExpandedContentLayout();
         ApplySnapshot(_presentationSnapshot, _isActiveWindow, _isActiveWindow,
             _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
     }

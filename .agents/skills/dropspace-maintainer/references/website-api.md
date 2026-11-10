@@ -52,7 +52,7 @@ The static build generates two versioned endpoints:
 
 `releases.json` is the updater-facing list of recent releases and their assets.
 `latest-change.json` is presentation-oriented metadata for the latest release headline and
-English-only highlights (the legacy locale fields both carry the same English body). Their schema and normalization logic live in
+hand-written English and Chinese highlights for the homepage. Their schema and normalization logic live in
 `website/_source/scripts/release-contract.mjs`; `build.mjs` writes the final JSON files.
 
 The metadata flow is:
@@ -65,7 +65,8 @@ GitHub Releases
   -> /api/v1/releases.json and /api/v1/latest-change.json
 ```
 
-Release-specific website copy should normally come from release metadata. Evergreen product copy
+The changelog and homepage highlights use the hand-edited `localization/release-history.json`.
+The Island embeds the same file. Follow the [release history guide](../../../../docs/dev/interface-localization.md#release-history). Evergreen product copy
 belongs in the localized website source and `scripts/i18n.mjs`.
 
 ## How the Windows app consumes the release API

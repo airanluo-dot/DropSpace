@@ -4198,52 +4198,25 @@
     "NeteaseUpdateInstall": [
       "cada4215d34483e4475456df3ddd22c134acffb2173b251f785fe08ced4e7652",
       "7a6bafc9c85304a134b469ab797e59f9e3f4f62ddc42d11c68b900ae2f4e344c"
+    ],
+    "AboutReleaseHistoryHint": [
+      "f6cf805b68f1ab6f006eef4cf01c8853fc85750d6738617c964baeb64bf22398",
+      "dfc5b7df1be19d8cf3f676b2d0f57b6e64ff6fc19c3718a06784615e061e5772"
+    ],
+    "ReleaseHistoryTitle": [
+      "11721b62bafb73ee1a08c3fc14561547d5a029145fac1a116b86331a9d673d59",
+      "e9cd8a5b582d20bf0fa1bdf57ab9d656f35a9057cc40eac2c2ae0d358c75c13f"
     ]
   },
-  "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
-  "reviewedAt": "2026-10-31T11:22:26.237Z",
+  "reviewedBy": "Codex Beta7 release history",
+  "reviewedAt": "2026-11-10T13:29:42.220Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "ActionStripMetadata.Text",
-      "AddTextUrlPlaceholder",
-      "AiLyricsClearingCache",
-      "ClearHistoryDescription.Text",
-      "CloseBehaviorDescription.Text",
-      "CloseToTrayContent",
-      "DefaultClipboardSyncModeDescription.Text",
-      "DeviceServiceReady",
-      "DlcCancel",
-      "DlcCanceled",
-      "DlcCanceling",
-      "DlcOperationFailed",
-      "DlcRemoving",
-      "DlcStorageSummary",
-      "DownloadConnections",
-      "DownloadTransferTimedOut",
-      "DropHintTitle.Text",
-      "EmptyPinnedDescription",
-      "EmptySpaceDescription",
-      "IslandAppearanceFollow",
-      "IslandForceShowOverFullscreenDescription",
-      "LanguageDescription.Text",
-      "LocalDataSection.Text",
-      "LyricsOnlinePrivacyHelp",
-      "NativeSettingsSaveFailed",
-      "NetworkActionSetupRequired",
-      "OverlayDropSubtitle",
-      "PageDescriptionPinned",
-      "PreviewUnavailable",
-      "QuickActionsDescription",
-      "RetrievalEmpty.Text",
-      "ShareNoAccessibleItems",
-      "StorageSummary",
-      "TransferSentContent",
-      "UpdateLastDownloadIncomplete",
-      "WidgetPinnedItems.Text",
-      "WindowsSharePortableStatus"
+      "AboutReleaseHistoryHint",
+      "ReleaseHistoryTitle"
     ],
-    "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
-    "reviewedAt": "2026-10-31T11:22:26.237Z"
+    "reviewedBy": "Codex Beta7 release history",
+    "reviewedAt": "2026-11-10T13:29:42.220Z"
   }
 }

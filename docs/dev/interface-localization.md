@@ -56,11 +56,28 @@ scripts. Initialize early; update UI, accessible attributes and document languag
 Keep canonical/sitemap entries unique, no nonexistent language alternates and no promise of ten
 separately indexed languages at one URL.
 
-New version summaries, changelog bodies and highlights have one English source bound to the
-actual release tag, rendered with `lang="en"` in every interface language. Localize surrounding
-UI; preserve history, download URLs, hashes, channels and updater contracts. Static and runtime
-release data share that source: no former English/Chinese override or old highlights under a
-new tag. Publish App assets before advertising them, then verify real downloads/Beta channel/site.
+## Release history
+
+Before building each app version, add its tag at the top of `localization/release-history.json`.
+Read the release notes and group changes by what a person can now do. Start with new features,
+then meaningful improvements or fixes. Give each change one short bullet. Explain an unfamiliar
+feature in a phrase. Combine minor layout adjustments and omit implementation and test details.
+Include every published app release, including Preview, Beta, Stable and platform-specific tags.
+
+Write matching bullets in `en`, `zh-CN` and `zh-TW`. Both Chinese interfaces use their respective
+copy. All other interfaces use English summaries with localized controls, channel labels and dates.
+Use `date: null` for an unpublished candidate. Set the UTC release date as `YYYY-MM-DD` when
+preparing the release build. Publish the app before deploying its dated website entry.
+
+Settings → About shows the version and a hint below the logo. The logo opens the archive in the
+existing Island using its material, motion, monitor work area and dismissal behavior. The heading
+is followed by newest-first rows with the version, channel and date in the website's blue–pink–orange
+release gradient. Stack metadata above the bullets on narrow screens. Keep each version name in
+one place and omit per-release buttons. Scroll the archive and use the close control or Escape to exit.
+
+The native app embeds the file and the website renders dated entries at build time. The recent
+release feed still owns updater and download metadata. Full GitHub notes and updater summaries
+continue to use English.
 
 ## Incremental review and integrity gate
 

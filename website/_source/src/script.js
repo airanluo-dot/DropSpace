@@ -72,7 +72,8 @@ addEventListener("dropspace-language-change", () => { if (currentStable) updateR
 function updateRequirementText(stable) { document.querySelectorAll("[data-stable-requirements]").forEach(node => { node.textContent = stableRequirements(stable, i18n.language); }); }
 const latestChangeApiPaths = releaseApiPaths.map((path) => path.replace(/releases\.json$/, "latest-change.json"));
 
-void Promise.all([refreshReleaseData(), refreshLatestChangeData()]);
+void refreshReleaseData();
+if (document.querySelector("[data-latest-change]")) void refreshLatestChangeData();
 
 async function refreshReleaseData() {
   const responses = await Promise.allSettled(releaseApiPaths.map(async (endpoint) => {
@@ -169,11 +170,12 @@ function isValidLatestChange(payload) {
       !Number.isFinite(Date.parse(release.publishedAt)) ||
       (release.channel === "preview" ? "beta" : release.channel) !== (/-(?:preview|beta)\./.test(release.tagName) ? "beta" : "stable") ||
       !isBoundedText(release.title, 160)) return false;
-  return ["en", "zh-CN"].every((locale) =>
-    isBoundedText(release.headline?.[locale], 80) &&
-    Array.isArray(release.highlights?.[locale]) &&
-    release.highlights[locale].length >= 1 && release.highlights[locale].length <= 6 &&
-    release.highlights[locale].every((item) => isBoundedText(item, 500)));
+  return ["en", "zh-CN"].every(locale => isBoundedText(release.headline?.[locale], 80)) &&
+    ["en", "zh-CN", "zh-TW"].every(locale =>
+      Array.isArray(release.highlights?.[locale]) &&
+      release.highlights[locale].length === release.highlights.en.length &&
+      release.highlights[locale].length >= 1 && release.highlights[locale].length <= 6 &&
+      release.highlights[locale].every((item) => isBoundedText(item, 500)));
 }
 
 function isBoundedText(value, maxLength) {
@@ -188,16 +190,17 @@ function applyLatestChange(release) {
   setText("[data-latest-change-title]", release.title);
   setText("[data-latest-change-date]", new Date(release.publishedAt).toLocaleDateString("en-US", { dateStyle: "long", timeZone: "UTC" }));
   document.querySelectorAll("[data-latest-change-url]").forEach((link) => { link.href = release.htmlUrl; });
-
-  const container = document.querySelector("[data-latest-change-highlights]");
-  if (!container) return;
-  const fragment = document.createDocumentFragment();
-  for (const value of release.highlights.en) {
-    const item = document.createElement("span");
-    item.textContent = value;
-    fragment.append(item);
+  const list = document.querySelector("[data-latest-change-highlights]");
+  if (list) {
+    list.replaceChildren(...release.highlights.en.map((line, index) => {
+      const item = document.createElement("span");
+      item.textContent = line;
+      item.dataset.summaryCn = release.highlights["zh-CN"][index];
+      item.dataset.summaryTw = release.highlights["zh-TW"][index];
+      return item;
+    }));
+    i18n.apply();
   }
-  container.replaceChildren(fragment);
 }
 
 function applyCurrentReleases(releases) {
@@ -222,59 +225,7 @@ function applyCurrentReleases(releases) {
   });
   updateRequirementText(stable);
 
-  const container = document.querySelector("[data-release-entries]");
-  if (container) renderReleaseEntries(container, releases.filter((release) => !release.isDraft));
   return true;
-}
-
-function renderReleaseEntries(container, releases) {
-  const fragment = document.createDocumentFragment();
-  for (const release of releases) {
-    const article = document.createElement("article");
-    article.className = "release-entry";
-    const meta = document.createElement("div");
-    meta.className = "release-meta";
-    for (const value of [release.tagName, i18n.t(release.isPrerelease ? "release.beta" : "release.stable"), new Date(release.publishedAt).toLocaleDateString(i18n.language, { dateStyle: "long", timeZone: "UTC" })]) {
-      const node = document.createElement(meta.childElementCount ? "span" : "strong");
-      node.textContent = value;
-      if (meta.childElementCount === 1) node.dataset.i18n = release.isPrerelease ? "release.beta" : "release.stable";
-      if (meta.childElementCount === 2) node.dataset.localizedDate = release.publishedAt;
-      meta.append(node);
-    }
-    const body = document.createElement("div");
-    body.className = "release-body";
-    const title = document.createElement("h2");
-    title.textContent = release.name || release.tagName;
-    const list = document.createElement("ul");
-    release.body.split("\n").map((line) => line.trim()).filter((line) => /^[-*] /.test(line)).slice(0, 5).forEach((line) => {
-      const item = document.createElement("li");
-      item.textContent = line.replace(/^[-*] +/, "").replace(/[*_`]/g, "");
-      list.append(item);
-    });
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    const installer = release.assets.find((asset) => asset.name === releaseArtifacts.installer);
-    for (const [label, href, className] of [
-      ["release.download", installer?.downloadUrl ?? release.htmlUrl, "button button-primary"],
-      ["release.notes", release.htmlUrl, "button button-ghost"]
-    ]) {
-      const link = document.createElement("a");
-      link.className = className;
-      link.href = href;
-      link.dataset.i18n = label;
-      link.textContent = i18n.t(label);
-      if (href === release.htmlUrl) {
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-      }
-      actions.append(link);
-    }
-    const releaseText = document.createElement("div"); releaseText.lang = "en"; releaseText.dataset.i18nExempt = "release-body"; releaseText.append(title, list);
-    body.append(releaseText, actions);
-    article.append(meta, body);
-    fragment.append(article);
-  }
-  container.replaceChildren(fragment);
 }
 
 // END LIVE RELEASE RUNTIME

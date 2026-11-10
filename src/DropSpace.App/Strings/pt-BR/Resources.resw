@@ -1056,4 +1056,6 @@ O download não ativa a IA nem altera o modelo ou o modo de GPU selecionado.</va
   <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>Está atualizado</value></data>
   <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>Não foi possível verificar. Tente novamente mais tarde.</value></data>
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Instalar atualização</value></data>
+  <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>Clique no logotipo para ver as novidades</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Novidades</value></data>
 </root>

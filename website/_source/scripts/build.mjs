@@ -16,9 +16,11 @@ const src = path.join(root, "src");
 const staticShowcase = process.env.SITE_VARIANT === "static";
 const dist = path.join(root, staticShowcase ? "dist-static" : "dist");
 const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8")));
+const archive = JSON.parse(await readFile(path.join(root, "../../localization/release-history.json"), "utf8"));
+const history = archive.filter(entry => entry.date);
 const stable = releases.stable;
 const stableRelease = releases.api.releases.find((release) => release.tagName === stable.tag);
-const latestChange = createLatestChangeApi(releases.api);
+const latestChange = createLatestChangeApi(releases.api, history);
 const macReleases = validateMacReleaseData(releases.macos ?? createMacReleaseData([], new Map(), releases.syncedAt));
 const siteOrigin = (process.env.SITE_ORIGIN ?? (staticShowcase ? "https://dropspace-static.arenvox.chatgpt.site" : "https://airanluo-dot.github.io/DropSpace")).replace(/\/$/, "");
 const basePath = new URL(`${siteOrigin}/`).pathname;
@@ -100,16 +102,20 @@ function replaceTokens(value) {
   return result;
 }
 
+function summaryItems(entry, element) {
+  return entry.en.map((line, index) =>
+    `<${element} data-summary-cn="${escapeHtml(entry["zh-CN"][index])}" data-summary-tw="${escapeHtml(entry["zh-TW"][index])}">${escapeHtml(line)}</${element}>`).join("");
+}
+
 function releaseEntries() {
-  // Static and runtime presentations use the same validated release API, never an old locale branch.
-  return releases.api.releases.map((release) => {
-    const channel = release.isPrerelease ? "release.beta" : "release.stable";
-    const notes = release.body.split("\n").map(line => line.trim()).filter(line => /^[-*] /.test(line)).slice(0, 5)
-      .map(line => `<li>${escapeHtml(line.replace(/^[-*] +/, "").replace(/[*_`]/g, ""))}</li>`).join("");
-    const installer = release.assets.find(asset => asset.name === "DropSpaceSetup.exe")?.downloadUrl || release.htmlUrl;
-    return `<article class="release-entry" data-release-tag="${escapeHtml(release.tagName)}">
-      <div class="release-meta"><strong>${escapeHtml(release.tagName)}</strong><span data-i18n="${channel}">${text(channel)}</span><span data-localized-date="${escapeHtml(release.publishedAt)}">${escapeHtml(formatDate(release.publishedAt, "en-US"))}</span></div>
-      <div class="release-body"><div lang="en" data-i18n-exempt="release-body"><h2>${escapeHtml(release.name || release.tagName)}</h2><ul>${notes}</ul></div><div class="actions"><a class="button button-primary" href="${escapeHtml(installer)}" data-i18n="release.download">${text("release.download")}</a><a class="button button-ghost" href="${escapeHtml(release.htmlUrl)}" target="_blank" rel="noopener noreferrer" data-i18n="release.notes">${text("release.notes")}</a></div></div>
+  return history.map(entry => {
+    const tag = escapeHtml(entry.tag.replace(/^macos-/, "macOS "));
+    const channel = entry.tag.includes("-beta.") ? "release.beta" : "release.stable";
+    const channelLabel = entry.tag.includes("-preview.") ? "<span>Preview</span>" :
+      `<span data-i18n="${channel}">${text(channel)}</span>`;
+    return `<article class="release-entry" data-release-tag="${escapeHtml(entry.tag)}">
+      <div class="release-meta"><h2>${tag}</h2>${channelLabel}<time datetime="${entry.date}" data-localized-date="${entry.date}">${formatDate(entry.date, "en-US")}</time></div>
+      <ul class="release-body" lang="en" data-i18n-exempt="release-body">${summaryItems(entry, "li")}</ul>
     </article>`;
   }).join("\n");
 }
@@ -185,7 +191,7 @@ async function render(templatePath, kind) {
     .replace('{{LATEST_CHANGE_TITLE}}',escapeHtml(change.title))
     .replace('{{LATEST_CHANGE_DATE}}',escapeHtml(formatDate(change.publishedAt,'en-US')))
     .replace('{{LATEST_CHANGE_URL}}',escapeHtml(change.htmlUrl))
-    .replace('{{LATEST_CHANGE_HIGHLIGHTS}}',change.highlights.en.map(item => `<span>${escapeHtml(item)}</span>`).join(''));
+    .replace('{{LATEST_CHANGE_HIGHLIGHTS}}',summaryItems(change.highlights, 'span'));
   const {document} = new JSDOM(template).window;
   const macPageURL = basePath + 'macos/' + (staticShowcase ? 'index.html' : '');
   if (kind === 'home') {

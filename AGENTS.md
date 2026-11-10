@@ -16,6 +16,7 @@ DropSpace skill. Do not create or synchronize a personal duplicate.
 - Website structure and public release API: `website/_source/README.md`.
 - Interface resources, shared language definitions, incremental translation confirmation and
   publication boundaries: `docs/dev/interface-localization.md`.
+- For each app version, update the [shared release history](docs/dev/interface-localization.md#release-history) for the Island and website.
 - Release history or a current milestone: its release notes, roadmap entry, or audit document.
 
 Read only the relevant sections. Historical preview or beta notes describe their releases; they

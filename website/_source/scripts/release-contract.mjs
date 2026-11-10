@@ -96,7 +96,7 @@ export function validateReleaseApi(payload) {
   return payload;
 }
 
-export function createLatestChangeApi(releaseApi) {
+export function createLatestChangeApi(releaseApi, history) {
   validateReleaseApi(releaseApi);
   const release = [...releaseApi.releases]
     .filter((candidate) => !candidate.isDraft)
@@ -104,7 +104,9 @@ export function createLatestChangeApi(releaseApi) {
   if (!release) throw new TypeError("Release API did not contain a published release.");
 
   const title = releaseDisplayTitle(release);
-  const englishHighlights = releaseHighlights(release.body);
+  const entry = history?.find(item => item.tag === release.tagName);
+  if (history && !entry) throw new Error(`Missing hand-written release history for ${release.tagName}`);
+  const englishHighlights = entry?.en ?? releaseHighlights(release.body);
   const headline = release.isPrerelease ? "Latest Beta." : "Current Stable.";
   const payload = {
     schemaVersion: LATEST_CHANGE_API_SCHEMA_VERSION,
@@ -122,7 +124,8 @@ export function createLatestChangeApi(releaseApi) {
       htmlUrl: release.htmlUrl,
       highlights: {
         en: englishHighlights,
-        "zh-CN": englishHighlights
+        "zh-CN": entry?.["zh-CN"] ?? englishHighlights,
+        ...(entry && { "zh-TW": entry["zh-TW"] })
       }
     }
   };

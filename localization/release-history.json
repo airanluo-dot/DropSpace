@@ -1,0 +1,1298 @@
+[
+  {
+    "tag": "v1.1.0-beta.7",
+    "date": null,
+    "en": [
+      "Click the About logo to browse the release history in the Island.",
+      "The website changelog now lists the highlights of every release."
+    ],
+    "zh-CN": [
+      "点击「关于」里的 Logo，在灵动岛查看历代更新。",
+      "官网更新日志也用简短条目介绍每一版。"
+    ],
+    "zh-TW": [
+      "點選「關於」裡的 Logo，在動態島檢視歷代更新。",
+      "官網更新日誌也用簡短條目介紹每一版。"
+    ]
+  },
+  {
+    "tag": "v1.1.0-beta.6",
+    "date": "2026-10-31",
+    "en": [
+      "Clearer messages in settings, sharing and file removal.",
+      "Fixed download history recovery and file previews."
+    ],
+    "zh-CN": [
+      "改进设置、分享和文件移除提示。",
+      "修复下载记录恢复和文件预览问题。"
+    ],
+    "zh-TW": [
+      "改進設定、分享和檔案移除提示。",
+      "修復下載記錄恢復和檔案預覽問題。"
+    ]
+  },
+  {
+    "tag": "v1.1.0-beta.5",
+    "date": "2026-10-29",
+    "en": [
+      "Manage NetEase enhancement and check its version in DLC settings.",
+      "Choose Ink or Ultra-clear for Liquid Glass."
+    ],
+    "zh-CN": [
+      "在 DLC 页安装、更新或移除网易云增强。",
+      "液态玻璃可选墨色或超清外观。"
+    ],
+    "zh-TW": [
+      "在 DLC 頁安裝、更新或移除網易雲增強。",
+      "液態玻璃可選墨色或超清外觀。"
+    ]
+  },
+  {
+    "tag": "v1.1.0-beta.4",
+    "date": "2026-10-29",
+    "en": [
+      "Added Liquid Glass to the Island with adjustable blur, refraction and refresh rate.",
+      "Open the music window from a widget and optionally hide the Island while it is open.",
+      "Improved album artwork resolution."
+    ],
+    "zh-CN": [
+      "灵动岛新增液态玻璃，可调节模糊、折射和刷新率。",
+      "新增音乐窗口小组件，可在音乐窗口打开时自动隐藏灵动岛。",
+      "优化专辑封面清晰度。"
+    ],
+    "zh-TW": [
+      "動態島新增液態玻璃，可調節模糊、折射和更新率。",
+      "新增音樂視窗小元件，可在音樂視窗開啟時自動隱藏動態島。",
+      "最佳化專輯封面清晰度。"
+    ]
+  },
+  {
+    "tag": "v1.1.0-beta.3",
+    "date": "2026-10-28",
+    "en": [
+      "Find lyrics for Jay Chou songs using their English or Chinese titles.",
+      "Improved lyric matching by recording, duration and word timing."
+    ],
+    "zh-CN": [
+      "支持用周杰伦歌曲的中英文名匹配歌词。",
+      "优先匹配录音版本、时长和逐字时间更准确的歌词。"
+    ],
+    "zh-TW": [
+      "支援用周杰倫歌曲的中英文名比對歌詞。",
+      "優先比對錄音版本、時長和逐字時間更準確的歌詞。"
+    ]
+  },
+  {
+    "tag": "v1.1.0-beta.2",
+    "date": "2026-10-26",
+    "en": [
+      "The music window highlights each word and animates its background to the audio.",
+      "Improved lyric readability, playback controls and Island search previews."
+    ],
+    "zh-CN": [
+      "音乐窗口支持逐字歌词，背景随音乐变化。",
+      "优化歌词阅读、播放控件布局和灵动岛搜索预览。"
+    ],
+    "zh-TW": [
+      "音樂視窗支援逐字歌詞，背景隨音樂變化。",
+      "最佳化歌詞閱讀、播放控制元件版面配置和動態島搜尋預覽。"
+    ]
+  },
+  {
+    "tag": "v1.1.0-beta.1",
+    "date": "2026-10-23",
+    "en": [
+      "Search clipboard history, files and task results from the Island.",
+      "File Relay collects new files from folders you choose.",
+      "Keep images or text in a reference window, or open the dedicated music window.",
+      "Pair a local agent to work with DropSpace."
+    ],
+    "zh-CN": [
+      "新增灵动岛统一搜索，可找回剪贴板内容、文件和处理结果。",
+      "新增文件接力，自动收集指定文件夹里的新文件。",
+      "新增图片和文本参考窗口，以及独立音乐窗口。",
+      "支持配对本地 Agent 操作 DropSpace。"
+    ],
+    "zh-TW": [
+      "新增動態島統一搜尋，可找回剪貼簿內容、檔案和處理結果。",
+      "新增檔案接力，自動收集指定資料夾裡的新檔案。",
+      "新增圖片和文字參考視窗，以及獨立音樂視窗。",
+      "支援配對本機 Agent 操作 DropSpace。"
+    ]
+  },
+  {
+    "tag": "v1.0.0",
+    "date": "2026-10-22",
+    "en": [
+      "The installed Windows app can install updates automatically.",
+      "View cache and DLC storage separately in Settings.",
+      "System notification and volume monitoring are temporarily unavailable."
+    ],
+    "zh-CN": [
+      "安装版支持自动安装更新。",
+      "设置中可分别查看缓存和 DLC 占用。",
+      "暂时停用系统通知和音量观察。"
+    ],
+    "zh-TW": [
+      "安裝版支援自動安裝更新。",
+      "設定中可分別檢視快取和 DLC 佔用。",
+      "暫時停用系統通知和音量觀察。"
+    ]
+  },
+  {
+    "tag": "macos-v0.1.0-beta.1",
+    "date": "2026-10-21",
+    "en": [
+      "The first Mac beta brings Temporary Space, clipboard history and a menu bar Island.",
+      "Added timed Apple Music lyrics, resumable downloads and nearby sharing."
+    ],
+    "zh-CN": [
+      "首个 Mac 测试版，支持临时空间、剪贴板历史和菜单栏灵动岛。",
+      "支持 Apple Music 同步歌词、断点下载和附近分享。"
+    ],
+    "zh-TW": [
+      "首個 Mac 測試版，支援暫存空間、剪貼簿記錄和選單欄動態島。",
+      "支援 Apple Music 同步歌詞、斷點下載和附近分享。"
+    ]
+  },
+  {
+    "tag": "v0.3.2-beta.7",
+    "date": "2026-10-19",
+    "en": [
+      "Record custom keyboard shortcuts and see conflicts in Settings.",
+      "Cleaned up the DLC list and hid temporary download folders."
+    ],
+    "zh-CN": [
+      "新增快捷键设置，可直接按键录入并检查冲突。",
+      "精简 DLC 列表，隐藏下载临时文件夹。"
+    ],
+    "zh-TW": [
+      "新增快捷鍵設定，可直接按鍵錄入並檢查衝突。",
+      "精簡 DLC 清單，隱藏下載臨時資料夾。"
+    ]
+  },
+  {
+    "tag": "v0.3.2-beta.6",
+    "date": "2026-10-19",
+    "en": [
+      "Fixed compact lyrics shifting sideways at fractional display scales."
+    ],
+    "zh-CN": [
+      "修复紧凑歌词在部分显示缩放下左右跳动的问题。"
+    ],
+    "zh-TW": [
+      "修復緊湊歌詞在部分顯示縮放下左右跳動的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.2-beta.5",
+    "date": "2026-10-18",
+    "en": [
+      "Restored drag-to-arrange widgets and size selection with undo.",
+      "Removed the sample module from the DLC catalog."
+    ],
+    "zh-CN": [
+      "恢复拖放编辑小组件和点选尺寸，支持撤销调整。",
+      "从 DLC 目录移除示例模块。"
+    ],
+    "zh-TW": [
+      "恢復拖放編輯小元件和點選尺寸，支援撤銷調整。",
+      "從 DLC 目錄移除示例模組。"
+    ]
+  },
+  {
+    "tag": "v0.3.2-beta.4",
+    "date": "2026-10-17",
+    "en": [
+      "Added timer presets and a reset action.",
+      "Improved widget placement, Island dismissal and list search."
+    ],
+    "zh-CN": [
+      "计时器新增时长预设和重置操作。",
+      "优化小组件定位、灵动岛关闭和列表搜索。"
+    ],
+    "zh-TW": [
+      "計時器新增時長預設和重置操作。",
+      "最佳化小元件定位、動態島關閉和清單搜尋。"
+    ]
+  },
+  {
+    "tag": "v0.3.2-beta.3",
+    "date": "2026-10-17",
+    "en": [
+      "Fixed unnecessary scrolling and clipped characters in compact lyrics.",
+      "Refined download controls."
+    ],
+    "zh-CN": [
+      "修复短歌词意外滚动和边缘文字被裁切的问题。",
+      "优化下载操作按钮。"
+    ],
+    "zh-TW": [
+      "修復短歌詞意外捲動和邊緣文字被裁切的問題。",
+      "最佳化下載操作按鈕。"
+    ]
+  },
+  {
+    "tag": "v0.3.2-beta.2",
+    "date": "2026-10-13",
+    "en": [
+      "Track or cancel files being sent to another device.",
+      "View, copy or revoke active Nearby share links.",
+      "Fixed NetEase playback detection and clipboard undo."
+    ],
+    "zh-CN": [
+      "向设备发送文件时可查看进度或取消传输。",
+      "可查看、复制和撤销附近分享链接。",
+      "修复网易云播放识别与剪贴板撤销问题。"
+    ],
+    "zh-TW": [
+      "向裝置傳送檔案時可檢視進度或取消傳輸。",
+      "可檢視、複製和撤銷附近分享連結。",
+      "修復網易雲播放識別與剪貼簿撤銷問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.2-beta.1",
+    "date": "2026-10-08",
+    "en": [
+      "Install, enable or remove optional official feature modules.",
+      "Improved how the website remembers your language."
+    ],
+    "zh-CN": [
+      "新增官方可选功能模块，可单独安装、启用或移除。",
+      "改进官网语言偏好的保存。"
+    ],
+    "zh-TW": [
+      "新增官方可選功能模組，可單獨安裝、啟用或移除。",
+      "改進官網語言偏好的儲存。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.19",
+    "date": "2026-10-07",
+    "en": [
+      "The app and website now support ten interface languages.",
+      "Choose the lyric translation language separately from the interface."
+    ],
+    "zh-CN": [
+      "应用和官网支持十种界面语言。",
+      "歌词翻译目标可独立于界面语言设置。"
+    ],
+    "zh-TW": [
+      "應用程式和官網支援十種介面語言。",
+      "歌詞翻譯目標可獨立於介面語言設定。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.18",
+    "date": "2026-10-07",
+    "en": [
+      "Choose system, light or dark appearance for the Island.",
+      "Choose whether music or Temporary Space takes priority."
+    ],
+    "zh-CN": [
+      "灵动岛支持跟随系统、浅色和深色外观。",
+      "可选择优先显示音乐或临时空间。"
+    ],
+    "zh-TW": [
+      "動態島支援跟隨系統、淺色和深色外觀。",
+      "可選擇優先顯示音樂或暫存空間。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.17",
+    "date": "2026-10-07",
+    "en": [
+      "Improved responsiveness when loading lists, working with files and displaying music."
+    ],
+    "zh-CN": [
+      "优化长列表加载、文件操作和音乐灵动岛的流畅度。"
+    ],
+    "zh-TW": [
+      "最佳化長清單載入、檔案操作和音樂動態島的流暢度。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.16",
+    "date": "2026-10-06",
+    "en": [
+      "Offline language detection skips same-language songs and preserves existing provider translations."
+    ],
+    "zh-CN": [
+      "新增离线歌词语言识别，跳过同语种歌曲，保留歌词源已有的译文。"
+    ],
+    "zh-TW": [
+      "新增離線歌詞語言識別，跳過同語種歌曲，保留歌詞源已有的譯文。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.15",
+    "date": "2026-10-06",
+    "en": [
+      "Improved recording matching and Chinese and English lyric translation.",
+      "Fixed the Island hiding too soon after playback pauses."
+    ],
+    "zh-CN": [
+      "改进歌词版本匹配和中英文补译。",
+      "修复暂停后灵动岛过早隐藏的问题。"
+    ],
+    "zh-TW": [
+      "改進歌詞版本比對和中英文補譯。",
+      "修復暫停後動態島過早隱藏的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.14",
+    "date": "2026-10-06",
+    "en": [
+      "Click the idle Island to open Files and optionally show the logo.",
+      "Improved Island positioning, lyric width and settings sliders."
+    ],
+    "zh-CN": [
+      "空闲灵动岛可点击打开文件页，并可选择显示 Logo。",
+      "优化灵动岛置顶、歌词宽度和滑块设置。"
+    ],
+    "zh-TW": [
+      "空閒動態島可點選開啟檔案頁，並可選擇顯示 Logo。",
+      "最佳化動態島置頂、歌詞寬度和滑桿設定。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.13",
+    "date": "2026-10-06",
+    "en": [
+      "Manage downloads, destinations and speed limits on a dedicated page.",
+      "Keep the Island visible or adjust its hide delay and content scale.",
+      "Resume interrupted model downloads by part."
+    ],
+    "zh-CN": [
+      "新增独立下载页，集中管理任务、保存位置和限速。",
+      "灵动岛支持常驻、自定义隐藏延迟和内容缩放。",
+      "模型分卷下载支持中断后继续。"
+    ],
+    "zh-TW": [
+      "新增獨立下載頁，集中管理任務、儲存位置和限速。",
+      "動態島支援常駐、自訂隱藏延遲和內容縮放。",
+      "模型分卷下載支援中斷後繼續。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.12",
+    "date": "2026-10-05",
+    "en": [
+      "Sign in to QQ Music to retrieve its lyric translations.",
+      "Download files from direct links and share queue and speed settings across updates and components."
+    ],
+    "zh-CN": [
+      "支持登录 QQ 音乐获取平台歌词译文。",
+      "支持下载自定义文件，更新和组件下载共用队列与限速。"
+    ],
+    "zh-TW": [
+      "支援登入 QQ 音樂取得平臺歌詞譯文。",
+      "支援下載自訂檔案，更新和元件下載共用佇列與限速。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.11",
+    "date": "2026-10-05",
+    "en": [
+      "Manage lyric models and GPU components in the new DLC settings page.",
+      "Accelerate local lyric translation with Vulkan or optional CUDA.",
+      "Improved lyric, translation and word-timing matches across sources."
+    ],
+    "zh-CN": [
+      "新增 DLC 设置页，集中管理歌词模型和 GPU 组件。",
+      "本地歌词翻译支持 Vulkan 和可选 CUDA 加速。",
+      "改进多来源歌词、译文和逐字时间匹配。"
+    ],
+    "zh-TW": [
+      "新增 DLC 設定頁，集中管理歌詞模型和 GPU 元件。",
+      "本機歌詞翻譯支援 Vulkan 和可選 CUDA 加速。",
+      "改進多來源歌詞、譯文和逐字時間比對。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.10",
+    "date": "2026-10-04",
+    "en": [
+      "Reduced duplicate lyric requests when skipping tracks and restored missing translations on replay."
+    ],
+    "zh-CN": [
+      "减少快速切歌时的重复请求，修复重听歌曲时译文未恢复的问题。"
+    ],
+    "zh-TW": [
+      "減少快速切歌時的重複請求，修復重聽歌曲時譯文未恢復的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.9",
+    "date": "2026-10-04",
+    "en": [
+      "Lyric translations now respect your source preferences.",
+      "Fixed widgets ignoring clicks after a cancelled drag."
+    ],
+    "zh-CN": [
+      "歌词译文按设定的来源优先级选取。",
+      "修复取消拖动后小组件无法点击的问题。"
+    ],
+    "zh-TW": [
+      "歌詞譯文按設定的來源優先順序選取。",
+      "修復取消拖動後小元件無法點選的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.8",
+    "date": "2026-10-04",
+    "en": [
+      "Backup lyric sources now start looking for translations sooner.",
+      "Restored the spectrum and glow after track changes or audio interruptions."
+    ],
+    "zh-CN": [
+      "加快备用歌词源查找译文的速度。",
+      "修复切歌或音频中断后频谱和光效停止响应的问题。"
+    ],
+    "zh-TW": [
+      "加快備用歌詞源查詢譯文的速度。",
+      "修復切歌或音訊中斷後頻譜和光效停止響應的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.7",
+    "date": "2026-10-04",
+    "en": [
+      "Pick a widget size, drag it back to remove it, or resize it into a nearby space.",
+      "Simplified settings and the Island layout during instrumental gaps."
+    ],
+    "zh-CN": [
+      "小组件支持点选尺寸、拖回移除和就近排列。",
+      "精简设置说明，优化间奏时的灵动岛布局。"
+    ],
+    "zh-TW": [
+      "小元件支援點選尺寸、拖回移除和就近排列。",
+      "精簡設定說明，最佳化間奏時的動態島版面配置。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.6",
+    "date": "2026-10-04",
+    "en": [
+      "Fixed missing Kugou lyrics for tracks with incomplete duration data."
+    ],
+    "zh-CN": [
+      "修复酷狗部分歌曲有歌词却无法加载的问题。"
+    ],
+    "zh-TW": [
+      "修復酷狗部分歌曲有歌詞卻無法載入的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.5",
+    "date": "2026-10-04",
+    "en": [
+      "Lyric lookup now tries other matching recordings when the first result is unusable.",
+      "Fixed playback progress jumping after resuming."
+    ],
+    "zh-CN": [
+      "首个歌词结果不可用时会继续匹配其他录音。",
+      "修复暂停后继续播放时的进度跳动。"
+    ],
+    "zh-TW": [
+      "首個歌詞結果不可用時會繼續比對其他錄音。",
+      "修復暫停後繼續播放時的進度跳動。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.4",
+    "date": "2026-10-04",
+    "en": [
+      "Enabled AI translation now continues when a translation source times out.",
+      "Online lyrics are enabled by default for new installations."
+    ],
+    "zh-CN": [
+      "歌词源超时后，可继续使用已启用的 AI 翻译。",
+      "新安装默认开启在线歌词。"
+    ],
+    "zh-TW": [
+      "歌詞源超時後，可繼續使用已啟用的 AI 翻譯。",
+      "新安裝預設開啟線上歌詞。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.3",
+    "date": "2026-10-03",
+    "en": [
+      "Improved Chinese title matching and prioritized existing lyric translations.",
+      "Music glow responds more clearly to changes in the audio."
+    ],
+    "zh-CN": [
+      "改进中文曲名匹配，优先采用歌词源已有译文。",
+      "音乐光效对音量变化更灵敏。"
+    ],
+    "zh-TW": [
+      "改進中文曲名比對，優先採用歌詞源已有譯文。",
+      "音樂光效對音量變化更靈敏。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.2",
+    "date": "2026-10-03",
+    "en": [
+      "Music updates now recover when a player omits playback information.",
+      "Improved progressive lyric display and Island glow."
+    ],
+    "zh-CN": [
+      "修复部分播放器信息缺失时音乐状态停止更新的问题。",
+      "优化歌词逐行显示和灵动岛光效。"
+    ],
+    "zh-TW": [
+      "修復部分播放器資訊缺失時音樂狀態停止更新的問題。",
+      "最佳化歌詞逐行顯示和動態島光效。"
+    ]
+  },
+  {
+    "tag": "v0.3.1-beta.1",
+    "date": "2026-10-03",
+    "en": [
+      "Added optional on-device AI lyric translation and a shared lyric cache.",
+      "Preview the next lyric in the expanded Island and optionally show the Island over fullscreen apps."
+    ],
+    "zh-CN": [
+      "新增可选本地 AI 歌词翻译和歌词缓存。",
+      "可在展开的灵动岛预览下一句歌词，并选择在全屏时显示灵动岛。"
+    ],
+    "zh-TW": [
+      "新增可選本機 AI 歌詞翻譯和歌詞快取。",
+      "可在展開的動態島預覽下一句歌詞，並選擇在全屏時顯示動態島。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.32",
+    "date": "2026-10-01",
+    "en": [
+      "Fixed crashes when switching displays, hiding the Island or closing windows."
+    ],
+    "zh-CN": [
+      "修复切换显示器、隐藏灵动岛和关闭窗口时的部分崩溃。"
+    ],
+    "zh-TW": [
+      "修復切換顯示器、隱藏動態島和關閉視窗時的部分崩潰。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.31",
+    "date": "2026-09-30",
+    "en": [
+      "Expanded the widget library to 16, including a focus timer, calculator and network status.",
+      "Improved lyric gaps, playback seeking and Island page transitions."
+    ],
+    "zh-CN": [
+      "小组件扩充至 16 种，新增专注计时、计算器和网络状态等工具。",
+      "优化歌词间奏、播放进度拖动和灵动岛翻页动画。"
+    ],
+    "zh-TW": [
+      "小元件擴充至 16 種，新增專注計時、計算器和網路狀態等工具。",
+      "最佳化歌詞間奏、播放進度拖動和動態島翻頁動畫。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.30",
+    "date": "2026-09-30",
+    "en": [
+      "Improved player detection and lyric matching for live recordings.",
+      "Fixed filename collisions during transfers and incomplete share links."
+    ],
+    "zh-CN": [
+      "改进播放器识别和现场版歌词匹配。",
+      "修复跨设备传输文件重名和分享链接不完整的问题。"
+    ],
+    "zh-TW": [
+      "改進播放器識別和現場版歌詞比對。",
+      "修復跨裝置傳輸檔案同名和分享連結不完整的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.29",
+    "date": "2026-09-30",
+    "en": [
+      "Improved consecutive clipboard captures, batch drops and app shutdown.",
+      "Improved recovery for device transfers, encrypted shares and updates."
+    ],
+    "zh-CN": [
+      "修复剪贴板连续复制、批量拖放和退出应用时的问题。",
+      "改进跨设备传输、加密分享和更新失败后的恢复。"
+    ],
+    "zh-TW": [
+      "修復剪貼簿連續複製、批次拖放和退出應用時的問題。",
+      "改進跨裝置傳輸、加密分享和更新失敗後的恢復。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.28",
+    "date": "2026-09-22",
+    "en": [
+      "Choose primary and backup lyric sources and whether to search the remaining sources.",
+      "Improved track matching and offline detection of the NetEase enhancement."
+    ],
+    "zh-CN": [
+      "可选择首选和备用歌词源，并决定是否搜索其他来源。",
+      "改进歌曲匹配和网易云增强的离线识别。"
+    ],
+    "zh-TW": [
+      "可選擇首選和備用歌詞源，並決定是否搜尋其他來源。",
+      "改進歌曲比對和網易雲增強的離線識別。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.27",
+    "date": "2026-09-22",
+    "en": [
+      "Improved lyric matching for featured artists, remasters and alternate titles.",
+      "Improved NetEase session selection and playback tracking."
+    ],
+    "zh-CN": [
+      "改进合作艺人、重制版和别名歌曲的歌词匹配。",
+      "修复网易云重复播放会话和进度识别问题。"
+    ],
+    "zh-TW": [
+      "改進合作藝人、重製版和別名歌曲的歌詞比對。",
+      "修復網易雲重複播放會話和進度識別問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.26",
+    "date": "2026-09-21",
+    "en": [
+      "Added one-click NetEase enhancement for playback status and controls.",
+      "Fixed Apple Music progress jumps, virtual file drops and folder structure in ZIP exports."
+    ],
+    "zh-CN": [
+      "新增一键安装网易云增强，支持读取播放状态和控制音乐。",
+      "修复 Apple Music 进度跳动、虚拟文件拖放和 ZIP 目录保留问题。"
+    ],
+    "zh-TW": [
+      "新增一鍵安裝網易雲增強，支援讀取播放狀態和控制音樂。",
+      "修復 Apple Music 進度跳動、虛擬檔案拖放和 ZIP 目錄保留問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.25",
+    "date": "2026-09-16",
+    "en": [
+      "Improved Apple Music track detection and lyric synchronization.",
+      "Improved clipboard capture, batch drops and update retries."
+    ],
+    "zh-CN": [
+      "改进 Apple Music 歌曲识别和歌词同步。",
+      "修复连续复制、批量拖放和更新重试问题。"
+    ],
+    "zh-TW": [
+      "改進 Apple Music 歌曲識別和歌詞同步。",
+      "修復連續複製、批次拖放和更新重試問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-beta.24",
+    "date": "2026-09-15",
+    "en": [
+      "The Island now has Widgets, Music, Files and Clipboard pages, with eight built-in widgets.",
+      "Settings apply immediately. Improved NetEase lyrics and Apple Music playback sync."
+    ],
+    "zh-CN": [
+      "灵动岛分为小组件、音乐、文件和剪贴板四页，内置八种小组件。",
+      "设置更改即时生效，改进网易云歌词和 Apple Music 播放同步。"
+    ],
+    "zh-TW": [
+      "動態島分為小元件、音樂、檔案和剪貼簿四頁，內建八種小元件。",
+      "設定更改即時生效，改進網易雲歌詞和 Apple Music 播放同步。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.23",
+    "date": "2026-09-11",
+    "en": [
+      "See artwork, lyrics and a spectrum on the compact Island, then expand it to switch between Files, Music and Widgets."
+    ],
+    "zh-CN": [
+      "紧凑灵动岛可显示封面、歌词和频谱，展开后可切换文件、音乐和小组件。"
+    ],
+    "zh-TW": [
+      "緊湊動態島可顯示封面、歌詞和頻譜，展開後可切換檔案、音樂和小元件。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.22",
+    "date": "2026-09-11",
+    "en": [
+      "Added playback controls, timed lyrics and an audio spectrum to the Island.",
+      "Added clock, calendar and resource widgets, plus optional notification and volume updates."
+    ],
+    "zh-CN": [
+      "灵动岛新增音乐控制、同步歌词和频谱。",
+      "新增时钟、日历和资源占用小组件，可选显示通知和音量变化。"
+    ],
+    "zh-TW": [
+      "動態島新增音樂控制、同步歌詞和頻譜。",
+      "新增時鐘、日曆和資源佔用小元件，可選顯示通知和音量變化。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.21",
+    "date": "2026-09-10",
+    "en": [
+      "Copy file checksums and resize images using presets with output dimensions.",
+      "Fixed settings pages overwriting one another’s changes."
+    ],
+    "zh-CN": [
+      "快捷操作支持复制校验值、按比例缩放图片和预览输出尺寸。",
+      "修复不同设置页互相覆盖更改的问题。"
+    ],
+    "zh-TW": [
+      "快捷操作支援複製校驗碼、按比例縮放圖片和預覽輸出尺寸。",
+      "修復不同設定頁互相覆蓋更改的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.20",
+    "date": "2026-09-09",
+    "en": [
+      "Improved file cleanup after interruptions and recovery of staged shares and incoming transfers."
+    ],
+    "zh-CN": [
+      "改进意外退出后的文件清理、共享文件暂存和跨设备接收。"
+    ],
+    "zh-TW": [
+      "改進意外退出後的檔案清理、共享檔案暫存和跨裝置接收。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.19",
+    "date": "2026-09-08",
+    "en": [
+      "Improved batch pinning and undo.",
+      "Improved device pairing, unpairing and shared-file consistency."
+    ],
+    "zh-CN": [
+      "批量固定和撤销更可靠。",
+      "改进设备配对、取消配对和共享文件的一致性。"
+    ],
+    "zh-TW": [
+      "批次固定和撤銷更可靠。",
+      "改進裝置配對、取消配對和共享檔案的一致性。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.18",
+    "date": "2026-09-08",
+    "en": [
+      "Browse and search large collections and resume interrupted update downloads.",
+      "Improved cleanup of expired items and protection of pinned files."
+    ],
+    "zh-CN": [
+      "大型内容库支持连续翻页和搜索，更新下载支持断点续传。",
+      "改进过期项目清理和已固定文件保护。"
+    ],
+    "zh-TW": [
+      "大型內容庫支援連續翻頁和搜尋，更新下載支援斷點續傳。",
+      "改進過期專案清理和已固定檔案保護。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.17",
+    "date": "2026-09-07",
+    "en": [
+      "Fixed outdated results appearing after a search or page change.",
+      "File previews now reflect external changes and Temporary Space counts are more accurate."
+    ],
+    "zh-CN": [
+      "修复快速搜索或切换页面时出现旧结果的问题。",
+      "文件变更后可及时更新预览，临时空间计数更准确。"
+    ],
+    "zh-TW": [
+      "修復快速搜尋或切換頁面時出現舊結果的問題。",
+      "檔案變更後可及時更新預覽，暫存空間計數更準確。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.16",
+    "date": "2026-09-05",
+    "en": [
+      "Improved recovery for virtual file drops, cross-device clipboard and nearby shares.",
+      "Improved large-image previews and privacy for encrypted share QR codes."
+    ],
+    "zh-CN": [
+      "改进虚拟文件拖放、跨设备剪贴板和附近分享的恢复。",
+      "优化大图预览和加密分享二维码的隐私保护。"
+    ],
+    "zh-TW": [
+      "改進虛擬檔案拖放、跨裝置剪貼簿和附近分享的恢復。",
+      "最佳化大圖預覽和加密分享二維碼的隱私保護。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.15",
+    "date": "2026-09-04",
+    "en": [
+      "Improved Island drop-target alignment at different display scales.",
+      "Improved high-contrast and Acrylic rendering."
+    ],
+    "zh-CN": [
+      "修复不同缩放下灵动岛拖放区域偏移的问题。",
+      "优化高对比度和亚克力材质显示。"
+    ],
+    "zh-TW": [
+      "修復不同縮放下動態島拖放區域偏移的問題。",
+      "最佳化高對比度和亞克力材質顯示。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.14",
+    "date": "2026-09-04",
+    "en": [
+      "Added Acrylic and interruptible expand and collapse animations to the Island.",
+      "Added support for reduced motion."
+    ],
+    "zh-CN": [
+      "新增灵动岛亚克力材质和可中断的展开、收起动画。",
+      "支持系统减少动画偏好。"
+    ],
+    "zh-TW": [
+      "新增動態島亞克力材質和可中斷的展開、收起動畫。",
+      "支援系統減少動畫偏好。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.13",
+    "date": "2026-09-04",
+    "en": [
+      "Preview, resize and convert images stored as regular files.",
+      "Improved actions for multiple selections and Smart Drag detection."
+    ],
+    "zh-CN": [
+      "普通图片文件也能直接预览、缩放和转换格式。",
+      "改进多选快捷操作和智能拖放识别。"
+    ],
+    "zh-TW": [
+      "普通圖片檔案也能直接預覽、縮放和轉換格式。",
+      "改進多選快捷操作和智慧拖放識別。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.12",
+    "date": "2026-09-03",
+    "en": [
+      "Compatible browsers can decrypt shared files directly to disk, using less memory for large downloads."
+    ],
+    "zh-CN": [
+      "浏览器接收加密分享时可边解密边保存，减少大文件的内存占用。"
+    ],
+    "zh-TW": [
+      "瀏覽器接收加密分享時可邊解密邊儲存，減少大檔案的記憶體佔用。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.11",
+    "date": "2026-09-03",
+    "en": [
+      "Revoke previously created encrypted shares after restarting DropSpace.",
+      "Improved Island response to fast file drags."
+    ],
+    "zh-CN": [
+      "重启后仍可撤销之前创建的加密分享。",
+      "改进快速拖动时灵动岛的响应。"
+    ],
+    "zh-TW": [
+      "重啟後仍可撤銷之前建立的加密分享。",
+      "改進快速拖動時動態島的響應。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.10",
+    "date": "2026-09-02",
+    "en": [
+      "Fixed the Island appearing during ordinary pointer movement.",
+      "Improved borderless display and default export locations for Quick Actions."
+    ],
+    "zh-CN": [
+      "修复普通鼠标移动误唤醒灵动岛的问题。",
+      "优化无边框显示和快捷操作的默认导出位置。"
+    ],
+    "zh-TW": [
+      "修復普通滑鼠移動誤喚醒動態島的問題。",
+      "最佳化無邊框顯示和快捷操作的預設匯出位置。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.9",
+    "date": "2026-08-28",
+    "en": [
+      "Added Send to DropSpace to File Explorer.",
+      "Reorder Quick Actions and undo removals, pin changes and clipboard clearing."
+    ],
+    "zh-CN": [
+      "资源管理器新增「发送到 DropSpace」。",
+      "可自定义快捷操作顺序，撤销移除、固定和清空操作。"
+    ],
+    "zh-TW": [
+      "檔案總管新增「傳送到 DropSpace」。",
+      "可自訂快捷操作順序，撤銷移除、固定和清空操作。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.8",
+    "date": "2026-08-26",
+    "en": [
+      "Added Windows compatibility checks at launch and update, with fallback window materials on older systems."
+    ],
+    "zh-CN": [
+      "启动和更新前会检查 Windows 版本，旧系统使用兼容的窗口材质。"
+    ],
+    "zh-TW": [
+      "啟動和更新前會檢查 Windows 版本，舊系統使用相容的視窗材質。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.7",
+    "date": "2026-08-26",
+    "en": [
+      "Improved device pairing and sending text or links between devices.",
+      "Browse pages in PDF previews and pause clipboard sync along with recording."
+    ],
+    "zh-CN": [
+      "改进设备配对和跨设备发送文本、链接。",
+      "PDF 预览支持翻页，暂停剪贴板后同步也会暂停。"
+    ],
+    "zh-TW": [
+      "改進裝置配對和跨裝置傳送文字、連結。",
+      "PDF 預覽支援翻頁，暫停剪貼簿後同步也會暫停。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.6",
+    "date": "2026-08-26",
+    "en": [
+      "Added Quick Preview and actions for ZIP, checksums, QR codes and images.",
+      "Added device pairing, cross-device clipboard, nearby sharing and encrypted internet sharing."
+    ],
+    "zh-CN": [
+      "新增文件快速预览，以及压缩、校验、二维码和图片处理操作。",
+      "新增设备配对、跨设备剪贴板、附近分享和加密互联网分享。"
+    ],
+    "zh-TW": [
+      "新增檔案快速預覽，以及壓縮、校驗、二維碼和圖片處理操作。",
+      "新增裝置配對、跨裝置剪貼簿、附近分享和加密網際網路分享。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.5",
+    "date": "2026-08-25",
+    "en": [
+      "Fixed the Island jumping when you begin adjusting its position."
+    ],
+    "zh-CN": [
+      "修复调整位置时灵动岛突然跳动的问题。"
+    ],
+    "zh-TW": [
+      "修復調整位置時動態島突然跳動的問題。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.4",
+    "date": "2026-08-25",
+    "en": [
+      "Fixed other monitors’ Islands interfering while adjusting placement.",
+      "Cancelling placement restores the saved position."
+    ],
+    "zh-CN": [
+      "修复多显示器调整位置时其他灵动岛干扰拖动的问题。",
+      "取消调整可恢复已保存的位置。"
+    ],
+    "zh-TW": [
+      "修復多顯示器調整位置時其他動態島干擾拖動的問題。",
+      "取消調整可恢復已儲存的位置。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.3",
+    "date": "2026-08-24",
+    "en": [
+      "Drag to position the Island and save a separate placement for each monitor."
+    ],
+    "zh-CN": [
+      "可拖动调整灵动岛位置，每台显示器分别记忆。"
+    ],
+    "zh-TW": [
+      "可拖動調整動態島位置，每臺顯示器分別記憶。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.2",
+    "date": "2026-08-24",
+    "en": [
+      "Drop virtual files supplied by other apps.",
+      "Improved drag detection across monitors and display scales."
+    ],
+    "zh-CN": [
+      "支持拖入应用提供的虚拟文件。",
+      "改进多显示器和不同缩放下的拖动识别。"
+    ],
+    "zh-TW": [
+      "支援拖入應用提供的虛擬檔案。",
+      "改進多顯示器和不同縮放下的拖動識別。"
+    ]
+  },
+  {
+    "tag": "v0.3.0-preview.1",
+    "date": "2026-08-23",
+    "en": [
+      "Smart Drag now recognizes file drags from additional apps."
+    ],
+    "zh-CN": [
+      "智能拖动可识别更多来源的文件，不再局限于桌面和资源管理器。"
+    ],
+    "zh-TW": [
+      "智慧拖動可識別更多來源的檔案，不再侷限於桌面和檔案總管。"
+    ]
+  },
+  {
+    "tag": "v0.2.1",
+    "date": "2026-08-23",
+    "en": [
+      "Added English and Simplified Chinese interfaces.",
+      "Fixed the main window flashing during background startup."
+    ],
+    "zh-CN": [
+      "新增英文和简体中文界面。",
+      "修复开机启动时主窗口闪现的问题。"
+    ],
+    "zh-TW": [
+      "新增英文和簡體中文介面。",
+      "修復開機啟動時主視窗閃現的問題。"
+    ]
+  },
+  {
+    "tag": "v0.2.1-preview.3",
+    "date": "2026-08-20",
+    "en": [
+      "Start directly in the background at sign-in and open the main window from the tray."
+    ],
+    "zh-CN": [
+      "开机启动时直接进入后台，仍可从托盘打开主窗口。"
+    ],
+    "zh-TW": [
+      "開機啟動時直接進入後臺，仍可從托盤開啟主視窗。"
+    ]
+  },
+  {
+    "tag": "v0.2.1-preview.2",
+    "date": "2026-08-20",
+    "en": [
+      "Choose English, Simplified Chinese or the system language in Settings."
+    ],
+    "zh-CN": [
+      "设置中可选择英文、简体中文或跟随系统。"
+    ],
+    "zh-TW": [
+      "設定中可選擇英文、簡體中文或跟隨系統。"
+    ]
+  },
+  {
+    "tag": "v0.2.1-preview.1",
+    "date": "2026-08-19",
+    "en": [
+      "Added release highlights to the website homepage."
+    ],
+    "zh-CN": [
+      "官网首页新增最新版本摘要。"
+    ],
+    "zh-TW": [
+      "官網首頁新增最新版本摘要。"
+    ]
+  },
+  {
+    "tag": "v0.2.0",
+    "date": "2026-08-19",
+    "en": [
+      "Dragging a file wakes the Island on the corresponding display.",
+      "Unified the Island appearance and app icons."
+    ],
+    "zh-CN": [
+      "智能拖动文件时会在对应屏幕唤醒灵动岛。",
+      "统一灵动岛外观和品牌图标。"
+    ],
+    "zh-TW": [
+      "智慧拖動檔案時會在對應螢幕喚醒動態島。",
+      "統一動態島外觀和品牌圖示。"
+    ]
+  },
+  {
+    "tag": "v0.2.0-preview.6",
+    "date": "2026-08-19",
+    "en": [
+      "Improved consistency between website version details and downloads."
+    ],
+    "zh-CN": [
+      "改进官网版本信息和下载文件的一致性。"
+    ],
+    "zh-TW": [
+      "改進官網版本資訊和下載檔案的一致性。"
+    ]
+  },
+  {
+    "tag": "v0.2.0-preview.5",
+    "date": "2026-08-13",
+    "en": [
+      "The website keeps its last verified download information when a refresh fails."
+    ],
+    "zh-CN": [
+      "官网保留最近一次验证成功的下载信息，避免展示过期更新。"
+    ],
+    "zh-TW": [
+      "官網保留最近一次驗證成功的下載資訊，避免展示過期更新。"
+    ]
+  },
+  {
+    "tag": "v0.2.0-preview.4",
+    "date": "2026-08-13",
+    "en": [
+      "Unified the overlay as a rounded Island and refreshed the transparent app icons."
+    ],
+    "zh-CN": [
+      "统一使用圆角灵动岛，并更新透明品牌图标。"
+    ],
+    "zh-TW": [
+      "統一使用圓角動態島，並更新透明品牌圖示。"
+    ]
+  },
+  {
+    "tag": "v0.2.0-preview.3",
+    "date": "2026-08-12",
+    "en": [
+      "Fixed the Island failing to respond to file drags from the desktop or File Explorer."
+    ],
+    "zh-CN": [
+      "修复从桌面和资源管理器拖动文件时灵动岛无响应的问题。"
+    ],
+    "zh-TW": [
+      "修復從桌面和檔案總管拖動檔案時動態島無響應的問題。"
+    ]
+  },
+  {
+    "tag": "v0.2.0-preview.2",
+    "date": "2026-08-12",
+    "en": [
+      "Improved file-icon drag detection and update checks on networks with limited GitHub access."
+    ],
+    "zh-CN": [
+      "改进拖动文件图标的识别，并修复部分网络下无法检查更新的问题。"
+    ],
+    "zh-TW": [
+      "改進拖動檔案圖示的識別，並修復部分網路下無法檢查更新的問題。"
+    ]
+  },
+  {
+    "tag": "v0.2.0-preview.1",
+    "date": "2026-08-12",
+    "en": [
+      "Added Smart Drag activation, with options for the classic top edge or manual opening."
+    ],
+    "zh-CN": [
+      "新增智能拖放唤醒，可选择传统顶部触发或关闭自动唤醒。"
+    ],
+    "zh-TW": [
+      "新增智慧拖放喚醒，可選擇傳統頂部觸發或關閉自動喚醒。"
+    ]
+  },
+  {
+    "tag": "v0.1.0",
+    "date": "2026-08-11",
+    "en": [
+      "The first stable release brings together Temporary Space, clipboard history and Island file drops.",
+      "Check for updates in the app and keep your data during upgrades."
+    ],
+    "zh-CN": [
+      "首个稳定版，整合临时空间、剪贴板历史和灵动岛拖放。",
+      "支持应用内检查更新和保留数据升级。"
+    ],
+    "zh-TW": [
+      "首個穩定版，整合暫存空間、剪貼簿記錄和動態島拖放。",
+      "支援應用內檢查更新和保留資料升級。"
+    ]
+  },
+  {
+    "tag": "v0.1.0-preview.5",
+    "date": "2026-08-09",
+    "en": [
+      "Drop files directly onto the compact or expanded Island.",
+      "Fixed the main window and Island showing different items after removal."
+    ],
+    "zh-CN": [
+      "可直接把文件拖到紧凑或展开的灵动岛。",
+      "修复移除项目后主窗口和灵动岛列表不同步的问题。"
+    ],
+    "zh-TW": [
+      "可直接把檔案拖到緊湊或展開的動態島。",
+      "修復移除項目後主視窗和動態島清單不同步的問題。"
+    ]
+  },
+  {
+    "tag": "v0.1.0-preview.4",
+    "date": "2026-08-09",
+    "en": [
+      "Clipboard history now captures files and folders copied in Explorer.",
+      "Improved narrow window layouts and Island drops."
+    ],
+    "zh-CN": [
+      "剪贴板历史支持从资源管理器复制的文件和文件夹。",
+      "优化窄窗口布局和灵动岛拖放。"
+    ],
+    "zh-TW": [
+      "剪貼簿記錄支援從檔案總管複製的檔案和資料夾。",
+      "最佳化窄視窗版面配置和動態島拖放。"
+    ]
+  },
+  {
+    "tag": "v0.1.0-preview.3",
+    "date": "2026-08-09",
+    "en": [
+      "Improved fullscreen transitions, desktop drops and upgrades that preserve data."
+    ],
+    "zh-CN": [
+      "改进全屏切换和桌面拖放，并支持保留数据升级。"
+    ],
+    "zh-TW": [
+      "改進全屏切換和桌面拖放，並支援保留資料升級。"
+    ]
+  },
+  {
+    "tag": "v0.1.0-preview.2",
+    "date": "2026-08-09",
+    "en": [
+      "Improved clipboard recording and file drops across displays.",
+      "The idle Island now hides completely and can reverse its animation smoothly."
+    ],
+    "zh-CN": [
+      "改进剪贴板记录和多显示器拖放。",
+      "灵动岛空闲时完全隐藏，展开和收起可平滑中断。"
+    ],
+    "zh-TW": [
+      "改進剪貼簿記錄和多顯示器拖放。",
+      "動態島空閒時完全隱藏，展開和收起可平滑中斷。"
+    ]
+  },
+  {
+    "tag": "v0.1.0-preview.1",
+    "date": "2026-08-08",
+    "en": [
+      "Added Temporary Space, clipboard history, pinned items and search.",
+      "Drag files from the desktop or File Explorer to the top of the screen to keep them handy."
+    ],
+    "zh-CN": [
+      "新增临时空间、剪贴板历史、固定项目和搜索。",
+      "可把桌面和资源管理器中的文件拖到屏幕顶部暂存。"
+    ],
+    "zh-TW": [
+      "新增暫存空間、剪貼簿記錄、固定項目和搜尋。",
+      "可把桌面和檔案總管中的檔案拖到螢幕頂部暫存。"
+    ]
+  }
+]

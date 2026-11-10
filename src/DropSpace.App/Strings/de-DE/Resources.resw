@@ -1056,4 +1056,6 @@ Der Download aktiviert die KI nicht und ändert weder das ausgewählte Modell no
   <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>Auf dem neuesten Stand</value></data>
   <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>Prüfung nicht möglich. Bitte später erneut versuchen.</value></data>
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Update installieren</value></data>
+  <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>Auf das Logo klicken, um die Neuerungen zu sehen</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Was ist neu?</value></data>
 </root>

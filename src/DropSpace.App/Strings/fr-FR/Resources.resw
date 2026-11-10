@@ -1056,4 +1056,6 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>À jour</value></data>
   <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>Vérification impossible. Réessayez plus tard.</value></data>
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Installer la mise à jour</value></data>
+  <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>Cliquez sur le logo pour découvrir les nouveautés</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Nouveautés</value></data>
 </root>

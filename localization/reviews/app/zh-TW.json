@@ -4198,57 +4198,25 @@
     "NeteaseUpdateInstall": [
       "cada4215d34483e4475456df3ddd22c134acffb2173b251f785fe08ced4e7652",
       "c077cbbf1745020b1c605f9c75b3dc666a278c29ff2936780279547d38e10097"
+    ],
+    "AboutReleaseHistoryHint": [
+      "f6cf805b68f1ab6f006eef4cf01c8853fc85750d6738617c964baeb64bf22398",
+      "ed26f62a2d301cf3452265d49671f18268deeee4660fde266ee88cab0388e3a6"
+    ],
+    "ReleaseHistoryTitle": [
+      "11721b62bafb73ee1a08c3fc14561547d5a029145fac1a116b86331a9d673d59",
+      "42ac4db4bc98ac7362487274953ebdbe0ede8e5f73b3589a2ce2c8276f76e1bd"
     ]
   },
-  "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
-  "reviewedAt": "2026-10-31T11:22:26.567Z",
+  "reviewedBy": "Codex Beta7 release history",
+  "reviewedAt": "2026-11-10T13:29:43.049Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "AddTextUrlPlaceholder",
-      "AiLyricsClearingCache",
-      "AiLyricsCudaDownloadBody",
-      "ClearHistoryDescription.Text",
-      "ClipboardResumed",
-      "CloseBehaviorDescription.Text",
-      "CloseToTrayContent",
-      "DefaultClipboardSyncModeDescription.Text",
-      "DeviceServiceReady",
-      "DlcCancel",
-      "DlcCanceled",
-      "DlcCanceling",
-      "DlcDescription",
-      "DlcOperationFailed",
-      "DlcRemoving",
-      "DlcStorageSummary",
-      "DlcVisualCppInstallNotice",
-      "DownloadTransferTimedOut",
-      "DropHintTitle.Text",
-      "EmptyPinnedDescription",
-      "EmptySpaceDescription",
-      "IslandForceShowOverFullscreenDescription",
-      "LanguageDescription.Text",
-      "LocalDataSection.Text",
-      "LyricsOnlinePrivacyHelp",
-      "MediaEstimatedTimeline",
-      "NativeSettingsSaveFailed",
-      "NetworkActionSetupRequired",
-      "OverlayDropSubtitle",
-      "PageDescriptionPinned",
-      "PreviewUnavailable",
-      "QuickActionsDescription",
-      "RetrievalEmpty.Text",
-      "RevokeShareCompleted",
-      "RevokeShareTitle",
-      "ShareNoAccessibleItems",
-      "StorageSummary",
-      "TransferSentContent",
-      "TrayResumeClipboard",
-      "UpdateLastDownloadIncomplete",
-      "WidgetPinnedItems.Text",
-      "WindowsSharePortableStatus"
+      "AboutReleaseHistoryHint",
+      "ReleaseHistoryTitle"
     ],
-    "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
-    "reviewedAt": "2026-10-31T11:22:26.567Z"
+    "reviewedBy": "Codex Beta7 release history",
+    "reviewedAt": "2026-11-10T13:29:43.049Z"
   }
 }

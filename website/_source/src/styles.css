@@ -402,3 +402,16 @@ html:lang(zh) h1,html:lang(zh) h2,html:lang(ja) h1,html:lang(ja) h2,html:lang(ko
   .mac-detail { padding-block: 48px; }
   .mac-download .actions .button { width: 100%; }
 }
+
+.changelog-page .release-meta > * {
+  width: fit-content;
+  background: linear-gradient(90deg, var(--blue), var(--pink), var(--orange));
+  background-clip: text;
+  color: transparent;
+}
+.changelog-page .release-meta h2 { margin: 0; font-size: clamp(1.3rem, 2.1vw, 1.75rem); overflow-wrap: anywhere; }
+.changelog-page .release-body { margin: 0; padding-inline-start: 1.25em; align-self: start; }
+.changelog-page .release-body li:first-child { margin-top: 0; }
+@media (forced-colors: active) {
+  .changelog-page .release-meta > * { background: none; color: CanvasText; }
+}

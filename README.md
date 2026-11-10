@@ -13,9 +13,7 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 DropSpace **1.0** is the first stable release of the current application. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, Windows release automation, and the product/engineering specifications.
 
-The current Beta target is `v1.1.0-beta.6` (Beta 6). The application displays **1.1 Beta6**; Stable remains 1.0.
-
-Version 1.1 Beta6 is an unpublished maintenance candidate based on Beta5. All development rounds iterate on the preceding working code within this same version. It hardens settings, file references, downloads, previews, sharing, DLC and hotkey lifetimes while retaining existing presentation and data contracts. See the [release notes](.github/release-notes/v1.1.0-beta.6.md) and [current maintenance record](docs/dev/beta6-round4-maintenance-20261031.md). Windows build/native acceptance and exact-candidate release qualification remain outstanding.
+The current Beta target is `v1.1.0-beta.7` (Beta 7). Open Settings → About and click the logo to browse release highlights in the Island. See the [candidate notes](.github/release-notes/v1.1.0-beta.7.md).
 
 Public upgrade baseline: [v1.0.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v1.0.0); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
@@ -27,7 +25,7 @@ The unchanged optional CUDA archive is reused from its [independent component re
 
 Beta16 bundled fastText `lid.176.bin` for one offline whole-track prediction. Originals already in the independently selected Chinese/English target language skip AI; any valid target-language provider translation disables AI for the entire track, including gaps. Only Unknown originals without valid target translations enter the existing optional Hy-MT2 progressive flow. Its historical validation remains in the [Beta16 audit](docs/dev/beta16-lyrics-audit.md); it does not establish Beta17 Windows acceptance.
 
-v1.1.0-beta.5 is the immediate upgrade baseline for this release.
+v1.1.0-beta.6 is the immediate upgrade baseline for this release.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables

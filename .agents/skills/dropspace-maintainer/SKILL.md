@@ -93,8 +93,9 @@ Follow [interface-localization.md](../../../docs/dev/interface-localization.md) 
 isolated catalogs; fallback is module English, never host overrides. Required visible declarations
 need all ten translations. Host additions use `.resw` and explicit changed-ID reviews through
 `scripts/check-localization.mjs`; do not bulk-refresh stale fingerprints to pass. App UI language
-and permanent Simplified Chinese/English lyric translation targets stay independent. New release
-summaries, notes and website highlights use English only; keep unified website URLs.
+and permanent Simplified Chinese/English lyric translation targets stay independent. For every app release, edit the shared [release history](../../../docs/dev/interface-localization.md#release-history).
+The Island and website use its Simplified Chinese, Traditional Chinese and English highlights.
+Full GitHub release notes and updater summaries continue to use English.
 
 Long-lived host status owns `AppUiMessage` keys/copied raw arguments or raw bytes and renders in
 the current language. Nested reasons remain messages; file names, external errors, lyrics/user
