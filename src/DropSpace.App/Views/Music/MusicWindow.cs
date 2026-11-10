@@ -31,7 +31,7 @@ using WinRT.Interop;
 namespace DropSpace.App.Views.Music;
 
 /// <summary>A session-only presentation of the same media, artwork and lyrics as the island.</summary>
-public sealed class MusicWindow : Window
+public sealed partial class MusicWindow : Window
 {
     private readonly MediaViewModel _media;
     private readonly NativeSettingsEditor _editor;
@@ -64,7 +64,7 @@ public sealed class MusicWindow : Window
     private readonly Button _next = IconButton("next", 27);
     private readonly Slider _volumeSlider = new() { Minimum = 0, Maximum = 100, StepFrequency = 1 };
     private readonly FontIcon _volumeIcon = new() { Glyph = "\uE994", FontSize = 15, Opacity = 0.7 };
-    private readonly TextBlock _error = new() { FontSize = 12, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis, Opacity = 0.75 };
+    private readonly TextBlock _error = new() { Visibility = Visibility.Collapsed, FontSize = 12, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis, Opacity = 0.75 };
     private readonly Grid _lyricsPanel = new();
     private readonly ToggleButton _translation = new() { HorizontalAlignment = HorizontalAlignment.Right, Foreground = new SolidColorBrush(Colors.White), Background = new SolidColorBrush(Colors.Transparent), BorderThickness = new Thickness(0), Padding = new Thickness(12, 6, 12, 6) };
     private readonly ToggleButton _lyricsToggle = new() { IsChecked = true, Foreground = new SolidColorBrush(Colors.White), Background = new SolidColorBrush(Colors.Transparent), BorderThickness = new Thickness(0), Padding = new Thickness(12, 8, 12, 8), HorizontalAlignment = HorizontalAlignment.Right };
@@ -91,7 +91,7 @@ public sealed class MusicWindow : Window
     private readonly HashSet<uint> _manualScrollPointers = [];
     private Point? _lastPointerPosition;
     private bool _manualScrollPending, _manualScrollInertia;
-    private bool _portrait, _controlsVisible = true, _lyricsChoiceExplicit, _nativeVisible;
+    private bool _portrait, _controlsVisible = true, _nativeVisible;
     private bool _transitionRunning, _transitionHooked, _clampingSize;
     private long _transitionGeneration, _transitionStarted;
     private double _transitionProgress = 1;
@@ -121,7 +121,7 @@ public sealed class MusicWindow : Window
         {
             presenter.IsResizable = true;
             presenter.PreferredMinimumWidth = 360;
-            presenter.PreferredMinimumHeight = 600;
+            presenter.PreferredMinimumHeight = 400;
         }
         NativeApplicationIcon.ApplyToWindow(WindowNative.GetWindowHandle(this), AppWindow);
         _media.PropertyChanged += OnMediaChanged;
@@ -131,7 +131,7 @@ public sealed class MusicWindow : Window
         Closed += OnClosed;
         _root.Loaded += (_, _) => { _loaded = true; UpdateViewport(); UpdateLayoutGeometry(); UpdateOwnership(); RequestRender(); };
         _bodyViewport.SizeChanged += (_, _) => UpdateViewport();
-        _body.SizeChanged += (_, _) => { UpdateLayoutGeometry(); _lastCentered = -1; };
+        _body.SizeChanged += (_, _) => { UpdateLayoutGeometry(viewportChanged: true); _lastCentered = -1; };
         foreach (var button in new ButtonBase[] { _previous, _play, _next, _translation, _lyricsToggle }) AddButtonMotion(button);
         _translation.Click += async (_, _) => await SetTranslationEnabledAsync(_translation.IsChecked == true);
         _lyricsToggle.Click += (_, _) => SetLyricsVisible(_lyricsToggle.IsChecked == true);
@@ -155,7 +155,7 @@ public sealed class MusicWindow : Window
         _root.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler((_, args) => { _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: true); NotifyInteraction(); }), true);
         _root.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, args) => { _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: true); NotifyInteraction(); }), true);
         _root.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, args) => { var wasPressed = _interactingPointers.Remove(args.Pointer.PointerId); EndManualScrollPointer(args, released: false); if (wasPressed) NotifyInteraction(); }), true);
-        _root.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler((_, _) => { _keyboardControlsIntent = true; NotifyInteraction(); }), true);
+        _root.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(OnWindowKeyDown), true);
         _root.GotFocus += (_, _) => NotifyInteraction();
         _root.LostFocus += (_, _) => NotifyInteraction();
         _seek.ValueChanged += OnSeekChanged;
@@ -192,7 +192,7 @@ public sealed class MusicWindow : Window
         _root.Children.Add(_background);
         _root.Children.Add(new Border { Background = new SolidColorBrush(ColorHelper.FromArgb(58, 0, 0, 0)), IsHitTestVisible = false });
         var chrome = new Grid();
-        chrome.RowDefinitions.Add(new() { Height = new GridLength(32) });
+        chrome.RowDefinitions.Add(_titleBarRow);
         chrome.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         var titleBar = new Grid { Background = new SolidColorBrush(Colors.Transparent) };
         chrome.Children.Add(titleBar);
@@ -206,8 +206,15 @@ public sealed class MusicWindow : Window
         _noArtwork.Children.Add(_noArtworkText); art.Children.Add(_noArtwork); _cover.Child = art;
         _artworkSlot.Children.Add(_cover); _body.Children.Add(_artworkSlot);
         _metadata.Children.Add(_title); _metadata.Children.Add(_artist); _body.Children.Add(_metadata);
-        foreach (var height in new double[] { 48, 8, 58, 8, 40, 66, 28 })
-            _controls.RowDefinitions.Add(new() { Height = new GridLength(height) });
+        static RowDefinition Row(double height, GridUnitType unit = GridUnitType.Pixel) => new() { Height = new GridLength(height, unit) };
+        _controls.RowDefinitions.Add(Row(MusicWindowLayout.SeekHeight));
+        _controls.RowDefinitions.Add(Row(1, GridUnitType.Star));
+        _controls.RowDefinitions.Add(Row(MusicWindowLayout.PlaybackHeight));
+        _controls.RowDefinitions.Add(Row(1, GridUnitType.Star));
+        _controls.RowDefinitions.Add(Row(MusicWindowLayout.VolumeHeight));
+        _controls.RowDefinitions.Add(Row(2, GridUnitType.Star));
+        _controls.RowDefinitions.Add(Row(MusicWindowLayout.ActionSize));
+        _controls.RowDefinitions.Add(Row(MusicWindowLayout.StatusHeight));
         var timeline = new StackPanel { Spacing = 0 }; timeline.Children.Add(_seek);
         var times = new Grid(); times.Children.Add(_elapsed); times.Children.Add(_remaining); timeline.Children.Add(times); _controls.Children.Add(timeline);
         var transport = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 26, HorizontalAlignment = HorizontalAlignment.Center };
@@ -219,7 +226,7 @@ public sealed class MusicWindow : Window
         volume.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         volume.Children.Add(_volumeIcon); Grid.SetColumn(_volumeSlider, 1); volume.Children.Add(_volumeSlider);
         var loud = new FontIcon { Glyph = "\uE995", FontSize = 15, Opacity = 0.7 }; Grid.SetColumn(loud, 2); volume.Children.Add(loud); Grid.SetRow(volume, 4); _controls.Children.Add(volume);
-        Grid.SetRow(_error, 6); _controls.Children.Add(_error); _body.Children.Add(_controls);
+        Grid.SetRow(_error, 7); _controls.Children.Add(_error); _body.Children.Add(_controls);
         _lyricsPanel.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         _lyricsPanel.RowDefinitions.Add(new() { Height = GridLength.Auto });
         _lyricsScroll.Content = _lyricsRows; _lyricsPanel.Children.Add(_lyricsScroll);
@@ -306,7 +313,7 @@ public sealed class MusicWindow : Window
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
             var minimumWidth = (int)Math.Ceiling(Math.Min(360 * scale, area?.WorkArea.Width ?? int.MaxValue));
-            var minimumHeight = (int)Math.Ceiling(Math.Min(600 * scale, area?.WorkArea.Height ?? int.MaxValue));
+            var minimumHeight = (int)Math.Ceiling(Math.Min(400 * scale, area?.WorkArea.Height ?? int.MaxValue));
             presenter.PreferredMinimumWidth = minimumWidth;
             presenter.PreferredMinimumHeight = minimumHeight;
             if (!_clampingSize && presenter.State == OverlappedPresenterState.Restored &&
@@ -318,13 +325,18 @@ public sealed class MusicWindow : Window
             }
         }
         // Small work areas retain scrolling access instead of clipping the controls.
-        _body.Width = Math.Max(320, _bodyViewport.ActualWidth);
-        _body.Height = Math.Max(480, _bodyViewport.ActualHeight);
+        _body.Width = Math.Max(MusicWindowLayout.MinimumBodyWidth, _bodyViewport.ActualWidth);
+        _body.Height = Math.Max(MusicWindowLayout.MinimumBodyHeight, _bodyViewport.ActualHeight);
     }
 
     public void SetMinimized(bool minimized)
     {
-        if (_closed || AppWindow.Presenter is not OverlappedPresenter presenter) return;
+        if (_closed) return;
+        if (AppWindow.Presenter is not OverlappedPresenter presenter)
+        {
+            SetFullScreenMinimized(minimized);
+            return;
+        }
         if (minimized) presenter.Minimize();
         else if (presenter.State == OverlappedPresenterState.Minimized) presenter.Restore();
         RefreshWindowVisibility();
@@ -332,12 +344,15 @@ public sealed class MusicWindow : Window
 
     private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
     {
-        if (args.DidSizeChange || args.DidPositionChange) UpdateViewport();
+        if (args.DidPresenterChange)
+            _titleBarRow.Height = new GridLength(sender.Presenter.Kind == AppWindowPresenterKind.FullScreen ? 0 : WindowedTitleBarHeight);
+        if (args.DidSizeChange || args.DidPositionChange || args.DidPresenterChange) UpdateViewport();
         RefreshWindowVisibility();
     }
     private void RefreshWindowVisibility()
     {
-        var minimized = AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
+        var minimized = AppWindow.Presenter is OverlappedPresenter presenter
+            ? presenter.State == OverlappedPresenterState.Minimized : IsIconic(WindowNative.GetWindowHandle(this));
         var visible = AppWindow.IsVisible;
         if (_minimized == minimized && _nativeVisible == visible) return;
         _minimized = minimized; _nativeVisible = visible; UpdateOwnership();
@@ -349,7 +364,6 @@ public sealed class MusicWindow : Window
     public void SetLyricsVisible(bool visible)
     {
         if (_closed) return;
-        _lyricsChoiceExplicit = true;
         NotifyInteraction();
         if (_lyricsVisible == visible) return;
         _lyricsVisible = visible; _lyricsToggle.IsChecked = visible;
@@ -372,19 +386,28 @@ public sealed class MusicWindow : Window
         }
     }
 
-    private void UpdateLayoutGeometry()
+    private void UpdateLayoutGeometry(bool viewportChanged = false)
     {
         if (_closed || _body.ActualWidth <= 0 || _body.ActualHeight <= 0) return;
         var portrait = MusicWindowLayout.IsPortrait(_body.ActualWidth, _body.ActualHeight);
-        if (_portrait != portrait)
+        var modeChanged = _portrait != portrait;
+        if (modeChanged)
         {
             _portrait = portrait;
-            if (!_lyricsChoiceExplicit) { _lyricsVisible = !portrait; _lyricsToggle.IsChecked = _lyricsVisible; }
             _controlsVisible = true; RefreshLanguage();
         }
         _body.Clip = new RectangleGeometry { Rect = new Rect(0, 0, _body.ActualWidth, _body.ActualHeight) };
-        var next = MusicWindowLayout.Create(_body.ActualWidth, _body.ActualHeight, _portrait, _lyricsVisible, _controlsVisible, _media.IsPlaying);
+        var next = MusicWindowLayout.Create(_body.ActualWidth, _body.ActualHeight, _portrait, _lyricsVisible, _controlsVisible, _media.IsPlaying,
+            _error.Visibility == Visibility.Visible);
         if (Equals(next, _transitionTarget)) return;
+        if (viewportChanged && !modeChanged && _presented is not null)
+        {
+            // Within a layout, follow the live drag. An in-flight transition
+            // keeps its clock and lands on the new viewport.
+            _transitionTarget = next;
+            if (!_transitionRunning) ApplyFrame(next);
+            return;
+        }
         // Retarget from the last frame actually assigned to XAML, without advancing it here.
         _transitionFrom = _presented ?? next; _transitionTarget = next;
         _transitionGeneration++; _transitionStarted = Stopwatch.GetTimestamp(); _transitionProgress = 0;
@@ -606,7 +629,12 @@ public sealed class MusicWindow : Window
             _error.Text = _media.ControlError.Length > 0 ? _media.ControlError :
                 _volumeWriteFailed ? _strings.Get("MusicWindowVolumeUnavailable") : _editor.Error;
             ToolTipService.SetToolTip(_error, _error.Text);
-            _error.Visibility = string.IsNullOrWhiteSpace(_error.Text) ? Visibility.Collapsed : Visibility.Visible;
+            var statusVisibility = string.IsNullOrWhiteSpace(_error.Text) ? Visibility.Collapsed : Visibility.Visible;
+            if (_error.Visibility != statusVisibility)
+            {
+                _error.Visibility = statusVisibility;
+                UpdateLayoutGeometry();
+            }
             var spectrum = _media.Spectrum;
             var realAudio = _media.IsPlaying && spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.Bands.Count > 0;
             var now = Stopwatch.GetTimestamp();
