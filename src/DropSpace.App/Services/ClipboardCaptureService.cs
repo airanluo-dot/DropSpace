@@ -977,10 +977,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                             currentSequence == signal.ClipboardSequenceNumber)
                         {
                             if (TryQueueSignal(signal with { Attempt = signal.Attempt + 1 }))
-                            {
-                                PublishStatus(AppUiMessage.Resource("ClipboardBusyRetrying"));
                                 continue;
-                            }
 
                             Interlocked.Increment(ref _droppedEvents);
                         }
@@ -1068,8 +1065,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 lastException = exception;
                 Interlocked.Increment(ref _failedReads);
                 RecordDiagnostic(ClipboardDiagnosticDecision.ReadFailed, signal, exception, attempt + 1);
-                PublishStatus(AppUiMessage.Resource("ClipboardBusyRetrying"));
-                _logger.LogWarning(
+                _logger.LogDebug(
                     exception,
                     "Transient clipboard read failure for sequence {SequenceNumber}, attempt {Attempt}.",
                     signal.ClipboardSequenceNumber,

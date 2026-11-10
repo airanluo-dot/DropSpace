@@ -323,6 +323,11 @@ public sealed class ClipboardDeferredProviderNativeTests
 
     [TestMethod]
     [TestCategory("NativeSmoke")]
+    public Task TransientClipboardLockRecoversWithoutShowingAnError() =>
+        VerifyEmptyClipboardViewAsync(EmptyViewScenario.BusyThenFiles);
+
+    [TestMethod]
+    [TestCategory("NativeSmoke")]
     public Task ATrulyEmptyClipboardIsRejectedAfterExactlyTwoRetries() =>
         VerifyEmptyClipboardViewAsync(EmptyViewScenario.RemainEmpty);
 
@@ -336,7 +341,7 @@ public sealed class ClipboardDeferredProviderNativeTests
     public Task ANewSequenceDuringAnEmptyViewProbeNeverCapturesTheOldFiles() =>
         VerifyEmptyClipboardViewAsync(EmptyViewScenario.Superseded);
 
-    private enum EmptyViewScenario { RecoverMixedFiles, RemainEmpty, UnsupportedNonempty, Superseded }
+    private enum EmptyViewScenario { RecoverMixedFiles, BusyThenFiles, RemainEmpty, UnsupportedNonempty, Superseded }
 
     private async Task VerifyEmptyClipboardViewAsync(EmptyViewScenario scenario)
     {
@@ -350,6 +355,8 @@ public sealed class ClipboardDeferredProviderNativeTests
         var notifications = new ClipboardNotificationService(NullLogger<ClipboardNotificationService>.Instance);
         var targetSequence = 0u;
         var targetReadAttempts = 0;
+        var showsBusy = 0;
+        var recoversFiles = scenario is EmptyViewScenario.RecoverMixedFiles or EmptyViewScenario.BusyThenFiles;
         var replacement = "DropSpaceEmptyViewReplacement-" + Guid.NewGuid().ToString("N");
         var baselineText = "DropSpaceEmptyViewBaseline-" + Guid.NewGuid().ToString("N");
         // Packages backing synthetic views remain strongly owned until teardown.
@@ -369,6 +376,8 @@ public sealed class ClipboardDeferredProviderNativeTests
                     return Clipboard.GetContent();
 
                 var attempt = Interlocked.Increment(ref targetReadAttempts);
+                if (scenario == EmptyViewScenario.BusyThenFiles && attempt <= 2)
+                    throw new COMException("Clipboard is in use", unchecked((int)0x800401D0));
                 if (scenario == EmptyViewScenario.RecoverMixedFiles && attempt <= 2)
                     return EmptyView();
                 if (scenario == EmptyViewScenario.Superseded && attempt == 1)
@@ -382,6 +391,11 @@ public sealed class ClipboardDeferredProviderNativeTests
 
                 return Clipboard.GetContent();
             },
+        };
+        capture.StatusChanged += (_, status) =>
+        {
+            if (status.MessageIdentity?.ResourceKey is "ClipboardBusyRetrying" or "ClipboardItemCaptureFailed")
+                Interlocked.Increment(ref showsBusy);
         };
 
         try
@@ -439,10 +453,10 @@ public sealed class ClipboardDeferredProviderNativeTests
             var deadline = DateTimeOffset.UtcNow.AddSeconds(8);
             capture.BeginDiagnosticStage(ClipboardSmokeStage.FileCapture);
 
-            if (scenario == EmptyViewScenario.RecoverMixedFiles)
+            if (recoversFiles)
             {
                 await WaitForAsync(() => capture.Status.CapturedItems >= before.CapturedItems + 3,
-                    "mixed files after two empty views", deadline);
+                    "mixed files after two retryable reads", deadline);
                 Assert.AreEqual(before.CapturedItems + 3, capture.Status.CapturedItems);
                 Assert.AreEqual(targetSequence, GetClipboardSequenceNumber(), "Recovery must not depend on another clipboard publication.");
                 var rows = await repository.QueryAsync(new ItemQuery(Source: ItemSource.Clipboard, Limit: 100));
@@ -452,13 +466,14 @@ public sealed class ClipboardDeferredProviderNativeTests
                 // The first two views are controlled; the real third native read
                 // may encounter a legitimate COM retry without invalidating recovery.
                 Assert.IsTrue(Volatile.Read(ref targetReadAttempts) >= 3);
-                AssertTargetDecision(ClipboardDiagnosticDecision.EmptyViewRetry, 2);
+                Assert.AreEqual(0, Volatile.Read(ref showsBusy));
+                AssertTargetDecision(ClipboardDiagnosticDecision.EmptyViewRetry, scenario == EmptyViewScenario.BusyThenFiles ? 0 : 2);
                 Assert.IsTrue(capture.DiagnosticSnapshot.Events.Count(entry =>
                     entry.SignalSequence == targetSequence && entry.Decision == ClipboardDiagnosticDecision.StorageItemsRead) >= 1);
                 AssertTargetDecision(ClipboardDiagnosticDecision.UnsupportedFormat, 0);
-                Assert.IsFalse(capture.DiagnosticSnapshot.Events.Any(entry =>
-                    entry.SignalSequence == targetSequence && entry.Decision == ClipboardDiagnosticDecision.ReadFailed &&
-                    entry.ReadAttempt is 1 or 2), "The two controlled empty views must never be counted as COM failures.");
+                Assert.AreEqual(scenario == EmptyViewScenario.BusyThenFiles ? 2 : 0,
+                    capture.DiagnosticSnapshot.Events.Count(entry => entry.SignalSequence == targetSequence &&
+                        entry.Decision == ClipboardDiagnosticDecision.ReadFailed && entry.ReadAttempt is 1 or 2));
             }
             else if (scenario == EmptyViewScenario.Superseded)
             {
@@ -499,12 +514,12 @@ public sealed class ClipboardDeferredProviderNativeTests
                 Assert.AreEqual(2, await CountTextAsync(repository, baselineText));
             }
 
-            if (scenario != EmptyViewScenario.RecoverMixedFiles)
+            if (!recoversFiles)
                 Assert.AreEqual(before.FailedReads, capture.Status.FailedReads, "An empty view is not a failed COM read.");
             Assert.AreEqual(ClipboardRecordingState.Recording, capture.Status.State);
             Assert.IsFalse(capture.DiagnosticSnapshot.Events.Any(entry => entry.SignalSequence == targetSequence &&
                 entry.Decision == ClipboardDiagnosticDecision.CaptureFailed));
-            if (scenario != EmptyViewScenario.RecoverMixedFiles)
+            if (!recoversFiles)
                 Assert.IsFalse(capture.DiagnosticSnapshot.Events.Any(entry => entry.SignalSequence == targetSequence &&
                     entry.Decision == ClipboardDiagnosticDecision.ReadFailed));
         }

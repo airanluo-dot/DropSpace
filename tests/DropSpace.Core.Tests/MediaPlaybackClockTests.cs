@@ -198,6 +198,74 @@ public sealed class MediaPlaybackClockTests
         Assert.AreEqual(13, clock.Position.TotalSeconds, 0.001);
     }
 
+    [TestMethod]
+    public void AppleResumeKeepsItsAnchorWhenTheFirstWholeSecondArrivesLate()
+    {
+        var time = new ManualTime();
+        var clock = new MediaPlaybackClock(time);
+        var session = MediaSessionSnapshot.Empty with
+        {
+            TrackTitle = "Track", SourceAppUserModelId = "AppleInc.AppleMusicWin_nzyj5cx40ttqa!App",
+            PlaybackState = MediaPlaybackState.Paused, LastUpdated = time.GetUtcNow(),
+            Timeline = new(TimeSpan.FromSeconds(34), TimeSpan.Zero, TimeSpan.FromMinutes(4), 1, time.GetUtcNow()),
+        };
+        clock.Update(session);
+        time.Advance(12);
+        session = session with { PlaybackState = MediaPlaybackState.Playing, LastUpdated = time.GetUtcNow() };
+        clock.Update(session);
+        time.Advance(3.2);
+        Observe(35);
+        Assert.AreEqual(37.2, clock.Position.TotalSeconds, 0.001);
+        time.Advance(1);
+        Observe(37);
+        Assert.AreEqual(38.2, clock.Position.TotalSeconds, 0.001);
+
+        time.Advance(0.15);
+        session = session with { PlaybackState = MediaPlaybackState.Paused };
+        Observe(38);
+        Assert.AreEqual(38.35, clock.Position.TotalSeconds, 0.001);
+        time.Advance(4);
+        session = session with { PlaybackState = MediaPlaybackState.Playing };
+        Observe(38);
+        Assert.AreEqual(38.35, clock.Position.TotalSeconds, 0.001);
+        Observe(24);
+        Assert.AreEqual(24, clock.Position.TotalSeconds, 0.001);
+        time.Advance(9);
+        Observe(25);
+        Assert.AreEqual(25, clock.Position.TotalSeconds, 0.001);
+
+        void Observe(double seconds)
+        {
+            session = session with
+            {
+                LastUpdated = time.GetUtcNow(),
+                Timeline = session.Timeline with { Position = TimeSpan.FromSeconds(seconds), LastUpdated = time.GetUtcNow() },
+            };
+            clock.Update(session);
+        }
+    }
+
+    [TestMethod]
+    public void JoiningAnAlreadyPlayingAppleTrackEstimatesPhaseOnlyForWholeSecondsAtNormalSpeed()
+    {
+        var time = new ManualTime();
+        var session = MediaSessionSnapshot.Empty with
+        {
+            SourceAppUserModelId = "AppleInc.AppleMusicWin_nzyj5cx40ttqa!App",
+            TrackTitle = "Track", PlaybackState = MediaPlaybackState.Playing, LastUpdated = time.GetUtcNow(),
+            Timeline = new(TimeSpan.FromSeconds(100), TimeSpan.Zero, TimeSpan.FromMinutes(4), 1, time.GetUtcNow()),
+        };
+        var clock = new MediaPlaybackClock(time);
+        clock.Update(session);
+        Assert.AreEqual(101.5, clock.Position.TotalSeconds, 0.001);
+        clock.Update(session with { TrackTitle = "New", Timeline = session.Timeline with { Position = TimeSpan.Zero } });
+        Assert.AreEqual(0, clock.Position.TotalSeconds, 0.001);
+        clock.Update(session with { Timeline = session.Timeline with { Position = TimeSpan.FromSeconds(100.25) } });
+        Assert.AreEqual(100.25, clock.Position.TotalSeconds, 0.001);
+        clock.Update(session with { TrackTitle = "Fast", Timeline = session.Timeline with { PlaybackRate = 2 } });
+        Assert.AreEqual(100, clock.Position.TotalSeconds, 0.001);
+    }
+
     private sealed class ManualTime : TimeProvider
     {
         private long _ticks;
