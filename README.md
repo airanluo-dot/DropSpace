@@ -54,9 +54,8 @@ cases; no green CI or artifact hash substitutes for those observations. See the
 Beta 29 incorporates three fresh full-project audit rounds covering shutdown and cancellation,
 native callback/OLE ownership, clipboard capture, batch actions, transfer and share lifecycle,
 storage confinement, update verification and release contracts. The [three-round audit](docs/audit/2026-09-30/full-project-three-round-audit.md)
-records executed portable checks and their Windows limitations. Publication requires the exact
-release commit's real Windows CI, DPAPI tests, WinUI build, complete release-packaging,
-lifecycle, security and final artifact gates in [the test plan](TEST_PLAN.md).
+records that release’s checks and their Windows limitations. Current development follows
+the [minimal test rules](docs/dev/passive-test-budget.md) and [core case list](TEST_PLAN.md).
 For Beta publication, missing critical manual, two-real-Windows-device and deployed
 Worker live acceptance evidence is recommended follow-up rather than a blocker.
 Those unexecuted behaviors remain unverified; no passing result is claimed. Stable
@@ -126,7 +125,7 @@ The implemented vertical slice includes:
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
 - Process-lifetime in-app update checks, repeatable manual checks, Stable/Beta channels, resilient official website/GitHub metadata sources, streaming downloads, size/SHA-256 verification, opt-in automatic installation of verified official updates, and Inno `/UPDATE` graceful restart.
 
-Version 1.0 validation uses the existing isolated candidate route: focused source/resource checks, full App/XAML compilation, and packaging from the exact integrated main tree. There is no fixed test ceiling; choose necessary checks and record actual executions, failures, retries and Actions. See `docs/dev/v1-release-2026-10-22.md` for this release's executions and boundaries; historical broad smoke coverage does not establish a new pass. Production installer, portable, updater and independent component contracts remain unchanged.
+Version 1.0 validation uses the existing isolated candidate route: focused source/resource checks, full App/XAML compilation, and packaging from the exact integrated main tree. The [current testing rules](docs/dev/passive-test-budget.md) govern new work. See `docs/dev/v1-release-2026-10-22.md` for this release's executions and boundaries; historical broad smoke coverage does not establish a new pass. Production installer, portable, updater and independent component contracts remain unchanged.
 
 ## Download and run
 
@@ -197,16 +196,16 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - 64-bit Windows build 20348 or later, including Windows 11. The current Beta baseline is intentionally aligned with the Windows App SDK target and is conditional until the compatibility matrix is evidenced.
 - Visual Studio 2026 with the WinUI application development workload, or the .NET 10 SDK for command-line build/test.
 
-### Build and test
+### Build
 
 ```powershell
 dotnet restore DropSpace.sln -p:Configuration=Release
-dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release
-dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release
 dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 ```
 
 Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows build 20348. The formal release and compatibility evidence are x64-only; Windows 11-only visuals are selected at runtime.
+
+For a targeted functional check, select a scenario from the [core test plan](TEST_PLAN.md).
 
 To validate package generation from PowerShell, run:
 

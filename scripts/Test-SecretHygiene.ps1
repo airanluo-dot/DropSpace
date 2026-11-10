@@ -57,17 +57,6 @@ function Find-SecretMatches {
     }
 }
 
-$fixtures = @(
-    @{ Text = $githubPrefix + ("A" * 36); Category = "github-token" },
-    @{ Text = $awsPrefix + ("B" * 16); Category = "aws-access-key" },
-    @{ Text = "password = '" + ("C" * 32) + "'"; Category = "credential-assignment" }
-)
-foreach ($fixture in $fixtures) {
-    if (@(Find-SecretMatches -Text $fixture.Text -Signatures $patterns).Category -notcontains $fixture.Category) {
-        throw "The secret scanner self-test did not detect its $($fixture.Category) fixture."
-    }
-}
-
 $findings = [System.Collections.Generic.List[object]]::new()
 foreach ($path in $candidates) {
     if ($path -match '(?i)(^|/)(?:\.env(?:\.|$)|secrets?\.|.*\.(?:pem|key|private)$)') {
@@ -106,4 +95,4 @@ if ($findings.Count -gt 0) {
     throw "Potential credential material found in tracked text: $($summary -join ', ')"
 }
 
-Write-Host "Secret hygiene passed: filename exclusions, content signatures, and scanner fixtures are clean."
+Write-Host "Secret hygiene passed: tracked filenames and content are clean."

@@ -1,289 +1,36 @@
-# DropSpace Test Plan
+# DropSpace 核心测试与规则
 
-## Test strategy
+## 日常开发怎么选
 
-Test pure policies heavily, OS adapters with integration harnesses, and a small number of critical end-to-end flows. Manual compatibility testing remains necessary for cross-process drag, tray, display/DPI, and clipboard behavior.
+普通改动默认运行 0 项功能测试。修一个已复现的问题，先选一个能区分修复前后的场景。手动入口按平台选择；一次检查已回答问题，就结束验证。[开发规则](docs/dev/passive-test-budget.md)
 
-The historical release-specific P0 recovery matrix for `v0.3.0-preview.10` is in the
-[Preview.10 recovery test plan](docs/test-plan/v0.3.0-preview.10.md).
-The release-specific Preview.14 motion and Acrylic matrix is in the
-[Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md).
-The historical release-specific Preview.21 settings and action usability matrix is in the
-[Preview.21 settings and action usability test plan](docs/test-plan/v0.3.0-preview.21.md).
+## 维护的 4 个场景
 
-The current Beta 28 evidence is in
-[the Beta 28 audit](docs/dev/beta28-media-ui-audit.md). The historical 52-item
-audit mapping remains in [the Beta.25 bug-fix ledger](docs/dev/beta25-bugfix-ledger.md).
-[compatibility-baseline.md](compatibility-baseline.md) defines the x64 Windows
-build 20348 minimum and the real Windows/OLE/DPI/packaging matrix; each physical
-matrix row remains conditional until recorded on the target machine.
+| 平台 | 场景 | 实际保护的行为 |
+| --- | --- | --- |
+| Windows | 文件路径试图跳出应用存储目录 | 拒绝越界访问 |
+| Windows | 解析旧通道名 Preview 并写回 | 读为 Beta，写回 Beta |
+| 官网 | 打开首页的 Windows 下载入口 | 按钮指向稳定版安装包 |
+| 分享服务 | 对已有分享发起未授权写入 | 请求被拒绝 |
 
-## Quality gates
+Windows 可在 [Core 测试项目](tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj)按方法名运行其中一项。官网和分享服务各自的 `npm test` 只运行表中的一项。GitHub Actions 提供 Windows、官网和分享服务三个手动入口。
 
-- Build succeeds; every warning is reviewed, fixed, or documented.
-- Unit and integration suites pass.
-- Schema migration fixtures pass from every supported prior version.
-- No high-severity privacy/security finding remains unexplained.
-- Stable release candidates retain the critical manual evidence requirement; Beta manual acceptance follows the policy below.
-- `en-US` and `zh-CN` `.resw` key sets are identical; every XAML resource identifier uses the app-owned override or an explicit `Window` application path, every imperative localizer key and package-manifest string resolves in the English base resource file, and source `.cs` and `.xaml` files contain no CJK hardcoded UI text. Portable publishing regenerates and explicitly bundles its packaging-free `DropSpace.resources.pri` before the runtime smoke without replacing WinUI's default resource index.
+## 当前产品和交付规则到哪里查
 
-For Beta publication, the current user authorization makes missing critical manual
-matrix, two-real-Windows-device, and operator-deployed Worker live acceptance
-evidence recommended follow-up rather than publication blockers. This exception
-covers missing evidence only; actual test failures or demonstrated unresolved
-regressions remain publication blockers. Record unavailable,
-failed, skipped, and unexecuted checks honestly; this exception does not mark them
-passed or establish physical/provider/deployed-service behavior. The exact candidate
-must still pass both language Windows CI jobs, complete Core/Infrastructure/App tests
-including actual DPAPI, WinUI Release, Portable EXE, Inno installer/lifecycle,
-MSIX/identity packaging, security checks, and final version/SHA-256/update-manifest
-validation. Stable signing and release criteria are unchanged. No automated test or
-safety check is removed or made optional by this Beta policy.
+| 范围 | 生效规则和归属 |
+| --- | --- |
+| 功能与交互 | [产品](PRODUCT.md)、[功能](FEATURES.md)、[交互](UX.md)和[设计系统](DESIGN_SYSTEM.md)定义临时空间、剪贴板、音乐与灵动岛等行为。 |
+| 歌词与媒体 | [整首翻译判定](.github/release-notes/v0.3.1-beta.16.md)决定何时调用 AI；[歌曲匹配](docs/dev/1.1-beta3-lyrics-matching.md)约束曲名、完整歌手署名与录音版本。全屏显示许可和触发显示的内容分别判断。 |
+| 存储、隐私和权限 | [数据模型](DATA_MODEL.md)、[隐私说明](PRIVACY.md)、[架构](ARCHITECTURE.md)规定应用自有文件、外部引用、共享授权与数据迁移。 |
+| 模块与平台 | [可选模块](docs/dev/feature-modules.md)规定能力、安装和数据保留；[macOS 架构](macos/docs/ARCHITECTURE.md)记录平台实现。 |
+| 界面语言及更新说明 | [本地化](docs/dev/interface-localization.md)规定十种界面语言和中文／英文摘要。[版本比较](AGENTS.md#release-comparison-rule)按同平台的上一 Beta 或上一稳定版填写更新。 |
+| 构建与发布 | [维护指南](.agents/skills/dropspace-maintainer/SKILL.md)规定实际产物的版本、来源、签名或哈希检查；[贡献指南](CONTRIBUTING.md)规定依赖与许可。 |
+| 开发与验证 | [最小测试与开发规则](docs/dev/passive-test-budget.md)统一定义测试选择、边界校验、重试与结果报告。 |
 
-## Unit tests
+## 覆盖边界
 
-### Domain and classification
+数据库升级、安装与回滚、跨设备传输、歌词同步与翻译、macOS 文件撤销、DPI 和无障碍交互失去原有的广泛自动回归覆盖。修改这些功能时，应根据该次改动选择一个真实入口复现。版本、签名、哈希和资源校验只验证实际交付物。
 
-- Item capabilities by source/kind/status.
-- URL, color, JSON/code/path hints with false-positive cases.
-- Search normalization and ranking.
-- Consecutive-only capture fingerprints, intervening observations, and retry after failed persistence.
-- Retention age/count/pin ordering.
-- File availability state transitions.
-- Clear-range date/time-zone boundaries.
+这 4 项是仓库维护的自动化功能用例。应用自带的手动诊断命令和交付物完整性校验单独保留。
 
-### Safety
-
-- Record removal has no source-delete dependency/call.
-- Payload relative-path validation rejects absolute/traversal/device paths.
-- Log redactor removes raw text, paths, tokens, and URL queries.
-- Size/pixel/text limits handle integer boundaries.
-- Pause generation invalidates in-flight commits.
-
-### ViewModels
-
-- Command enablement and concurrency.
-- Empty/loading/error/missing states.
-- Focus/selection preservation after item removal.
-- Settings validation/revert on failure.
-- Overlay state transitions for empty/drag/compact/expanded/dismiss/mode-transition paths, including interruption and count preservation.
-- One hundred Reveal/Hide and Compact/Expanded cycles return to stable Hidden state without retained scheduler state.
-- Smart drag policy: click, stationary press, below-threshold movement, unknown threshold → invisible generic candidate, Explorer/Desktop exact item → invisible strong candidate, recognized blank Shell surface → invisible generic candidate, unknown accessibility drag-start → invisible strong candidate, positive file-like OLE verification before visual ownership, reject/timeout, release/Escape/completion, stale-session timeout/reject, duplicate WinEvent/mouse signals, and 1,000 sequential sessions.
-- Smart accessibility adapter: `SetWinEventHook` registers the documented object-drag and system drag/drop ranges before the observer message pump is declared ready; callbacks remain bounded; deprecated root-wide `UiaAddEvent` registration cannot block startup; COM initialization occurs on the actual classifier thread; UIA/MSAA nested item leaves can resolve through bounded inspection; and all returned COM objects have bounded lifetime.
-- Overlay placement policy: one Smart physical offset at 100%, 125%, 150%, 175%, and 200% DPI; Dynamic Island top gap; Classic/Disabled top-edge anchors; offset 340-DIP Expanded geometry remains inside the fixed host.
-- Reliable/lossy signal lanes: a reliable burst is fully readable, a one-slot move lane keeps the newest position, and a completed critical lane reports a write failure instead of blocking.
-- Schema-9 placement policy: an unconfigured monitor resolves Automatic, two monitors can retain different Custom coordinates, Reset removes only the selected entry, and transient clamping leaves saved DIP coordinates unchanged.
-- Stable display identity: normalized target-path inputs yield the same persistent ID and runtime fallback IDs remain explicitly distinguishable.
-- Direct placement session: physical pointer delta converts to DIP from the clamped projection, release commits one final preview, and Escape restores the saved pre-edit coordinates; multi-monitor edit exclusivity revokes non-selected targets and restores them on every exit path.
-- Runtime-only monitor identity: Custom mode, X/Y, Apply, and Adjust are disabled in the localized settings UI and the service rejects direct edit/persist requests.
-- Automatic placement projection: Smart projection includes the visible surface offset at 100% DPI and with 1.5x DPI conversion; Custom projection remains unchanged.
-
-## Integration tests
-
-### SQLite and payloads
-
-- Create/open/restart CRUD.
-- Transaction rollback on injected failure.
-- Foreign keys and cascade behavior.
-- WAL/read concurrency if enabled.
-- Retention and clear remove search projections.
-- Logical delete plus eventual payload/thumbnail cleanup.
-- Orphan reconciliation/quarantine.
-- Disk-full, read-only, missing-payload behavior.
-
-### Migrations
-
-- Empty → current.
-- Each released schema fixture → current.
-- Interrupted/failing migration preserves original and backup.
-- Newer schema refuses unsafe downgrade.
-- Idempotent startup after migration completion.
-
-### Clipboard adapter/pipeline
-
-- Text and image standard formats.
-- Multiple formats and precedence.
-- Clipboard locked/transient retry.
-- Rapid 1,000-event burst with bounded memory.
-- Delayed content replaced before read.
-- Self-copy loop suppression.
-- Consecutive-only identity sequences for text, images, single files and multi-file selections; `A,A` collapses, `A,B,A` persists all three, and behavior is independent of elapsed time.
-- Concurrent identical notifications commit at most once; failed persistence remains retryable; Clear History and Pause/Resume reset stale suppression state.
-- Pause/resume and clear races.
-- App exit with queued candidates.
-
-### File/drag adapters
-
-- Multi-file/folder incoming package.
-- Virtual-file descriptor bounds, indexed stream materialization, cancellation, duplicate-safe names, staging containment, and whole-batch rollback.
-- Outgoing package advertises storage items and copy operation.
-- Missing/permission/network errors map to correct domain state.
-- OLE format queries for `CF_HDROP`, Shell IDList, `FileGroupDescriptorW` + indexed `FileContents`, plain text, and unsupported formats; bounded path-metadata resolution for file-system/Shell acceptance; no file-content reads or virtual materialization during verification.
-- Ephemeral probe HWND creation with real hollow Region, physical monitor coordinates, `NOACTIVATE|TOOLWINDOW|TOPMOST`, one active instance, `DROPEFFECT_NONE`, 60 ms timeout, callback-posted revoke/destroy, double-dispose, mode-switch/shutdown cleanup, and stale-session isolation.
-
-## UI automation
-
-Automate only stable critical flows:
-
-1. Launch and single-instance activation.
-2. Navigate Space/Clipboard/Pinned/Settings by keyboard.
-3. Add a prepared file through test hook or controlled drop harness, pin, restart, remove record, verify source exists.
-4. Inject clipboard text, find it, copy again, verify no duplicate loop.
-5. Pause/resume and clear history.
-6. Missing-item Locate/Replace with controlled picker abstraction where automation allows.
-7. Theme change and core automation properties.
-8. Legacy settings containing the removed Overlay display-mode field migrate safely to the single Dynamic Island surface.
-9. Settings persists System/English/Simplified Chinese display-language selection, updates the live resource context, and refreshes the main window and Dynamic Island after dispatcher work completes. Existing transient messages may retain their prior language until replaced.
-
-External drag-out remains a manual/adapter-assisted compatibility test because end-to-end pointer automation across processes can be brittle.
-
-## Manual test matrix
-
-For Beta, the physical/manual cases below are recommended follow-up under the
-publication policy above. Missing evidence alone does not block Beta publication;
-the rows remain unverified until executed and recorded.
-
-### Localization (English and Simplified Chinese Windows 10/11)
-
-- Run the complete critical flow on English and Simplified Chinese display-language installations across the supported Windows 10/11 matrix; record OS build, display-language setting, application build, and result.
-- In each installation, choose **System default**, allow dispatcher refresh, and verify the main window, Dynamic Island, tray tooltip/menu, newly generated states/dialogs/errors, and accessibility names use the expected resource set. Restart and verify that the saved preference is retained.
-- In each installation, explicitly choose **English** and then **Simplified Chinese** without restarting and verify the same refreshed surfaces. Generate fresh status/error text; record existing transient messages that retain their previous language until replaced. Restart and verify persistence. This verifies the app-owned XAML override as well as imperative and native surfaces.
-- Use Narrator/UI Automation on the display-language selector, navigation, item actions, and Dynamic Island controls; verify refreshed control names and newly generated messages use the selected language and do not announce raw exception text.
-- CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; real supported Windows installations remain recommended Beta follow-up for that behavior, without marking absent evidence passed.
-
-### Windows compatibility baseline (Beta.25)
-
-- Run [compatibility-baseline.md](compatibility-baseline.md) for the authoritative Build 20348 minimum, capability fallbacks, distribution consistency, and evidence boundary.
-- Exercise the supported build 20348 baseline and Windows 11 21H2/22H2/23H2/24H2 (22000/22621/22631/26100). Windows 10 1909/20H2/22H2 (18363/19042/19045) are below the minimum: verify portable launch diagnostics and installer/MSIX rejection on those systems.
-- At each supported OS, cover 100%, 125%, 150%, 175%, and 200% scaling, one-to-three monitors, primary/non-primary placement, topology refresh, normal launch, `--startup`, clipboard, Smart/Classic drag, visible direct drops, preview fallback, updater, and the relevant packaging path.
-- Treat Mica, modern DWM attributes, Windows Share identity, and optional PDF/media APIs as capability outcomes. Supported builds below Windows 11 must retain the base visual and local drop/clipboard paths without probing failures or stale overlay hit regions.
-- Do not mark physical matrix rows complete from source inspection, Linux checks, or Windows 11 CI alone; attach executable OS/build/DPI/monitor evidence when the recommended Beta follow-up is performed.
-
-### Clipboard
-
-- Sources: Notepad, browser, Office, terminal/editor, screenshot tool, password manager if safely available, Remote Desktop scenario.
-- Payloads: short/large Unicode text, URL, colors, JSON, transparent/large image, file list in V1.1.
-- Behaviors: rapid copy, source closes, clipboard busy, DropSpace hidden, session restart.
-
-### Drag and drop
-
-- In from Explorer/Desktop/network/OneDrive/removable drive plus WeChat, QQ, Feishu/Electron, Office/Outlook attachment, and at least one custom-drawn/Qt source where safely available.
-- Out to Explorer/Desktop, browser upload, Office, VS Code, Photoshop/available editor.
-- Single/multiple, file/folder, resolvable Shell item, virtual-only attachment, file/image/text/URL drag-out and Share, missing during drag, cancellation, right-button drag, elevated boundary.
-- For every source, start away from the top edge and record threshold-to-Reveal latency, whether the probe verified/timed out, cursor feedback/flicker, source focus, taskbar/Alt+Tab presence, accepted item count, false reveal, cleanup, and final result. Confirm non-file text/window selection remains invisible and Classic is never enabled implicitly.
-- Race matrix: timeout vs DragEnter, DragEnter vs release, rejection vs new session, monitor switch vs probe creation, Smart → Classic, shutdown while active, OLE callback during cleanup, and accessibility completion before/after pointer release.
-- Record Windows build, source application/version, DropSpace build, display/DPI and result; Preview automation alone is not provider compatibility evidence.
-
-### File missing/resilience
-
-- Move, rename, delete, permissions, unplug USB, disconnect NAS, offline OneDrive.
-- Verify Missing vs Unavailable language and Locate/Replace.
-
-### Displays and DPI
-
-- 1 and 2+ displays.
-- 100%, 125%, 150%, 200%; mixed scale.
-- Move window between displays; disconnect the last-used display.
-- Taskbar on each edge and auto-hide.
-- In Smart mode, drag a real Explorer/Desktop file on each monitor and verify the temporary target appears on that pointer's display without first touching the top edge. Verify DragApproaching, DragReady, post-Drop Compact, Expanded, and Dismissing retain one physical vertical anchor with no jump or clipped Drop region. In Classic mode, verify the legacy edge target separately.
-- Exercise the Dynamic Island at every scale and migrate between mixed-scale displays without blur, offset, or crash.
-- Verify ordinary fullscreen suppresses passive presentation while an explicit file drag may reveal the target.
-
-### Accessibility
-
-- Keyboard only and visible focus.
-- Narrator/UI Automation names, roles, states, reading order.
-- High contrast themes, color filters, reduced motion, 200% text.
-- Touch target sanity where hardware is available.
-
-### Lifecycle
-
-- Close-to-tray, reopen, Exit, Explorer restart, Windows sign-out/restart.
-- Second activation while visible/hidden.
-- Crash/injected failure during database write and migration.
-
-### Packaging
-
-- Download only `DropSpace.exe` to Desktop/Downloads and launch as a standard user with no .NET/Windows App SDK runtime prerequisite.
-- Confirm file icon and Product Name/File Description/Internal Name/Original Filename/version metadata.
-- Replace `DropSpace.exe` and confirm `%LOCALAPPDATA%\DropSpace` database/settings/payload state remains.
-- Clean MSIX install as standard user.
-- Upgrade from previous released package/schema.
-- Offline start, repair, uninstall/reinstall.
-- Verify documented data retention on uninstall.
-- Confirm unsigned Preview SmartScreen behavior is documented; never disable or bypass Defender policy.
-
-## Performance tests
-
-Reference device specifications are recorded with results.
-
-- Cold/warm launch to interactive.
-- Idle CPU and working set while tray-hidden.
-- Clipboard burst queue depth, dropped events, processing latency.
-- Search P50/P95 at 1k/10k/50k fixtures.
-- Scroll with 500 image/text rows and thumbnail cancellation.
-- Large image peak decoded memory.
-- Database/payload size after retention cleanup.
-- 100 Overlay reveal/dismiss and compact/expanded cycles with window count, working set, handlers, and Composition resource observations.
-- Hidden/idle CPU and GPU observation: no continuous `CompositionTarget.Rendering`, DispatcherTimer, high-frequency loop or polling. Smart mode's event-driven observer hooks must remain idle and never suppress input.
-- Smart candidate latency and false-reveal rate by evidence path; prove zero probe HWNDs at idle, at most one during a generic session, the configured 60 ms lifetime, and no handle/GDI/USER growth after 1,000 probe lifecycles.
-- Interrupt a width/height/radius/content spring in both directions and prove every channel settles with no retained frame subscription.
-
-No performance number is accepted without hardware, build configuration, dataset, and measurement method.
-
-## Security and privacy tests
-
-- Known secret strings never appear in logs, crash markers, notifications, or diagnostic export.
-- Clear history removes canonical rows, search results, payloads, and thumbnails.
-- Pause race prevents durable commit after completion.
-- Malformed relative payload paths cannot escape root.
-- Crafted URL schemes are not auto-opened.
-- Huge/malformed inputs cannot cause unbounded allocation or queue growth.
-- Malformed/oversized CIDA offsets, item counts and PIDLs fail closed; probe classification never calls `GetData` for virtual content and diagnostics contain no dragged path, filename or payload.
-- Best-effort app exclusions are tested for false attribution and accompanied by limitation copy.
-- Repeat 100 drag/cancel cycles, 10–30 ms cancellation, Exit→new-drag reversal, and 350 ms completion-grace supersession; assert stale session IDs cannot hide or commit newer work.
-- Inject bounded pointer pressure while delivering reliable cancel/completion/probe signals; assert critical write failures stay zero during a healthy run and move replacements remain separately diagnosed.
-- Verify Quick Panel default/custom hotkey conflict behavior, keyboard navigation, and file/image/text/URL drag-out.
-- Verify Automatic/Custom placement on negative coordinates and mixed DPI; Arrow=1 DIP, Shift+Arrow=10, Enter=save, Esc=rollback, direct Adjust Position release/rollback, disconnect/update clamping never mutates saved values, and an unconfigured second monitor remains Automatic.
-
-## Release evidence
-
-For each phase/release retain:
-
-- Build/test command and result.
-- Supported OS/SDK/package versions.
-- Manual matrix with pass/fail/known limitation.
-- Migration fixture results.
-- Performance measurements.
-- Accessibility and privacy review notes.
-- Clean workflow SHA, test totals/TRX, exact EXE/MSIX sizes, Authenticode status, SHA-256 manifest, smoke marker result, release URL, and final default-branch SHA.
-
-The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, resolves the selected resource context across XAML and imperative strings, registers `AddClipboardFormatListener`, writes `A,A,B,A` unique-token text plus a mixed set of two real `StorageFile` objects and one `StorageFolder` through the Windows clipboard, observes `WM_CLIPBOARDUPDATE`, proves the adjacent A is suppressed while the final non-consecutive A is persisted, reads and persists three `Source=Clipboard` file/folder references, verifies Pause/Resume and self-write suppression, removes its test rows, verifies zero classic activation hosts in the fresh Smart default, verifies the observation-only mouse hook and at least one documented accessibility drag WinEvent source are registered, proves hidden top-center `WindowFromPoint` pass-through, proves temporary Compact/Expanded target discovery and synthetic `CF_HDROP`, creates an ephemeral probe and verifies its real hollow Region/native no-activate styles/single ownership/60 ms cleanup/double-dispose plus query-only `CF_HDROP`/Shell/virtual/text classification, executes 100 real Overlay lifecycle/resource cycles and 1,000 interruptible Dynamic Island real XAML/HRGN geometry transitions with zero region failures and no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
-
-The installer lifecycle harness runs only in an isolated Windows account/runner and must: compile a baseline and current Setup from the same AppId; silently install to a custom path; verify x64 EXE metadata, shortcuts and Installed Apps registration; start DropSpace and upgrade it through graceful maintenance shutdown without `/DIR`; preserve an AppData marker and chosen path; run the installed smoke; verify the default startup command; normally uninstall while preserving data and removing startup; reinstall and complete-uninstall while removing only `%LOCALAPPDATA%\DropSpace`; and prove an external sentinel representing an original referenced file remains. The script refuses to run when a pre-existing DropSpace data root exists.
-
-Automation does not claim visual quality or real Explorer/UIA/third-party provider coverage. Recommended Beta follow-up on a real Windows 11 desktop verifies ordinary clicks/text selection/window drags remain invisible without lasting obstruction; Explorer/Desktop file/folder/multi-select left/right drags and available WeChat/QQ/Feishu/Electron/Office sources are recorded; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; the probe creates no visible flash/focus/taskbar/Alt+Tab entry or unacceptable cursor feedback; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island motion, mixed-DPI monitors and full-screen behavior remain correct. Missing this evidence alone does not block Beta publication and does not establish a pass.
-
-## v0.1.0 Stable automated gates
-
-- ReleaseVersion parsing/order and the complete Stable/Preview selection matrix, including Preview receiving Stable and no downgrade.
-- Fresh Stable settings versus existing Preview-era migration; all existing Clipboard/retention/overlay/startup preferences preserved.
-- Process-start automatic check once, repeatable manual check, disabled automatic check, and single-flight overlap.
-- Exact/bounded update manifest failures: schema, tag, channel, version code, size, SHA, missing/duplicate/unexpected assets, malformed JSON, oversized input, and arbitrary URL field.
-- Streaming update download success plus hash/size/interruption/cancellation/transport/path-containment failures; no partial payload reaches executable state.
-- Official website release API schema/host/tag/asset validation and resilient website → mirror → GitHub REST fallback without public-network access in tests.
-- Brand generator, nine ICO frames, resource ID 101, EXE/Setup embedded icon, MSIX asset matrix, and no retired icon reference.
-- Installer `/UPDATE` graceful maintenance shutdown, custom-path/data/startup preservation, automatic restart marker, installed smoke, both uninstall modes, and external sentinel protection.
-
-- Core coordinator test issues 500 concurrent revisions and proves maximum loader/apply concurrency of one, latest-revision convergence and recovery after a failed revision.
-- Overlay state tests cover Compact direct drag → DragReady → Compact and Expanded drag/highlight/drop/leave without geometry collapse.
-- Windows executable smoke probes Compact and Expanded center pixels with `WindowFromPoint`; each must be the visual root HWND or a WinUI descendant while the passive host is disabled.
-- A synthetic `CF_HDROP` COM data object is sent through the registered visual native target in Compact and Expanded. Both must reach `AddPathsAsync`; Expanded must remain Expanded.
-- A 200-cycle stress alternates removal from Expanded Overlay and Main projection while both are live, forces GC periodically, checks authoritative count/Main/Recent projections, requires zero AppDomain/unobserved-task deltas and proves the external sentinel still exists.
-- Identity build validates the stable Name/Publisher/version and Share Target manifest. Unsigned CI does not install it; trusted registration is exercised only when Artifact Signing credentials exist.
-
-Manual Windows 11 gates remain real Explorer/Desktop pointer delivery, Drop Tray on/off Shell ownership and direct suggestion ranking, Share UI activation with a trusted signed identity, visible Compact/Expanded feedback, last-item dismissal, mixed-DPI/multi-monitor input, animation feel and zero-pixel Hidden appearance.
-
-The v0.3.0-preview.7 network/preview matrix is maintained in [docs/test-plan/v0.3.0-preview.7.md](docs/test-plan/v0.3.0-preview.7.md); historical Preview plans retain their recorded scope and results. Automated policy, protocol, crypto, Worker and browser checks remain required. For current Beta publication, two real Windows devices plus an operator-deployed Worker are recommended follow-up for pairing, firewall, reconnect/resume, clipboard modes, browser decryption, and Internet Share acceptance. Missing live evidence alone does not block Beta publication; those behaviors remain unverified and an unconfigured backend remains unavailable.
-
-Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.
+本次重整前的测试和规则可在 Git 修订 `b75fcf0d` 查阅。历史测试报告记录当时执行的结果。

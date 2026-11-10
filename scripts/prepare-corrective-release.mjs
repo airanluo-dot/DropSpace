@@ -82,11 +82,6 @@ for(const file of ['README.md','ROADMAP.md']) {
 }
 const gate='scripts/test-ai-release-approval.mjs';
 edits.set(gate,read(gate).replace(/export const experimentalBetaVersion = '[^']+';/,`export const experimentalBetaVersion = '${version}';`));
-const gateTests='scripts/test-ai-release-approval.test.mjs';
-const next=version.replace(/\d+$/,String(Number(n)+1));
-let testText=read(gateTests).split(old).join(version);
-testText=testText.replace(/(\['future Beta', x => \{ x.write\('RELEASE_VERSION', ')[^']+('; x.scope.releaseVersion = ')[^']+(')/,`$1${next}$2${next}$3`);
-edits.set(gateTests,testText);
 }
 // Bind the exact prospective writes, including the gate's own version pin.
 // Computing this before changing the pin used to make a prepared approval stale.

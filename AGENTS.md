@@ -40,6 +40,13 @@ shipped features. See [release history](docs/dev/interface-localization.md#relea
 - Ordinary product changes do not require a skill edit. Revise the skill only when the user asks
   for skill maintenance or its durable project map has become materially inaccurate.
 
+## Minimal tests and defensive code
+
+Follow [the repository testing and development rules](docs/dev/passive-test-budget.md).
+Start with zero functional tests. For a reproduced failure, choose one relevant scenario.
+Use the existing boundary check before adding validation, retries or fallbacks.
+[The core case list](TEST_PLAN.md) also gives the current product and maintenance rule sources.
+
 ## Completion report
 
 Briefly report the outcome, the important files or surfaces changed, checks actually run, and

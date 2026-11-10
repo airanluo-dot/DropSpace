@@ -1,0 +1,50 @@
+name: Core checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which core checks to run
+        type: choice
+        required: true
+        default: windows
+        options:
+          - windows
+          - website
+          - share-worker
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    if: inputs.platform == 'windows'
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - run: dotnet restore tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj --locked-mode
+      - run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore
+
+  website:
+    if: inputs.platform == 'website'
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+      - run: npm ci --prefix website/_source
+      - run: npm test --prefix website/_source
+
+  share-worker:
+    if: inputs.platform == 'share-worker'
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+      - run: npm test --prefix share-worker

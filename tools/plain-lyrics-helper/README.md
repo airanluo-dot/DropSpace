@@ -63,7 +63,6 @@ reported capabilities. This integration does not force CUDA, HIP, FP16, vendor-n
 unsupported architecture overrides. Real acceleration/quality/performance must be measured on
 actual hardware; CPU builds and mock policy tests do not establish that claim.
 
-`c++ -std=c++17 -Wall -Wextra -Werror test_gpu_policy.cpp -o /tmp/dropspace-gpu-policy && /tmp/dropspace-gpu-policy`
 runs the small policy-only regression test without model weights or GPU access. It covers the
 whitelist, exact model-size boundaries, default-policy compatibility, both vendors, discrete
 free-memory thresholds, integrated host-memory thresholds and fail-closed unknown values.
@@ -101,61 +100,7 @@ prefixes, punctuation, nonofficial prompts and selector transitions. `--referenc
 records byte-for-byte output differences. It asserts bounded, correlated, complete JSON responses
 and token accounting. `--no-timings` checks the default response has exactly the legacy fields.
 
-### Fixed-prefix KV snapshot experiment
-
-`--experimental-prefix-kv` enables an independent, default-off experiment. It adds only
-`experimentalPrefixKv: true` to the ready frame. It does not enable `--timings` implicitly.
-The production host adds neither flag; no settings, HTTP transport, model/sampler defaults,
-runtime trust manifest or output admission behavior are changed by this experiment.
-
-Only protocol 1 requests beginning with either exact frozen official target instruction qualify.
-The worker renders both the full request and the source-free fixed instruction with the actual
-loaded model template, checks that their bytes before the source agree, tokenizes that fixed
-portion, drops its boundary token, and computes the longest common token prefix with the full
-templated request. Dropping the boundary token prevents source-dependent tokenizer merges or
-appended special tokens from entering the snapshot. Duplicate/changed instruction rendering
-fails closed. At least one full prompt token is always evaluated fresh to produce valid logits.
-The complete prompt is still templated/tokenized and accepted by a newly seeded sampler.
-
-After a complete response, sequence 0's source and generation tail is removed and its remaining
-position bounds are checked. Only then is `llama_state_seq_get_data` used to serialize the fixed
-prefix into a process-owned buffer (maximum 16 MiB). The complete native memory is still cleared
-with `llama_memory_clear(..., true)`, including data buffers, before reporting the experimental
-result. On the next matching request the worker zero-clears memory, restores the prefix sequence
-snapshot, checks positions, trims it to the actual shared token count, and evaluates the suffix.
-It never serializes the whole context, sampler, logits or deleted source/generation cells.
-
-Changing target, protocol 2 selection, nonofficial prompts, missing shared tokens, incomplete
-responses or failed snapshot operations discard the snapshot. Restore/removal failure also
-zero-clears any partial native state before falling back to full prefill. Exceptional request
-exits retain RAII zero-clear. Process EOF/termination destroys the snapshot; host cancellation,
-model/mode switching, idle cleanup, disable, maintenance and disposal keep their existing
-owned-process drain responsibility. A killed or replaced worker cannot transfer snapshots to
-another worker/model. No serialized state is read from or written to disk.
-
-When `--timings` is also enabled, additional schema 1 fields report `prefixPlanMs`,
-`prefixRestoreMs`, `prefixSaveMs`, `prefixRetainedTokens`, `prefixSnapshotBytes` and actual
-`prefixReusedTokens`. `prefillTokens + prefixReusedTokens == inputTokens`. These extra durations
-are separate from template/tokenization/reset/prefill/cleanup durations. Prefix planning includes
-its own source-free rendering and tokenization. Snapshot transfer costs are part of the measured
-total; the experiment does not claim that prefix reuse is free. Timed prefill/decode explicitly
-synchronize backend work to avoid assigning asynchronous computation to the following sample.
-
-`check_prefix_isolation.py --worker <executable> --model <verified-GGUF> --output <result.json>`
-tests Linux CPU in-flight termination, confirmed exit, fresh-process cold inference, subsequent
-warm inference and graceful EOF replacement. This is not proof of Windows Job cleanup or physical
-7B/Vulkan execution. `test_prefix_policy.cpp` links against the same pinned llama-common build
-without loading weights and checks exact instruction admission, source-dependent template
-rejection, duplicate instructions and token/boundary limits. Compile with C++17 and treat the
-pinned upstream include directories as system includes; its Jinja headers contain intentionally
-unused static functions. Compile this test without `NDEBUG`, so its assertions remain enabled.
-`test_prefix_state.cpp` retains real-model snapshot corruption, position mismatch and fallback
-checks authored before the testing prohibition; it has not been compiled or run.
-
-Primary sources inspected:
-- https://github.com/ggml-org/llama.cpp/blob/7fe450e19305b828c199d602c23a8337aaa1f03b/docs/build.md
-- https://github.com/ggml-org/llama.cpp/blob/7fe450e19305b828c199d602c23a8337aaa1f03b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
-- https://github.com/ggml-org/llama.cpp/blob/7fe450e19305b828c199d602c23a8337aaa1f03b/tools/completion/completion.cpp
+The historical [fixed-prefix experiment](PREFIX-EXPERIMENT.md) records the original measurements.
 
 ## Build and release verification
 

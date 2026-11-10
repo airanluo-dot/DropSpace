@@ -225,9 +225,7 @@ src/
   DropSpace.Infrastructure/  SQLite, file/cache, Windows and Win32 adapters
   DropSpace.MusicBackground/ Windows music-background and Liquid Glass rendering
 tests/
-  DropSpace.Core.Tests/
-  DropSpace.Infrastructure.Tests/
-  DropSpace.App.Tests/       UI-facing integration and automation harness
+  DropSpace.Core.Tests/      Focused Windows behavior checks
 docs/                        Optional future ADR/archive location
 ```
 
@@ -477,7 +475,7 @@ Define an `IItemAction` discovery model only when a second non-core action provi
 - Core tests run without WinUI or Windows APIs.
 - Record removal cannot invoke source-file deletion through any interface.
 - Clipboard capture is event-driven and bounded.
-- Every schema change has forward migration and failure test.
+- Schema upgrades migrate existing data and keep a recoverable copy if migration fails.
 - Main window and Overlay share repositories and use cases, not duplicate stores.
 - Smart/Disabled Hidden idle owns no top-edge or OLE target window and has no continuous frame timer. Classic mode's disclosed compatibility host is the only exception.
 

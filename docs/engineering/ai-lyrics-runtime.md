@@ -1,6 +1,9 @@
 # Local AI lyrics runtime: provenance and process limits
 
-## Shipping payload
+The shipping Hy-MT2 configuration and its CPU, Vulkan and optional CUDA
+workers are described in [the architecture guide](../../ARCHITECTURE.md).
+
+## Original CPU completion runtime
 
 `Build-AiLyricsRuntime.ps1` fetches only the official `ggml-org/llama.cpp` source at
 `7fe450e19305b828c199d602c23a8337aaa1f03b` (v0.5.0), verifies the commit and Git objects,
@@ -64,36 +67,15 @@ Offline behavior comes from the fixed trusted program, stripped build features, 
 controlled CLI arguments. Non-Windows execution is development-only and has the
 watchdog/time/output limits but does not claim Windows job enforcement.
 
-## Verification gates and limits
+## Package verification
 
-- `Test-AiLyricsRuntime.ps1` checks provenance fields, each payload SHA256/length, x64 PE
-  headers, the exact file allowlist, and native baseline startup/version
-- `AiLyricsRuntimePackageTests` covers extraction, corruption repair, hash mismatch,
-  cancellation, wrong source/missing payload, and both CPU variant selections
-- `WindowsInferenceProcessTests` covers native closed-prompt reading/stdout/stderr,
-  denial of a 4 GiB committed allocation under the 3 GiB limit, child cleanup, and argument
-  quoting. Native checks run only on Windows; the owner-disposal test is not a parent-crash test
-- `AiLyricsNativeRuntimeSmokeTests` is an opt-in native release gate. Set
-  `DROPSPACE_AI_SMOKE_MODEL` to the hash-pinned Standard GGUF and
-  `DROPSPACE_AI_SMOKE_RUNTIME` to the built payload folder. It validates the model hash,
-  extracts the selected runtime, invokes the production runner for two original EN→ZH
-  lines, checks strict output IDs/Chinese text/original timestamps, and verifies
-  cancellation and prompt cleanup. It never downloads a model itself
+The Windows runtime build verifies the declared source, expected payload files,
+SHA-256 hashes, file sizes and x64 PE headers. It starts the baseline executable
+with `--version`. The release workflow also inspects the runtime embedded in
+the portable and MSIX packages. [Runtime verification](../../scripts/Test-AiLyricsRuntime.ps1)
 
-The release gate command is:
-
-```powershell
-dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj `
-  -c Release --no-build --no-restore `
-  --filter "FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests" `
-  --logger "trx;LogFileName=ai-native-runtime.trx"
-```
-
-Native Windows build, Job Object tests, model execution, and portable/MSIX embedding must
-pass in Windows CI before release. Linux build/test results do not establish those facts.
-Latency must be measured on target CPUs, including the baseline fallback; a four-thread
-cap does not guarantee every song meets the deadline. A failed/timed-out inference must
-leave original lyrics intact.
+For a functional check, use the [core test plan](../../TEST_PLAN.md). The former
+native inference and process-isolation fixtures are archived in Git revision `20c524a3`.
 
 References: [Windows process attributes](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute),
 [extended job limits](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information),

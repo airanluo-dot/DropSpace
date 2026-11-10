@@ -111,13 +111,10 @@ invariant against the final combined diff. Never mask regression by deleting/clo
 changing defaults, clearing data or requiring reconfiguration. Preserve lyric/providers/models/
 prompts/admission/cache/acceleration unless explicitly authorized.
 
-Use the single [focused testing policy](../../../docs/dev/passive-test-budget.md): there is no fixed
-case ceiling for current or future tasks. Select checks for concrete risks, minimize unnecessary
-testing and do not repeat unchanged passing checks. Keep one truthful project record including
-agents, local/Actions execution, failures and retries; preserve historical release ledgers. A development/release or ordinary manual dispatch is not
-permission for full suites. Source/resource/contract checks, builds, hashes and real public readback
-are production integrity checks, not functional passes. Spend scenarios on high-risk lifecycle,
-recovery, UI retirement, upgrade and no-module regression; document actual coverage boundaries.
+Apply the [minimal testing and development rules](../../../docs/dev/passive-test-budget.md).
+The [core case list](../../../TEST_PLAN.md) covers Windows, macOS, the website and the share worker.
+Automatic functional testing is off. Choose a single relevant case for a reproduced failure.
+Check inputs at their owning boundary and reuse the validated result in downstream code.
 
 Verify live main/PRs/tags/assets, reuse completed work and repeat collision checks before publishing.
 Preserve signing/installer/portable/MSIX/updater and independent component contracts; reuse unchanged

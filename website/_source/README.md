@@ -42,7 +42,7 @@ Both `build` and `build:static` execute the lightweight localization completenes
 
 For subsequent copy changes: extract new/changed text, update only affected translations, record a genuine revision or explicit per-resource confirmation, run the completeness gate, and review changed wording and affected layouts as needed. Never copy English into translations or refresh fingerprints in bulk to clear stale entries. Release bodies and explicit fixed/sample-content exceptions are excluded from ten-language completeness.
 
-Use focused checks tied to actual changes; the current repository policy has no fixed functional case ceiling. A development or publication request does not authorize full Node/Playwright suites, language-by-page matrices, repeated screenshot sweeps or model evaluations. Resource entry counts are not test-case counts. Follow `docs/dev/passive-test-budget.md` and the current task ledger; reuse focused checks without duplicate scans.
+`npm test` builds the site offline and checks that the Windows download buttons on the homepage open the stable installer.
 
 Production sync is fail-closed: `sync-releases` must fetch and validate authoritative GitHub Releases before deployment. Network, HTTP, JSON, contract, Stable-release or required-asset failures retain the previous successful Pages deployment. The committed `data/releases.json` is only a local/PR fixture and is never a production fallback. Asset names are content-hashed, Pages deployment is atomic, and the existing per-document CSP remains enforced.
 
