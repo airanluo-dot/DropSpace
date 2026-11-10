@@ -5,6 +5,9 @@ namespace DropSpace.Core.Island;
 /// <summary>Canonical visible surface geometry. Material and native clipping derive from the same animated values.</summary>
 public sealed record IslandGeometry(double Width, double Height, double Radius)
 {
+    public const double EmptyCompactAspectRatio = 290d / 110;
+    public const double InterludeAspectRatio = 476d / 110;
+
     // Use the same bounded measurement for the content and the native body. Large
     // accessibility text can exceed the old 100-DIP cap even with just two rows.
     public static double MusicCompactHeight(double measuredHeight) => double.IsFinite(measuredHeight)

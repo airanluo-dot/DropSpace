@@ -299,7 +299,7 @@ public sealed partial class MediaCompactView : UserControl
         textWidth = Math.Ceiling(textWidth * rasterizationScale) / rasterizationScale;
         var width = 28 + textWidth + 2 * Layout.ColumnSpacing +
             (settings.IslandActivity.ShowArtwork ? ArtworkHost.Width : 0) + (spectrum ? SpectrumBars.Width : 0);
-        width = Math.Min(_availableWidth, showDots ? 280 : Math.Max(180, width));
+        width = showDots ? IdealIslandHeight * IslandGeometry.InterludeAspectRatio : Math.Min(_availableWidth, Math.Max(180, width));
         if (Math.Abs(width - IdealIslandWidth) > 0.5 || Math.Abs(previousHeight - IdealIslandHeight) > 0.5)
         { DeferScrollUntilLayout(); IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
         RefreshHighlight();

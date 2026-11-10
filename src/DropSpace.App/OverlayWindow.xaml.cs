@@ -665,10 +665,18 @@ public sealed partial class OverlayWindow : Window
         }
         if (isActiveWindow && activationEnabled && snapshot.State == OverlayState.Expanded && !_historyVisible && page == IslandPage.Music)
             MusicExpanded.RefreshForPresentation();
-        var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 :
-            variant == IslandPresentationVariant.SingleFile ? 340 : variant == IslandPresentationVariant.MultipleFiles ? 200 : variant == IslandPresentationVariant.EmptyWake ? 88 : 180;
         var naturalHeight = mediaCompact ? MusicCompact.IdealIslandHeight : activityCompact ? 80 :
             variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? 64 : 40;
+        var blankCapsule = (variant is IslandPresentationVariant.Idle or IslandPresentationVariant.EmptyWake) &&
+            EmptyWakeLogo.Visibility == Visibility.Collapsed && ModuleCompactText.Visibility == Visibility.Collapsed;
+        var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 : variant switch
+        {
+            IslandPresentationVariant.SingleFile => 340,
+            IslandPresentationVariant.MultipleFiles => 200,
+            _ when blankCapsule => naturalHeight * IslandGeometry.EmptyCompactAspectRatio,
+            IslandPresentationVariant.EmptyWake => 88,
+            _ => 180,
+        };
         var compactScale = OverlayPlacementPolicy.FitContentScale(_monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight,
             _monitor.Scale, naturalWidth, naturalHeight, _mediaViewModel.Settings.IslandAppearance.CompactScale);
         _compactSurfaceWidth = naturalWidth * compactScale;
