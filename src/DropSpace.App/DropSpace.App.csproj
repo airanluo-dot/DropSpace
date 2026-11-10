@@ -48,6 +48,7 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\..\branding\text-gradients.json" LogicalName="DropSpace.TextGradients.json" />
     <EmbeddedResource Include="..\..\localization\release-history.json" LogicalName="DropSpace.ReleaseHistory.json" />
     <Content Include="Assets\*.png" />
     <EmbeddedResource Include="Assets\Square44x44Logo.scale-100.png" LogicalName="DropSpace.Brand.TransparentLogo.png" />

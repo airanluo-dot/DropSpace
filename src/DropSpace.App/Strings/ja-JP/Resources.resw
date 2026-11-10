@@ -1058,4 +1058,5 @@
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>更新をインストール</value></data>
   <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>ロゴをクリックして更新内容を確認</value></data>
   <data name="ReleaseHistoryTitle" xml:space="preserve"><value>更新内容</value></data>
+  <data name="ReleaseHistoryLoadMore" xml:space="preserve"><value>クリックしてさらに読み込む</value></data>
 </root>

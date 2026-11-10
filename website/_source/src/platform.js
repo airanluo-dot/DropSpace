@@ -53,19 +53,6 @@ export function macReleaseMarkup(entry, t) {
     <div class="mac-release-links">${link("release.notes", m.releaseURL)}${link("ui.sha.256.checksums", entry.checksumsURL)}</div>`;
 }
 
-export function macHistoryMarkup(entries, t, formatDate) {
-  const highlights = notes => {
-    const bullets = notes.split(/\r?\n/).map(line => line.trim()).filter(line => /^[-*]\s+/.test(line)).slice(0, 6);
-    if (bullets.length) return `<ul>${bullets.map(line => `<li>${escapeHtml(line.replace(/^[-*]\s+/, '').replace(/\*\*|`/g, ''))}</li>`).join('')}</ul>`;
-    return `<p>${escapeHtml(notes.split(/\r?\n/).find(line => line.trim() && !line.startsWith('#')) ?? '')}</p>`;
-  };
-  return entries.map(({manifest: m, publishedAt}) => `<article class="release-entry">
-    <div class="release-meta"><strong>${escapeHtml(m.tag)}</strong><time datetime="${escapeHtml(publishedAt)}">${escapeHtml(formatDate(publishedAt))}</time></div>
-    <div class="release-body"><div lang="en" data-i18n-exempt="release-body">${highlights(m.releaseNotes)}</div><div class="actions">
-    <a class="button button-primary" href="${escapeHtml(m.installer.url)}" data-i18n="mac.download">${escapeHtml(t("mac.download"))}</a>
-    <a class="button button-ghost" href="${escapeHtml(m.releaseURL)}" data-i18n="release.notes">${escapeHtml(t("release.notes"))}</a></div></div></article>`).join("");
-}
-
 async function refreshMacRelease() {
   const download = document.querySelector("[data-mac-release]");
   if (!download || document.documentElement.dataset.siteVariant === "static") return;
@@ -81,8 +68,6 @@ async function refreshMacRelease() {
     if (!selected || (current && compareMacTags(selected.manifest.tag, current) < 0)) return;
     const t = key => window.DropSpaceI18n.t(key);
     download.innerHTML = macReleaseMarkup(selected, t);
-    document.querySelector("[data-mac-history]").innerHTML = macHistoryMarkup(feed.releases, t,
-      date => new Date(date).toLocaleDateString(window.DropSpaceI18n.language, { dateStyle: "long", timeZone: "UTC" }));
     for (const requirements of document.querySelectorAll("[data-mac-requirements]"))
       requirements.dataset.i18nArgs = JSON.stringify({ version: selected.manifest.minimumOS });
     window.DropSpaceI18n.apply();
@@ -92,10 +77,6 @@ async function refreshMacRelease() {
 
 if (typeof document !== "undefined") {
   void refreshMacRelease();
-  addEventListener("dropspace-language-change", () => {
-    for (const time of document.querySelectorAll("[data-mac-history] time[datetime]"))
-      time.textContent = new Date(time.dateTime).toLocaleDateString(window.DropSpaceI18n.language, { dateStyle: "long", timeZone: "UTC" });
-  });
   const platform = suggestedPlatform(navigator);
   document.documentElement.dataset.suggestedPlatform = platform || "unknown";
   for (const link of document.querySelectorAll("[data-platform-option]")) {

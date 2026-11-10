@@ -22,6 +22,13 @@ DropSpace skill. Do not create or synchronize a personal duplicate.
 Read only the relevant sections. Historical preview or beta notes describe their releases; they
 are not standing instructions for unrelated work.
 
+## Release comparison rule
+
+For the app, website and GitHub, compare each Beta with the previous Beta on the same platform.
+Compare each Stable release with the previous Stable on that platform and summarize the changes
+users receive across the intervening prereleases. The first release in a channel introduces its
+shipped features. See [release history](docs/dev/interface-localization.md#release-history).
+
 ## Working in the repository
 
 - Infer routine details from the current code and the user's request. Ask only when a missing

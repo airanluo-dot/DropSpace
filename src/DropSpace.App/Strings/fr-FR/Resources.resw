@@ -1058,4 +1058,5 @@ Le téléchargement n’active pas l’IA et ne modifie ni le modèle sélection
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Installer la mise à jour</value></data>
   <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>Cliquez sur le logo pour découvrir les nouveautés</value></data>
   <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Nouveautés</value></data>
+  <data name="ReleaseHistoryLoadMore" xml:space="preserve"><value>Cliquez pour en charger plus</value></data>
 </root>

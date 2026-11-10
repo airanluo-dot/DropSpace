@@ -13,6 +13,7 @@ using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Preview;
+using DropSpace.Core.Updates;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
@@ -2092,23 +2093,23 @@ public sealed partial class OverlayWindow : Window
         _placementEditActive = false;
     }
 
-    internal bool TryActivateQuickPanel(bool retrieval = false, nint returnWindow = 0, bool showHistory = false)
+    internal bool TryActivateQuickPanel(bool retrieval = false, nint returnWindow = 0, UpdateChannel? historyChannel = null)
     {
         if (!CanActivateQuickPanel()) return false;
-        if (showHistory)
+        if (historyChannel is { } channel)
         {
             if (_retrievalVisible) CloseRetrieval();
             _historyVisible = true;
             _historyClosing = false;
             _reserveHistorySize = true;
-            HistoryView.Open(_strings);
+            HistoryView.Open(_strings, channel);
         }
         else if (retrieval)
         {
             _historyVisible = false;
             OpenRetrieval(returnWindow);
         }
-        if ((showHistory || retrieval) && _presentationSnapshot is { } snapshot)
+        if ((historyChannel.HasValue || retrieval) && _presentationSnapshot is { } snapshot)
             ApplySnapshot(snapshot, _isActiveWindow, _isActiveWindow, _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
         CancelQuickPanelFocus();
         try
@@ -2305,6 +2306,11 @@ public sealed partial class OverlayWindow : Window
             _experience.SelectPage(_experience.Current.Page - 1);
     }
 
+    internal void RefreshReleaseHistoryChannel(UpdateChannel channel)
+    {
+        if (_historyVisible && HistoryView.Channel != channel) HistoryView.Open(_strings, channel);
+    }
+
     public void RefreshLanguage()
     {
         Root.Language = _strings.Culture.Name;
@@ -2312,7 +2318,7 @@ public sealed partial class OverlayWindow : Window
         XamlResourceOverride.ApplyTree(Root);
         WidgetsExpanded.RefreshLanguage();
         RetrievalView.RefreshLanguage();
-        if (_historyVisible) HistoryView.Open(_strings);
+        if (_historyVisible) HistoryView.Open(_strings, HistoryView.Channel);
         CancelPlacementButton.Content = _strings.Get("CommonCancel");
     }
     public void RefreshModules() => WidgetsExpanded.RefreshModules();

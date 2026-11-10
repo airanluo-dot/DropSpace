@@ -1058,4 +1058,5 @@
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Установить обновление</value></data>
   <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>Нажмите на логотип, чтобы узнать, что нового</value></data>
   <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Что нового</value></data>
+  <data name="ReleaseHistoryLoadMore" xml:space="preserve"><value>Нажмите, чтобы загрузить ещё</value></data>
 </root>

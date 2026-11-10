@@ -1059,5 +1059,6 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>Could not check. Try again later.</value></data>
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Install update</value></data>
   <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>Click the logo to see what’s new</value></data>
-  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>What’s new.</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>What’s new</value></data>
+  <data name="ReleaseHistoryLoadMore" xml:space="preserve"><value>Click to load more</value></data>
 </root>

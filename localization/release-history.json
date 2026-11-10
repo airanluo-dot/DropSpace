@@ -3,16 +3,16 @@
     "tag": "v1.1.0-beta.7",
     "date": null,
     "en": [
-      "Click the About logo to browse the release history in the Island.",
-      "The website changelog now lists the highlights of every release."
+      "Click the About logo to browse the Island’s release history, five versions at a time.",
+      "The Island follows your update channel. The website also shows a short summary for each release."
     ],
     "zh-CN": [
-      "点击「关于」里的 Logo，在灵动岛查看历代更新。",
-      "官网更新日志也用简短条目介绍每一版。"
+      "在「关于」点击Logo，即可在灵动岛分批查看更新记录。",
+      "灵动岛按更新通道显示版本，官网也可查看每版要点。"
     ],
     "zh-TW": [
-      "點選「關於」裡的 Logo，在動態島檢視歷代更新。",
-      "官網更新日誌也用簡短條目介紹每一版。"
+      "在「關於」點選 Logo，即可在動態島分批檢視更新記錄。",
+      "動態島依更新頻道顯示版本，官網也可檢視各版重點。"
     ]
   },
   {
@@ -105,38 +105,50 @@
       "Search clipboard history, files and task results from the Island.",
       "File Relay collects new files from folders you choose.",
       "Keep images or text in a reference window, or open the dedicated music window.",
-      "Pair a local agent to work with DropSpace."
+      "Pair a local agent to work with DropSpace.",
+      "The installed Windows app can install updates automatically."
     ],
     "zh-CN": [
       "新增灵动岛统一搜索，可找回剪贴板内容、文件和处理结果。",
       "新增文件接力，自动收集指定文件夹里的新文件。",
       "新增图片和文本参考窗口，以及独立音乐窗口。",
-      "支持配对本地 Agent 操作 DropSpace。"
+      "支持配对本地 Agent 操作 DropSpace。",
+      "安装版可自动安装更新。"
     ],
     "zh-TW": [
       "新增動態島統一搜尋，可找回剪貼簿內容、檔案和處理結果。",
       "新增檔案接力，自動收集指定資料夾裡的新檔案。",
       "新增圖片和文字參考視窗，以及獨立音樂視窗。",
-      "支援配對本機 Agent 操作 DropSpace。"
+      "支援配對本機 Agent 操作 DropSpace。",
+      "安裝版可自動安裝更新。"
     ]
   },
   {
     "tag": "v1.0.0",
     "date": "2026-10-22",
     "en": [
-      "The installed Windows app can install updates automatically.",
-      "View cache and DLC storage separately in Settings.",
-      "System notification and volume monitoring are temporarily unavailable."
+      "Control music from the Island, follow synchronized lyrics and translate them on your device.",
+      "Customize Island widgets and keyboard shortcuts.",
+      "Preview files, create ZIP archives and convert or resize images.",
+      "Share files with nearby devices and sync your clipboard between paired devices.",
+      "Resume downloads, manage optional components and install app updates automatically in the installed edition.",
+      "Choose from ten interface languages and set the lyric translation language separately."
     ],
     "zh-CN": [
-      "安装版支持自动安装更新。",
-      "设置中可分别查看缓存和 DLC 占用。",
-      "暂时停用系统通知和音量观察。"
+      "可在灵动岛控制音乐、查看同步歌词，并在本机翻译歌词。",
+      "支持自定义灵动岛小组件和快捷键。",
+      "新增文件预览、ZIP 压缩、图片转换与缩放。",
+      "可向附近设备分享文件，也可在已配对设备间同步剪贴板。",
+      "支持断点续传和可选组件管理，安装版可自动安装更新。",
+      "界面支持十种语言，歌词翻译语言可独立设置。"
     ],
     "zh-TW": [
-      "安裝版支援自動安裝更新。",
-      "設定中可分別檢視快取和 DLC 佔用。",
-      "暫時停用系統通知和音量觀察。"
+      "可在動態島控制音樂、檢視同步歌詞，並在本機翻譯歌詞。",
+      "支援自訂動態島小工具和快速鍵。",
+      "新增檔案預覽、ZIP 壓縮、圖片轉檔與縮放。",
+      "可向附近裝置分享檔案，也可在已配對裝置間同步剪貼簿。",
+      "支援續傳與選用元件管理，安裝版可自動安裝更新。",
+      "介面支援十種語言，歌詞翻譯語言可獨立設定。"
     ]
   },
   {
@@ -1058,15 +1070,18 @@
     "date": "2026-08-23",
     "en": [
       "Added English and Simplified Chinese interfaces.",
-      "Fixed the main window flashing during background startup."
+      "Fixed the main window flashing during background startup.",
+      "Read the latest release highlights on the website."
     ],
     "zh-CN": [
       "新增英文和简体中文界面。",
-      "修复开机启动时主窗口闪现的问题。"
+      "修复开机启动时主窗口闪现的问题。",
+      "官网可查看最新版本要点。"
     ],
     "zh-TW": [
       "新增英文和簡體中文介面。",
-      "修復開機啟動時主視窗閃現的問題。"
+      "修復開機啟動時主視窗閃現的問題。",
+      "官網可檢視最新版本重點。"
     ]
   },
   {
@@ -1113,15 +1128,18 @@
     "date": "2026-08-19",
     "en": [
       "Dragging a file wakes the Island on the corresponding display.",
-      "Unified the Island appearance and app icons."
+      "Unified the Island appearance and app icons.",
+      "Choose smart drag detection, the classic top-edge target or manual opening."
     ],
     "zh-CN": [
       "智能拖动文件时会在对应屏幕唤醒灵动岛。",
-      "统一灵动岛外观和品牌图标。"
+      "统一灵动岛外观和品牌图标。",
+      "可选择智能拖动、经典顶部热区或手动打开灵动岛。"
     ],
     "zh-TW": [
       "智慧拖動檔案時會在對應螢幕喚醒動態島。",
-      "統一動態島外觀和品牌圖示。"
+      "統一動態島外觀和品牌圖示。",
+      "可選擇智慧拖曳、傳統頂端感應區或手動開啟動態島。"
     ]
   },
   {
@@ -1206,15 +1224,15 @@
     "tag": "v0.1.0",
     "date": "2026-08-11",
     "en": [
-      "The first stable release brings together Temporary Space, clipboard history and Island file drops.",
+      "Drop files onto the Island, pin items in Temporary Space and revisit clipboard history.",
       "Check for updates in the app and keep your data during upgrades."
     ],
     "zh-CN": [
-      "首个稳定版，整合临时空间、剪贴板历史和灵动岛拖放。",
+      "可将文件拖入灵动岛，在临时空间固定项目，并找回剪贴板历史。",
       "支持应用内检查更新和保留数据升级。"
     ],
     "zh-TW": [
-      "首個穩定版，整合暫存空間、剪貼簿記錄和動態島拖放。",
+      "可將檔案拖入動態島，在暫存空間釘選項目，並找回剪貼簿記錄。",
       "支援應用內檢查更新和保留資料升級。"
     ]
   },

@@ -8,7 +8,7 @@ import { checkLocalization, checkBuiltWebsite } from "../../../scripts/check-loc
 import { createLatestChangeApi, validateWebsiteReleaseData } from "./release-contract.mjs";
 import { createMacReleaseData, validateMacReleaseData, macChannelFeed } from "./macos-release-contract.mjs";
 import { releaseRequirementsHint, stableRequirements } from "../src/release-requirements.js";
-import { macReleaseMarkup, macHistoryMarkup } from "../src/platform.js";
+import { macReleaseMarkup } from "../src/platform.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 await checkLocalization({ root: path.resolve(root, "../.."), scopes: ["website"] });
@@ -18,6 +18,11 @@ const dist = path.join(root, staticShowcase ? "dist-static" : "dist");
 const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8")));
 const archive = JSON.parse(await readFile(path.join(root, "../../localization/release-history.json"), "utf8"));
 const history = archive.filter(entry => entry.date);
+const ramps = JSON.parse(await readFile(path.join(root, "../../branding/text-gradients.json"), "utf8"));
+const gradients = ramps.flatMap(colors => [colors, [...colors].reverse()]);
+const inkStyles = gradients.map(([start, middle, end], i) =>
+  `[data-ink="${i}"] { --brand-ink: linear-gradient(90deg, ${start}, ${middle}, ${end}); }`).join("\n");
+
 const stable = releases.stable;
 const stableRelease = releases.api.releases.find((release) => release.tagName === stable.tag);
 const latestChange = createLatestChangeApi(releases.api, history);
@@ -57,6 +62,7 @@ const assetSources = {
 const assetUrls = {};
 for (const [key, relative] of Object.entries(assetSources)) {
   let contents = await readFile(path.join(src, relative));
+  if (key === "css") contents = Buffer.concat([contents, Buffer.from("\n" + inkStyles)]);
   if (key === "localizationJs") contents = Buffer.from(contents.toString().replace("__LOCALIZATION_PAYLOAD__", JSON.stringify({ catalog: languageCatalog, resources })));
   if (staticShowcase && key === "js") contents = Buffer.from(contents.toString().replace(/\/\/ BEGIN LIVE RELEASE RUNTIME[\s\S]*?\/\/ END LIVE RELEASE RUNTIME/g, ""));
   if (key === "js") contents = Buffer.from(contents.toString().replace('"./release-requirements.js"', JSON.stringify(assetUrls.requirementsJs)));
@@ -107,8 +113,8 @@ function summaryItems(entry, element) {
     `<${element} data-summary-cn="${escapeHtml(entry["zh-CN"][index])}" data-summary-tw="${escapeHtml(entry["zh-TW"][index])}">${escapeHtml(line)}</${element}>`).join("");
 }
 
-function releaseEntries() {
-  return history.map(entry => {
+function releaseEntries(entries) {
+  return entries.map(entry => {
     const tag = escapeHtml(entry.tag.replace(/^macos-/, "macOS "));
     const channel = entry.tag.includes("-beta.") ? "release.beta" : "release.stable";
     const channelLabel = entry.tag.includes("-preview.") ? "<span>Preview</span>" :
@@ -185,7 +191,7 @@ function rewriteLinks(document) {
 async function render(templatePath, kind) {
   const change = latestChange.release;
   let template = replaceTokens(await readFile(path.join(src,templatePath),'utf8'))
-    .replace('{{RELEASE_ENTRIES}}',releaseEntries())
+    .replace('{{RELEASE_ENTRIES}}',releaseEntries(history.filter(entry => !entry.tag.startsWith('macos-'))))
     .replace('{{LATEST_CHANGE_HEADLINE}}',escapeHtml(change.headline.en))
     .replace('{{LATEST_CHANGE_TAG}}',escapeHtml(change.tagName))
     .replace('{{LATEST_CHANGE_TITLE}}',escapeHtml(change.title))
@@ -210,7 +216,7 @@ async function render(templatePath, kind) {
     const selected = macReleases.stable ?? macReleases.beta;
     const download = document.querySelector('[data-mac-release]');
     download.innerHTML = macReleaseMarkup(selected, text);
-    document.querySelector('[data-mac-history]').innerHTML = macHistoryMarkup(macReleases.releases, text, date => formatDate(date, 'en-US'));
+    document.querySelector('[data-mac-history]').innerHTML = releaseEntries(history.filter(entry => entry.tag.startsWith('macos-')));
     document.querySelectorAll('[data-mac-requirements]').forEach(node => {
       node.dataset.i18nArgs = JSON.stringify({version: selected?.manifest.minimumOS ?? '26.0'});
     });
@@ -235,6 +241,12 @@ async function render(templatePath, kind) {
       else if (link.hasAttribute('data-release-url') || link.href.includes('/changelog/')) link.href = 'https://github.com/airanluo-dot/DropSpace/releases';
     }
   }
+  document.querySelectorAll(".feature-rail b, .release-title, .release-meta > *").forEach(node => node.classList.add("brand-ink"));
+  document.querySelectorAll(".brand-ink").forEach((node, index) => {
+    const release = node.closest("[data-release-tag]")?.dataset.releaseTag;
+    const identity = release ? release + node.tagName : kind + index;
+    node.dataset.ink = String(createHash("sha256").update(identity).digest().readUInt32LE(0) % gradients.length);
+  });
   applyMetadata(document, kind);
   return '<!doctype html>\n' + document.documentElement.outerHTML + '\n';
 }

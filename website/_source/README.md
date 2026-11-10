@@ -24,7 +24,7 @@ The lyric story describes two permanent translation targets: Simplified Chinese 
 
 The full changelog and homepage highlights use the shared, hand-edited
 [`localization/release-history.json`](../../localization/release-history.json). The changelog lists
-all dated entries. The homepage pairs the latest release from the validated feed with its entry by tag.
+all dated Windows entries. The Mac page lists all dated Mac entries. Both use the same editorial comparison rule as GitHub and the app. The homepage pairs the latest release from the validated feed with its entry by tag.
 English is the static default. The language selector renders Simplified or Traditional Chinese
 summaries in those interfaces. The [release history guide](../../docs/dev/interface-localization.md#release-history)
 covers new entries and Island design. The homepage refreshes from the same curated highlights in `latest-change.json`. Stable download links and the updater feed

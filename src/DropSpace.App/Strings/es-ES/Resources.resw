@@ -1058,4 +1058,5 @@ La descarga no activa la IA ni cambia el modelo seleccionado o el modo de GPU.</
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Instalar actualización</value></data>
   <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>Haz clic en el logotipo para ver las novedades</value></data>
   <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Novedades</value></data>
+  <data name="ReleaseHistoryLoadMore" xml:space="preserve"><value>Haz clic para cargar más</value></data>
 </root>

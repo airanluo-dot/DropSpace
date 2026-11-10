@@ -212,6 +212,12 @@ Native `MenuFlyout`, standard ordering, separators by action group, keyboard acc
 - Use effective pixels, XAML layout, and rasterization-scale-aware thumbnails.
 - Test 100%, 125%, 150%, 200%, mixed-DPI display moves, RTL readiness, and 200% text scaling.
 
+## Gradient text
+
+Use `BrandTextStyle` for colored text and `.brand-ink` on the website. Each text element uses its
+own static gradient from `branding/text-gradients.json`. Key recycled elements by content so
+scrolling and loading more entries preserve their colors. Use the system text color in high contrast.
+
 ## Content language
 
 - Short, direct, non-technical.

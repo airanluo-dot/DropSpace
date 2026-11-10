@@ -660,6 +660,14 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnMainSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName == nameof(MainViewModel.UpdateChannel))
+        {
+            _dispatcher.TryEnqueue(() =>
+            {
+                if (_disposed) return;
+                foreach (var window in _windows) window.RefreshReleaseHistoryChannel(_mainViewModel.UpdateChannel);
+            });
+        }
         if (args.PropertyName == nameof(MainViewModel.Language) && _displayLanguage != _mainViewModel.Language)
         {
             _displayLanguage = _mainViewModel.Language;
@@ -920,7 +928,7 @@ public sealed class OverlayWindowService : IDisposable
             // Surface routing includes Primary/fullscreen preferences. Let the
             // window actually shown by ApplySnapshot accept the keyboard request.
             foreach (var window in _windows)
-                if (window.TryActivateQuickPanel(retrieval: !showHistory, returnWindow, showHistory)) break;
+                if (window.TryActivateQuickPanel(retrieval: !showHistory, returnWindow, showHistory ? _mainViewModel.UpdateChannel : null)) break;
         });
     }
 

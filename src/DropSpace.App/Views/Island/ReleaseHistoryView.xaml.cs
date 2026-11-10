@@ -1,6 +1,9 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text.Json;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Updates;
+using Windows.Globalization.DateTimeFormatting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -14,34 +17,75 @@ public sealed partial class ReleaseHistoryView : UserControl
         using var stream = typeof(ReleaseHistoryView).Assembly.GetManifestResourceStream("DropSpace.ReleaseHistory.json")!;
         return JsonSerializer.Deserialize<JsonElement>(stream);
     });
-    private string? _language;
+    private const int PageSize = 5;
+    private readonly ObservableCollection<ReleaseHistoryRow> _rows = [];
+    private JsonElement.ArrayEnumerator _remaining;
+    private bool _hasNext;
+    private string _language = "en";
+    private string _beta = "", _stable = "";
+    private DateTimeFormatter? _dateFormat;
+    internal UpdateChannel Channel { get; private set; }
 
-    public ReleaseHistoryView() => InitializeComponent();
+    public ReleaseHistoryView()
+    {
+        InitializeComponent();
+        Entries.ItemsSource = _rows;
+    }
+
     public event RoutedEventHandler? CloseRequested;
 
-    internal void Open(IAppStringLocalizer strings)
+    internal void Open(IAppStringLocalizer strings, UpdateChannel channel)
     {
-        var culture = strings.Culture;
-        if (_language != culture.Name)
-        {
-            Heading.Text = strings.Get("ReleaseHistoryTitle");
-            AutomationProperties.SetName(CloseButton, strings.Get("CommonClose"));
-            ToolTipService.SetToolTip(CloseButton, strings.Get("CommonClose"));
-            var language = culture.Name is "zh-CN" or "zh-TW" ? culture.Name : "en";
-            var dateFormat = new Windows.Globalization.DateTimeFormatting.DateTimeFormatter("year month.full day", [culture.Name]);
-            Entries.ItemsSource = Archive.Value.EnumerateArray().Select(entry =>
-            {
-                var tag = entry.GetProperty("tag").GetString()!;
-                var channel = tag.Contains("-beta.") ? strings.Get("UpdateChannelBeta.Content")
-                    : tag.Contains("-preview.") ? "Preview" : strings.Get("UpdateChannelStable.Content");
-                var date = entry.GetProperty("date").GetString();
-                return new ReleaseHistoryRow(tag.Replace("macos-", "macOS "), channel,
-                    date is null ? null : dateFormat.Format(DateTime.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture)),
-                    entry.GetProperty(language).EnumerateArray().Select(line => line.GetString()!).ToArray());
-            }).ToArray();
-            _language = culture.Name;
-        }
+        Channel = channel;
+        var culture = strings.Culture.Name;
+        _language = culture is "zh-CN" or "zh-TW" ? culture : "en";
+        _beta = strings.Get("UpdateChannelBeta.Content");
+        _stable = strings.Get("UpdateChannelStable.Content");
+        _dateFormat = new DateTimeFormatter("year month.full day", [culture]);
+        Heading.Text = strings.Get("ReleaseHistoryTitle");
+        LoadMoreLabel.Text = strings.Get("ReleaseHistoryLoadMore");
+        AutomationProperties.SetName(LoadMore, LoadMoreLabel.Text);
+        AutomationProperties.SetName(CloseButton, strings.Get("CommonClose"));
+        ToolTipService.SetToolTip(CloseButton, strings.Get("CommonClose"));
+        _rows.Clear();
+        _remaining = Archive.Value.EnumerateArray();
+        _hasNext = AdvanceToNextRelease();
+        AppendPage();
         HistoryScroll.ChangeView(null, 0, null, true);
+    }
+
+    private bool AdvanceToNextRelease()
+    {
+        while (_remaining.MoveNext())
+        {
+            var tag = _remaining.Current.GetProperty("tag").GetString();
+            // Windows tags follow ReleaseVersion. Mac tags have a separate prefix.
+            if (ReleaseVersion.TryParse(tag, out var version) && (Channel == UpdateChannel.Beta || !version.IsPrerelease))
+                return true;
+        }
+        return false;
+    }
+
+    private void AppendPage()
+    {
+        for (var i = 0; i < PageSize && _hasNext; i++)
+        {
+            var entry = _remaining.Current;
+            var tag = entry.GetProperty("tag").GetString()!;
+            var channel = tag.Contains("-beta.") ? _beta : tag.Contains("-preview.") ? "Preview" : _stable;
+            var date = entry.GetProperty("date").GetString();
+            _rows.Add(new ReleaseHistoryRow(tag, channel,
+                date is null ? null : _dateFormat!.Format(DateTime.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                entry.GetProperty(_language).EnumerateArray().Select(line => line.GetString()!).ToArray()));
+            _hasNext = AdvanceToNextRelease();
+        }
+        LoadMore.Visibility = _hasNext ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnLoadMore(object sender, RoutedEventArgs args)
+    {
+        FocusHistory();
+        AppendPage();
     }
 
     internal bool FocusHistory() => HistoryScroll.Focus(FocusState.Programmatic);

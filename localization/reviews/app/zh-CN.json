@@ -4201,22 +4201,27 @@
     ],
     "AboutReleaseHistoryHint": [
       "f6cf805b68f1ab6f006eef4cf01c8853fc85750d6738617c964baeb64bf22398",
-      "dfc5b7df1be19d8cf3f676b2d0f57b6e64ff6fc19c3718a06784615e061e5772"
+      "ad19b85b6c68a838d4c7d89c527ac3426ff9932b3b187aa5aa3c6b45afefbec9"
     ],
     "ReleaseHistoryTitle": [
-      "11721b62bafb73ee1a08c3fc14561547d5a029145fac1a116b86331a9d673d59",
-      "e9cd8a5b582d20bf0fa1bdf57ab9d656f35a9057cc40eac2c2ae0d358c75c13f"
+      "37e6112e84a883859faad299b6a1aac99ceb1efefa0064e89d4d97a8fbb8bc30",
+      "6c89d3260903e5f95ba502bf5b0dcd4c99860ce7efbb59645680eafd294bb393"
+    ],
+    "ReleaseHistoryLoadMore": [
+      "09cf7b1a85ad9f075225619e3a4428e507a100d0cfaddcef5dce586dda4393ad",
+      "6f1b90bcd54bf8f0539bdc3acca2a2b61f86a5b73005957ee1ae403402158439"
     ]
   },
-  "reviewedBy": "Codex Beta7 release history",
-  "reviewedAt": "2026-11-10T13:29:42.220Z",
+  "reviewedBy": "Codex release history copy review",
+  "reviewedAt": "2026-11-10T14:39:23.782Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "AboutReleaseHistoryHint",
-      "ReleaseHistoryTitle"
+      "ReleaseHistoryTitle",
+      "ReleaseHistoryLoadMore",
+      "AboutReleaseHistoryHint"
     ],
-    "reviewedBy": "Codex Beta7 release history",
-    "reviewedAt": "2026-11-10T13:29:42.220Z"
+    "reviewedBy": "Codex release history copy review",
+    "reviewedAt": "2026-11-10T14:39:23.782Z"
   }
 }
