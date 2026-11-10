@@ -354,9 +354,10 @@ public sealed class MusicPage : UserControl
         _nowPlaying.Height = 380;
         RefreshLyrics();
         var settings = _editor.Settings.IslandActivity;
-        var sources = _sessions.AvailableSources.Concat(settings.AllowedMediaSourceAppIds).Distinct(StringComparer.OrdinalIgnoreCase).Take(512).ToArray();
-        var key = string.Join('\n', sources) + "|" + settings.UseMediaSourceAllowList + "|" + string.Join('\n', settings.AllowedMediaSourceAppIds);
+        var available = _sessions.AvailableSources;
+        var key = string.Join('\n', available) + "|" + settings.UseMediaSourceAllowList + "|" + string.Join('\n', settings.AllowedMediaSourceAppIds);
         if (_sourcesKey == key && _applications.Children.Count > 0) return;
+        var sources = available.Concat(settings.AllowedMediaSourceAppIds).Distinct(StringComparer.OrdinalIgnoreCase).Take(512).ToArray();
         _sourcesKey = key; _iconStop?.Cancel(); _applications.Children.Clear();
         var images = new List<(string Source, Image Image)>();
         foreach (var source in sources)

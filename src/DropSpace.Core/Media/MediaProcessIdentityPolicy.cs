@@ -13,8 +13,12 @@ public static class MediaProcessIdentityPolicy
     public static string AudioIdentity(string source)
     {
         if (IsAppleMusic(source)) return AppleMusicRenderer;
-        // The NetEase SMTC integration recognizes these aliases; resolve the same
-        // player for capture instead of mistaking its alias for a missing process.
+        return ApplicationIdentity(source);
+    }
+
+    public static string ApplicationIdentity(string source)
+    {
+        // The NetEase integration publishes these aliases for the same desktop app.
         if (source.Equals("cloudmusic", StringComparison.OrdinalIgnoreCase) ||
             source.Equals("com.netease.cloudmusic", StringComparison.OrdinalIgnoreCase)) return "cloudmusic.exe";
         return source;
