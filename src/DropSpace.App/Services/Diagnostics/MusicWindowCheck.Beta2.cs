@@ -39,7 +39,12 @@ internal static partial class MusicWindowCheck
         Directory.CreateDirectory(output);
         var checks = new List<CheckResult>();
         music.Open();
-        foreach (var (width, height, lyrics) in new[] { (1040, 760, true), (1440, 900, true), (480, 800, true), (360, 600, false), (1040, 760, false) })
+        foreach (var (width, height, lyrics, stacked) in new[]
+        {
+            (1040, 760, true, false), (1440, 900, true, false), (800, 420, true, false),
+            (720, 700, true, true), (480, 800, true, true), (360, 400, true, true),
+            (360, 600, false, true), (1040, 760, false, false),
+        })
         {
             var window = music.CurrentWindow!;
             ResizeMusicDips(window, width, height); music.SetLyricsVisible(lyrics); window.DiagnosticNotifyInteraction();
@@ -48,9 +53,17 @@ internal static partial class MusicWindowCheck
             var footer = layout.GetProperty("PresentedFooter");
             var bottom = layout.GetProperty("RootHeight").GetDouble() - footer.GetProperty("Y").GetDouble() - footer.GetProperty("Height").GetDouble();
             var left = layout.GetProperty("LeftX").GetDouble();
-            var centered = !layout.GetProperty("Portrait").GetBoolean() && !lyrics;
+            var cover = layout.GetProperty("PresentedCover");
+            var lyricPane = layout.GetProperty("PresentedLyrics");
+            var compact = stacked && lyrics;
+            var square = Math.Abs(cover.GetProperty("Width").GetDouble() - cover.GetProperty("Height").GetDouble()) <= 1;
+            var ordered = !lyrics || (compact
+                ? cover.GetProperty("Y").GetDouble() + cover.GetProperty("Height").GetDouble() <= lyricPane.GetProperty("Y").GetDouble() + 1
+                : left + layout.GetProperty("LeftWidth").GetDouble() <= lyricPane.GetProperty("X").GetDouble() + 1);
+            var centered = !stacked && !lyrics;
             var expected = centered ? layout.GetProperty("PresentedCoverSlot").GetProperty("Y").GetDouble() - 32 : left;
-            checks.Add(new(Math.Abs(bottom - expected) <= 1.1 ? "passed" : "failed", "beta2-spacing",
+            checks.Add(new(square && ordered && layout.GetProperty("Portrait").GetBoolean() == stacked &&
+                Math.Abs(bottom - expected) <= 1.1 ? "passed" : "failed", "beta2-spacing",
                 centered ? "Landscape cover composition balances vertical insets" : "Visible action bottom inset matches the content left inset",
                 new { width, height, lyrics, bottom, expected, layout }));
         }

@@ -7,21 +7,21 @@
       "The Island follows your update channel. The website also shows a short summary for each release.",
       "Fixed lyrics falling behind or jumping back during Apple Music playback.",
       "Clipboard history now quietly retries brief clipboard locks.",
-      "The music window adapts its artwork and controls as you resize it, with fullscreen support."
+      "The music window adapts to resizing and fullscreen. Its background flows faster and responds more strongly to the music."
     ],
     "zh-CN": [
       "在「关于」点击Logo，即可在灵动岛分批查看更新记录。",
       "灵动岛按更新通道显示版本，官网也可查看每版要点。",
       "修复 Apple Music 播放时歌词延迟、恢复播放时偶尔跳回上一句的问题。",
       "剪贴板短暂被占用时，自动重试并补录。",
-      "音乐视窗随窗口大小调整封面和控件布局，支持全屏显示。"
+      "音乐视窗支持自适应布局和全屏，背景流动更快，随音乐起伏更明显。"
     ],
     "zh-TW": [
       "在「關於」點選 Logo，即可在動態島分批檢視更新記錄。",
       "動態島依更新頻道顯示版本，官網也可檢視各版重點。",
       "修正 Apple Music 播放時歌詞延遲、繼續播放時偶爾跳回上一句的問題。",
       "剪貼簿暫時被占用時，自動重試並補錄。",
-      "音樂視窗隨視窗大小調整封面和控制項配置，支援全螢幕顯示。"
+      "音樂視窗支援自適應配置和全螢幕，背景流動更快，隨音樂起伏更明顯。"
     ]
   },
   {

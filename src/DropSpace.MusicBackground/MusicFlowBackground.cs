@@ -16,10 +16,11 @@ namespace DropSpace.App.Controls;
 /// </summary>
 public sealed class MusicFlowBackground : Grid, IDisposable
 {
+    private const int PausedFrameRate = 15;
     private const int MaximumEncodedArtworkBytes = 16 * 1024 * 1024;
     private readonly SwapChainPanel _panel = new();
     private readonly AppleMusicIosBackgroundSettings _settings = new()
-    { FrameRateLimit = 8, RenderScale = 0.75, RotationScale = 0.65, BassPulseScale = 0.6, BlurScale = 1.15 };
+    { FrameRateLimit = PausedFrameRate, RenderScale = 0.75, RotationScale = 0.65, BassPulseScale = 1.2, BlurScale = 1.15 };
     private AppleMusicIosRenderer? _renderer;
     private SwapChainPanelPresenter? _presenter;
     private CancellationTokenSource? _renderLifetime;
@@ -61,7 +62,7 @@ public sealed class MusicFlowBackground : Grid, IDisposable
         VerifyAccess();
         if ((_playing, _reducedMotion, _visible) == (playing, reducedMotion, visible)) return;
         _playing = playing; _reducedMotion = reducedMotion; _visible = visible;
-        _settings.FrameRateLimit = reducedMotion ? 0 : playing ? 30 : 8;
+        _settings.FrameRateLimit = reducedMotion ? 0 : playing ? 60 : PausedFrameRate;
         if (_renderer is { } renderer)
         {
             renderer.SetReducedMotion(reducedMotion);

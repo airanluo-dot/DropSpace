@@ -485,7 +485,7 @@ namespace Lyricify.Backgrounds.AppleMusicInspired.Ios.WinUI
             double time = _animationClock.Elapsed.TotalSeconds;
             double motionElapsed = Math.Clamp(time - _lastMotionTime, 0, 0.15);
             _lastMotionTime = time;
-            if (!_reducedMotion) _motionTime += motionElapsed * ((_isPlayingProvider?.Invoke() ?? false) ? 1d : 0.18d);
+            if (!_reducedMotion) _motionTime += motionElapsed * ((_isPlayingProvider?.Invoke() ?? false) ? 1.8d : 0.30d);
             float transitionMix = GetTransitionMix(time);
             float lyricsModeMix = GetLyricsModeMix(time);
             float viewAspectRatio = _outputSurface.Width / (float)_outputSurface.Height;

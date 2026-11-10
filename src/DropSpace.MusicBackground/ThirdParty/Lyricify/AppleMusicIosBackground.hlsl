@@ -86,13 +86,6 @@ float RotationTimeScale(uint instanceId)
     return 120.0;
 }
 
-// Scale the material around the view origin so every artwork layer expands
-// from the same anchor.
-float ImageScale()
-{
-    return ImageScales.x;
-}
-
 RotationOutput RotationVertex(QuadInput input, uint instanceId : SV_InstanceID)
 {
     const float twoPi = 6.2831853071795864769;
@@ -114,7 +107,7 @@ RotationOutput RotationVertex(QuadInput input, uint instanceId : SV_InstanceID)
             RotationTimeScale(0);
         position = RotateCounterClockwise(position, parentAngle);
     }
-    position *= ImageScale();
+    position *= ImageScales[instanceId];
 
     RotationOutput output;
     output.Position = float4(position, 0.0, 1.0);
@@ -174,7 +167,7 @@ QuadOutput ArtworkFillVertex(QuadInput input)
     QuadOutput output;
     output.Position = input.Position;
     output.TextureCoordinate =
-        (input.TextureCoordinate - 0.5) / ViewScale + 0.5;
+        (input.TextureCoordinate - 0.5) / (ViewScale * ImageScales.w) + 0.5;
     return output;
 }
 
