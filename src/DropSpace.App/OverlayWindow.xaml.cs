@@ -47,9 +47,9 @@ public sealed partial class OverlayWindow : Window
         ExpandedNaturalWidth, ExpandedNaturalHeight,
         _historyVisible ? 1 : _mediaViewModel.Settings.IslandAppearance.ExpandedScale);
     private double HostContentScale => Math.Max(1, Math.Max(ExpandedScale, _mediaViewModel.Settings.IslandAppearance.CompactScale));
-    private double _compactSurfaceWidth;
+    private IslandGeometry _compactSurface = IslandGeometry.EmptyCompact;
     // Once history is opened, keep room for its spring to reverse during dismissal.
-    private double HostWidth => Math.Max(Math.Max(800 * HostContentScale, _reserveHistorySize ? HistoryWidth + 40 : 0), _compactSurfaceWidth + 40);
+    private double HostWidth => Math.Max(Math.Max(800 * HostContentScale, _reserveHistorySize ? HistoryWidth + 40 : 0), _compactSurface.Width + 40);
     private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
     private double HostHeight => OverlayPlacementPolicy.DynamicIslandTopGapDips + Math.Max(620 * HostContentScale, _reserveHistorySize ? HistoryHeight + 24 : 0);
     private readonly OverlayViewModel _viewModel;
@@ -639,18 +639,18 @@ public sealed partial class OverlayWindow : Window
         (string Id, DropSpace.Core.Dlc.ModuleManifest Manifest, DropSpace.Core.Dlc.ModuleIslandContent Content)? moduleIdle =
             variant == IslandPresentationVariant.Idle && !mediaCompact && !activityCompact &&
             _mediaViewModel.Settings.IslandAppearance.Resident ? _modules?.IslandContents.FirstOrDefault() : null;
-        ModuleCompactText.Visibility = moduleIdle is { Manifest: not null } ? Visibility.Visible : Visibility.Collapsed;
-        if (moduleIdle is { Manifest: not null } module)
-        {
-            ModuleCompactText.Text = DropSpace.Core.Dlc.ModuleContract.Text(module.Manifest, module.Content.Compact, _strings.Culture.Name);
-            AutomationProperties.SetName(ModuleCompactText, ModuleCompactText.Text);
-        }
-        else ModuleCompactText.Text = string.Empty;
+        var moduleText = moduleIdle is { Manifest: not null } module
+            ? DropSpace.Core.Dlc.ModuleContract.Text(module.Manifest, module.Content.Compact, _strings.Culture.Name)
+            : string.Empty;
+        var hasModuleText = !string.IsNullOrWhiteSpace(moduleText);
+        ModuleCompactText.Text = moduleText;
+        ModuleCompactText.Visibility = hasModuleText ? Visibility.Visible : Visibility.Collapsed;
+        AutomationProperties.SetName(ModuleCompactText, moduleText);
         FileCompactContent.Visibility = variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? Visibility.Visible : Visibility.Collapsed;
         EmptyWakeLogo.Visibility = (variant is IslandPresentationVariant.EmptyWake or IslandPresentationVariant.Idle) &&
             _mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle
             ? Visibility.Visible : Visibility.Collapsed;
-        EmptyWakeLogo.HorizontalAlignment = moduleIdle is { Manifest: not null } ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        EmptyWakeLogo.HorizontalAlignment = hasModuleText ? HorizontalAlignment.Left : HorizontalAlignment.Center;
         ModuleCompactText.Margin = new Thickness(EmptyWakeLogo.Visibility == Visibility.Visible ? 32 : 0, 0, 0, 0);
         MusicCompact.SetAvailableWidth(_monitor.EffectiveWorkWidth / _monitor.Scale /
             _mediaViewModel.Settings.IslandAppearance.CompactScale - 36);
@@ -665,21 +665,11 @@ public sealed partial class OverlayWindow : Window
         }
         if (isActiveWindow && activationEnabled && snapshot.State == OverlayState.Expanded && !_historyVisible && page == IslandPage.Music)
             MusicExpanded.RefreshForPresentation();
-        var naturalHeight = mediaCompact ? MusicCompact.IdealIslandHeight : activityCompact ? 80 :
-            variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? 64 : 40;
-        var blankCapsule = (variant is IslandPresentationVariant.Idle or IslandPresentationVariant.EmptyWake) &&
-            EmptyWakeLogo.Visibility == Visibility.Collapsed && ModuleCompactText.Visibility == Visibility.Collapsed;
-        var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 : variant switch
-        {
-            IslandPresentationVariant.SingleFile => 340,
-            IslandPresentationVariant.MultipleFiles => 200,
-            _ when blankCapsule => naturalHeight * IslandGeometry.EmptyCompactAspectRatio,
-            IslandPresentationVariant.EmptyWake => 88,
-            _ => 180,
-        };
+        var (naturalWidth, naturalHeight, naturalRadius) = IslandGeometry.ForCompact(variant, hasModuleText,
+            MusicCompact.IdealIslandWidth, MusicCompact.IdealIslandHeight);
         var compactScale = OverlayPlacementPolicy.FitContentScale(_monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight,
             _monitor.Scale, naturalWidth, naturalHeight, _mediaViewModel.Settings.IslandAppearance.CompactScale);
-        _compactSurfaceWidth = naturalWidth * compactScale;
+        _compactSurface = new(naturalWidth * compactScale, naturalHeight * compactScale, naturalRadius * compactScale);
         CompactPanel.Padding = new Thickness(0);
         // Music measures fractional glyph advances. Rounding each nested gutter,
         // spectrum bar and viewport separately steals pixels from a fitting line.
@@ -688,7 +678,7 @@ public sealed partial class OverlayWindow : Window
         CompactContentScaleHost.UseLayoutRounding = !mediaCompact;
         CompactContentRoot.Width = naturalWidth; CompactContentRoot.Height = naturalHeight;
         CompactContentRoot.Padding = new Thickness(mediaCompact ? 14 : 18, 0, mediaCompact ? 14 : 18, 0);
-        CompactContentScaleHost.Width = naturalWidth * compactScale; CompactContentScaleHost.Height = naturalHeight * compactScale;
+        CompactContentScaleHost.Width = _compactSurface.Width; CompactContentScaleHost.Height = _compactSurface.Height;
         MusicCompact.Width = MusicCompact.IdealIslandWidth - 28;
         MusicCompact.Height = MusicCompact.IdealIslandHeight;
         MusicCompact.HorizontalAlignment = HorizontalAlignment.Center;
@@ -769,9 +759,6 @@ public sealed partial class OverlayWindow : Window
 
         var topOffset = _resolvedPlacement.SurfaceTopOffsetDips;
         var target = CreateMotionTarget(snapshot.State, topOffset);
-        if (snapshot.State == OverlayState.Compact)
-            target = Create(naturalWidth * compactScale, naturalHeight * compactScale, topOffset,
-                Math.Min(naturalWidth, naturalHeight) * compactScale / 2, 1, 0, 0);
 
         // Hidden has TopOffset=0 because it is independent of monitor placement.
         // Anchor it while the body is still transparent; otherwise opacity can lead
@@ -1306,7 +1293,7 @@ public sealed partial class OverlayWindow : Window
                 _monitor.EffectiveWorkHeight,
                 _monitor.Scale,
                 wakeMode,
-                HostContentScale, HostWidth, Math.Max(ExpandedNaturalWidth * ExpandedScale, _compactSurfaceWidth), ExpandedNaturalHeight * ExpandedScale),
+                HostContentScale, HostWidth, Math.Max(ExpandedNaturalWidth * ExpandedScale, _compactSurface.Width), ExpandedNaturalHeight * ExpandedScale),
             placement);
 
     internal void RefreshAnimationRefreshRate()
@@ -1838,7 +1825,7 @@ public sealed partial class OverlayWindow : Window
 
     private OverlayMotionValues CreateMotionTarget(OverlayState state, double topOffset)
     {
-        var geometry = DropSpace.Core.Island.IslandGeometry.ForFiles(state);
+        var geometry = state == OverlayState.Compact ? _compactSurface : IslandGeometry.ForFiles(state);
         if (state == OverlayState.Expanded)
             geometry = geometry with { Width = ExpandedNaturalWidth * ExpandedScale, Height = ExpandedNaturalHeight * ExpandedScale, Radius = geometry.Radius * ExpandedScale };
         return state switch
