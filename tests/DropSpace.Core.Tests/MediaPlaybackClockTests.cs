@@ -217,12 +217,17 @@ public sealed class MediaPlaybackClockTests
         Observe(35);
         Assert.AreEqual(37.2, clock.Position.TotalSeconds, 0.001);
         time.Advance(1);
-        Observe(37);
         Assert.AreEqual(38.2, clock.Position.TotalSeconds, 0.001);
 
         time.Advance(0.15);
         session = session with { PlaybackState = MediaPlaybackState.Paused };
-        Observe(37); // The state event still carries the last playing sample, re-stamped.
+        Observe(36); // The state event still carries the a late forward sample.
+        Assert.AreEqual(38.35, clock.Position.TotalSeconds, 0.001);
+        session = session with { PlaybackState = MediaPlaybackState.Playing };
+        Observe(37); // A quick resume can precede the final stop confirmation.
+        Assert.AreEqual(38.35, clock.Position.TotalSeconds, 0.001);
+        session = session with { PlaybackState = MediaPlaybackState.Paused };
+        Observe(37);
         Assert.AreEqual(38.35, clock.Position.TotalSeconds, 0.001);
         time.Advance(0.1);
         Observe(38); // The separate pause confirmation contains the correct integer second.
