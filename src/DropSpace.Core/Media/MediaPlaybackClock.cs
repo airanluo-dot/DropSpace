@@ -68,11 +68,12 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
                 session.Timeline.PlaybackRate == 1 && session.Timeline.Position.Ticks % TimeSpan.TicksPerSecond == 0;
             var sameNativeSecond = sameTrack && !IsEstimated && session.Timeline.Position == _session.Timeline.Position;
             position = staleStateTransition ? interpolated : nativeSeconds;
-            if (appleSeconds && sameTrack && _session.PlaybackState == MediaPlaybackState.Playing &&
-                session.PlaybackState == MediaPlaybackState.Paused &&
-                interpolated >= nativeSeconds && interpolated < nativeSeconds + 1)
+            if (appleSeconds && sameTrack && !IsEstimated && session.PlaybackState == MediaPlaybackState.Paused &&
+                ((sameNativeSecond && _session.PlaybackState == MediaPlaybackState.Playing) ||
+                 (interpolated >= nativeSeconds && interpolated < nativeSeconds + 1)))
             {
-                // A fresh pause reports the integer second containing the stop.
+                // Playback state and the final integer position may arrive separately.
+                // Freeze on the state event and keep that fraction when the stop is confirmed.
                 position = interpolated;
             }
             if (session.PlaybackState == MediaPlaybackState.Playing)
