@@ -76,7 +76,8 @@ public sealed partial class ReleaseHistoryView : UserControl
             var date = entry.GetProperty("date").GetString();
             _rows.Add(new ReleaseHistoryRow(tag, channel,
                 date is null ? null : _dateFormat!.Format(DateTime.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture)),
-                entry.GetProperty(_language).EnumerateArray().Select(line => line.GetString()!).ToArray()));
+                entry.GetProperty(_language).EnumerateArray()
+                    .Select((line, index) => new ReleaseHistoryNote(tag, index + 1, line.GetString()!)).ToArray()));
             _hasNext = AdvanceToNextRelease();
         }
         LoadMore.Visibility = _hasNext ? Visibility.Visible : Visibility.Collapsed;
@@ -106,7 +107,13 @@ public sealed partial class ReleaseHistoryView : UserControl
     }
 }
 
-public sealed record ReleaseHistoryRow(string Version, string Channel, string? Date, string[] Notes)
+public sealed record ReleaseHistoryNote(string Version, int Number, string Text)
+{
+    public string ColorKey => $"{Version}/{Number}";
+    public string AccessibleText => $"{Number}: {Text}";
+}
+
+public sealed record ReleaseHistoryRow(string Version, string Channel, string? Date, ReleaseHistoryNote[] Notes)
 {
     public Visibility DateVisibility => Date is null ? Visibility.Collapsed : Visibility.Visible;
 }

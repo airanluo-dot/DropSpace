@@ -84,7 +84,7 @@
       item.dataset.summaryEn ??= item.textContent;
       item.textContent = language === 'zh-CN' ? item.dataset.summaryCn :
         language === 'zh-TW' ? item.dataset.summaryTw : item.dataset.summaryEn;
-      item.parentElement.lang = language.startsWith('zh-') ? language : 'en';
+      item.closest('[data-i18n-exempt="release-body"]').lang = language.startsWith('zh-') ? language : 'en';
     }
     for (const selector of document.querySelectorAll('[data-language-selector]')) {
       if (!selector.options.length) for (const item of catalog.languages) {

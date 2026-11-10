@@ -108,9 +108,13 @@ function replaceTokens(value) {
   return result;
 }
 
-function summaryItems(entry, element) {
-  return entry.en.map((line, index) =>
-    `<${element} data-summary-cn="${escapeHtml(entry["zh-CN"][index])}" data-summary-tw="${escapeHtml(entry["zh-TW"][index])}">${escapeHtml(line)}</${element}>`).join("");
+function summaryItems(entry, numbered = false) {
+  return entry.en.map((line, index) => {
+    const note = `<span data-summary-cn="${escapeHtml(entry["zh-CN"][index])}" data-summary-tw="${escapeHtml(entry["zh-TW"][index])}">${escapeHtml(line)}</span>`;
+    if (!numbered) return note;
+    const number = index + 1;
+    return `<li><span aria-hidden="true"><span class="brand-ink" data-ordinal="${number}">${number}</span>:</span> ${note}</li>`;
+  }).join("");
 }
 
 function releaseEntries(entries) {
@@ -120,8 +124,8 @@ function releaseEntries(entries) {
     const channelLabel = entry.tag.includes("-preview.") ? "<span>Preview</span>" :
       `<span data-i18n="${channel}">${text(channel)}</span>`;
     return `<article class="release-entry" data-release-tag="${escapeHtml(entry.tag)}">
-      <div class="release-meta"><h2>${tag}</h2>${channelLabel}<time datetime="${entry.date}" data-localized-date="${entry.date}">${formatDate(entry.date, "en-US")}</time></div>
-      <ul class="release-body" lang="en" data-i18n-exempt="release-body">${summaryItems(entry, "li")}</ul>
+      <div class="release-meta"><h2 class="brand-ink">${tag}</h2>${channelLabel}<time datetime="${entry.date}" data-localized-date="${entry.date}">${formatDate(entry.date, "en-US")}</time></div>
+      <ol class="release-body" role="list" lang="en" data-i18n-exempt="release-body">${summaryItems(entry, true)}</ol>
     </article>`;
   }).join("\n");
 }
@@ -197,7 +201,7 @@ async function render(templatePath, kind) {
     .replace('{{LATEST_CHANGE_TITLE}}',escapeHtml(change.title))
     .replace('{{LATEST_CHANGE_DATE}}',escapeHtml(formatDate(change.publishedAt,'en-US')))
     .replace('{{LATEST_CHANGE_URL}}',escapeHtml(change.htmlUrl))
-    .replace('{{LATEST_CHANGE_HIGHLIGHTS}}',summaryItems(change.highlights, 'span'));
+    .replace('{{LATEST_CHANGE_HIGHLIGHTS}}',summaryItems(change.highlights));
   const {document} = new JSDOM(template).window;
   const macPageURL = basePath + 'macos/' + (staticShowcase ? 'index.html' : '');
   if (kind === 'home') {
@@ -241,10 +245,10 @@ async function render(templatePath, kind) {
       else if (link.hasAttribute('data-release-url') || link.href.includes('/changelog/')) link.href = 'https://github.com/airanluo-dot/DropSpace/releases';
     }
   }
-  document.querySelectorAll(".feature-rail b, .release-title, .release-meta > *").forEach(node => node.classList.add("brand-ink"));
+  document.querySelectorAll(".feature-rail b, .release-title").forEach(node => node.classList.add("brand-ink"));
   document.querySelectorAll(".brand-ink").forEach((node, index) => {
     const release = node.closest("[data-release-tag]")?.dataset.releaseTag;
-    const identity = release ? release + node.tagName : kind + index;
+    const identity = release ? release + node.tagName + (node.dataset.ordinal ?? "") : kind + index;
     node.dataset.ink = String(createHash("sha256").update(identity).digest().readUInt32LE(0) % gradients.length);
   });
   applyMetadata(document, kind);

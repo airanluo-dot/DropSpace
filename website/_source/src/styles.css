@@ -410,7 +410,9 @@ html:lang(zh) h1,html:lang(zh) h2,html:lang(ja) h1,html:lang(ja) h2,html:lang(ko
   color: transparent;
 }
 .release-meta h2 { margin: 0; font-size: clamp(1.3rem, 2.1vw, 1.75rem); overflow-wrap: anywhere; }
-ul.release-body { margin: 0; padding-inline-start: 1.25em; align-self: start; }
+ol.release-body { margin: 0; padding: 0; align-self: start; list-style: none; }
+ol.release-body > li { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .45em; }
+.release-body [data-ordinal] { font-variant-numeric: tabular-nums; font-weight: 600; }
 .release-body li:first-child { margin-top: 0; }
 @media (forced-colors: active) {
   .brand-ink, .release-meta .brand-ink { background: none; color: CanvasText; }

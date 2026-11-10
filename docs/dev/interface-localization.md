@@ -80,8 +80,10 @@ reads “更新内容” in Simplified Chinese. List the current platform only. 
 history, including Stable and Preview. Stable shows only Stable. Opening the Island or changing
 channel starts with at most five entries. A text button after the last visible entry loads the
 next five on click and disappears at the end. Keep the scroll position when appending.
-Use the shared static gradient text style for each version, channel, date and load-more label.
-Stack metadata above the bullets on narrow screens, show each version once and keep the rows
+In the Island and website archives, number each version’s notes from 1. Use the shared static
+gradient on the version number and on the digits in each note marker. Render the colon in the
+body text color, and use regular text colors for the channel, date and load-more label.
+Stack metadata above the notes on narrow screens, show each version once and keep the rows
 free of buttons. The close control and Escape dismiss the archive.
 
 The native app embeds the file and the website renders dated entries at build time. The recent

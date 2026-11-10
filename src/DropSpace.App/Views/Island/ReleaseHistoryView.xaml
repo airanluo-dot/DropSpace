@@ -29,9 +29,9 @@
                     <TextBlock x:Name="VersionLabel" services:BrandText.Key="{Binding Version}" Style="{StaticResource BrandTextStyle}"
                                Text="{Binding Version}" FontSize="21" FontWeight="SemiBold" HorizontalAlignment="Left"
                                AutomationProperties.HeadingLevel="Level2" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="ChannelLabel" services:BrandText.Key="{Binding Version}" Style="{StaticResource BrandTextStyle}"
+                    <TextBlock x:Name="ChannelLabel" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}"
                                Text="{Binding Channel}" HorizontalAlignment="Left"/>
-                    <TextBlock x:Name="DateLabel" services:BrandText.Key="{Binding Version}" Style="{StaticResource BrandTextStyle}"
+                    <TextBlock x:Name="DateLabel" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}"
                                Text="{Binding Date}" HorizontalAlignment="Left" Visibility="{Binding DateVisibility}"/>
                   </StackPanel>
                   <ItemsControl Grid.Column="1" ItemsSource="{Binding Notes}" HorizontalContentAlignment="Stretch">
@@ -39,8 +39,15 @@
                       <DataTemplate>
                         <Grid Margin="0,2,0,6" ColumnSpacing="8">
                           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                          <TextBlock Text="•" Foreground="{ThemeResource DropSpaceOverlayForegroundSecondaryBrush}" AutomationProperties.AccessibilityView="Raw"/>
-                          <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" FontSize="15"
+                          <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                            <TextBlock x:Name="NoteNumber" Text="{Binding Number}" FontSize="15" FontWeight="SemiBold"
+                                       Style="{StaticResource BrandTextStyle}" services:BrandText.Key="{Binding ColorKey}"
+                                       AutomationProperties.AccessibilityView="Raw"/>
+                            <TextBlock Text=":" FontSize="15" Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}"
+                                       AutomationProperties.AccessibilityView="Raw"/>
+                          </StackPanel>
+                          <TextBlock Grid.Column="1" Text="{Binding Text}" AutomationProperties.Name="{Binding AccessibleText}"
+                                     TextWrapping="Wrap" FontSize="15"
                                      Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}"/>
                         </Grid>
                       </DataTemplate>
@@ -53,7 +60,7 @@
         </ItemsRepeater>
         <Button x:Name="LoadMore" Grid.Row="1" HorizontalAlignment="Center" Margin="0,4,0,12"
                 Style="{StaticResource SubtleButtonStyle}" Click="OnLoadMore" AutomationProperties.AutomationId="LoadMoreReleaseHistory">
-          <TextBlock x:Name="LoadMoreLabel" Style="{StaticResource BrandTextStyle}" FontWeight="SemiBold"/>
+          <TextBlock x:Name="LoadMoreLabel" Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" FontWeight="SemiBold"/>
         </Button>
       </Grid>
     </ScrollViewer>

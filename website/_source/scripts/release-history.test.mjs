@@ -16,8 +16,10 @@ for (const page of ["changelog", "macos"]) {
       assert.deepEqual(entries.map(node => node.dataset.releaseTag), published.map(entry => entry.tag));
       assert.equal(new Set(history.map(entry => entry.tag)).size, history.length);
       assert.equal(document.querySelectorAll("[data-release-tag] a, [data-release-tag] button").length, 0);
-      const inks = [...document.querySelectorAll(".release-meta > *")].map(node => node.dataset.ink);
-      assert.equal(inks.length, 3 * published.length);
+      const painted = [...document.querySelectorAll(".release-entry .brand-ink")];
+      assert.ok(painted.every(node => node.matches(".release-meta h2, [data-ordinal]")));
+      const inks = painted.map(node => node.dataset.ink);
+      assert.equal(inks.length, published.reduce((total, entry) => total + 1 + entry.en.length, 0));
       assert.ok(inks.every(value => /^\d+$/.test(value)));
       assert.ok(new Set(inks).size > 1);
       const runtime = document.querySelector('script[src*="localization-runtime."]').src;
@@ -29,8 +31,10 @@ for (const page of ["changelog", "macos"]) {
         selector.dispatchEvent(new window.Event("change"));
         const copy = language.startsWith("zh-") ? language : "en";
         for (const [index, entry] of entries.entries()) {
-          assert.deepEqual([...entry.querySelectorAll("li")].map(item => item.textContent), published[index][copy]);
-          assert.equal(entry.querySelector("ul").lang, copy);
+          const notes = [...entry.querySelectorAll("ol > li")];
+          assert.deepEqual(notes.map(item => item.textContent), published[index][copy].map((line, i) => `${i + 1}: ${line}`));
+          assert.deepEqual(notes.map(item => item.querySelector("[data-ordinal]").textContent), notes.map((_, i) => String(i + 1)));
+          assert.equal(entry.querySelector("ol").lang, copy);
         }
       }
     } finally {
