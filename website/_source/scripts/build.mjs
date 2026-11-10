@@ -113,7 +113,7 @@ function summaryItems(entry, numbered = false) {
     const note = `<span data-summary-cn="${escapeHtml(entry["zh-CN"][index])}" data-summary-tw="${escapeHtml(entry["zh-TW"][index])}">${escapeHtml(line)}</span>`;
     if (!numbered) return note;
     const number = index + 1;
-    return `<li><span aria-hidden="true"><span class="brand-ink" data-ordinal="${number}">${number}</span>:</span> ${note}</li>`;
+    return `<li><span class="brand-ink" aria-hidden="true" data-ordinal="${number}">${number}:</span> ${note}</li>`;
   }).join("");
 }
 

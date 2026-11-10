@@ -81,8 +81,9 @@ history, including Stable and Preview. Stable shows only Stable. Opening the Isl
 channel starts with at most five entries. A text button after the last visible entry loads the
 next five on click and disappears at the end. Keep the scroll position when appending.
 In the Island and website archives, number each version’s notes from 1. Use the shared static
-gradient on the version number and on the digits in each note marker. Render the colon in the
-body text color, and use regular text colors for the channel, date and load-more label.
+gradient on the version number and across each entire note marker (`1:`, `2:`, …), including
+the colon. The Island’s load-more label also uses the gradient. Use regular text colors for
+the channel, date and note body.
 Stack metadata above the notes on narrow screens, show each version once and keep the rows
 free of buttons. The close control and Escape dismiss the archive.
 

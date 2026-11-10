@@ -110,7 +110,8 @@ public sealed partial class ReleaseHistoryView : UserControl
 public sealed record ReleaseHistoryNote(string Version, int Number, string Text)
 {
     public string ColorKey => $"{Version}/{Number}";
-    public string AccessibleText => $"{Number}: {Text}";
+    public string Marker => $"{Number}:";
+    public string AccessibleText => $"{Marker} {Text}";
 }
 
 public sealed record ReleaseHistoryRow(string Version, string Channel, string? Date, ReleaseHistoryNote[] Notes)

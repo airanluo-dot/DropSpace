@@ -33,7 +33,7 @@ for (const page of ["changelog", "macos"]) {
         for (const [index, entry] of entries.entries()) {
           const notes = [...entry.querySelectorAll("ol > li")];
           assert.deepEqual(notes.map(item => item.textContent), published[index][copy].map((line, i) => `${i + 1}: ${line}`));
-          assert.deepEqual(notes.map(item => item.querySelector("[data-ordinal]").textContent), notes.map((_, i) => String(i + 1)));
+          assert.deepEqual(notes.map(item => item.querySelector("[data-ordinal]").textContent), notes.map((_, i) => `${i + 1}:`));
           assert.equal(entry.querySelector("ol").lang, copy);
         }
       }

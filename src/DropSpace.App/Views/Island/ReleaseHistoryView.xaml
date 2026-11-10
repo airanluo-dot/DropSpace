@@ -39,13 +39,9 @@
                       <DataTemplate>
                         <Grid Margin="0,2,0,6" ColumnSpacing="8">
                           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                          <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
-                            <TextBlock x:Name="NoteNumber" Text="{Binding Number}" FontSize="15" FontWeight="SemiBold"
-                                       Style="{StaticResource BrandTextStyle}" services:BrandText.Key="{Binding ColorKey}"
-                                       AutomationProperties.AccessibilityView="Raw"/>
-                            <TextBlock Text=":" FontSize="15" Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}"
-                                       AutomationProperties.AccessibilityView="Raw"/>
-                          </StackPanel>
+                          <TextBlock x:Name="NoteNumber" Text="{Binding Marker}" VerticalAlignment="Top" FontSize="15" FontWeight="SemiBold"
+                                     Style="{StaticResource BrandTextStyle}" services:BrandText.Key="{Binding ColorKey}"
+                                     AutomationProperties.AccessibilityView="Raw"/>
                           <TextBlock Grid.Column="1" Text="{Binding Text}" AutomationProperties.Name="{Binding AccessibleText}"
                                      TextWrapping="Wrap" FontSize="15"
                                      Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}"/>
@@ -60,7 +56,7 @@
         </ItemsRepeater>
         <Button x:Name="LoadMore" Grid.Row="1" HorizontalAlignment="Center" Margin="0,4,0,12"
                 Style="{StaticResource SubtleButtonStyle}" Click="OnLoadMore" AutomationProperties.AutomationId="LoadMoreReleaseHistory">
-          <TextBlock x:Name="LoadMoreLabel" Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" FontWeight="SemiBold"/>
+          <TextBlock x:Name="LoadMoreLabel" Style="{StaticResource BrandTextStyle}" FontWeight="SemiBold"/>
         </Button>
       </Grid>
     </ScrollViewer>
