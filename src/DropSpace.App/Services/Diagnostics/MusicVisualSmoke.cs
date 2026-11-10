@@ -182,12 +182,26 @@ internal static class MusicVisualSmoke
     {
         var failures = new List<string>();
         var media = CreateFixture(strings, "normal");
+        media.Settings = media.Settings with
+        {
+            IslandActivity = media.Settings.IslandActivity with { ShowArtwork = true, ShowSpectrum = true },
+        };
+        media.Spectrum = new SpectrumFrame(AudioCaptureMode.ProcessLoopback, [0, .2, .4, .6, .8, 1], 1);
         var compact = new MediaCompactView { ViewModel = media };
         var root = CreateRoot(ElementTheme.Dark, 560, 180);
         root.Children.Add(compact);
         window.Content = root;
         window.Activate();
         await WaitForLayoutAsync(root);
+
+        var artwork = (Border)compact.FindName("ArtworkHost");
+        var meter = (StackPanel)compact.FindName("SpectrumBars");
+        var bars = meter.Children.Cast<Microsoft.UI.Xaml.Shapes.Rectangle>().ToArray();
+        var bounds = bars[^1].TransformToVisual(meter).TransformBounds(new Rect(0, 0, bars[^1].ActualWidth, bars[^1].ActualHeight));
+        if (meter.Visibility != Visibility.Visible || bars.Length != SpectrumAnalyzer.BandCount ||
+            Math.Abs(bounds.Right - artwork.ActualWidth) > 0.1 || Math.Abs(bounds.Height - artwork.ActualHeight) > 0.1 ||
+            Math.Abs(bars[0].ActualHeight - bars[0].ActualWidth) > 0.1)
+            failures.Add("The compact spectrum must span the artwork width, reach its height at peak and rest at a dot.");
 
         var observedRefreshNotifications = 0;
         void ObserveNotification(object? sender, PropertyChangedEventArgs args)
