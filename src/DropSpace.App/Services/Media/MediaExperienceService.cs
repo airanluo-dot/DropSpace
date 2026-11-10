@@ -499,10 +499,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
         var started = Stopwatch.GetTimestamp();
         try
         {
-            // Coalesce transient SMTC snapshots/rapid skips before sending irreversible
-            // public HTTP traffic. Stable tracks incur only this short admission delay.
-            if (!refresh)
-                await Task.Delay(admissionDelay, token).ConfigureAwait(false);
             if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
             var targetLanguage = LyricsTranslationTargetPolicy.ToLanguageTag(settings.LyricsTranslationTarget);
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
@@ -537,7 +533,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.LyricsStatus = LyricsQueryStatus.Found;
                             RenderFrame();
                         });
-                    }).ConfigureAwait(false)
+                    }, providerAdmissionDelay: admissionDelay).ConfigureAwait(false)
                 : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
             Interlocked.Exchange(ref previewClosed, 1);
             // Provider previews only display source lyrics. The awaited, bounded source
@@ -588,7 +584,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
             // A bounded provider search may finish without proving that no translation exists.
-            // Its incompleteness controls source caching, not the user-enabled AI fallback.
+            // A usable original can still enter the user's local translation policy.
             if (LyricsTranslationPolicy.CanOfferLocalFallback(result) && IsLyricsRequestCurrent(session, settings, generation, token))
             {
                 var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
