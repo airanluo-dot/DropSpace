@@ -140,7 +140,7 @@ public sealed class MusicPage : UserControl
         lyricsPanel.Children.Add(_lyricsStatus);
         lyricsPanel.Children.Add(_lyricsScroll);
         _body.Children.Add(CreateCard(lyricsPanel, new Thickness(16)));
-        _body.Children.Add(new AiLyricsSettingsCard(editor, experience.AiLyrics, strings, experience.ClearLyricsCacheAsync, dlc, openDlc));
+        _body.Children.Add(new AiLyricsSettingsCard(editor, experience.AiLyrics, strings, dlc, openDlc));
         var form = new SettingsForm(editor, strings); _body.Children.Add(form);
         form.AddHeading("MusicPlaybackSection");
         form.AddToggle("MusicEnabled", s => s.IslandActivity.EnableMediaActivity, (s,v) => s with { IslandActivity = s.IslandActivity with { EnableMediaActivity = v } });
@@ -185,24 +185,11 @@ public sealed class MusicPage : UserControl
         form.AddSlider("LyricsCacheSize", 0, 10, 1,
             s => s.Lyrics.CacheMaximumBytes / 1_000_000_000d,
             (s,v) => s with { Lyrics = s.Lyrics with { CacheMaximumBytes = (long)v * 1_000_000_000 } },
-            v => v == 0 ? strings.Get("LyricsCacheDisabled") : v.ToString("0.#########", strings.Culture) + " GB");
+            v => v == 0 ? strings.Get("LyricsCacheDisabled") : v.ToString("0.#########", strings.Culture) + " GB",
+            footer: CreateLyricsCacheActions());
         var folderButton = new Button { Content = strings.Get("ChooseFolder") };
         folderButton.Click += async (_, _) => await editor.PickLyricsFolderAsync(windowHandle);
         form.AddRow("LyricsFolder", folderButton); form.Rows.Children.Add(_folder);
-        var clear = new Button { Content = strings.Get("ClearLyricsCache") };
-        var cacheStatus = new TextBlock { TextWrapping = TextWrapping.Wrap };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetLiveSetting(cacheStatus, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
-        clear.Click += async (_, _) =>
-        {
-            clear.IsEnabled = false;
-            cacheStatus.Text = strings.Get("AiLyricsClearingCache");
-            try { await experience.ClearLyricsCacheAsync(); cacheStatus.Text = strings.Get("AiLyricsCacheCleared"); }
-            catch (OperationCanceledException) { cacheStatus.Text = strings.Get("LyricsCacheClearFailed"); }
-            catch (Exception error) when (error is not OutOfMemoryException) { cacheStatus.Text = strings.Get("LyricsCacheClearFailed"); }
-            finally { clear.IsEnabled = true; }
-        };
-        form.Rows.Children.Add(clear);
-        form.Rows.Children.Add(cacheStatus);
         form.AddHeading("MusicApplications");
         form.AddToggle("MusicAllApplications", s => !s.IslandActivity.UseMediaSourceAllowList && s.IslandActivity.AllowedMediaSourceAppIds.Length == 0,
             (s,v) => s with { IslandActivity = s.IslandActivity with { UseMediaSourceAllowList = !v, AllowedMediaSourceAppIds = v ? [] : sessions.AvailableSources.ToArray() } });
@@ -224,6 +211,45 @@ public sealed class MusicPage : UserControl
         Loaded += OnLoaded; Unloaded += OnUnloaded;
         RegisterPropertyChangedCallback(VisibilityProperty, OnVisibilityChanged);
     }
+    private StackPanel CreateLyricsCacheActions()
+    {
+        var clear = new Button { Content = _strings.Get("ClearLyricsCache"), HorizontalAlignment = HorizontalAlignment.Left };
+        AutomationProperties.SetAutomationId(clear, "AiLyricsClearCache");
+        var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+        AutomationProperties.SetLiveSetting(status, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        clear.Click += async (_, _) =>
+        {
+            if (_pageStop is null) return;
+            var token = _pageStop.Token;
+            clear.IsEnabled = false;
+            try
+            {
+                var dialog = new ContentDialog
+                {
+                    XamlRoot = XamlRoot,
+                    Title = _strings.Get("ClearLyricsCache"),
+                    Content = _strings.Get("AiLyricsClearCacheConfirm"),
+                    PrimaryButtonText = _strings.Get("AiLyricsClearCache"),
+                    CloseButtonText = _strings.Get("CommonCancel"),
+                    DefaultButton = ContentDialogButton.Close,
+                };
+                if (await ContentDialogLifetime.ShowAsync(dialog, token) != ContentDialogResult.Primary) return;
+                status.Text = _strings.Get("AiLyricsClearingCache");
+                status.Visibility = Visibility.Visible;
+                await _experience.ClearLyricsCacheAsync(token);
+                status.Text = _strings.Get("AiLyricsCacheCleared");
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { status.Visibility = Visibility.Collapsed; }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                status.Text = _strings.Get("LyricsCacheClearFailed");
+                status.Visibility = Visibility.Visible;
+            }
+            finally { clear.IsEnabled = true; }
+        };
+        return new StackPanel { Spacing = 4, Children = { clear, status } };
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
         if (_pageStop is not null) return;

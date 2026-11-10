@@ -81,7 +81,7 @@ public sealed class SettingsForm : UserControl
         return number;
     }
     public Slider AddSlider(string key, double minimum, double maximum, double step, Func<AppSettings, double> read,
-        Func<AppSettings, double, AppSettings> write, Func<double, string> format)
+        Func<AppSettings, double, AppSettings> write, Func<double, string> format, UIElement? footer = null)
     {
         var slider = new Slider { Minimum = minimum, Maximum = maximum, StepFrequency = step, SmallChange = step,
             LargeChange = step, HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -96,6 +96,7 @@ public sealed class SettingsForm : UserControl
         var body = new StackPanel { Spacing = 4, HorizontalAlignment = HorizontalAlignment.Stretch };
         body.Children.Add(new TextBlock { Text = _strings.Get(key), TextWrapping = TextWrapping.Wrap });
         body.Children.Add(panel);
+        if (footer is not null) body.Children.Add(footer);
         Rows.Children.Add(new Border { CornerRadius = new(8), Padding = new(14, 10, 14, 10),
             Style = (Style)Application.Current.Resources["DropSpaceCardStyle"], Child = body });
         uint? pointer = null;
