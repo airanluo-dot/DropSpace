@@ -22,7 +22,7 @@ internal sealed class LatestGlassCapture : IDisposable
     private bool _disposed;
     private readonly Action _frameAvailable;
     private double _notificationPeriod, _nextNotification;
-    private bool _notificationsEnabled;
+    private System.Threading.Timer? _tailTimer;
 
     internal LatestGlassCapture(IDirect3DDevice device, SizeInt32 size, Action frameAvailable)
     {
@@ -44,8 +44,7 @@ internal sealed class LatestGlassCapture : IDisposable
     {
         lock (_gate)
         {
-            _notificationsEnabled = rate > 0;
-            _notificationPeriod = rate > 0 ? Stopwatch.Frequency / rate : 0;
+            _notificationPeriod = Stopwatch.Frequency / rate;
             _nextNotification = 0;
         }
     }
@@ -60,30 +59,54 @@ internal sealed class LatestGlassCapture : IDisposable
             {
                 // Drain queued frames, then keep only the newest lease. Never enqueue
                 // one UI callback per frame: a busy UI must not build a stale backlog.
+                bool received = false;
                 while (sender.TryGetNextFrame() is { } frame)
                 {
+                    received = true;
                     var previous = _pending;
                     _pending = frame;
                     _receivedAt = Stopwatch.GetTimestamp();
                     previous?.Dispose();
                     _measurement?.Arrived(frame.SystemRelativeTime, _receivedAt, previous is not null);
                 }
-                if (_notificationsEnabled)
+                if (received && _pending is { } latest)
                 {
                     // Pace by the compositor timestamp, not callback-delivery jitter.
-                    var now = _pending is { } latest
-                        ? latest.SystemRelativeTime.TotalSeconds * Stopwatch.Frequency : Stopwatch.GetTimestamp();
+                    var now = latest.SystemRelativeTime.TotalSeconds * Stopwatch.Frequency;
                     // Phase-based pacing handles displays whose rate isn't divisible
                     // by the selected target. Missed deadlines never queue catch-up work.
                     var deadline = now + _notificationPeriod * .1;
                     notify = _notificationPeriod == 0 || _nextNotification == 0 || deadline >= _nextNotification;
                     if (notify && _notificationPeriod > 0) _nextNotification = _nextNotification == 0 ? now + _notificationPeriod
                         : _nextNotification + Math.Max(1, Math.Floor((deadline - _nextNotification) / _notificationPeriod) + 1) * _notificationPeriod;
+                    if (!notify)
+                    {
+                        // If the desktop stops changing here, no next frame will wake the UI.
+                        // Give the normal capture-driven deadline priority during continuous motion.
+                        _tailTimer ??= new System.Threading.Timer(NotifyQuietTail);
+                        _tailTimer.Change(TimeSpan.FromSeconds(_notificationPeriod / Stopwatch.Frequency), Timeout.InfiniteTimeSpan);
+                    }
                 }
             }
-            catch (Exception error) when (error is not OutOfMemoryException) { _failure = error; notify = _notificationsEnabled; }
+            catch (Exception error) when (error is not OutOfMemoryException) { _failure = error; notify = true; }
         }
         if (notify) _frameAvailable();
+    }
+
+    private void NotifyQuietTail(object? state)
+    {
+        lock (_gate)
+        {
+            if (_disposed || _pending is null) return;
+            // A prior callback can already be in flight when the timer is rearmed.
+            var remaining = _notificationPeriod - (Stopwatch.GetTimestamp() - _receivedAt);
+            if (remaining > 0)
+            {
+                _tailTimer!.Change(Math.Max(1, (int)Math.Ceiling(remaining * 1000 / Stopwatch.Frequency)), Timeout.Infinite);
+                return;
+            }
+        }
+        _frameAvailable();
     }
 
     // Transfers the live lease to the UI owner. The third buffer lets it retain
@@ -107,6 +130,7 @@ internal sealed class LatestGlassCapture : IDisposable
         {
             if (_disposed) return;
             _disposed = true;
+            _tailTimer?.Dispose();
             pending = _pending; _pending = null; _measurement = null;
         }
         // Do not close the pool under the callback lock: closing may wait for a

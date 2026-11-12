@@ -46,5 +46,8 @@ DropSpace modifications (2026-10-29):
   its original Ignore mode; the independently implemented island material requests
   premultiplied alpha for its existing rounded silhouette.
 
+On 2026-11-12 DropSpace exposed the native swap-chain address to its explicit island
+diagnostic so PresentMon events can be matched to the glass surface.
+
 The local `MusicFlowBackground.cs` control, its lifecycle adaptation, and the
 `LiquidGlass/` capture/renderer/shader are DropSpace code.
