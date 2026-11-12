@@ -4210,17 +4210,30 @@
     "ReleaseHistoryLoadMore": [
       "09cf7b1a85ad9f075225619e3a4428e507a100d0cfaddcef5dce586dda4393ad",
       "fd48518284c731027cf201d7862a843ae8449b386c0a31a49447779fde790c35"
+    ],
+    "LyricsUnsynced": [
+      "6b53540d90207c8c08c521f37058c5067b1407db021f325a28dfec3ca8e2e2a3",
+      "6858eba547f10204adc943931188360882d378acf3f00dc5902f4fad960d5604"
+    ],
+    "LyricsAmbiguous": [
+      "19e6d2f2513c671787b4e17569ad860d634f66495c1472f12cfd22cf833c67ee",
+      "45bf5b383fee835ce5a921b0689ef73a2f0858b7cf5d217c69b433ff8b7d13e2"
+    ],
+    "LyricsInstrumental": [
+      "1808df5bf642c1f7564f9d700a1f57224848acd47eac39459189526ff251cd4d",
+      "8585ac119ecf8465f79246b9031872fc663c94dd4befdee6a5f1f4fe64b24214"
     ]
   },
-  "reviewedBy": "Codex release history copy review",
-  "reviewedAt": "2026-11-10T14:39:25.772Z",
+  "reviewedBy": "Codex",
+  "reviewedAt": "2026-11-12T07:29:48.819Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "ReleaseHistoryTitle",
-      "ReleaseHistoryLoadMore"
+      "LyricsUnsynced",
+      "LyricsAmbiguous",
+      "LyricsInstrumental"
     ],
-    "reviewedBy": "Codex release history copy review",
-    "reviewedAt": "2026-11-10T14:39:25.772Z"
+    "reviewedBy": "Codex",
+    "reviewedAt": "2026-11-12T07:29:48.819Z"
   }
 }

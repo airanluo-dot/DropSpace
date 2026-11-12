@@ -5,16 +5,25 @@
     "en": [
       "Find lyrics for live recordings when the year is written differently, and for NetEase collaborations listed under alternate artist names.",
       "QQ Music keeps your saved login available when a check finds no songs or loses its connection.",
+      "Lyrics search recognizes catalog aliases and display suffixes, distinguishes recording versions, and can correct a match when the player supplies the track length.",
+      "Synchronized lyrics from enabled sources take priority over plain text for the same recording. Local lyric files can use a filename to fill in a missing tag.",
+      "LRC file offsets and overlapping vocals now follow their timestamps when highlighting lines and words.",
       "Lyrics and the progress bar stay in step when Windows players send stale timestamps or temporarily lose their timeline."
     ],
     "zh-CN": [
       "现场版年份的括号写法不同也能匹配歌词，网易云合作曲可按每位歌手的别名匹配。",
       "验证 QQ 音乐登录时，即使歌曲没有搜索结果或网络中断，仍可用已保存的登录搜索下一首。",
+      "歌词搜索能识别曲库别名和标题附注，区分不同录音版本；播放器补报时长后，也能纠正先前的匹配。",
+      "同一录音优先显示已启用来源里的同步歌词。本地歌词缺少标签时可用文件名补全。",
+      "修正 LRC 文件的时间偏移，主唱和和声重叠时按各自的时间高亮行和词。",
       "播放器沿用旧时间戳或暂时缺少进度时，歌词和进度条能继续跟随，减少跳行、提前到结尾和突然归零。"
     ],
     "zh-TW": [
       "現場版年份的括號寫法不同也能比對歌詞，網易雲合作曲可依每位歌手的別名比對。",
       "驗證 QQ 音樂登入時，即使歌曲沒有搜尋結果或網路中斷，仍可使用已儲存的登入資料搜尋下一首。",
+      "歌詞搜尋可辨識曲庫別名與標題附註，區分不同錄音版本；播放器補上歌曲長度後，也能修正先前的比對結果。",
+      "同一錄音優先顯示已啟用來源中的同步歌詞。本機歌詞缺少標籤時可從檔名補齊。",
+      "修正 LRC 檔案的時間偏移，主唱與和聲重疊時依各自的時間標示歌詞與字詞。",
       "播放器沿用舊時間戳記或暫時缺少進度時，歌詞和進度列能繼續跟隨，減少跳行、提早到結尾和突然歸零。"
     ]
   },

@@ -541,6 +541,9 @@
   <data name="LyricsLoading" xml:space="preserve"><value>正在載入歌詞...</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>找不到符合的歌詞</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>歌詞暫時無法獲取。選擇重新整理重試。</value></data>
+  <data name="LyricsUnsynced" xml:space="preserve"><value>純文字歌詞，無同步時間</value></data>
+  <data name="LyricsAmbiguous" xml:space="preserve"><value>找到多個錄音版本，需要更多曲目資訊才能確認。</value></data>
+  <data name="LyricsInstrumental" xml:space="preserve"><value>純音樂曲目</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>無法將此小工具拖放到此處。嘗試使用網格單元或使用位置控制。</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>刪除小工具</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>動態島</value></data>

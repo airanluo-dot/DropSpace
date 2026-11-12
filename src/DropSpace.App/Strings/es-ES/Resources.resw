@@ -541,6 +541,9 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Cargando letras…</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>No hay letras que coincidan</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>Las letras no están disponibles temporalmente. Seleccione Actualizar para intentarlo nuevamente.</value></data>
+  <data name="LyricsUnsynced" xml:space="preserve"><value>Letra sin marcas de tiempo</value></data>
+  <data name="LyricsAmbiguous" xml:space="preserve"><value>Coinciden varias grabaciones. Se necesitan más datos de la canción para identificar la versión.</value></data>
+  <data name="LyricsInstrumental" xml:space="preserve"><value>Pista instrumental</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>Este widget no se pudo colocar aquí. Pruebe con una celda de cuadrícula o use los controles de posición.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Quitar widget</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Isla dinámica</value></data>

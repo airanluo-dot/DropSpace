@@ -6,9 +6,9 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
+public sealed partial class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
 {
-    internal const int DataRevision = 1;
+    internal const int DataRevision = 2;
     public LyricsProviderKind Kind => LyricsProviderKind.Lrclib;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
         => await QueryAsync(query, cancellationToken, _ => { }).ConfigureAwait(false);
@@ -21,7 +21,16 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
         var attempted = new HashSet<string>(StringComparer.Ordinal);
         var remaining = LyricsCandidateRequests.MaximumCandidates;
         var requests = new LyricsCandidateRequests();
-        if (query.Duration > TimeSpan.Zero && query.ArtistCandidates.Count > 0 && !string.IsNullOrWhiteSpace(query.Album))
+        // A later search term may expose two incompatible originals for this release.
+        // Do not publish or cache the first one before its catalogue comparison ends.
+        var checkRelease = query.Duration > TimeSpan.Zero && query.ArtistCandidates.Count > 0 && !string.IsNullOrWhiteSpace(query.Album);
+        var held = new List<LyricsDocument>();
+        void Report(LyricsDocument document)
+        {
+            if (checkRelease) held.Add(document);
+            else reportCandidate(document);
+        }
+        if (checkRelease)
         {
             foreach (var artist in LyricsMatcher.SearchArtists(query).Take(2))
             {
@@ -63,19 +72,18 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                         {
                             // Preserve already verified evidence even if later
                             // catalogue requests fail or exhaust their budget.
-                            reportCandidate(exactDocument);
+                            Report(exactDocument);
                             if (original.Lines.Count == 0) original = exactDocument;
                         }
                     }
                     if (exactDocument.Lines.Count > 0 && attempted.Add(exactDocument.Match!.CandidateId!))
                     {
-                        reportCandidate(exactDocument);
+                        Report(exactDocument);
                         remaining--;
                         original = LyricsCandidateRules.Best([
                             LyricsCandidateRules.Describe("current", original, target),
                             LyricsCandidateRules.Describe("candidate", exactDocument, target),
                         ], query, Kind, null);
-                        if (remaining == 0) return original;
                     }
                 }
                 catch (HttpRequestException exception) when (exception.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest) { }
@@ -87,14 +95,21 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
             using var search = await http.GetAsync($"https://lrclib.net/api/search?q={Escape(terms)}", cancellationToken);
             if (search.RootElement.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Unsupported LRCLIB search response.");
             LyricsRequestTrace.Record("search-result", new { provider = "Lrclib", terms, count = search.RootElement.GetArrayLength() });
+            var corroborated = await CheckAlternateOriginalAsync(query, search.RootElement, cancellationToken).ConfigureAwait(false);
+            if (corroborated is not null)
+            {
+                if (corroborated.Lines.Count > 0) reportCandidate(corroborated);
+                return corroborated;
+            }
             var candidates = Array(search.RootElement)
                 .Where(item => !string.IsNullOrWhiteSpace(Text(item, "syncedLyrics")) || !string.IsNullOrWhiteSpace(Text(item, "plainLyrics")) ||
                     item.TryGetProperty("instrumental", out var flag) && flag.ValueKind == JsonValueKind.True)
                 .Select(item => new
                 { Item = item, Score = LyricsMatcher.CandidateScore(query, Text(item, "trackName"), Text(item, "artistName"), Text(item, "albumName"), Number(item, "duration")) })
-                .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")))
-                .OrderByDescending(candidate => candidate.Score);
-            foreach (var best in candidates)
+                .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")));
+            foreach (var best in LyricsCandidateRequests.OrderCatalogue(candidates, query, value =>
+                new(Text(value.Item, "trackName"), Text(value.Item, "artistName"), Text(value.Item, "albumName"),
+                    Number(value.Item, "duration"), value.Score)))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var bestId = Text(best.Item, "id");
@@ -114,7 +129,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                 LyricsRequestTrace.Record("provider-body", LyricsRequestTrace.Describe(document));
                 if (parsed.Lines.Count > 0)
                 {
-                    reportCandidate(document);
+                    Report(document);
                     original = LyricsCandidateRules.Best([
                         LyricsCandidateRules.Describe("current", original, target),
                         LyricsCandidateRules.Describe("candidate", document, target),
@@ -122,12 +137,13 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                 }
                 else if (document.BodyQuality == LyricsBodyQuality.ConfirmedInstrumental)
                 {
-                    reportCandidate(document);
+                    Report(document);
                     if (original.Lines.Count == 0) original = document;
                 }
             }
             if (!LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) break;
         }
+        foreach (var document in held) reportCandidate(document);
         if (LyricsCandidateRequests.NeedsMoreSearch(query, original, target)) requests.ThrowIfFailed();
         return original;
     }

@@ -111,7 +111,10 @@ internal static class KugouKrcParser
             }
             if (rows.Count > MaximumRows) throw new InvalidDataException("KRC row count exceeds limit.");
         }
-        var original = new LyricsDocument(rows, LyricsProviderKind.Kugou);
+        var original = new LyricsDocument(rows, LyricsProviderKind.Kugou)
+        {
+            TimingRevision = LyricsParser.CurrentTimingRevision, DeclaresSynchronizedTiming = true,
+        };
         // Broken optional translation metadata must not destroy valid original words.
         if (!string.IsNullOrWhiteSpace(language))
         {

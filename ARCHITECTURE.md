@@ -115,7 +115,7 @@ The media experience may retry when the same track gains duration but never bran
 name. `LyricsService` starts with the preferred source and may launch permitted supplemental
 lookups after a progressive original result. An optional backup has a 150 ms hedge before the
 enabled remaining-provider race; a shared short selection budget and provider concurrency bound
-the work. Source preference and target-language priority still decide among admitted results,
+the work. Recording evidence and usable synchronization take precedence over source and translation preferences,
 and the strategy is part of the cache key. Local
 mode never enters the online chain. Online documents (including provider translations) and local-AI
 translations share an app-owned persistent lyrics cache. Its identity includes track evidence,
@@ -124,9 +124,9 @@ provider strategy, target language, pinned model hash, source content, and trans
 Beta3 embeds a bounded factual artist/title alias table. It enriches at most three search terms
 without rewriting media metadata; cross-language title admission additionally requires the
 mapped complete artist identity, compatible recording variants and independent duration evidence.
-Providers examine at most six admitted candidates in a pool, publishing usable results
-progressively. Shared quality ordering compares valid text-aligned timing and duration evidence
-only after target satisfaction and source priority. Request-stage health temporarily skips
+Providers rank catalog metadata before fetching lyrics for at most six candidates in a pool.
+Usable results can appear progressively. The shared ranking compares independent recording
+evidence and usable synchronization before choosing among equally suitable sources. Request-stage health temporarily skips
 repeated transport failures; manual refresh does not bypass server rate limiting.
 
 The cache uses atomic replacement, generation-fenced clearing and access-time LRU eviction.

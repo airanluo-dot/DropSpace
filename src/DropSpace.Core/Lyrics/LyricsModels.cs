@@ -30,11 +30,13 @@ public enum LyricsQueryStatus
     Found,
     NotFound,
     Failed,
+    Ambiguous,
 }
 public sealed record LyricsQueryResult(LyricsDocument Document, LyricsQueryStatus Status,
     bool TranslationLookupIncomplete = false)
 {
     public LyricsCandidateSnapshot SelectionCandidates { get; init; } = LyricsCandidateSnapshot.Empty;
+    public IReadOnlyList<LyricsProviderKind> AmbiguitySources { get; init; } = [];
 }
 public sealed record LyricsMatchInfo(
     string Title,
@@ -56,6 +58,7 @@ public sealed record LyricsWord(string Text, TimeSpan Start, TimeSpan End);
 public sealed record LyricsProviderTranslation(string Text, string? Language, bool? LanguageIsExplicit);
 public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words)
 {
+    public bool IsBackground { get; init; }
     public LyricsProviderTranslation? OriginalProviderTranslation { get; init; }
     public string? SourceLanguage { get; init; }
     public LyricsTranslationOrigin TranslationOrigin { get; init; }
@@ -73,8 +76,14 @@ public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProvi
     // Session-only. Persistent source caches must re-enter the current model/rules.
     [System.Text.Json.Serialization.JsonIgnore]
     public LyricsWholeTrackAdmission? TranslationAdmission { get; init; }
+    public int TimingRevision { get; init; }
+    public bool? DeclaresSynchronizedTiming { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool HasSynchronizedTiming => DeclaresSynchronizedTiming ??
+        (Lines.Count > 1 || Lines.Count == 1 && (Lines[0].Start > TimeSpan.Zero || Lines[0].Words.Count > 0));
     // Provider parser revision, persisted so previously dropped translations can be refreshed once.
     public int ProviderDataRevision { get; init; }
+    public bool SourceSearchIncomplete { get; init; }
     public LyricsBodyQuality BodyQuality { get; init; } = Lines.Count == 0 ? LyricsBodyQuality.NoLyrics : LyricsBodyQuality.Usable;
     public static LyricsDocument Empty { get; } = new([], LyricsProviderKind.LocalLrc);
 
@@ -85,7 +94,7 @@ public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProvi
         // Plain-text providers are represented as one unbounded line because they carry no
         // timestamps. When the media session supplies a duration, cap that line to the current
         // track so it cannot remain visible forever after playback has ended.
-        if (query.Duration > TimeSpan.Zero && lines.Count == 1 &&
+        if (!HasSynchronizedTiming && query.Duration > TimeSpan.Zero && lines.Count == 1 &&
             lines[0].Start == TimeSpan.Zero && lines[0].End >= TimeSpan.FromHours(24))
         {
             var end = query.Duration;
@@ -126,29 +135,25 @@ public sealed class LyricsTimelineEngine
     private long _revision;
     public LyricsHighlightFrame GetFrame(LyricsDocument document, TimeSpan position, int delayMilliseconds)
     {
-        var effective = position.TotalMilliseconds + Math.Clamp(delayMilliseconds, -30_000, 30_000);
-        var lines = document.Lines;
-        var low = 0;
-        var high = lines.Count - 1;
-        var found = -1;
-        while (low <= high)
-        {
-            var mid = low + (high - low) / 2;
-            if (lines[mid].Start.TotalMilliseconds <= effective) { found = mid; low = mid + 1; }
-            else high = mid - 1;
-        }
-        if (found < 0) return new(null, -1, 0, ++_revision);
-        var line = lines[found];
-        if (line.End > line.Start && effective >= line.End.TotalMilliseconds) return new(null, -1, 0, ++_revision);
-        var wordIndex = -1;
-        double progress = 0;
+        var time = position + TimeSpan.FromMilliseconds(Math.Clamp(delayMilliseconds, -30_000, 30_000));
+        var cue = LyricsPlaybackTimeline.For(document.Lines).At(time);
+        if (cue.Active < 0) return new(null, -1, 0, ++_revision);
+        var line = document.Lines[cue.Active];
+        var activeWord = -1;
+        var previousWord = -1;
         for (var index = 0; index < line.Words.Count; index++)
         {
             var word = line.Words[index];
-            if (word.Start.TotalMilliseconds > effective) break;
-            wordIndex = index;
-            progress = Math.Clamp((effective - word.Start.TotalMilliseconds) / Math.Max(1, (word.End - word.Start).TotalMilliseconds), 0, 1);
+            // Word indices are display order. Older cached TTML can contain backing
+            // words appended after later lead words, and authored word intervals may overlap.
+            if (word.Start > time) continue;
+            if (previousWord < 0 || word.Start >= line.Words[previousWord].Start) previousWord = index;
+            if (time < word.End && (activeWord < 0 || word.Start >= line.Words[activeWord].Start)) activeWord = index;
         }
-        return new(line, wordIndex, progress, ++_revision);
+        var indexToHighlight = activeWord < 0 ? previousWord : activeWord;
+        if (indexToHighlight < 0) return new(line, -1, 0, ++_revision);
+        var highlighted = line.Words[indexToHighlight];
+        var progress = (time - highlighted.Start).TotalMilliseconds / Math.Max(1, (highlighted.End - highlighted.Start).TotalMilliseconds);
+        return new(line, indexToHighlight, Math.Clamp(progress, 0, 1), ++_revision);
     }
 }

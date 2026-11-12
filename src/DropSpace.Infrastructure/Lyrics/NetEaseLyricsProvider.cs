@@ -34,9 +34,10 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
                 $"https://music.163.com/api/search/get/web?s={Escape(terms)}&type=1&offset=0&total=true&limit=30",
                 cancellationToken, query.BypassProviderResponseCache, query.PreferredTranslationLanguage);
             ThrowIfRejected(search.RootElement);
-            foreach (var candidate in Candidates(search.RootElement, query, cancellationToken)
-                .Where(value => value.Score >= 4 && attempted.Add(value.Id))
-                .OrderByDescending(value => value.Score))
+            var eligible = Candidates(search.RootElement, query, cancellationToken)
+                .Where(value => value.Score >= 4 && attempted.Add(value.Id));
+            foreach (var candidate in LyricsCandidateRequests.OrderCatalogue(eligible, query, value =>
+                new(value.Title, value.Artist, value.Album, value.Duration, value.Score) { ArtistAliases = value.ArtistAliases }))
             {
                 if (remaining == 0) break;
                 remaining--;
@@ -145,13 +146,14 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             // Retain alias evidence, but never replace the recording's canonical title.
             // A translated alias alone cannot distinguish a re-recorded language version.
             var canonical = Text(song, "name");
-            var score = LyricsMatcher.CandidateScore(query, canonical, artist, album, duration, artistAliases);
+            var titleAliases = titles.Where(title => title != canonical).ToArray();
+            var score = LyricsMatcher.CandidateScore(query, canonical, artist, album, duration, artistAliases, titleAliases);
             if (!string.IsNullOrWhiteSpace(canonical))
             {
                 LyricsRequestTrace.Record("candidate", new { provider = "NetEase", id, title = canonical, aliases = titles,
                     artist, artistAliases, album, duration, score,
                     reason = score >= 4 ? "eligible" : "canonical-recording-not-confirmed" });
-                yield return new(id, canonical, artist, album, duration, score, artistAliases, titles.Where(t => t != canonical).ToArray());
+                yield return new(id, canonical, artist, album, duration, score, artistAliases, titleAliases);
             }
         }
     }
@@ -169,7 +171,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
                 var canonical = Text(item, "name");
                 var names = new[] { canonical }.Concat(new[] { "alias", "alia", "transNames", "tns" }
                     .SelectMany(property => StringArray(item, property))).Take(65);
-                return LyricsMatcher.FindCreditedArtistName(requested, names) ?? canonical;
+                return LyricsMatcher.FindCreditedArtistName(requested, names, artists.Length > 1) ?? canonical;
             }).ToArray();
             // Do not collapse two source artists onto the same requested name.
             return projection.Select(LyricsMatcher.Normalize).Distinct(StringComparer.Ordinal).Count() == projection.Length

@@ -16,6 +16,7 @@ public sealed class LyricsProviderRegistry
     }
     public ILyricsProvider Get(LyricsProviderKind kind) => _providers.TryGetValue(kind, out var provider)
         ? provider : throw new ArgumentOutOfRangeException(nameof(kind));
+    internal bool QqMusicSignedOut => _http is not null && (_http.QqSession?.State ?? QqMusicSessionState.SignedOut) == QqMusicSessionState.SignedOut;
     public void RetryTransientFailures(LyricsProviderKind kind) => _http?.RetryTransientFailures(kind);
     public void ClearResponseCaches()
     {

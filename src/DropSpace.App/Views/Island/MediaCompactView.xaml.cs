@@ -21,6 +21,8 @@ public sealed partial class MediaCompactView : UserControl
     private bool _presentationActive = true;
     internal long RefreshCount { get; private set; }
     private readonly TextBlock _measure = new() { FontSize = 13, TextWrapping = TextWrapping.NoWrap };
+    private LyricsLine? _wordRangeLine;
+    private (int Start, int End)[] _wordRanges = [];
     private double _textWidth;
     private double _secondaryTextWidth;
     private double _secondaryHeight;
@@ -155,6 +157,12 @@ public sealed partial class MediaCompactView : UserControl
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName == nameof(MediaViewModel.CurrentLyricIndex) && CanRender)
+        {
+            CancelRefresh();
+            Refresh();
+            return;
+        }
         if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion) or nameof(MediaViewModel.Position)) RequestRefresh();
     }
 
@@ -372,12 +380,18 @@ public sealed partial class MediaCompactView : UserControl
             highlight = 0;
         if (_view.Settings.Lyrics.Enabled && _view.Settings.Lyrics.WordSyncedHighlighting && frame.Line is { Words.Count: > 0 } line && _view.Settings.IslandActivity.ShowLyricsInCompact)
         {
-            highlight = 0;
-            if (frame.WordIndex >= 0 && frame.WordIndex < line.Words.Count)
+            if (!ReferenceEquals(_wordRangeLine, line))
             {
-            var before = LyricsDisplayPolicy.CompactText(string.Concat(line.Words.Take(frame.WordIndex).Select(word => word.Text)));
-            var beforeWidth = Measure(before);
-            highlight = beforeWidth + (Measure(LyricsDisplayPolicy.CompactText(before + line.Words[frame.WordIndex].Text)) - beforeWidth) * frame.WordProgress;
+                _wordRanges = LyricsDisplayPolicy.WordTextRanges(line);
+                _wordRangeLine = line;
+            }
+            if (frame.WordIndex < 0) highlight = 0;
+            else if (frame.WordIndex < _wordRanges.Length)
+            {
+                var (start, end) = _wordRanges[frame.WordIndex];
+                var before = Measure(LyricsDisplayPolicy.CompactText(line.Text[..start]));
+                var after = Measure(LyricsDisplayPolicy.CompactText(line.Text[..end]));
+                highlight = before + (after - before) * frame.WordProgress;
             }
         }
         HighlightClip.Rect = new Rect(0, 0, Math.Max(0, highlight), Math.Max(28, BaseLine.ActualHeight));

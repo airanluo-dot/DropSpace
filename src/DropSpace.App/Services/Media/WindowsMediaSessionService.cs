@@ -149,13 +149,19 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
     public Task SkipPreviousAsync(CancellationToken cancellationToken = default) => ControlAsync("Previous", async (session, snapshot, token) =>
         snapshot.CanSkipPrevious && await AwaitOwnedNativeAsync(session.TrySkipPreviousAsync(), token), cancellationToken);
 
-    public Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default) => ControlAsync("Seek", async (session, snapshot, token) =>
-    {
-        if (!snapshot.CanSeek) return false;
-        var timeline = snapshot.Timeline;
-        var ticks = Math.Clamp(position.Ticks, timeline.Start.Ticks, Math.Max(timeline.Start.Ticks, timeline.End.Ticks));
-        return await AwaitOwnedNativeAsync(session.TryChangePlaybackPositionAsync(ticks), token);
-    }, cancellationToken);
+    public Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default)
+        => SeekAsync(position, Current, cancellationToken);
+
+    public Task SeekAsync(TimeSpan position, MediaSessionSnapshot requestedTrack, CancellationToken cancellationToken = default)
+        => ControlAsync("Seek", async (session, snapshot, token) =>
+        {
+            // A second drag may queue behind the first native command. Its captured
+            // position only belongs to the recording for which it was submitted.
+            if (!snapshot.CanSeek || !snapshot.IsSameTrack(requestedTrack)) return false;
+            var timeline = snapshot.Timeline;
+            var ticks = Math.Clamp(position.Ticks, timeline.Start.Ticks, Math.Max(timeline.Start.Ticks, timeline.End.Ticks));
+            return await AwaitOwnedNativeAsync(session.TryChangePlaybackPositionAsync(ticks), token);
+        }, cancellationToken);
 
     private Task ControlAsync(string command,
         Func<GlobalSystemMediaTransportControlsSession, MediaSessionSnapshot, CancellationToken, Task<bool>> action, CancellationToken token) =>

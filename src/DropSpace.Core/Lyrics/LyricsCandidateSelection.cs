@@ -51,6 +51,8 @@ public static class LyricsCandidateRules
         // it must not replace a usable lyric body from the same recording.
         var comparison = (right.Document.Lines.Count > 0).CompareTo(left.Document.Lines.Count > 0);
         if (comparison != 0) return comparison;
+        comparison = right.Document.HasSynchronizedTiming.CompareTo(left.Document.HasSynchronizedTiming);
+        if (comparison != 0) return comparison;
         comparison = right.TargetSatisfied.CompareTo(left.TargetSatisfied);
         if (comparison != 0) return comparison;
         comparison = right.HasTargetTranslation.CompareTo(left.HasTargetTranslation);
@@ -66,7 +68,12 @@ public static class LyricsCandidateRules
     public static int CompareCandidates(LyricsSelectionCandidate left, LyricsSelectionCandidate right,
         LyricsQuery query, LyricsProviderKind primary, LyricsProviderKind? backup)
     {
-        var comparison = ComparePriority(left, right, primary, backup);
+        var comparison = RecordingEvidence(query, right.Document.Match).CompareTo(RecordingEvidence(query, left.Document.Match));
+        if (comparison != 0) return comparison;
+        comparison = (left.Document.Match is { } leftMatch && LyricsMatcher.IsSpellingMatch(query, leftMatch)).CompareTo(
+            right.Document.Match is { } rightMatch && LyricsMatcher.IsSpellingMatch(query, rightMatch));
+        if (comparison != 0) return comparison;
+        comparison = ComparePriority(left, right, primary, backup);
         if (comparison != 0) return comparison;
         var leftQuality = LyricsCandidateQuality.Describe(query, left.Document);
         var rightQuality = LyricsCandidateQuality.Describe(query, right.Document);
@@ -81,6 +88,65 @@ public static class LyricsCandidateRules
         return StringComparer.Ordinal.Compare(left.Document.Match?.CandidateId, right.Document.Match?.CandidateId);
     }
 
+    // Only fields that both catalogues actually supplied can corroborate a recording.
+    // A near-exact length distinguishes an edit from a merely admissible duration.
+    public static int RecordingEvidence(LyricsQuery query, LyricsMatchInfo? match)
+    {
+        if (match is null) return 0;
+        var artist = query.ArtistCandidates.Count > 0 && !string.IsNullOrWhiteSpace(match.Artist);
+        var album = SameReleaseTitle(query.Album, match.Album);
+        var duration = query.Duration > TimeSpan.Zero && match.DurationSeconds > 0 &&
+            Math.Abs(query.Duration.TotalSeconds - match.DurationSeconds) <= 2;
+        return (artist ? 1 : 0) + (album ? 1 : 0) + (duration ? 1 : 0);
+    }
+
+    public static bool SameReleaseTitle(string requested, string candidate)
+    {
+        static string ReleaseName(string value) =>
+            value.EndsWith(" - Single", StringComparison.OrdinalIgnoreCase) ? value[..^9] :
+            value.EndsWith(" - EP", StringComparison.OrdinalIgnoreCase) ? value[..^5] : value;
+        var name = LyricsMatcher.Normalize(ReleaseName(requested));
+        return name.Length > 0 && name == LyricsMatcher.Normalize(ReleaseName(candidate));
+    }
+
+    public static bool HasAllRecordingEvidence(LyricsQuery query, LyricsMatchInfo? match) =>
+        match is not null && query.ArtistCandidates.Count > 0 &&
+        RecordingEvidence(query, match) == 1 + (string.IsNullOrWhiteSpace(query.Album) ? 0 : 1) +
+            (query.Duration > TimeSpan.Zero ? 1 : 0);
+
+    // A playback TrackIdentity belongs to the request. Two providers attached to
+    // that request still have to agree on the recording before a late translation
+    // can replace the already published original.
+    public static bool CanUpgradeFrozenRecording(LyricsDocument current, LyricsDocument candidate)
+    {
+        if (current.Match is not { } first || candidate.Match is not { } next || candidate.Lines.Count == 0 ||
+            current.HasSynchronizedTiming && !candidate.HasSynchronizedTiming ||
+            WordCoverage(current) > 0 && WordCoverage(candidate) <= 0) return false;
+        var firstTitle = string.IsNullOrWhiteSpace(first.CanonicalTitle) ? first.Title : first.CanonicalTitle;
+        var nextTitle = string.IsNullOrWhiteSpace(next.CanonicalTitle) ? next.Title : next.CanonicalTitle;
+        if (LyricsMatcher.HasVersionConflict(firstTitle, nextTitle) || LyricsMatcher.HasVersionConflict(nextTitle, firstTitle)) return false;
+        if (first.DurationSeconds > 0 && next.DurationSeconds > 0 && Math.Abs(first.DurationSeconds - next.DurationSeconds) > 2) return false;
+        if (EstablishedOriginalLanguage(current) is { } before && EstablishedOriginalLanguage(candidate) is { } after &&
+            before != after) return false;
+        if (current.Provider == candidate.Provider && !string.IsNullOrWhiteSpace(first.CandidateId) && first.CandidateId == next.CandidateId)
+            return true;
+        var sameTitle = first.TitleAliases.Prepend(firstTitle).Any(left =>
+            next.TitleAliases.Prepend(nextTitle).Any(right => LyricsMatcher.AreTitlesEquivalent(left, right)));
+        var sameCredits = first.ArtistAliases.Prepend(first.Artist).Any(left =>
+            next.ArtistAliases.Prepend(next.Artist).Any(right => LyricsMatcher.AreArtistCreditsCompatible(left, right)));
+        return sameTitle && sameCredits && (first.DurationSeconds > 0 && next.DurationSeconds > 0 ||
+            SameReleaseTitle(first.Album, next.Album));
+    }
+
+    private static string? EstablishedOriginalLanguage(LyricsDocument document)
+    {
+        var prediction = document.TranslationAdmission?.OriginalPrediction;
+        var language = LyricsLanguagePolicy.NormalizeTarget(prediction?.Label?.Replace("__label__", "", StringComparison.Ordinal));
+        return prediction is not null && language.Length > 0 &&
+            LyricsLanguagePolicy.PredictionMatches(prediction, LyricsLanguagePolicy.BuildSample(document, LyricsLanguageRole.Original), language)
+            ? language : null;
+    }
+
     public static LyricsSelectionCandidate Describe(string id, LyricsDocument document, string target)
     {
         document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
@@ -90,8 +156,7 @@ public static class LyricsCandidateRules
 
     public static LyricsDocument Best(IEnumerable<LyricsSelectionCandidate> candidates, LyricsQuery query, LyricsProviderKind primary,
         LyricsProviderKind? backup) => candidates.Where(candidate => candidate.Document.Match is { } match &&
-            LyricsMatcher.Score(query, string.IsNullOrWhiteSpace(match.CanonicalTitle) ? match.Title : match.CanonicalTitle,
-                match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) >= 4)
+            LyricsMatcher.Score(query, match) >= 4 && !LyricsMatcher.OriginalLanguageConflicts(query, candidate.Document))
         .OrderBy(candidate => candidate, Comparer<LyricsSelectionCandidate>.Create((left, right) => CompareCandidates(left, right, query, primary, backup)))
         .Select(candidate => candidate.Document).FirstOrDefault() ?? LyricsDocument.Empty;
 
@@ -101,8 +166,7 @@ public static class LyricsCandidateRules
 
     public static bool RequiresIdentityDecision(LyricsQuery query, LyricsCandidateSnapshot snapshot) => HasAmbiguity(snapshot) ||
         snapshot.Candidates.Any(candidate => candidate.Document.Match is { } match &&
-            LyricsMatcher.Score(query, string.IsNullOrWhiteSpace(match.CanonicalTitle) ? match.Title : match.CanonicalTitle,
-                match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) < 4);
+            LyricsMatcher.Score(query, match) < 4);
 }
 
 // Independent selector protocol. Never call PlainHyLyricsProtocol.BuildPrompt or

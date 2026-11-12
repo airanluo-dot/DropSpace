@@ -541,6 +541,9 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Liedtext wird geladen…</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>Kein passender Liedtext</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>Liedtexte sind vorübergehend nicht verfügbar. Wählen Sie „Aktualisieren“, um es erneut zu versuchen.</value></data>
+  <data name="LyricsUnsynced" xml:space="preserve"><value>Liedtext ohne Zeitmarken</value></data>
+  <data name="LyricsAmbiguous" xml:space="preserve"><value>Mehrere Aufnahmen passen. Zur Auswahl sind weitere Titelinformationen nötig.</value></data>
+  <data name="LyricsInstrumental" xml:space="preserve"><value>Instrumentalstück</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>Dieses Widget konnte hier nicht abgelegt werden. Versuchen Sie es mit einer Gitterzelle oder verwenden Sie die Positionssteuerung.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Widget entfernen</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Dynamic Island</value></data>

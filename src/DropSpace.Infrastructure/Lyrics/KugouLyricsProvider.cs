@@ -25,7 +25,8 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
         var attemptedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         async Task TryCandidatesAsync(System.Text.Json.JsonElement root, CatalogRecording? recording = null)
         {
-            foreach (var candidate in Choose(root, query, recording))
+            foreach (var candidate in LyricsCandidateRequests.OrderCatalogue(Choose(root, query, recording), query, value =>
+                new(value.Title, value.Artist, value.Album, value.DurationSeconds, value.Score)))
             {
                 if (remaining == 0) break;
                 if (!attempted.Add(candidate.Id)) continue;
@@ -83,9 +84,9 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
             ValidateField(songs.RootElement.GetProperty("data"), "lists", JsonValueKind.Array);
             var matches = Array(songs.RootElement, "data", "lists").Select(item => new
                 { Item = item, Title = CatalogTitle(item), Score = LyricsMatcher.CandidateScore(query, CatalogTitle(item), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
-                .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "FileHash")))
-                .OrderByDescending(candidate => candidate.Score);
-            foreach (var song in matches)
+                .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "FileHash")));
+            foreach (var song in LyricsCandidateRequests.OrderCatalogue(matches, query, value => new(value.Title,
+                Text(value.Item, "SingerName"), Text(value.Item, "AlbumName"), Number(value.Item, "Duration"), value.Score)))
             {
                 if (remaining == 0 || remainingCatalogs == 0) break;
                 var hash = Text(song.Item, "FileHash");
@@ -169,7 +170,6 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
         })
         .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")) &&
             !string.IsNullOrWhiteSpace(Text(candidate.Item, "accesskey")))
-        .OrderByDescending(candidate => candidate.Score)
         .Select(candidate => new Candidate(Text(candidate.Item, "id"), Text(candidate.Item, "accesskey"), candidate.Title,
             candidate.Artist, candidate.Album, candidate.DurationSeconds, candidate.Score));
 }

@@ -41,6 +41,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private readonly SemaphoreSlim _lyricsMaintenance = new(1, 1);
     private readonly DispatcherQueueTimer _frames;
+    private readonly DispatcherQueueTimer _seekObservation;
     private readonly Timer _audioRecovery;
     private long _lastAudioAttempt;
     private readonly MediaSoftRestartOperation _restart = new(TimeSpan.FromSeconds(20));
@@ -78,6 +79,11 @@ public sealed class MediaExperienceService : IAsyncDisposable
             () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory, languageIdentifier), lyricsCache, RecordLyricsDiagnostic, languageIdentifier);
         _frames = dispatcher.CreateTimer(); _frames.Interval = TimeSpan.FromMilliseconds(33); _frames.IsRepeating = true;
         _frames.Tick += OnFrame;
+        _seekObservation = dispatcher.CreateTimer();
+        _seekObservation.IsRepeating = false;
+        _seekObservation.Interval = MediaPlaybackClock.SeekObservationWindow;
+        _seekObservation.Tick += OnFrame;
+        _view.SeekAccepted += OnSeekAccepted;
         _audioRecovery = new Timer(_ =>
         {
             var observation = Volatile.Read(ref _spectrum);
@@ -339,6 +345,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     {
         AppSettings? previousSettings = null;
         MediaSessionSnapshot? previousMedia = null;
+        MediaSessionSnapshot? lastLyricsQuery = null;
         string? audioKey = null;
         bool? previousObserve = null;
         long previousReloadRequest = -1;
@@ -368,7 +375,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     var session = Volatile.Read(ref _latest);
                     var playing = session.PlaybackState == MediaPlaybackState.Playing && !string.IsNullOrWhiteSpace(session.TrackTitle);
                     var trackChanged = previousMedia is null || !previousMedia.IsSameTrack(session);
-                    var improvedLyricsEvidence = ShouldRetryLyricsWithImprovedEvidence(previousMedia, session, _document.Lines.Count > 0);
+                    var improvedLyricsEvidence = ShouldRetryLyricsWithImprovedEvidence(lastLyricsQuery, session, Volatile.Read(ref _sourceDocument));
                     var lyricsSettingsChanged = LyricsReloadPolicy.RequiresReload(previousSettings, settings);
                     var reload = trackChanged || improvedLyricsEvidence || lyricsSettingsChanged || previousSettings?.IslandActivity.EnableMediaActivity != settings.IslandActivity.EnableMediaActivity ||
                         previousReloadRequest != reloadRequest || lyricsPending;
@@ -425,7 +432,11 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         lyricsPending = !_lyricsWork.TryStartWhileIdle(_lyricsMaintenance,
                             workToken => LoadLyricsAsync(session, settings, generation, workToken, forceSourceRefresh, admissionDelay), token,
                             () => _changes.Writer.TryWrite(true));
-                        if (!lyricsPending) _sourceRefresh.MarkStarted(refreshRequest);
+                        if (!lyricsPending)
+                        {
+                            lastLyricsQuery = session;
+                            _sourceRefresh.MarkStarted(refreshRequest);
+                        }
                         if (lyricsPending)
                             await _dispatcher.EnqueueAsync(() =>
                             {
@@ -566,6 +577,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 {
                     LyricsQueryStatus.Found => LyricsDiagnosticOutcome.Found,
                     LyricsQueryStatus.NotFound => LyricsDiagnosticOutcome.NoMatch,
+                    LyricsQueryStatus.Ambiguous => LyricsDiagnosticOutcome.Ambiguous,
                     LyricsQueryStatus.Disabled => LyricsDiagnosticOutcome.Disabled,
                     _ => LyricsDiagnosticOutcome.TransportFailure,
                 },
@@ -681,14 +693,22 @@ public sealed class MediaExperienceService : IAsyncDisposable
         current?.TranslationAdmission is { } before && candidate.TranslationAdmission is { } after &&
         after.Decision == LyricsWholeTrackDecision.ProviderTarget && before.Target == after.Target &&
         current.Match?.TrackIdentity == candidate.Match?.TrackIdentity &&
+        LyricsCandidateRules.CanUpgradeFrozenRecording(current, candidate) &&
         before.Generation == after.Generation && LyricsLanguagePolicy.IsAdmissionCurrent(candidate, after.Target);
 
     internal static bool ShouldRetryLyricsWithImprovedEvidence(
         MediaSessionSnapshot? previous,
         MediaSessionSnapshot current,
-        bool alreadyFound) =>
-        !alreadyFound && previous is not null && previous.IsSameTrack(current) &&
-        previous.Timeline.Duration <= TimeSpan.Zero && current.Timeline.Duration > TimeSpan.Zero;
+        LyricsDocument document)
+    {
+        if (previous is null || previous.Timeline.Duration > TimeSpan.Zero || current.Timeline.Duration <= TimeSpan.Zero ||
+            !previous.IsSameTrack(current)) return false;
+        if (document.Match is not { } match) return true;
+        if (document.Provider == LyricsProviderKind.LocalLrc) return false;
+        // A catalog duration within the same tolerance as Windows track identity
+        // already corroborates the recording. Missing or contradictory evidence needs a new lookup.
+        return !MediaSessionSnapshot.DurationsAgree(match.DurationSeconds, current.Timeline.Duration.TotalSeconds);
+    }
     private async Task LoadArtworkAsync(MediaSessionSnapshot session, long generation, CancellationToken token)
     {
         try
@@ -704,11 +724,21 @@ public sealed class MediaExperienceService : IAsyncDisposable
         catch (Exception exception) { _logger.LogDebug("Artwork unavailable ({Category}).", exception.GetType().Name); }
     }
     private void OnFrame(DispatcherQueueTimer sender, object args) => RenderFrame();
+    private void OnSeekAccepted(MediaSessionSnapshot session, TimeSpan target, DateTimeOffset sentAt, bool superseded)
+    {
+        _clock.AcceptSeek(session, target, sentAt, superseded);
+        if (superseded) return;
+        _seekObservation.Stop();
+        if (_clock.IsAwaitingSeek) _seekObservation.Start();
+        RenderFrame();
+    }
     private void OnVisualPreferencesChanged(object? sender, EventArgs args) =>
         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(_view.Settings.OverlayMotion);
     private void RenderFrame()
     {
         _view.Position = _clock.Position;
+        _view.SeekEstimate = _clock.IsSeekEstimate;
+        if (!_clock.IsAwaitingSeek) _seekObservation.Stop();
         // SMTC timelines may have a non-zero media start. Lyric timestamps are track-relative,
         // so keep the clock absolute for seeking/display but feed the lyric engine a relative
         // position.
@@ -745,6 +775,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
         }
         _audioRecovery.Dispose();
         _frames.Stop();
+        _seekObservation.Stop();
+        _seekObservation.Tick -= OnFrame;
+        _view.SeekAccepted -= OnSeekAccepted;
         _frames.Tick -= OnFrame; _experience.Changed -= OnExperienceChanged;
         _visualPreferences.Changed -= OnVisualPreferencesChanged;
         _view.PropertyChanged -= OnPresentationChanged;

@@ -79,8 +79,8 @@ public sealed partial class MusicWindow : Window
     private bool _lyricsIdle, _lyricFocusDirty = true;
     private long _controlsInteractionAt = Stopwatch.GetTimestamp(), _lyricInteractionAt = Stopwatch.GetTimestamp();
     private readonly MediaRenderQueue _renderQueue = new();
-    private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
-    private readonly DispatcherQueueTimer _seekCommit, _seekAcknowledgement, _volumeCommit, _manualFollowTimer, _idleTimer;
+    private readonly MediaSeekInteraction _seekInteraction = new();
+    private readonly DispatcherQueueTimer _seekCommit, _volumeCommit, _manualFollowTimer, _idleTimer;
     private Task _volumeLeaseTask = Task.CompletedTask;
     private byte[]? _backgroundArtwork;
     private string _trackIdentity = string.Empty;
@@ -110,7 +110,6 @@ public sealed partial class MusicWindow : Window
         _media = media; _editor = editor; _strings = strings; _volume = volume; _logger = logger;
         _rows = new(2_000, CreateLyricRow, UpdateLyricRow);
         _seekCommit = Timer(120, OnSeekCommit);
-        _seekAcknowledgement = Timer(2_000, (_, _) => { _seekInteraction.RejectPending(); RequestRender(); });
         _volumeCommit = Timer(100, (_, _) => { if (!_volumeWriting) _ = WriteVolumeAsync(); });
         _manualFollowTimer = Timer(5_000, (_, _) => CompleteManualScroll());
         _idleTimer = Timer(4_000, (_, _) => OnIdle());
@@ -580,6 +579,12 @@ public sealed partial class MusicWindow : Window
             _lyricsDirty = true;
         if (property == nameof(MediaViewModel.IsReducedMotion)) UpdateOwnership();
         if (property is nameof(MediaViewModel.IsPresentationVisible) or nameof(MediaViewModel.IsSpectrumPresentationVisible) or nameof(MediaViewModel.IsMusicWindowAudioActive) or nameof(MediaViewModel.IsIslandGlowActive)) return;
+        if (property == nameof(MediaViewModel.CurrentLyricIndex) && CanRender && !_updating)
+        {
+            CancelRender();
+            Render();
+            return;
+        }
         RequestRender();
     }
 
@@ -623,7 +628,7 @@ public sealed partial class MusicWindow : Window
             if (!seekEnabled && (_seekInteraction.IsDragging || _seekInteraction.IsPreviewing)) CancelSeek();
             _seek.IsEnabled = seekEnabled; _seek.Maximum = _media.DurationSeconds;
             var playback = _media.ProgressSliderSeconds;
-            if (_seekInteraction.ShouldApplyPlayback(playback, DateTimeOffset.UtcNow, seekEnabled)) _seek.Value = playback;
+            if (_seekInteraction.ShouldApplyPlayback(seekEnabled)) _seek.Value = playback;
             ToolTipService.SetToolTip(_seek, seekEnabled ? null : _strings.Get("MusicWindowSeekUnavailable"));
             UpdateTimeLabels(); RefreshVolume();
             _error.Text = _media.ControlError.Length > 0 ? _media.ControlError :
@@ -733,8 +738,11 @@ public sealed partial class MusicWindow : Window
         }
         _lyricFocusDirty = true;
         var hasTranslation = lines.Any(line => !string.IsNullOrWhiteSpace(LyricsDisplayPolicy.SecondaryPresentation(line, target, true, _media.Settings.Lyrics.ShowAiLyricsLabel)));
-        _translationStatus.Text = _strings.Get("MusicWindowNoTranslation");
-        _translationStatus.Visibility = hasLyrics && _media.Settings.Lyrics.SecondaryLyrics && !hasTranslation ? Visibility.Visible : Visibility.Collapsed;
+        var noTranslation = _media.Settings.Lyrics.SecondaryLyrics && !hasTranslation;
+        var timingStatus = _media.LyricsStatus == LyricsQueryStatus.Found ? _media.LyricsStatusText : string.Empty;
+        _translationStatus.Text = string.Join(Environment.NewLine, new[] { timingStatus,
+            noTranslation ? _strings.Get("MusicWindowNoTranslation") : string.Empty }.Where(text => text.Length > 0));
+        _translationStatus.Visibility = hasLyrics && _translationStatus.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         CenterCurrentLyric();
     }
 
@@ -848,7 +856,7 @@ public sealed partial class MusicWindow : Window
         if (_updating || !CanRender || !_seek.IsEnabled || !double.IsFinite(args.NewValue)) return;
         var value = Math.Clamp(args.NewValue, 0, _seek.Maximum);
         if (_seekInteraction.IsPendingTarget(value)) return;
-        _seekAcknowledgement.Stop(); _seekInteraction.Preview(value); UpdateTimeLabels();
+        _seekInteraction.Preview(value); UpdateTimeLabels();
         if (_seekInteraction.IsDragging) return;
         _queuedSeek = value; _seekCommit.Stop(); _seekCommit.Start();
     }
@@ -856,7 +864,7 @@ public sealed partial class MusicWindow : Window
     {
         var point = args.GetCurrentPoint(_seek);
         if (!CanRender || !_seek.IsEnabled || _seekPointer is not null || (!point.IsInContact && !point.Properties.IsLeftButtonPressed)) return;
-        _seekPointer = args.Pointer.PointerId; _seekAcknowledgement.Stop(); _seekCommit.Stop(); _queuedSeek = null; _seekInteraction.Begin(_seek.Value);
+        _seekPointer = args.Pointer.PointerId; _seekCommit.Stop(); _queuedSeek = null; _seekInteraction.Begin(_seek.Value);
     }
     private void OnSeekReleased(object sender, PointerRoutedEventArgs args) { if (_seekPointer == args.Pointer.PointerId) FinishSeek(false); }
     private void OnSeekCanceled(object sender, PointerRoutedEventArgs args) { if (_seekPointer == args.Pointer.PointerId) FinishSeek(true); }
@@ -868,25 +876,25 @@ public sealed partial class MusicWindow : Window
     private void FinishSeek(bool canceled)
     {
         _seekPointer = null; _seekCommit.Stop(); _queuedSeek = null; _seekInteraction.Preview(_seek.Value);
-        if (_seekInteraction.Complete(canceled || !CanRender || !_seek.IsEnabled, DateTimeOffset.UtcNow) is { } value) ExecuteSeek(value);
+        if (_seekInteraction.Complete(canceled || !CanRender || !_seek.IsEnabled) is { } value) ExecuteSeek(value);
         else RequestRender();
     }
     private void OnSeekCommit(DispatcherQueueTimer sender, object args)
     {
         if (!CanRender || _seekInteraction.IsDragging || _queuedSeek is not { } value) return;
-        _queuedSeek = null; ExecuteSeek(_seekInteraction.Commit(value, DateTimeOffset.UtcNow));
+        _queuedSeek = null; ExecuteSeek(_seekInteraction.Commit(value));
     }
-    private void ExecuteSeek(double value)
+    private async void ExecuteSeek(double value)
     {
+        var revision = _seekInteraction.Revision;
         if (CanRender && _media.SeekCommand.CanExecute(value))
-        {
-            _media.SeekCommand.Execute(value); _seekAcknowledgement.Stop(); _seekAcknowledgement.Start();
-        }
-        else { _seekInteraction.RejectPending(); RequestRender(); }
+            await _media.SeekCommand.ExecuteAsync(value);
+        _seekInteraction.FinishRequest(revision);
+        RequestRender();
     }
     private void CancelSeek()
     {
-        _seekCommit.Stop(); _seekAcknowledgement.Stop(); _queuedSeek = null; _seekPointer = null; _seekInteraction.Reset();
+        _seekCommit.Stop(); _queuedSeek = null; _seekPointer = null; _seekInteraction.Reset();
     }
     private void UpdateTimeLabels()
     {
