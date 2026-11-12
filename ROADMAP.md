@@ -162,13 +162,15 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.1.0-beta.8 is the current Beta target; 1.0 remains the public Stable baseline.
+v1.1.0 is the current Stable release, carrying the functionality of v1.1.0-beta.8.
+The Beta 8 release and downloads remain available.
 Published versions remain listed on the official Releases page.
-Hosted Windows checks are
-the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
+For this owner-authorized promotion, hosted Windows checks cover compilation,
+static package/version/resource integrity and security; no functional or installation tests run.
+Real OS/DPI/OLE/accessibility,
 two-device transfer, Apple Music/provider, and deployed Worker/browser evidence
-remain follow-up and are unverified where absent. The owner-authorized v1.0.0
-release retains documented unsigned distribution when no signing service is
+remain follow-up and are unverified where absent. The owner-authorized v1.0.0 and v1.1.0
+releases retain documented unsigned distribution when no signing service is
 configured; other Stable versions retain their signing gate.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
