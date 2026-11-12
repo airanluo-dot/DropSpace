@@ -13,9 +13,7 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 DropSpace **1.0** is the first stable release of the current application. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, Windows release automation, and the product/engineering specifications.
 
-The current Beta target is `v1.1.0-beta.6` (Beta 6). The application displays **1.1 Beta6**; Stable remains 1.0.
-
-Version 1.1 Beta6 is an unpublished maintenance candidate based on Beta5. All development rounds iterate on the preceding working code within this same version. It hardens settings, file references, downloads, previews, sharing, DLC and hotkey lifetimes while retaining existing presentation and data contracts. See the [release notes](.github/release-notes/v1.1.0-beta.6.md) and [current maintenance record](docs/dev/beta6-round4-maintenance-20261031.md). Windows build/native acceptance and exact-candidate release qualification remain outstanding.
+The current Beta target is `v1.1.0-beta.7` (Beta 7). Open Settings → About and click the logo to browse release highlights in the Island. See the [candidate notes](.github/release-notes/v1.1.0-beta.7.md).
 
 Public upgrade baseline: [v1.0.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v1.0.0); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
@@ -27,7 +25,7 @@ The unchanged optional CUDA archive is reused from its [independent component re
 
 Beta16 bundled fastText `lid.176.bin` for one offline whole-track prediction. Originals already in the independently selected Chinese/English target language skip AI; any valid target-language provider translation disables AI for the entire track, including gaps. Only Unknown originals without valid target translations enter the existing optional Hy-MT2 progressive flow. Its historical validation remains in the [Beta16 audit](docs/dev/beta16-lyrics-audit.md); it does not establish Beta17 Windows acceptance.
 
-v1.1.0-beta.5 is the immediate upgrade baseline for this release.
+v1.1.0-beta.6 is the immediate upgrade baseline for this release.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables
@@ -56,9 +54,8 @@ cases; no green CI or artifact hash substitutes for those observations. See the
 Beta 29 incorporates three fresh full-project audit rounds covering shutdown and cancellation,
 native callback/OLE ownership, clipboard capture, batch actions, transfer and share lifecycle,
 storage confinement, update verification and release contracts. The [three-round audit](docs/audit/2026-09-30/full-project-three-round-audit.md)
-records executed portable checks and their Windows limitations. Publication requires the exact
-release commit's real Windows CI, DPAPI tests, WinUI build, complete release-packaging,
-lifecycle, security and final artifact gates in [the test plan](TEST_PLAN.md).
+records that release’s checks and their Windows limitations. Current development follows
+the [minimal test rules](docs/dev/passive-test-budget.md) and [core case list](TEST_PLAN.md).
 For Beta publication, missing critical manual, two-real-Windows-device and deployed
 Worker live acceptance evidence is recommended follow-up rather than a blocker.
 Those unexecuted behaviors remain unverified; no passing result is claimed. Stable
@@ -128,7 +125,7 @@ The implemented vertical slice includes:
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
 - Process-lifetime in-app update checks, repeatable manual checks, Stable/Beta channels, resilient official website/GitHub metadata sources, streaming downloads, size/SHA-256 verification, opt-in automatic installation of verified official updates, and Inno `/UPDATE` graceful restart.
 
-Version 1.0 validation uses the existing isolated candidate route: focused source/resource checks, full App/XAML compilation, and packaging from the exact integrated main tree. There is no fixed test ceiling; choose necessary checks and record actual executions, failures, retries and Actions. See `docs/dev/v1-release-2026-10-22.md` for this release's executions and boundaries; historical broad smoke coverage does not establish a new pass. Production installer, portable, updater and independent component contracts remain unchanged.
+Version 1.0 validation uses the existing isolated candidate route: focused source/resource checks, full App/XAML compilation, and packaging from the exact integrated main tree. The [current testing rules](docs/dev/passive-test-budget.md) govern new work. See `docs/dev/v1-release-2026-10-22.md` for this release's executions and boundaries; historical broad smoke coverage does not establish a new pass. Production installer, portable, updater and independent component contracts remain unchanged.
 
 ## Download and run
 
@@ -199,16 +196,16 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - 64-bit Windows build 20348 or later, including Windows 11. The current Beta baseline is intentionally aligned with the Windows App SDK target and is conditional until the compatibility matrix is evidenced.
 - Visual Studio 2026 with the WinUI application development workload, or the .NET 10 SDK for command-line build/test.
 
-### Build and test
+### Build
 
 ```powershell
 dotnet restore DropSpace.sln -p:Configuration=Release
-dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release
-dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release
 dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 ```
 
 Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows build 20348. The formal release and compatibility evidence are x64-only; Windows 11-only visuals are selected at runtime.
+
+For a targeted functional check, select a scenario from the [core test plan](TEST_PLAN.md).
 
 To validate package generation from PowerShell, run:
 

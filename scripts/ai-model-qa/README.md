@@ -1,5 +1,7 @@
 # Windows candidate loading + fixed-screen QA handoff
 
+> Historical record. Commands below refer to the tools in Git revision `20c524a3`. Current test entry points are listed in [TEST_PLAN.md](../../TEST_PLAN.md).
+
 Prepared 2026-10-02. This package does not edit production, run or cancel GitHub workflows, download a runtime, or promote a model. The migrated C# harness compiled on Linux with zero warnings/errors and locked restore passed. Official PowerShell 7.5.3 parsed the QA script and all 40 Release inline PowerShell blocks without errors; both inline Bash blocks passed bash -n. Windows native execution has NOT been performed here.
 
 ## Purpose and sequence

@@ -22,7 +22,13 @@ Evergreen features, interface labels, demonstration controls and accessibility t
 
 The lyric story describes two permanent translation targets: Simplified Chinese and English, chosen independently of the interface language. The illustration does not perform website AI inference. Only its interface explanation and controls are localized; the original sample lyrics and translated sample pair remain unchanged.
 
-Latest release summaries, all newly authored release notes and version highlights have one English body, marked `lang="en"`, whichever interface language is selected. Existing release history is retained. Both static snapshots and runtime updates read the validated release API and `createLatestChangeApi`; highlights remain attached to their own release tag. The `latest-change.json` compatibility `en` and `zh-CN` fields both carry the same English content. Column headings, buttons and channel labels are interface resources. Main downloads continue to follow Stable; Beta stays available through its existing channel and release history.
+The full changelog and homepage highlights use the shared, hand-edited
+[`localization/release-history.json`](../../localization/release-history.json). The changelog lists
+all dated Windows entries. The Mac page lists all dated Mac entries. Both use the same editorial comparison rule as GitHub and the app. The homepage pairs the latest release from the validated feed with its entry by tag.
+English is the static default. The language selector renders Simplified or Traditional Chinese
+summaries in those interfaces. The [release history guide](../../docs/dev/interface-localization.md#release-history)
+covers new entries and Island design. The homepage refreshes from the same curated highlights in `latest-change.json`. Stable download links and the updater feed
+continue to use validated release metadata.
 
 ## Build and focused verification
 
@@ -36,7 +42,7 @@ Both `build` and `build:static` execute the lightweight localization completenes
 
 For subsequent copy changes: extract new/changed text, update only affected translations, record a genuine revision or explicit per-resource confirmation, run the completeness gate, and review changed wording and affected layouts as needed. Never copy English into translations or refresh fingerprints in bulk to clear stale entries. Release bodies and explicit fixed/sample-content exceptions are excluded from ten-language completeness.
 
-Use focused checks tied to actual changes; the current repository policy has no fixed functional case ceiling. A development or publication request does not authorize full Node/Playwright suites, language-by-page matrices, repeated screenshot sweeps or model evaluations. Resource entry counts are not test-case counts. Follow `docs/dev/passive-test-budget.md` and the current task ledger; reuse focused checks without duplicate scans.
+`npm test` builds the site offline and checks that the Windows download buttons on the homepage open the stable installer.
 
 Production sync is fail-closed: `sync-releases` must fetch and validate authoritative GitHub Releases before deployment. Network, HTTP, JSON, contract, Stable-release or required-asset failures retain the previous successful Pages deployment. The committed `data/releases.json` is only a local/PR fixture and is never a production fallback. Asset names are content-hashed, Pages deployment is atomic, and the existing per-document CSP remains enforced.
 

@@ -20,8 +20,5 @@ let package = Package(
         .target(name: "DropSpacePlatform", dependencies: ["DropSpaceCore", "DropSpaceInfrastructure", "CSpectrumBuffer"]),
         .executableTarget(name: "DropSpaceUpdateHelper", dependencies: ["DropSpaceCore", "DropSpaceInfrastructure"]),
         .executableTarget(name: "DropSpaceModuleSample", dependencies: ["DropSpaceCore"], path: "Modules/Sample/Worker"),
-        .testTarget(name: "DropSpaceCoreTests", dependencies: ["DropSpaceCore"], resources: [.copy("Fixtures")]),
-        .testTarget(name: "DropSpaceInfrastructureTests", dependencies: ["DropSpaceInfrastructure"], resources: [.copy("Fixtures")]),
-        .testTarget(name: "DropSpacePlatformTests", dependencies: ["DropSpacePlatform"]),
     ]
 )

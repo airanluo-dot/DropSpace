@@ -7,8 +7,8 @@ import { languageCatalog, resources, text } from "./i18n.mjs";
 import { checkLocalization, checkBuiltWebsite } from "../../../scripts/check-localization.mjs";
 import { createLatestChangeApi, validateWebsiteReleaseData } from "./release-contract.mjs";
 import { createMacReleaseData, validateMacReleaseData, macChannelFeed } from "./macos-release-contract.mjs";
-import { releaseRequirementsHint, stableRequirements } from "../src/release-requirements.js";
-import { macReleaseMarkup, macHistoryMarkup } from "../src/platform.js";
+import { stableRequirements } from "../src/release-requirements.js";
+import { macReleaseMarkup } from "../src/platform.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 await checkLocalization({ root: path.resolve(root, "../.."), scopes: ["website"] });
@@ -16,9 +16,18 @@ const src = path.join(root, "src");
 const staticShowcase = process.env.SITE_VARIANT === "static";
 const dist = path.join(root, staticShowcase ? "dist-static" : "dist");
 const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8")));
+const archive = JSON.parse(await readFile(path.join(root, "../../localization/release-history.json"), "utf8"));
+const candidateTag = (await readFile(path.join(root, "../../RELEASE_VERSION"), "utf8")).trim();
+const candidatePublished = releases.api.releases.some(release => release.tagName === candidateTag);
+const history = archive.filter(entry => entry.date && (entry.tag !== candidateTag || candidatePublished));
+const ramps = JSON.parse(await readFile(path.join(root, "../../branding/text-gradients.json"), "utf8"));
+const gradients = ramps.flatMap(colors => [colors, [...colors].reverse()]);
+const inkStyles = gradients.map(([start, middle, end], i) =>
+  `[data-ink="${i}"] { --brand-ink: linear-gradient(90deg, ${start}, ${middle}, ${end}); }`).join("\n");
+
 const stable = releases.stable;
 const stableRelease = releases.api.releases.find((release) => release.tagName === stable.tag);
-const latestChange = createLatestChangeApi(releases.api);
+const latestChange = createLatestChangeApi(releases.api, history);
 const macReleases = validateMacReleaseData(releases.macos ?? createMacReleaseData([], new Map(), releases.syncedAt));
 const siteOrigin = (process.env.SITE_ORIGIN ?? (staticShowcase ? "https://dropspace-static.arenvox.chatgpt.site" : "https://airanluo-dot.github.io/DropSpace")).replace(/\/$/, "");
 const basePath = new URL(`${siteOrigin}/`).pathname;
@@ -55,6 +64,7 @@ const assetSources = {
 const assetUrls = {};
 for (const [key, relative] of Object.entries(assetSources)) {
   let contents = await readFile(path.join(src, relative));
+  if (key === "css") contents = Buffer.concat([contents, Buffer.from("\n" + inkStyles)]);
   if (key === "localizationJs") contents = Buffer.from(contents.toString().replace("__LOCALIZATION_PAYLOAD__", JSON.stringify({ catalog: languageCatalog, resources })));
   if (staticShowcase && key === "js") contents = Buffer.from(contents.toString().replace(/\/\/ BEGIN LIVE RELEASE RUNTIME[\s\S]*?\/\/ END LIVE RELEASE RUNTIME/g, ""));
   if (key === "js") contents = Buffer.from(contents.toString().replace('"./release-requirements.js"', JSON.stringify(assetUrls.requirementsJs)));
@@ -100,16 +110,24 @@ function replaceTokens(value) {
   return result;
 }
 
-function releaseEntries() {
-  // Static and runtime presentations use the same validated release API, never an old locale branch.
-  return releases.api.releases.map((release) => {
-    const channel = release.isPrerelease ? "release.beta" : "release.stable";
-    const notes = release.body.split("\n").map(line => line.trim()).filter(line => /^[-*] /.test(line)).slice(0, 5)
-      .map(line => `<li>${escapeHtml(line.replace(/^[-*] +/, "").replace(/[*_`]/g, ""))}</li>`).join("");
-    const installer = release.assets.find(asset => asset.name === "DropSpaceSetup.exe")?.downloadUrl || release.htmlUrl;
-    return `<article class="release-entry" data-release-tag="${escapeHtml(release.tagName)}">
-      <div class="release-meta"><strong>${escapeHtml(release.tagName)}</strong><span data-i18n="${channel}">${text(channel)}</span><span data-localized-date="${escapeHtml(release.publishedAt)}">${escapeHtml(formatDate(release.publishedAt, "en-US"))}</span></div>
-      <div class="release-body"><div lang="en" data-i18n-exempt="release-body"><h2>${escapeHtml(release.name || release.tagName)}</h2><ul>${notes}</ul></div><div class="actions"><a class="button button-primary" href="${escapeHtml(installer)}" data-i18n="release.download">${text("release.download")}</a><a class="button button-ghost" href="${escapeHtml(release.htmlUrl)}" target="_blank" rel="noopener noreferrer" data-i18n="release.notes">${text("release.notes")}</a></div></div>
+function summaryItems(entry, numbered = false) {
+  return entry.en.map((line, index) => {
+    const note = `<span data-summary-cn="${escapeHtml(entry["zh-CN"][index])}" data-summary-tw="${escapeHtml(entry["zh-TW"][index])}">${escapeHtml(line)}</span>`;
+    if (!numbered) return note;
+    const number = index + 1;
+    return `<li><span class="brand-ink" aria-hidden="true" data-ordinal="${number}">${number}:</span> ${note}</li>`;
+  }).join("");
+}
+
+function releaseEntries(entries) {
+  return entries.map(entry => {
+    const tag = escapeHtml(entry.tag.replace(/^macos-/, "macOS "));
+    const channel = entry.tag.includes("-beta.") ? "release.beta" : "release.stable";
+    const channelLabel = entry.tag.includes("-preview.") ? "<span>Preview</span>" :
+      `<span data-i18n="${channel}">${text(channel)}</span>`;
+    return `<article class="release-entry" data-release-tag="${escapeHtml(entry.tag)}">
+      <div class="release-meta"><h2 class="brand-ink">${tag}</h2>${channelLabel}<time datetime="${entry.date}" data-localized-date="${entry.date}">${formatDate(entry.date, "en-US")}</time></div>
+      <ol class="release-body" role="list" lang="en" data-i18n-exempt="release-body">${summaryItems(entry, true)}</ol>
     </article>`;
   }).join("\n");
 }
@@ -179,13 +197,13 @@ function rewriteLinks(document) {
 async function render(templatePath, kind) {
   const change = latestChange.release;
   let template = replaceTokens(await readFile(path.join(src,templatePath),'utf8'))
-    .replace('{{RELEASE_ENTRIES}}',releaseEntries())
+    .replace('{{RELEASE_ENTRIES}}',releaseEntries(history.filter(entry => !entry.tag.startsWith('macos-'))))
     .replace('{{LATEST_CHANGE_HEADLINE}}',escapeHtml(change.headline.en))
     .replace('{{LATEST_CHANGE_TAG}}',escapeHtml(change.tagName))
     .replace('{{LATEST_CHANGE_TITLE}}',escapeHtml(change.title))
     .replace('{{LATEST_CHANGE_DATE}}',escapeHtml(formatDate(change.publishedAt,'en-US')))
     .replace('{{LATEST_CHANGE_URL}}',escapeHtml(change.htmlUrl))
-    .replace('{{LATEST_CHANGE_HIGHLIGHTS}}',change.highlights.en.map(item => `<span>${escapeHtml(item)}</span>`).join(''));
+    .replace('{{LATEST_CHANGE_HIGHLIGHTS}}',summaryItems(change.highlights));
   const {document} = new JSDOM(template).window;
   const macPageURL = basePath + 'macos/' + (staticShowcase ? 'index.html' : '');
   if (kind === 'home') {
@@ -204,7 +222,7 @@ async function render(templatePath, kind) {
     const selected = macReleases.stable ?? macReleases.beta;
     const download = document.querySelector('[data-mac-release]');
     download.innerHTML = macReleaseMarkup(selected, text);
-    document.querySelector('[data-mac-history]').innerHTML = macHistoryMarkup(macReleases.releases, text, date => formatDate(date, 'en-US'));
+    document.querySelector('[data-mac-history]').innerHTML = releaseEntries(history.filter(entry => entry.tag.startsWith('macos-')));
     document.querySelectorAll('[data-mac-requirements]').forEach(node => {
       node.dataset.i18nArgs = JSON.stringify({version: selected?.manifest.minimumOS ?? '26.0'});
     });
@@ -214,7 +232,7 @@ async function render(templatePath, kind) {
   }
   for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = text(node.dataset.i18n, JSON.parse(replaceTokens(node.dataset.i18nArgs || '{}')));
   document.querySelectorAll('[data-stable-requirements]').forEach(node => {
-    node.textContent = staticShowcase ? releaseRequirementsHint('en-US',text) : stableRequirements(stableRelease,'en-US',text);
+    node.textContent = staticShowcase ? text('requirements.hint') : stableRequirements(stableRelease,'en-US',text);
     if (!staticShowcase) node.dataset.requirementRelease = JSON.stringify({tagName:stableRelease.tagName,body:stableRelease.body});
   });
   rewriteLinks(document);
@@ -229,6 +247,12 @@ async function render(templatePath, kind) {
       else if (link.hasAttribute('data-release-url') || link.href.includes('/changelog/')) link.href = 'https://github.com/airanluo-dot/DropSpace/releases';
     }
   }
+  document.querySelectorAll(".feature-rail b, .release-title").forEach(node => node.classList.add("brand-ink"));
+  document.querySelectorAll(".brand-ink").forEach((node, index) => {
+    const release = node.closest("[data-release-tag]")?.dataset.releaseTag;
+    const identity = release ? release + node.tagName + (node.dataset.ordinal ?? "") : kind + index;
+    node.dataset.ink = String(createHash("sha256").update(identity).digest().readUInt32LE(0) % gradients.length);
+  });
   applyMetadata(document, kind);
   return '<!doctype html>\n' + document.documentElement.outerHTML + '\n';
 }

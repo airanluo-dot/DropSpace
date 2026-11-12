@@ -10,15 +10,11 @@ export function windowsRequirement(body) {
   return Number.isSafeInteger(requirement.build) && requirement.build > 0 ? requirement : null;
 }
 
-export function stableRequirements(release, locale = "en-US", translate = globalThis.DropSpaceI18n?.t) {
+export function stableRequirements(release, locale, translate) {
   const requirement = windowsRequirement(release.body);
   const channel = translate("release.stable");
-  if (!requirement) return translate("requirements.unknown", { channel, tag: release.tagName, hint: releaseRequirementsHint(locale, translate) });
+  if (!requirement) return translate("requirements.unknown", { channel, tag: release.tagName, hint: translate("requirements.hint") });
   const windows = `Windows${requirement.version ? ` ${requirement.version}` : ""}`;
   const build = new Intl.NumberFormat(locale, { useGrouping: false }).format(requirement.build);
   return translate("requirements.minimum", { channel, tag: release.tagName, windows, build });
-}
-
-export function releaseRequirementsHint(locale = "en-US", translate = globalThis.DropSpaceI18n?.t) {
-  return translate("requirements.hint");
 }

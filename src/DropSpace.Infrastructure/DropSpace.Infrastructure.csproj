@@ -8,6 +8,9 @@
     <EmbeddedResource Include="Lyrics/Manifests/models-hy-mt2-q8-v1.json" />
     <EmbeddedResource Include="Lyrics/Manifests/fasttext-lid176-bin-v1.json" />
     <EmbeddedResource Include="Dlc/official-modules.json" />
+    <EmbeddedResource Include="../../modules/sample/fixture-catalog.json"
+                      LogicalName="DropSpace.Infrastructure.Dlc.fixture-catalog.json"
+                      Condition="Exists('$(MSBuildProjectDirectory)/../../.local/preview-id')" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DropSpace.Core\DropSpace.Core.csproj" />

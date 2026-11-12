@@ -4198,59 +4198,29 @@
     "NeteaseUpdateInstall": [
       "cada4215d34483e4475456df3ddd22c134acffb2173b251f785fe08ced4e7652",
       "c575ae673249e0d196be819b232e5cc5e2b0ab373d99aba7bbca6316499d34d7"
+    ],
+    "AboutReleaseHistoryHint": [
+      "f6cf805b68f1ab6f006eef4cf01c8853fc85750d6738617c964baeb64bf22398",
+      "2154d17e557a7fe8c36e12c36a026cc73624dc315a85744256a63c1739f7ac91"
+    ],
+    "ReleaseHistoryTitle": [
+      "37e6112e84a883859faad299b6a1aac99ceb1efefa0064e89d4d97a8fbb8bc30",
+      "789201f14f14f7e20b9320b814e009515e7b0038c8c59b427893af0a8f05294c"
+    ],
+    "ReleaseHistoryLoadMore": [
+      "09cf7b1a85ad9f075225619e3a4428e507a100d0cfaddcef5dce586dda4393ad",
+      "958f7634784255f5bf4120984db17474fbd6e357a17b8599a11b2947b29c5dea"
     ]
   },
-  "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
-  "reviewedAt": "2026-10-31T11:22:27.805Z",
+  "reviewedBy": "Codex release history copy review",
+  "reviewedAt": "2026-11-10T14:39:27.406Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "AddTextUrlPlaceholder",
-      "AiLyricsClearingCache",
-      "AiLyricsWorkerExited",
-      "AiLyricsWorkerStopped",
-      "ClearHistoryDescription.Text",
-      "CloseBehaviorDescription.Text",
-      "CloseToTrayContent",
-      "DefaultClipboardSyncModeDescription.Text",
-      "DeviceServiceReady",
-      "DlcCancel",
-      "DlcCanceled",
-      "DlcCanceling",
-      "DlcOperationFailed",
-      "DlcRemoving",
-      "DlcStorageSummary",
-      "DownloadTransferDetail",
-      "DownloadTransferTimedOut",
-      "DownloadUrl",
-      "DropBatchLabel",
-      "DropHintTitle.Text",
-      "EmptyPinnedDescription",
-      "EmptySpaceDescription",
-      "IslandForceShowOverFullscreenDescription",
-      "LanguageDescription.Text",
-      "LocalDataSection.Text",
-      "LyricsBackupProvider",
-      "LyricsOnlinePrivacyHelp",
-      "MediaControlFailed",
-      "MediaEstimatedTimeline",
-      "NativeSettingsSaveFailed",
-      "NetworkActionSetupRequired",
-      "OverlayDropSubtitle",
-      "OverlayMonitorChoice",
-      "OverlayMonitorPrimaryChoice",
-      "PageDescriptionPinned",
-      "PreviewUnavailable",
-      "QuickActionsDescription",
-      "RetrievalEmpty.Text",
-      "ShareNoAccessibleItems",
-      "SmartDragExclusionsDescription.Text",
-      "StorageSummary",
-      "TransferSentContent",
-      "UpdateLastDownloadIncomplete",
-      "WindowsSharePortableStatus"
+      "ReleaseHistoryTitle",
+      "ReleaseHistoryLoadMore"
     ],
-    "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
-    "reviewedAt": "2026-10-31T11:22:27.805Z"
+    "reviewedBy": "Codex release history copy review",
+    "reviewedAt": "2026-11-10T14:39:27.406Z"
   }
 }

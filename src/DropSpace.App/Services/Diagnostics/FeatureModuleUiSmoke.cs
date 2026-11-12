@@ -28,8 +28,8 @@ internal static class FeatureModuleUiSmoke
     internal static bool IsRequested(IReadOnlyList<string> arguments) => arguments.Contains(Switch, StringComparer.OrdinalIgnoreCase);
     internal static FeatureModuleUiSmokeOptions Parse(IReadOnlyList<string> arguments, string? root)
     {
-        if (!IsRequested(arguments) || !arguments.Contains("--test-mode", StringComparer.OrdinalIgnoreCase))
-            throw new ArgumentException("Module UI diagnostics require explicit test mode.");
+        if (!LocalPreview.IsEnabled || !IsRequested(arguments) || !arguments.Contains("--test-mode", StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException("Module UI diagnostics require an isolated preview build and explicit test mode.");
         if (string.IsNullOrWhiteSpace(root) || !Path.IsPathFullyQualified(root))
             throw new ArgumentException("An isolated absolute test root is required.");
         string Required(string key)

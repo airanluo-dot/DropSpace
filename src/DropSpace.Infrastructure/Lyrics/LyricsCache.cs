@@ -301,7 +301,8 @@ public sealed class LyricsCache
 
     private static bool IsValidDocument(LyricsDocument? document)
     {
-        if (document is not { Lines.Count: > 0 and <= 10_000, Match: not null } || !Enum.IsDefined(document.Provider)) return false;
+        if (document is not { Lines.Count: <= 10_000, Match: not null } || !Enum.IsDefined(document.Provider) ||
+            (document.Lines.Count == 0 && document.BodyQuality != LyricsBodyQuality.ConfirmedInstrumental)) return false;
         var match = document.Match;
         if (match.Title is null || match.Artist is null || match.Album is null || match.TrackIdentity is null ||
             string.IsNullOrWhiteSpace(match.CandidateId) || !double.IsFinite(match.DurationSeconds) || !double.IsFinite(match.Score)) return false;

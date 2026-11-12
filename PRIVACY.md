@@ -158,7 +158,7 @@ Space file records store references and metadata only. Clipboard images and larg
 - Source files remain owned and protected by their existing file-system/provider permissions.
 - Windows, WinUI, clipboard, image codec, SQLite, and shell components are trusted platform dependencies but can fail on malformed or unavailable input.
 - Same-account malware or an administrator can generally access local app data; MVP does not claim protection from that attacker.
-- Local Space/Clipboard operations do not require content upload. Online lyrics, model downloads, enhancement management and sharing have the separate opt-in boundaries documented here. The updater itself contacts the public versioned DropSpace website API, its GitHub Pages mirror, the GitHub Releases API and official GitHub asset URLs without a user or device identifier; that updater list is not an allowlist for every optional App feature.
+- Local Space/Clipboard operations do not require content upload. Online lyrics, model downloads, enhancement management and sharing have the separate opt-in boundaries documented here. The Windows updater reads the DropSpace release feed on `airanluo-dot.github.io` and uses `api.github.com` if that feed fails or returns no entries. It downloads manifests and update files from official GitHub Release assets without a user or device identifier; that updater list is not an allowlist for every optional App feature.
 
 ### Threat actors and conditions
 

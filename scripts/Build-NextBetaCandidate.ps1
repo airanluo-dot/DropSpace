@@ -2,14 +2,6 @@
 param([switch]$ValidateOnly)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-# Parse the publication helpers during PR qualification, before any installer
-# scenario can consume the shared functional execution budget.
-foreach ($helper in @('Build-NextBetaCandidate.ps1','Test-PackagedLocalization.ps1','Extract-StaticBundleAssembly.ps1',
-    'Build-PortableExe.ps1','Build-UnsignedPackage.ps1','Build-IdentityPackage.ps1','Build-Installer.ps1','Reuse-BundledLyricsLanguageModel.ps1')) {
-    $tokens = $null; $parseErrors = $null
-    [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $helper), [ref]$tokens, [ref]$parseErrors) | Out-Null
-    if ($parseErrors.Count) { throw ($parseErrors | ForEach-Object { "${helper}: $($_.Message)" } | Out-String) }
-}
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_REPOSITORY -cne 'airanluo-dot/DropSpace' -or
     (& git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Exact isolated new-Beta checkout is required.' }
 & node --input-type=module -e "import fs from 'node:fs'; import {isNextBetaRelease} from './scripts/next-beta-release-validation.mjs'; if (!isNextBetaRelease(fs.readFileSync('RELEASE_VERSION','utf8').trim())) process.exit(1);"
@@ -56,42 +48,9 @@ Copy-Item $packages[0].FullName artifacts/release/DropSpace-x64.msix
 Copy-Item artifacts/identity/DropSpace.Identity.msix artifacts/release/DropSpace.Identity.msix
 Copy-Item artifacts/cuda-runtime/win-x64/cuda-runtime-*.json artifacts/release
 & ./scripts/Test-MsixSymbolPolicy.ps1 -ArtifactRoot artifacts/msix
-# Inspect the actual final single-file bytes without launching the App or running
-# the legacy smoke's thousands of lifecycle/stress cases.
-$portableAssembly = [IO.Path]::GetFullPath('artifacts/runtime-inspection/DropSpace.dll')
-New-Item (Split-Path $portableAssembly -Parent) -ItemType Directory -Force | Out-Null
-& ./scripts/Extract-StaticBundleAssembly.ps1 -PortablePath artifacts/release/DropSpace.exe -OutputPath $portableAssembly
-& ./scripts/Inspect-AiRuntimePayload.ps1 -AssemblyPath $portableAssembly -OutputPath artifacts/runtime-inspection/portable.json
-$inspection = Get-Content artifacts/runtime-inspection/portable.json -Raw | ConvertFrom-Json -AsHashtable
-$inspection.package = [ordered]@{name='DropSpace.exe';bytes=(Get-Item artifacts/release/DropSpace.exe).Length;sha256=(Get-FileHash artifacts/release/DropSpace.exe -Algorithm SHA256).Hash.ToLowerInvariant()}
-$inspection.verificationScope = 'actual single-file manifest/embedded bytes only; App startup and native smoke/stress not executed'
-$inspection | ConvertTo-Json -Depth 8 | Set-Content artifacts/runtime-inspection/portable.json -Encoding utf8
-Remove-Item -LiteralPath $portableAssembly
+& ./scripts/Inspect-ReleasePackage.ps1 -Kind Portable -OutputPath artifacts/runtime-inspection/portable.json
 & ./scripts/Inspect-AiRuntimePayload.ps1 -MsixPath artifacts/release/DropSpace-x64.msix -OutputPath artifacts/runtime-inspection/msix.json
-# Inspect actual installed payload once in the disposable runner. Count this as
-# one installer scenario in the shared budget; upgrade/lifecycle are not covered.
-$packageIdentity = { param($Path,$Name) [ordered]@{name=$Name;bytes=(Get-Item $Path).Length;sha256=(Get-FileHash $Path -Algorithm SHA256).Hash.ToLowerInvariant()} }
-$installDirectory = Join-Path $env:RUNNER_TEMP ('DropSpace-next-beta-payload-' + [guid]::NewGuid().ToString('N'))
-try {
-    $install = Start-Process -FilePath ([IO.Path]::GetFullPath('artifacts/release/DropSpaceSetup.exe')) -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$installDirectory`"",'/TASKS=') -Wait -PassThru
-    $installExitCode = $install.ExitCode
-    $install.Dispose()
-    if ($installExitCode -ne 0) { throw 'Final installer payload extraction failed.' }
-    $installed = & $packageIdentity (Join-Path $installDirectory 'DropSpace.exe') DropSpace.exe
-    $portable = & $packageIdentity artifacts/release/DropSpace.exe DropSpace.exe
-    if ($installed.bytes -ne $portable.bytes -or $installed.sha256 -cne $portable.sha256) { throw 'Final installer contains different portable bytes.' }
-    [ordered]@{schemaVersion=1;kind='installer-payload';verificationScope='isolated installation and payload bytes only; upgrade/lifecycle not tested';package=(& $packageIdentity artifacts/release/DropSpaceSetup.exe DropSpaceSetup.exe);installedPortable=$installed} |
-        ConvertTo-Json -Depth 8 | Set-Content artifacts/runtime-inspection/installer.json -Encoding utf8
-} finally {
-    $uninstaller = Join-Path $installDirectory 'uninstall/unins000.exe'
-    if (-not (Test-Path $uninstaller)) { $uninstaller = Join-Path $installDirectory 'unins000.exe' }
-    if (Test-Path $uninstaller) {
-        $uninstall = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru
-        $uninstallExitCode = $uninstall.ExitCode
-        $uninstall.Dispose()
-        if ($uninstallExitCode -ne 0) { throw 'Isolated payload uninstall failed.' }
-    }
-}
+& ./scripts/Inspect-ReleasePackage.ps1 -Kind Installer -InstallerPath artifacts/release/DropSpaceSetup.exe
 & node scripts/ai-runtime-publication.mjs record-bundle artifacts/release runtime-directory artifacts/ai-runtime/win-x64 artifacts/runtime-inspection/portable.json artifacts/runtime-inspection/msix.json artifacts/runtime-inspection/installer.json
 if ($LASTEXITCODE -ne 0) { throw 'Final package runtime binding failed.' }
 & ./scripts/New-UpdateManifest.ps1

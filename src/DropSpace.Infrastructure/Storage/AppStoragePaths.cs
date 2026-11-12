@@ -25,6 +25,7 @@ public sealed class AppStoragePaths
         Thumbnails = Path.Combine(Root, "cache", "thumbnails");
         Previews = Path.Combine(Root, "cache", "previews");
         Lyrics = Path.Combine(Root, "cache", "lyrics");
+        MediaApplicationIcons = Path.Combine(Root, "cache", "media-app-icons");
         Backups = Path.Combine(Root, "backups");
         Logs = Path.Combine(Root, "logs");
         Quarantine = Path.Combine(Root, "quarantine");
@@ -49,6 +50,8 @@ public sealed class AppStoragePaths
     public string Previews { get; }
 
     public string Lyrics { get; }
+
+    public string MediaApplicationIcons { get; }
 
     public string Backups { get; }
 

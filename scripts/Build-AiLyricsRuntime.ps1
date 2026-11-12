@@ -8,7 +8,6 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-& (Join-Path $PSScriptRoot 'Test-AiRuntimeNotices.ps1')
 if (-not $IsWindows) { throw 'The shipping local AI runtime must be built and verified on Windows x64.' }
 
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

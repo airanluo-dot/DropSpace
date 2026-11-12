@@ -22,7 +22,6 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly AiLyricsService _service;
     private readonly DlcManagerService _dlc;
     private readonly Action _openDlc;
-    private readonly Func<CancellationToken, Task> _clearLyricsCache;
     private readonly IAppStringLocalizer _strings;
     private readonly ToggleSwitch _enabled = new();
     private readonly ToggleSwitch _gpuAcceleration = new();
@@ -36,7 +35,6 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly Button _download;
     private readonly Button _resume;
     private readonly Button _retryGpu;
-    private readonly Button _clearCache;
     private readonly LyricsGlowModeControl _glow;
     private CancellationTokenSource? _lifetime;
     private Task _operationTask = Task.CompletedTask;
@@ -47,13 +45,11 @@ public sealed class AiLyricsSettingsCard : UserControl
     private int _generation;
     private bool _syncing, _busy;
     private bool _inspecting => _dlc.IsBusy;
-    private string _message = string.Empty;
     private string _errorMessage = string.Empty;
 
-    public AiLyricsSettingsCard(NativeSettingsEditor editor, AiLyricsService service, IAppStringLocalizer strings, Func<CancellationToken, Task>? clearLyricsCache, DlcManagerService dlc, Action openDlc)
+    public AiLyricsSettingsCard(NativeSettingsEditor editor, AiLyricsService service, IAppStringLocalizer strings, DlcManagerService dlc, Action openDlc)
     {
         _editor = editor; _service = service; _strings = strings; _dlc = dlc; _openDlc = openDlc;
-        _clearLyricsCache = clearLyricsCache ?? service.ClearCacheAsync;
         var body = new StackPanel { Spacing = 12 };
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsTitle"), FontSize = 18, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
         _enabled.Header = strings.Get("AiLyricsEnabled");
@@ -100,12 +96,8 @@ public sealed class AiLyricsSettingsCard : UserControl
         _retryGpu = new Button { Content = strings.Get("AiLyricsRetryGpu"), Visibility = Visibility.Collapsed };
         AutomationProperties.SetAutomationId(_retryGpu, "AiLyricsRetryGpu");
         _retryGpu.Click += (_, _) => StartOperation(async (_, token) => await _service.RetryGpuAsync(token));
-        _clearCache = new Button { Content = strings.Get("AiLyricsClearCache") };
-        AutomationProperties.SetAutomationId(_clearCache, "AiLyricsClearCache");
-        _clearCache.Click += OnClearCache;
         actions.Children.Add(_download); actions.Children.Add(_resume);
         actions.Children.Add(_retryGpu);
-        actions.Children.Add(_clearCache);
         body.Children.Add(actions);
         body.Children.Add(new TextBlock { Text = strings.Get("LyricsGlowTitle"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
         _glow = new LyricsGlowModeControl(strings);
@@ -151,7 +143,7 @@ public sealed class AiLyricsSettingsCard : UserControl
         _busy = _savingGlow = false;
         _desiredGlow = null;
         ++_glowRevision;
-        _message = _errorMessage = string.Empty;
+        _errorMessage = string.Empty;
         _ = ObserveRetirementAsync(_operationTask, _glowTask, lifetime);
     }
 
@@ -173,7 +165,6 @@ public sealed class AiLyricsSettingsCard : UserControl
         try { DispatcherQueue.TryEnqueue(() =>
         {
             if (!IsCurrent(generation)) return;
-            if (_service.TranslationState != AiLyricsTranslationState.Ready) _message = string.Empty;
             Refresh();
         }); }
         catch (Exception exception) { Debug.WriteLine($"AI lyrics state dispatcher retired: {exception.GetType().Name}"); }
@@ -279,25 +270,6 @@ public sealed class AiLyricsSettingsCard : UserControl
         });
     }
 
-    private void OnClearCache(object sender, RoutedEventArgs args)
-    {
-        StartOperation(async (generation, token) =>
-        {
-            var dialog = new ContentDialog
-            {
-                XamlRoot = XamlRoot, Title = _strings.Get("AiLyricsClearCache"),
-                Content = _strings.Get("AiLyricsClearCacheConfirm"),
-                PrimaryButtonText = _strings.Get("AiLyricsClearCache"), CloseButtonText = _strings.Get("AiLyricsNotNow"),
-                DefaultButton = ContentDialogButton.Close,
-            };
-            if (await ContentDialogLifetime.ShowAsync(dialog, token) != ContentDialogResult.Primary || !IsCurrent(generation)) return;
-            _message = _strings.Get("AiLyricsClearingCache");
-            Refresh();
-            await _clearLyricsCache(token);
-            if (IsCurrent(generation)) _message = _strings.Get("AiLyricsCacheCleared");
-        });
-    }
-
     private void OnGlowChanged(object? sender, EventArgs args)
     {
         if (_syncing || _lifetime is null) return;
@@ -343,7 +315,7 @@ public sealed class AiLyricsSettingsCard : UserControl
     private async Task RunOperationAsync(Func<int, CancellationToken, Task> action, int generation, CancellationToken token)
     {
         _busy = true;
-        _message = _errorMessage = string.Empty;
+        _errorMessage = string.Empty;
         try
         {
             Refresh();
@@ -455,11 +427,11 @@ public sealed class AiLyricsSettingsCard : UserControl
                     DlcPackageState.Downloading => package.Progress >= 1 ? "DlcVerifying" : "DlcDownloading",
                     DlcPackageState.Canceling => "DlcCanceling", DlcPackageState.Removing => "DlcRemoving",
                     _ => package.FailedAction switch { DlcPackageAction.Download => "DlcDownloadFailed", DlcPackageAction.Delete => "DlcDeleteFailed", _ => "DlcInspectFailed" },
-                }) : _inspecting ? _strings.Get("AiLyricsChecking") : !string.IsNullOrEmpty(_message) ? _message :
+                }) : _inspecting ? _strings.Get("AiLyricsChecking") :
                 installed ? _strings.Get("AiLyricsReady") : _strings.Get("AiLyricsNeedsDownload");
             if (package?.State == DlcPackageState.Downloading && package.Transfer is { } transfer)
                 _status.Text = DlcProgressPresentation.Describe(transfer, _strings);
-            if (installed && settings.AiTranslationEnabled && !_busy && !_inspecting && string.IsNullOrEmpty(_message))
+            if (installed && settings.AiTranslationEnabled && !_busy && !_inspecting)
                 _status.Text = _strings.Get(_service.TranslationState switch
                 {
                     AiLyricsTranslationState.Translating => "AiLyricsTranslating",
@@ -472,7 +444,6 @@ public sealed class AiLyricsSettingsCard : UserControl
                 _status.Text = _strings.Get("AiLyricsTranslationPaused");
             _resume.Visibility = _service.TranslationPaused && settings.AiTranslationEnabled ? Visibility.Visible : Visibility.Collapsed;
             _resume.IsEnabled = !_busy && !_inspecting;
-            _clearCache.IsEnabled = !_busy && !_inspecting;
             _error.Text = !string.IsNullOrEmpty(_errorMessage) ? _errorMessage :
                 _service.CacheMigrationFailed ? _strings.Get("LyricsCacheMigrationFailed") : string.Empty;
             _error.Visibility = string.IsNullOrEmpty(_error.Text) ? Visibility.Collapsed : Visibility.Visible;

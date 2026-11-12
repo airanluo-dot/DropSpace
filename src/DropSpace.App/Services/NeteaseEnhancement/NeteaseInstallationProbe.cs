@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
-using Microsoft.Win32;
 
 namespace DropSpace.App.Services.NeteaseEnhancement;
 
@@ -59,13 +58,7 @@ public sealed class NeteaseInstallationProbe
                 catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { }
             }
         }
-        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
-        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
-        {
-            using var root = RegistryKey.OpenBaseKey(hive, view);
-            using var key = root.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\cloudmusic.exe");
-            if (key?.GetValue(null) is string path && Path.IsPathFullyQualified(path.Trim('"'))) paths.Add(path.Trim('"'));
-        }
+        paths.AddRange(RegisteredApplicationPaths.ForExecutable("cloudmusic.exe"));
         foreach (var folder in new[] { Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86, Environment.SpecialFolder.LocalApplicationData })
         {
             string root = Environment.GetFolderPath(folder);

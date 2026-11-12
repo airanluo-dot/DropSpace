@@ -1058,4 +1058,7 @@
   <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>已是最新版本</value></data>
   <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>暂时无法检查，请稍后重试。</value></data>
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>安装更新</value></data>
+  <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>点击Logo查看最新更新内容</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>更新内容</value></data>
+  <data name="ReleaseHistoryLoadMore" xml:space="preserve"><value>点击以继续加载</value></data>
 </root>

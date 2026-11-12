@@ -182,12 +182,38 @@ internal static class MusicVisualSmoke
     {
         var failures = new List<string>();
         var media = CreateFixture(strings, "normal");
-        var compact = new MediaCompactView { ViewModel = media };
+        media.Settings = media.Settings with
+        {
+            IslandActivity = media.Settings.IslandActivity with { ShowArtwork = true, ShowSpectrum = true },
+        };
+        media.Spectrum = new SpectrumFrame(AudioCaptureMode.ProcessLoopback, [0, .2, .4, .6, .8, 1], 1);
+        var compact = new MediaCompactView { ViewModel = media, Width = 280, Height = 64 };
+        var scaleHost = new Viewbox { Child = compact, Stretch = Stretch.Uniform, UseLayoutRounding = false };
         var root = CreateRoot(ElementTheme.Dark, 560, 180);
-        root.Children.Add(compact);
+        root.Children.Add(scaleHost);
         window.Content = root;
         window.Activate();
         await WaitForLayoutAsync(root);
+
+        var artwork = (Border)compact.FindName("ArtworkHost");
+        var meter = (StackPanel)compact.FindName("SpectrumBars");
+        var bars = meter.Children.Cast<Microsoft.UI.Xaml.Shapes.Rectangle>().ToArray();
+        foreach (var scale in new[] { 0.5, 1.0, 1.25, 2.0 })
+        {
+            scaleHost.Width = compact.Width * scale;
+            scaleHost.Height = compact.Height * scale;
+            root.UpdateLayout();
+            Rect Bounds(FrameworkElement element) => element.TransformToVisual(root)
+                .TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+            var cover = Bounds(artwork);
+            var quiet = Bounds(bars[0]);
+            var peak = Bounds(bars[^1]);
+            if (meter.Visibility != Visibility.Visible || bars.Length != SpectrumAnalyzer.BandCount ||
+                Math.Abs(cover.Width - artwork.Width * scale) > 0.1 ||
+                Math.Abs(peak.Right - quiet.Left - cover.Width) > 0.1 || Math.Abs(peak.Height - cover.Height) > 0.1 ||
+                Math.Abs(quiet.Height - quiet.Width) > 0.1)
+                failures.Add($"At scale {scale}, artwork {cover}, first bar {quiet}, peak bar {peak}.");
+        }
 
         var observedRefreshNotifications = 0;
         void ObserveNotification(object? sender, PropertyChangedEventArgs args)
@@ -564,7 +590,7 @@ internal static class MusicVisualSmoke
     {
         var deadline = Stopwatch.StartNew();
         var stable = 0;
-        var previous = new Size(-1, -1);
+        Size previous = default;
         while (deadline.Elapsed < TimeSpan.FromSeconds(10))
         {
             await Task.Delay(80);

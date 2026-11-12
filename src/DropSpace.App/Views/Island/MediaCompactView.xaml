@@ -3,13 +3,23 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     UseLayoutRounding="False">
+  <UserControl.Resources>
+    <x:Double x:Key="CompactMusicAccessorySize">24</x:Double>
+    <Style x:Key="CompactSpectrumBarStyle" TargetType="Rectangle">
+      <Setter Property="Width" Value="2.5" />
+      <Setter Property="RadiusX" Value="1.25" />
+      <Setter Property="RadiusY" Value="1.25" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Fill" Value="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
+    </Style>
+  </UserControl.Resources>
   <Grid x:Name="Layout" ColumnSpacing="12" VerticalAlignment="Center">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="Auto" />
       <ColumnDefinition Width="*" />
       <ColumnDefinition Width="Auto" />
     </Grid.ColumnDefinitions>
-    <Border x:Name="ArtworkHost" Width="24" Height="24" CornerRadius="6" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+    <Border x:Name="ArtworkHost" Width="{StaticResource CompactMusicAccessorySize}" Height="{StaticResource CompactMusicAccessorySize}" CornerRadius="6" Background="{ThemeResource ControlFillColorSecondaryBrush}">
       <Image Source="{Binding Artwork}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
     </Border>
     <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -39,13 +49,15 @@
       </Canvas>
     </Grid>
     </StackPanel>
-    <StackPanel x:Name="SpectrumBars" Grid.Column="2" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Height="22" AutomationProperties.AccessibilityView="Raw">
-      <Rectangle x:Name="Band0" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band1" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band2" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band3" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band4" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
-      <Rectangle x:Name="Band5" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
+    <StackPanel x:Name="SpectrumBars" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                Width="{StaticResource CompactMusicAccessorySize}" Height="{StaticResource CompactMusicAccessorySize}"
+                Spacing="1.8" AutomationProperties.AccessibilityView="Raw">
+      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
+      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
+      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
+      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
+      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
+      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
     </StackPanel>
   </Grid>
 </UserControl>

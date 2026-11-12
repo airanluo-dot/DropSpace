@@ -80,6 +80,12 @@
       const attributes = JSON.parse(element.dataset.i18nAttrs);
       for (const [attribute, key] of Object.entries(attributes)) element.setAttribute(attribute, t(key));
     }
+    for (const item of document.querySelectorAll('[data-summary-cn]')) {
+      item.dataset.summaryEn ??= item.textContent;
+      item.textContent = language === 'zh-CN' ? item.dataset.summaryCn :
+        language === 'zh-TW' ? item.dataset.summaryTw : item.dataset.summaryEn;
+      item.closest('[data-i18n-exempt="release-body"]').lang = language.startsWith('zh-') ? language : 'en';
+    }
     for (const selector of document.querySelectorAll('[data-language-selector]')) {
       if (!selector.options.length) for (const item of catalog.languages) {
         const option = document.createElement('option'); option.value = item.code; option.textContent = item.nativeName; selector.append(option);

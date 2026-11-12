@@ -4198,53 +4198,29 @@
     "NeteaseUpdateInstall": [
       "cada4215d34483e4475456df3ddd22c134acffb2173b251f785fe08ced4e7652",
       "c157b43366aa28acf9bb8c1f6a325c9e66bcecd30a444c612edc7c7d91853dda"
+    ],
+    "AboutReleaseHistoryHint": [
+      "f6cf805b68f1ab6f006eef4cf01c8853fc85750d6738617c964baeb64bf22398",
+      "939b208a018b62af53efe6d21b642deaa807bb910efdea25435751e34777cc08"
+    ],
+    "ReleaseHistoryTitle": [
+      "37e6112e84a883859faad299b6a1aac99ceb1efefa0064e89d4d97a8fbb8bc30",
+      "1ccfd9b7cd86037ef9ed2c0612ac907855139b873864d7d4d902a139e59cf4b6"
+    ],
+    "ReleaseHistoryLoadMore": [
+      "09cf7b1a85ad9f075225619e3a4428e507a100d0cfaddcef5dce586dda4393ad",
+      "80f636554c0044c0f6806084e179a1f12becdcee15b3a2bbe4c425441dd8a052"
     ]
   },
-  "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
-  "reviewedAt": "2026-10-31T11:22:27.205Z",
+  "reviewedBy": "Codex release history copy review",
+  "reviewedAt": "2026-11-10T14:39:29.030Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "AddTextUrlPlaceholder",
-      "AiLyricsClearingCache",
-      "ClearHistoryDescription.Text",
-      "CloseBehaviorDescription.Text",
-      "CloseToTrayContent",
-      "DefaultClipboardSyncModeDescription.Text",
-      "DeviceServiceReady",
-      "DlcCancel",
-      "DlcCanceled",
-      "DlcCanceling",
-      "DlcOperationFailed",
-      "DlcRemoving",
-      "DlcStorageSummary",
-      "DownloadTransferTimedOut",
-      "DropBatchLabel",
-      "DropHintTitle.Text",
-      "EmptyPinnedDescription",
-      "EmptySpaceDescription",
-      "IncomingTransferTitle",
-      "IslandForceShowOverFullscreenDescription",
-      "LanguageDescription.Text",
-      "LocalDataSection.Text",
-      "LyricsOnlinePrivacyHelp",
-      "MediaEstimatedTimeline",
-      "NativeSettingsSaveFailed",
-      "NetworkActionSetupRequired",
-      "OverlayDropSubtitle",
-      "PageDescriptionPinned",
-      "PreviewUnavailable",
-      "QuickActionDestination",
-      "QuickActionsDescription",
-      "RetrievalEmpty.Text",
-      "ShareNoAccessibleItems",
-      "StorageSummary",
-      "TransferSentContent",
-      "UpdateChannelTitle.Text",
-      "UpdateLastDownloadIncomplete",
-      "WindowsSharePortableStatus"
+      "ReleaseHistoryTitle",
+      "ReleaseHistoryLoadMore"
     ],
-    "reviewedBy": "Codex: user-approved human-readable copy and language-specific corrections checked against Beta6 behavior; explicit IDs only",
-    "reviewedAt": "2026-10-31T11:22:27.205Z"
+    "reviewedBy": "Codex release history copy review",
+    "reviewedAt": "2026-11-10T14:39:29.030Z"
   }
 }

@@ -6,12 +6,14 @@ using DropSpace.Core.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
 
 namespace DropSpace.App.Views.Island;
 
 public sealed partial class MediaCompactView : UserControl
 {
+    private readonly Rectangle[] _spectrumBars;
     private MediaViewModel? _view;
     private bool _subscribed;
     private readonly MediaRenderQueue _renderQueue = new();
@@ -78,6 +80,7 @@ public sealed partial class MediaCompactView : UserControl
     public MediaCompactView()
     {
         InitializeComponent();
+        _spectrumBars = SpectrumBars.Children.Cast<Rectangle>().ToArray();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         ActualThemeChanged += (_, _) => InvalidateTextMeasure();
@@ -281,15 +284,22 @@ public sealed partial class MediaCompactView : UserControl
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
         var spectrum = settings.IslandActivity.ShowSpectrum && _view.HasSpectrumPresentation;
         SpectrumBars.Visibility = spectrum ? Visibility.Visible : Visibility.Collapsed;
-        var bands = new[] { Band0, Band1, Band2, Band3, Band4, Band5 };
-        for (var index = 0; index < bands.Length; index++)
-            bands[index].Height = 2 + 20 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
+        if (spectrum)
+        {
+            for (var index = 0; index < _spectrumBars.Length; index++)
+            {
+                var bar = _spectrumBars[index];
+                var level = Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
+                bar.Height = bar.Width + (SpectrumBars.Height - bar.Width) * level;
+            }
+        }
         var maximum = settings.Lyrics.UnlimitedScrollingWidth ? _availableWidth : settings.Lyrics.ScrollingMaxWidth;
         var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Min(Math.Max(_textWidth, _secondaryTextWidth), maximum) : 180;
         // Round outward once, rather than losing a fractional pixel at either edge.
         textWidth = Math.Ceiling(textWidth * rasterizationScale) / rasterizationScale;
-        var width = 28 + textWidth + (settings.IslandActivity.ShowArtwork ? 36 : 12) + (spectrum ? 45 : 12);
-        width = Math.Min(_availableWidth, showDots ? 280 : Math.Max(180, width));
+        var width = 28 + textWidth + 2 * Layout.ColumnSpacing +
+            (settings.IslandActivity.ShowArtwork ? ArtworkHost.Width : 0) + (spectrum ? SpectrumBars.Width : 0);
+        width = showDots ? IdealIslandHeight * IslandGeometry.InterludeAspectRatio : Math.Min(_availableWidth, Math.Max(180, width));
         if (Math.Abs(width - IdealIslandWidth) > 0.5 || Math.Abs(previousHeight - IdealIslandHeight) > 0.5)
         { DeferScrollUntilLayout(); IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
         RefreshHighlight();

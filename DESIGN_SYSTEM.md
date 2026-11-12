@@ -24,6 +24,12 @@ independent of the saved Acrylic theme. High-contrast resources remain system-ow
 Acrylic restores its original theme choices and saved selection. Resident display
 and the idle logo are off by default.
 
+On Windows, a compact Island with no content uses the same 290:110 proportion when
+resident, temporarily awake or waiting to hide. The optional 24-DIP logo is centered
+inside that shape. If a resident module supplies text, the Island uses its 180 × 40 DIP
+text layout with either logo setting. The three-dot music interlude uses 476:110.
+Compact scale and monitor fitting apply to the entire capsule.
+
 Glass refresh settings offer Standard (the existing 30 Hz consumption cadence), High
 (60 fps), Very high (120 fps) and Ultra (the island monitor's current refresh rate).
 Standard remains the default. Higher tiers consume fresh frames with bounded,
@@ -211,6 +217,12 @@ Native `MenuFlyout`, standard ordering, separators by action group, keyboard acc
 - Under 720 px, toolbar actions move into overflow; minimum window prevents unusable layouts.
 - Use effective pixels, XAML layout, and rasterization-scale-aware thumbnails.
 - Test 100%, 125%, 150%, 200%, mixed-DPI display moves, RTL readiness, and 200% text scaling.
+
+## Gradient text
+
+Use `BrandTextStyle` for colored text and `.brand-ink` on the website. Each text element uses its
+own static gradient from `branding/text-gradients.json`. Key recycled elements by content so
+scrolling and loading more entries preserve their colors. Use the system text color in high contrast.
 
 ## Content language
 

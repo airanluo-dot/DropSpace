@@ -40,8 +40,12 @@ public sealed class LyricsService
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken) =>
         (await QueryDetailedAsync(query, settings, cancellationToken).ConfigureAwait(false)).Document;
 
-    public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken, bool refresh = false,
-        Action<LyricsDocument>? reportOriginal = null)
+    public Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken,
+        bool refresh = false, Action<LyricsDocument>? reportOriginal = null) =>
+        QueryDetailedAsync(query, settings, cancellationToken, refresh, reportOriginal, TimeSpan.Zero);
+
+    public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken,
+        bool refresh, Action<LyricsDocument>? reportOriginal, TimeSpan providerAdmissionDelay)
     {
         cancellationToken.ThrowIfCancellationRequested();
         query = query with { CollectSelectionCandidates = settings.SelectionMode != LyricsSelectionMode.Rules };
@@ -61,9 +65,7 @@ public sealed class LyricsService
                 foreach (var provider in OnlineProviders) _providers.RetryTransientFailures(provider);
         }
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
-        // Non-translation callers retain the existing source cache/provenance
-        // contract. Target-aware lookups use a separate identity so an old
-        // original-only cache cannot short-circuit the translated-source search.
+        // Reuse existing on-disk keys, including the target-specific source preference.
         string TargetSourceKey(string version) => JsonSerializer.Serialize(new
         {
             version, matcher = LyricsMatcher.Version, primary = kind, backup, settings.SearchRemainingProviders, target,
@@ -79,15 +81,9 @@ public sealed class LyricsService
         var key = target.Length == 0 ? OriginalSourceKey("source-v5-quality2") : TargetSourceKey("source-v10-quality2");
         LyricsRequestTrace.Record("cache-lookup", new { key = LyricsRequestTrace.Key(key), version = target.Length == 0 ? "source-v5-quality2" : "source-v10-quality2", target, refresh });
         var generation = _cache?.Generation ?? _memory.Generation;
-        LyricsDocument? cachedPreview = null;
         if (kind != LyricsProviderKind.LocalLrc && !refresh)
         {
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
-            // The old winner may be a provider's first recording, including on the
-            // preferred source. Re-evaluate once under bounded candidate ranking;
-            // retain old files for ordinary quota eviction rather than clearing the store.
-            if (cached is not null && !HasUsableEvidence(LyricsBodyQualityPolicy.Normalize(cached)))
-            { LyricsRequestTrace.Record("cache-rejected", new { reason = "placeholder-or-empty-body", qualityVersion = LyricsBodyQualityPolicy.Version }); cached = null; }
             // Older source-v2 entries persisted both heuristic and explicit tags
             // without provenance. They cannot safely be distinguished. Refetch
             // those entries once; legacy untagged entries remain reusable. New
@@ -111,37 +107,36 @@ public sealed class LyricsService
             if (cached is { Provider: LyricsProviderKind.Amll } &&
                 cached.ProviderDataRevision < AmllLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
-            if (_languageIdentifier is not null && target.Length > 0 && validated.Lines.Count > 0)
-                validated = await _languageIdentifier.PrepareAsync(validated, target, cancellationToken).ConfigureAwait(false);
-            LyricsRequestTrace.Record("cache-result", new { usable = HasUsableEvidence(validated) && !NeedsTranslationSearch(validated, target), document = LyricsRequestTrace.Describe(validated) });
-            if (HasUsableEvidence(validated) && !NeedsTranslationSearch(validated, target))
+            var hit = HasUsableEvidence(validated);
+            LyricsRequestTrace.Record("cache-result", new { usable = hit, document = LyricsRequestTrace.Describe(validated) });
+            if (cached is not null && !hit)
+                LyricsRequestTrace.Record("cache-rejected", new { reason = "unusable-or-mismatched-source", qualityVersion = LyricsBodyQualityPolicy.Version });
+            if (hit)
             {
-                if (!query.CollectSelectionCandidates) return new(validated, LyricsQueryStatus.Found)
+                cancellationToken.ThrowIfCancellationRequested();
+                // Show the saved source now. Cold-start language identification is local
+                // and only needs to finish before the translation decision.
+                TryReportOriginal(reportOriginal, validated);
+                if (_languageIdentifier is not null && target.Length > 0 && validated.Lines.Count > 0)
+                    validated = await _languageIdentifier.PrepareAsync(validated, target, cancellationToken).ConfigureAwait(false);
+                return new(validated, LyricsQueryStatus.Found)
                 { SelectionCandidates = new([LyricsCandidateRules.Describe("c0", validated, target)], 0) };
-                // A single source cache is a trusted preview, not a complete AI
-                // snapshot. Continue bounded collection through the same providers.
-                cachedPreview = validated;
             }
-            else if (HasUsableEvidence(validated) && target.Length > 0 &&
-                LyricsTranslationPolicy.HasMatchingProviderTranslation(validated, target))
-            {
-                // Retain an old partial native result as a preview, never as the
-                // finished source decision. Current coverage drives fresh lookup.
-                cachedPreview = validated;
-            }
+            // Let provisional media metadata settle only before a network search.
+            if (providerAdmissionDelay > TimeSpan.Zero)
+                await Task.Delay(providerAdmissionDelay, cancellationToken).ConfigureAwait(false);
         }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(24));
         using var candidates = new CandidateSearch(query, target, deadline.Token, kind, backup, reportOriginal,
             settings.SelectionMode != LyricsSelectionMode.Rules);
-        if (cachedPreview is not null) candidates.Report(cachedPreview);
         var document = LyricsDocument.Empty;
-        async Task<LyricsQueryResult> FinishAsync(LyricsDocument selected, bool sourceFailed, bool selectionComplete, bool allowCache = true)
+        async Task<LyricsQueryResult> FinishAsync(LyricsDocument selected, bool sourceFailed)
         {
             cancellationToken.ThrowIfCancellationRequested();
             selected = Validate(selected, query);
             // Stamp fresh validated reads at the shared cache boundary too.
-            if (selected.Lines.Count > 0) selected = selected with { ProviderDataRevision = selected.Provider switch
+            if (HasUsableEvidence(selected)) selected = selected with { ProviderDataRevision = selected.Provider switch
             {
                 LyricsProviderKind.NetEase => NetEaseLyricsProvider.DataRevision,
                 LyricsProviderKind.Kugou => KugouLyricsProvider.DataRevision,
@@ -154,8 +149,9 @@ public sealed class LyricsService
                 selected = await _languageIdentifier.PrepareAsync(selected, target, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             var incomplete = NeedsTranslationSearch(selected, target) && sourceFailed;
-            if (allowCache && HasUsableEvidence(selected) && kind != LyricsProviderKind.LocalLrc && !incomplete &&
-                !NeedsTranslationSearch(selected, target) && (target.Length == 0 || selectionComplete))
+            // Cache the verified winner actually delivered to the player. Its original
+            // lyrics are reusable even if another source failed or offered no translation.
+            if (HasUsableEvidence(selected) && kind != LyricsProviderKind.LocalLrc)
             {
                 try
                 {
@@ -207,27 +203,25 @@ public sealed class LyricsService
                 fallbackFailed = fallback.Failed;
             }
             document = SelectTranslation(document, candidates.Document, query, target, kind, backup);
-            // A lower-priority success must not permanently hide a preferred provider
-            // that failed transiently. Target-aware v6 retires legacy such decisions.
-            var selectionComplete = document.Provider == kind || !primary.Failed &&
-                (document.Provider == backup || backup is null || !fallbackFailed);
-            return await FinishAsync(document, primary.Failed || fallbackFailed, selectionComplete).ConfigureAwait(false);
+            return await FinishAsync(document, primary.Failed || fallbackFailed).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or IOException or InvalidDataException or XmlException or FormatException or RegexMatchTimeoutException)
         { document = SelectTranslation(document, candidates.Document, query, target, kind, backup); return CompleteQueryResult(document, candidates.CompletedProviderCount, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) with { SelectionCandidates = candidates.Snapshot }; }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             document = SelectTranslation(document, candidates.Document, query, target, kind, backup);
-            // Ending the internal selection window is a normal bounded decision.
-            // Only the preferred source can be committed without its task finishing;
-            // a backup must not hide an unresolved preferred request in future plays.
             if (candidates.SelectionWindowExpired)
-                return await FinishAsync(document, sourceFailed: true, selectionComplete: document.Provider == kind,
-                    allowCache: document.Provider == kind).ConfigureAwait(false);
+                return await FinishAsync(document, sourceFailed: true).ConfigureAwait(false);
             return CompleteQueryResult(document, candidates.CompletedProviderCount, document.Lines.Count > 0 && NeedsTranslationSearch(document, target))
                 with { SelectionCandidates = candidates.Snapshot };
         }
     }
+    private static void TryReportOriginal(Action<LyricsDocument>? report, LyricsDocument document)
+    {
+        try { report?.Invoke(document); }
+        catch (Exception error) when (error is not OutOfMemoryException) { }
+    }
+
     // Weak-only collection has a provisional bound. The first strictly validated
     // original gets the full shared three-second source window; later candidates
     // cannot extend it. Selection starts separately after this snapshot freezes.
@@ -314,8 +308,7 @@ public sealed class LyricsService
                         LyricsLanguagePolicy.IsAdmissionCurrent(valid, _target) &&
                         valid.Match is { } lateMatch && lateMatch.TrackIdentity == _query.TrackIdentity)
                     {
-                        try { _reportOriginal?.Invoke(valid); }
-                        catch (Exception error) when (error is not OutOfMemoryException) { }
+                        TryReportOriginal(_reportOriginal, valid);
                     }
                     return;
                 }
@@ -339,8 +332,7 @@ public sealed class LyricsService
                 // Serialize callbacks so a racing older original cannot overwrite the upgrade.
                 if (!ReferenceEquals(previous, _document))
                 {
-                    try { _reportOriginal?.Invoke(_document); }
-                    catch (Exception error) when (error is not OutOfMemoryException) { }
+                    TryReportOriginal(_reportOriginal, _document);
                 }
                 if (!_query.CollectSelectionCandidates && valid.Provider == _primary && HasCompleteTargetCoverage(valid, _target))
                     _preferredTranslationAvailable.TrySetResult();

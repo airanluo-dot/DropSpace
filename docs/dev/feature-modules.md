@@ -39,7 +39,9 @@ from its actual bytes. Publish the ZIP under the descriptor's exact official Rel
 then publish the catalog. Never replace an existing version's assets.
 The `dropspace.sample` ID is an internal lifecycle/UI fixture, excluded from both user
 catalogs and rejected by the registration script. Its descriptor stays only in
-`modules/sample/fixture-catalog.json`; it must not be published as an official DLC.
+`modules/sample/fixture-catalog.json`. Only a local preview build embeds this catalog, and only
+the isolated `--test-mode --feature-module-ui-smoke` run selects it. The fixture archive and
+descriptor must match the pinned record. Publishable builds use the public catalog.
 
 Under `%LOCALAPPDATA%/DropSpace/Modules`, state, immutable packages, resumable staging and retained
 module data are separate. Extraction rejects traversal/absolute/alternate-stream/device paths,

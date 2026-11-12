@@ -270,7 +270,6 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
 
     private async Task<MediaSessionSnapshot> ReadSnapshotAsync(CancellationToken token)
     {
-        var observedAt = DateTimeOffset.UtcNow;
         var manager = _manager;
         if (manager is null) return MediaSessionSnapshot.Empty;
         var allowed = Volatile.Read(ref _allowedSources);
@@ -395,7 +394,7 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
                     return native with
                     {
                         SessionId = _sessionIdentity, SourceDisplayName = FriendlyName(source, strings),
-                        Artwork = cachedArtwork, LastUpdated = observedAt,
+                        Artwork = cachedArtwork,
                         Timeline = timeline with { Start = effectiveStart, End = effectiveEnd },
                     };
                 }

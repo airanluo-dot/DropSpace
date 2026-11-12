@@ -10,7 +10,7 @@ public sealed class OfficialModuleCatalog : IAsyncDisposable
     public const long MaximumArchiveBytes = 256L * 1024 * 1024;
     public const int MaximumCatalogBytes = 256 * 1024;
     public static readonly Uri CatalogUri = new("https://raw.githubusercontent.com/airanluo-dot/DropSpace/main/modules/catalog.json");
-    private static readonly Lazy<IReadOnlyList<OfficialModulePackage>> EmbeddedCatalog = new(ReadEmbedded);
+    private static readonly Lazy<IReadOnlyList<OfficialModulePackage>> EmbeddedCatalog = new(() => ReadEmbedded("official-modules.json"));
     private readonly HttpClient _metadataClient = new(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false })
     {
         Timeout = TimeSpan.FromSeconds(15),
@@ -19,7 +19,15 @@ public sealed class OfficialModuleCatalog : IAsyncDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _disposeSync = new();
     private Task? _disposal;
-    private IReadOnlyList<OfficialModulePackage> _packages = EmbeddedCatalog.Value;
+    private readonly bool _fixtureOnly;
+    private IReadOnlyList<OfficialModulePackage> _packages;
+    public OfficialModuleCatalog() => _packages = EmbeddedCatalog.Value;
+    private OfficialModuleCatalog(IReadOnlyList<OfficialModulePackage> fixture)
+    {
+        _fixtureOnly = true;
+        _packages = fixture;
+    }
+    public static OfficialModuleCatalog CreateForUiFixture() => new(ReadEmbedded("fixture-catalog.json", fixtureOnly: true));
     public IReadOnlyList<OfficialModulePackage> Packages => Volatile.Read(ref _packages);
 
     // A valid descriptor may be newer than this App. Protocol/capabilities are checked separately at activation.
@@ -47,6 +55,7 @@ public sealed class OfficialModuleCatalog : IAsyncDisposable
     /// <summary>Explicit metadata refresh only; no constructor/startup network or background polling.</summary>
     public async Task RefreshAsync(CancellationToken token)
     {
+        if (_fixtureOnly) return;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
         deadline.CancelAfter(TimeSpan.FromSeconds(15));
         token = deadline.Token;
@@ -91,16 +100,16 @@ public sealed class OfficialModuleCatalog : IAsyncDisposable
         destination.Scheme == Uri.UriSchemeHttps && destination.IsDefaultPort && destination.UserInfo.Length == 0 &&
         (destination == original || destination.Host is "release-assets.githubusercontent.com" or "objects.githubusercontent.com");
 
-    private static IReadOnlyList<OfficialModulePackage> ReadEmbedded()
+    private static IReadOnlyList<OfficialModulePackage> ReadEmbedded(string name, bool fixtureOnly = false)
     {
         using var input = typeof(OfficialModuleCatalog).Assembly.GetManifestResourceStream(
-            "DropSpace.Infrastructure.Dlc.official-modules.json") ?? throw new InvalidDataException("OfficialModuleCatalogMissing");
+            "DropSpace.Infrastructure.Dlc." + name) ?? throw new InvalidDataException("OfficialModuleCatalogMissing");
         if (input.Length > MaximumCatalogBytes) throw new InvalidDataException("OfficialModuleCatalogTooLarge");
         using var output = new MemoryStream(); input.CopyTo(output);
-        return ReadCatalog(output.ToArray());
+        return ReadCatalog(output.ToArray(), fixtureOnly);
     }
 
-    private static IReadOnlyList<OfficialModulePackage> ReadCatalog(ReadOnlyMemory<byte> bytes)
+    private static IReadOnlyList<OfficialModulePackage> ReadCatalog(ReadOnlyMemory<byte> bytes, bool fixtureOnly = false)
     {
         using var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 8 });
         ExactProperties(document.RootElement, ["schemaVersion", "packages"]);
@@ -116,7 +125,7 @@ public sealed class OfficialModuleCatalog : IAsyncDisposable
             Require(package);
             if (!identities.Add(package.Id)) throw new InvalidDataException("OfficialModuleCatalogDuplicateId");
             // Never expose internal fixtures, including stale remote catalog records.
-            if (package.Id != "dropspace.sample") packages.Add(package);
+            if ((package.Id == "dropspace.sample") == fixtureOnly) packages.Add(package);
         }
         return packages.AsReadOnly();
     }

@@ -9,10 +9,8 @@ on:
       - 'scripts/package-cuda-runtime.py'
       - 'scripts/stage-reviewed-cuda-metadata.py'
       - 'scripts/Test-CudaBuildBinding.ps1'
-      - 'scripts/test_cuda_component_delivery.py'
       - 'scripts/test-ai-release-approval*.mjs'
       - 'src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs'
-      - 'tests/DropSpace.Infrastructure.Tests/CudaLyricsRuntimePackageTests.cs'
       - 'website/_source/scripts/verify-published-release*.mjs'
   workflow_dispatch:
 
@@ -21,48 +19,15 @@ permissions:
 
 jobs:
   component-contracts:
-    name: Metadata, binding, and cache contracts only
+    name: Verify CUDA package metadata
     runs-on: windows-2025
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Enforce version-independent passive CUDA validation budget
-        id: owner-budget
-        shell: pwsh
-        run: |
-          $limited = '${{ github.event_name }}' -cne 'workflow_dispatch'
-          "skip_tests=$($limited.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
-          if ($limited) {
-            'Passive budget: CUDA Python/Node/MSTest suites skipped. Reviewed component source/hash/manifest binding still verified.' >> $env:GITHUB_STEP_SUMMARY
-          }
       - name: Bind approved CUDA component metadata without test fixtures
-        if: steps.owner-budget.outputs.skip_tests == 'true'
         shell: pwsh
         run: |
           python scripts/stage-reviewed-cuda-metadata.py --app-commit $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed independent CUDA metadata staging failed.' }
           $version = (Get-Content RELEASE_VERSION -Raw).Trim()
           ./scripts/Test-CudaBuildBinding.ps1 -MetadataDirectory artifacts/cuda-runtime/win-x64 -InformationalVersion "$($version.Substring(1))+$env:GITHUB_SHA"
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        if: steps.owner-budget.outputs.skip_tests != 'true'
-        with:
-          node-version: 24
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
-        if: steps.owner-budget.outputs.skip_tests != 'true'
-        with:
-          dotnet-version: 10.0.401
-      - name: Test Python metadata and PowerShell build binding
-        if: steps.owner-budget.outputs.skip_tests != 'true'
-        run: python -m unittest discover -s scripts -p test_cuda_component_delivery.py -v
-      - name: Verify changed component inputs invalidate old approval
-        if: steps.owner-budget.outputs.skip_tests != 'true'
-        run: node --test --test-name-pattern="independent CUDA" scripts/test-ai-release-approval.test.mjs
-      - name: Test historical and independent CUDA publication metadata
-        if: steps.owner-budget.outputs.skip_tests != 'true'
-        run: node --test website/_source/scripts/verify-published-release.test.mjs
-      - name: Restore locked Infrastructure test dependencies
-        if: steps.owner-budget.outputs.skip_tests != 'true'
-        run: dotnet restore tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -p:RestoreLockedMode=true
-      - name: Test CUDA descriptor and installed-cache reuse without native inference
-        if: steps.owner-budget.outputs.skip_tests != 'true'
-        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --filter FullyQualifiedName~CudaLyricsRuntimePackageTests

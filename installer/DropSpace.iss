@@ -126,10 +126,12 @@ Type: dirifempty; Name: "{app}"
 const
   EventModifyState = $0002;
   SynchronizeAccess = $00100000;
+  QueryLimitedInformation = $1000;
   WaitObject0 = 0;
   MaintenanceWaitMilliseconds = 30000;
-  MaintenanceMutexReleasePollCount = 50;
-  MaintenanceMutexReleasePollIntervalMilliseconds = 100;
+  SnapshotProcesses = $00000002;
+  ErrorNoMoreFiles = 18;
+  ErrorInvalidParameter = 87;
 
 var
   DeleteDataCheckBox: TNewCheckBox;
@@ -147,6 +149,104 @@ external 'WaitForSingleObject@kernel32.dll stdcall';
 
 function CloseKernelHandle(Handle: HANDLE): BOOL;
 external 'CloseHandle@kernel32.dll stdcall';
+
+function OpenProcess(Access: DWORD; InheritHandle: BOOL; ProcessId: DWORD): HANDLE;
+external 'OpenProcess@kernel32.dll stdcall';
+
+function QueryProcessPath(Process: HANDLE; Flags: DWORD; Buffer: String; var Characters: DWORD): BOOL;
+external 'QueryFullProcessImageNameW@kernel32.dll stdcall';
+
+type
+  TProcessHandles = array of HANDLE;
+  { PROCESSENTRY32W, SDK x64 layout. Pascal Script records are packed. }
+  TProcessEntry = record
+    Size, Usage, ProcessId, HeapAlignment: DWORD;
+    DefaultHeap: NativeUInt;
+    ModuleId, Threads, ParentId, Priority, Flags: DWORD;
+    ExeName: array[0..259] of Char;
+    TrailingAlignment: DWORD;
+  end;
+
+function CreateProcessSnapshot(Flags, ProcessId: DWORD): HANDLE;
+external 'CreateToolhelp32Snapshot@kernel32.dll stdcall';
+
+function ProcessFirst(Snapshot: HANDLE; var Entry: TProcessEntry): BOOL;
+external 'Process32FirstW@kernel32.dll stdcall';
+
+function ProcessNext(Snapshot: HANDLE; var Entry: TProcessEntry): BOOL;
+external 'Process32NextW@kernel32.dll stdcall';
+
+function FindInstalledProcesses(const InstalledPath: String; var Processes: TProcessHandles): Boolean;
+var
+  Snapshot, Process: HANDLE;
+  Entry: TProcessEntry;
+  ImagePath, Name: String;
+  I, Count: Integer;
+  Characters, ErrorCode: DWORD;
+begin
+  Result := True;
+  if not FileExists(InstalledPath) then Exit;
+  Result := False;
+  Snapshot := CreateProcessSnapshot(SnapshotProcesses, 0);
+  if Snapshot = HANDLE(-1) then
+  begin
+    Log(Format('Could not enumerate processes (Win32 error %d).', [DLLGetLastError]));
+    Exit;
+  end;
+  try
+    Entry.Size := SizeOf(Entry);
+    if not ProcessFirst(Snapshot, Entry) then Exit;
+    repeat
+      Name := '';
+      for I := 0 to 259 do
+      begin
+        if Entry.ExeName[I] = #0 then Break;
+        Name := Name + Entry.ExeName[I];
+      end;
+      if CompareText(Name, ExtractFileName(InstalledPath)) = 0 then
+      begin
+        Process := OpenProcess(QueryLimitedInformation or SynchronizeAccess, False, Entry.ProcessId);
+        if Process = 0 then
+        begin
+          ErrorCode := DLLGetLastError;
+          { A process can leave the snapshot before OpenProcess runs. }
+          if ErrorCode <> ErrorInvalidParameter then
+          begin
+            Log(Format('Could not inspect DropSpace PID %d (Win32 error %d).', [Entry.ProcessId, ErrorCode]));
+            Exit;
+          end;
+        end
+        else
+        try
+          Characters := 32768;
+          SetLength(ImagePath, Characters);
+          if not QueryProcessPath(Process, 0, ImagePath, Characters) then
+          begin
+            ErrorCode := DLLGetLastError;
+            if WaitForSingleObject(Process, 0) <> WaitObject0 then
+            begin
+              Log(Format('Could not identify DropSpace PID %d (Win32 error %d).', [Entry.ProcessId, ErrorCode]));
+              Exit;
+            end;
+          end
+          else if CompareText(Copy(ImagePath, 1, Characters), InstalledPath) = 0 then
+          begin
+            Count := GetArrayLength(Processes);
+            SetArrayLength(Processes, Count + 1);
+            Processes[Count] := Process;
+            Process := 0;
+          end;
+        finally
+          if Process <> 0 then CloseKernelHandle(Process);
+        end;
+      end;
+    until not ProcessNext(Snapshot, Entry);
+    ErrorCode := DLLGetLastError;
+    Result := ErrorCode = ErrorNoMoreFiles;
+  finally
+    CloseKernelHandle(Snapshot);
+  end;
+end;
 
 function HasParameter(const Name: String): Boolean;
 var
@@ -187,61 +287,37 @@ end;
 
 function RequestMaintenanceShutdown(): Boolean;
 var
+  Processes: TProcessHandles;
   RequestEvent: HANDLE;
-  StoppedEvent: HANDLE;
-  WaitResult: DWORD;
-  Attempt: Integer;
+  I: Integer;
 begin
-  Result := True;
-  if not CheckForMutexes('Local\DropSpace.Running.v1') then
-    Exit;
+  Result := False;
+  try
+    if not FindInstalledProcesses(ExpandConstant('{app}\DropSpace.exe'), Processes) then Exit;
+    if (GetArrayLength(Processes) > 0) and CheckForMutexes('Local\DropSpace.Running.v1') then
+    begin
+      RequestEvent := OpenEvent(EventModifyState, False, 'Local\DropSpace.MaintenanceShutdown.v1');
+      if RequestEvent <> 0 then
+      try
+        if not SignalEvent(RequestEvent) then Exit;
+      finally
+        CloseKernelHandle(RequestEvent);
+      end;
+    end;
 
-  Log('DropSpace is running; requesting graceful maintenance shutdown through named events.');
-  RequestEvent := OpenEvent(EventModifyState, False, 'Local\DropSpace.MaintenanceShutdown.v1');
-  StoppedEvent := OpenEvent(SynchronizeAccess, False, 'Local\DropSpace.MaintenanceStopped.v1');
-  if (RequestEvent = 0) or (StoppedEvent = 0) then
-  begin
-    if RequestEvent <> 0 then
-      CloseKernelHandle(RequestEvent);
-    if StoppedEvent <> 0 then
-      CloseKernelHandle(StoppedEvent);
-    Log(Format('Maintenance events were unavailable (Win32 error %d).', [DLLGetLastError]));
-    Result := False;
-    Exit;
+    { Old versions can release the running mutex and signal Stopped before native teardown.
+      The handle stays tied to this exact process even if Windows later reuses its PID. }
+    for I := 0 to GetArrayLength(Processes) - 1 do
+      if WaitForSingleObject(Processes[I], MaintenanceWaitMilliseconds) <> WaitObject0 then
+      begin
+        Log('The installed DropSpace process has not exited.');
+        Exit;
+      end;
+    Result := True;
+  finally
+    for I := 0 to GetArrayLength(Processes) - 1 do
+      CloseKernelHandle(Processes[I]);
   end;
-
-  if not SignalEvent(RequestEvent) then
-  begin
-    Log(Format('Could not signal the maintenance request (Win32 error %d).', [DLLGetLastError]));
-    CloseKernelHandle(RequestEvent);
-    CloseKernelHandle(StoppedEvent);
-    Result := False;
-    Exit;
-  end;
-
-  WaitResult := WaitForSingleObject(StoppedEvent, MaintenanceWaitMilliseconds);
-  CloseKernelHandle(RequestEvent);
-  CloseKernelHandle(StoppedEvent);
-  if WaitResult <> WaitObject0 then
-  begin
-    Log(Format('Timed out waiting for graceful maintenance shutdown (wait result %d).', [WaitResult]));
-    Result := False;
-    Exit;
-  end;
-
-  { The stopped event is signaled after managed disposal completes and immediately before
-    process exit. Give the kernel a bounded moment to release the process-owned mutex. }
-  for Attempt := 1 to MaintenanceMutexReleasePollCount do
-  begin
-    if not CheckForMutexes('Local\DropSpace.Running.v1') then
-      Break;
-    Sleep(MaintenanceMutexReleasePollIntervalMilliseconds);
-  end;
-  Result := not CheckForMutexes('Local\DropSpace.Running.v1');
-  if Result then
-    Log('DropSpace completed graceful maintenance shutdown.')
-  else
-    Log('DropSpace acknowledged shutdown but its process mutex remained present.');
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

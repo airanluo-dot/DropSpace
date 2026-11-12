@@ -19,28 +19,12 @@ Public APIs, documented platform behavior, and high-level interaction ideas may 
 
 ## Quality and scope
 
-Keep pull requests focused. Add or update tests and documentation when behavior changes, preserve user files and privacy boundaries, and never commit signing keys, tokens, private certificates, or user data.
+Keep pull requests focused and preserve user files and privacy. Keep credentials and user data out of commits.
+Follow the [minimal testing and development rules](docs/dev/passive-test-budget.md) and the [core case list](TEST_PLAN.md).
 
-App, installer and website UI changes follow the single
-[interface localization contract](docs/dev/interface-localization.md): shared ten-language
-definitions, incremental source/translation review records and publication gate. Lyric targets
-remain independently saved and permanently Chinese/English; preserve lyric business behavior.
-New release summaries, changelog bodies and highlights use English only. Keep one passive test
-count within 20 including repeats; a release request does not authorize full suites.
-
-For Beta 26, keep real provider responses and native execution evidence distinct
-from deterministic fixtures. On clean runners, run
-`./scripts/Install-TestWindowsAppRuntime.ps1` after locked restore; the script
-registers the Microsoft runtime MSIX packages selected by the existing lock file
-and verifies them. Use `-InspectOnly` to check a workstation without installing.
-Missing runtime fails with an HRESULT rather than opening a headless dialog.
-App tests bootstrap their unpackaged Windows App SDK
-host. Release validation checks actual executable versions, and upgrade lifecycle
-tests use the real historical installer in an isolated account, preserving all
-pre-existing user data and installation state. Use the repository
-[maintainer Skill](.agents/skills/dropspace-maintainer/SKILL.md) as the only
-canonical project guide. Update it when its durable navigation or interface map
-changes; ordinary product changes do not require a Skill update or personal copy.
+App, installer and website UI changes use the [interface localization contract](docs/dev/interface-localization.md).
+The release history uses the [same-platform, same-channel comparison rule](AGENTS.md#release-comparison-rule);
+both Chinese interfaces use Chinese summaries and other interfaces use English summaries.
 
 For v0.3 network/preview changes, read the DropSpace maintainer skill and the contracts under `docs/protocol`, `docs/architecture`, and `docs/security`. Do not add a new platform client, public backend, firewall rule, telemetry field, or release claim without an explicit documented boundary and a fail-closed unavailable state.
 

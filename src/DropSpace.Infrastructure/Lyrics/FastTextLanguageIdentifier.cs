@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Lyrics;
+using DropSpace.Infrastructure.Storage;
 using Microsoft.Win32.SafeHandles;
 
 namespace DropSpace.Infrastructure.Lyrics;
@@ -23,6 +24,7 @@ public sealed class FastTextLanguageIdentifier : ILyricsLanguageIdentifier, IDis
     private readonly Dictionary<string, CachedPrediction> _predictions = new(StringComparer.Ordinal);
     private readonly Manifest _manifest = ReadManifest();
     private readonly string? _suppliedModelPath;
+    private readonly AppStoragePaths? _storagePaths;
     private FastTextHandle? _model;
     private bool _initializationAttempted;
     private string? _initializationFailure;
@@ -32,6 +34,7 @@ public sealed class FastTextLanguageIdentifier : ILyricsLanguageIdentifier, IDis
         string EngineCommit, string NativePackageVersion, string NativeWrapperCommit, long NativeBytes, string NativeSha256);
 
     public FastTextLanguageIdentifier() { }
+    public FastTextLanguageIdentifier(AppStoragePaths storagePaths) => _storagePaths = storagePaths;
     // Explicit local path is for build compatibility verification, never a runtime download route.
     public FastTextLanguageIdentifier(string modelPath) => _suppliedModelPath = Path.GetFullPath(modelPath);
     public string ModelIdentity => string.Join(':', _manifest.Sha256, _manifest.EngineCommit,
@@ -177,8 +180,8 @@ public sealed class FastTextLanguageIdentifier : ILyricsLanguageIdentifier, IDis
 
     private string ExtractBundledModel(CancellationToken token)
     {
-        var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DropSpace", "BundledLyricsLanguage", _manifest.Sha256);
+        var root = (_storagePaths ?? AppStoragePaths.CreateForCurrentUser()).Root;
+        var directory = Path.Combine(root, "BundledLyricsLanguage", _manifest.Sha256);
         Directory.CreateDirectory(directory);
         if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
             throw new IOException("Bundled model directory is a reparse point.");

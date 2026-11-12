@@ -225,9 +225,7 @@ src/
   DropSpace.Infrastructure/  SQLite, file/cache, Windows and Win32 adapters
   DropSpace.MusicBackground/ Windows music-background and Liquid Glass rendering
 tests/
-  DropSpace.Core.Tests/
-  DropSpace.Infrastructure.Tests/
-  DropSpace.App.Tests/       UI-facing integration and automation harness
+  DropSpace.Core.Tests/      Focused Windows behavior checks
 docs/                        Optional future ADR/archive location
 ```
 
@@ -477,7 +475,7 @@ Define an `IItemAction` discovery model only when a second non-core action provi
 - Core tests run without WinUI or Windows APIs.
 - Record removal cannot invoke source-file deletion through any interface.
 - Clipboard capture is event-driven and bounded.
-- Every schema change has forward migration and failure test.
+- Schema upgrades migrate existing data and keep a recoverable copy if migration fails.
 - Main window and Overlay share repositories and use cases, not duplicate stores.
 - Smart/Disabled Hidden idle owns no top-edge or OLE target window and has no continuous frame timer. Classic mode's disclosed compatibility host is the only exception.
 
@@ -509,7 +507,7 @@ Temporary Space mutations are authoritative in `MainViewModel`. After a reposito
 
 `IUpdateSource`, `IUpdateDownloader`, `IUpdateVerifier`, `ITrustedUpdateVerifier`, `IUpdateInstallerLauncher`, and `IDeploymentModeService` isolate the network-to-execution boundary from `MainViewModel`. `ReleaseVersion` is the single SemVer ordering model used by channel selection and mirrored by `scripts/ReleaseVersion.ps1` for EXE, Inno, MSIX, identity and release automation. Stable filters prereleases; Beta retains prereleases and final releases; both require candidate > current. Historical Preview channel values migrate to Beta and published Preview tags remain readable.
 
-`ResilientUpdateSource` merges at most 20 releases from each schema-v1 official website replica so a successful but stale static response cannot hide a newer release, then falls back to the official GitHub REST API only when the website replicas fail. Each source is bounded and the website contract accepts only exact official GitHub release/tag/asset identities. `UpdateManifestParser` accepts one bounded exact-schema manifest, fixed executable names, official same-release GitHub asset URLs, exact channel/tag/version metadata, and no remote executable URL field. `HttpUpdateDownloader` uses the application singleton `HttpRangeDownloader` for validated parallel ranges into `%LOCALAPPDATA%\DropSpace\Updates\<version>\*.download`, verifies the assembled size/SHA-256, and atomically renames. Update payloads share connection, transfer and bandwidth budgets with files and DLC; every redirect retains a GitHub release-asset trust policy. Install re-verifies the frozen file. Inno `/UPDATE` requests the existing maintenance handshake and restarts only after success; Portable never invokes Inno and Package/MSIX remains Windows-managed. Installer users can opt into automatic installation after these same source, size and SHA-256 checks. WinVerifyTrust remains diagnostic and does not disable unsigned official updates.
+The Windows updater reads up to 20 entries from the GitHub Pages feed at `https://airanluo-dot.github.io/DropSpace/api/v1/releases.json`. If that feed fails or yields no entries, `ResilientUpdateSource` tries the repository’s releases endpoint on `api.github.com`. The manifest and executable come from the selected GitHub Release. Each source is bounded and the website contract accepts only exact official GitHub release/tag/asset identities. `UpdateManifestParser` accepts one bounded exact-schema manifest, fixed executable names, official same-release GitHub asset URLs, exact channel/tag/version metadata, and no remote executable URL field. `HttpUpdateDownloader` uses the application singleton `HttpRangeDownloader` for validated parallel ranges into `%LOCALAPPDATA%\DropSpace\Updates\<version>\*.download`, verifies the assembled size/SHA-256, and atomically renames. Update payloads share connection, transfer and bandwidth budgets with files and DLC; every redirect retains a GitHub release-asset trust policy. Install re-verifies the frozen file. Inno `/UPDATE` requests the existing maintenance handshake and restarts only after success; Portable never invokes Inno and Package/MSIX remains Windows-managed. Installer users can opt into automatic installation after these same source, size and SHA-256 checks. WinVerifyTrust remains diagnostic and does not disable unsigned official updates.
 
 Windows Share activation is a separate input contract, not Clipboard capture. `ShareTargetActivationService` receives `StorageItems`, reports the Share lifecycle, dispatches to the existing main instance and calls the same `AddPathsAsync`. It never writes Clipboard History.
 

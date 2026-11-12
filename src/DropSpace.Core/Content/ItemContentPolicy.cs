@@ -1,4 +1,5 @@
 using DropSpace.Core.Models;
+using DropSpace.Core.Preview;
 
 namespace DropSpace.Core.Content;
 
@@ -38,6 +39,18 @@ public static class ItemContentPolicy
 
     public static bool IsImage(ItemKind kind, string? extension, string? mimeType) =>
         Infer(kind, extension, mimeType) == ItemContentType.Image;
+
+    // Menu and card evaluation must use the snapshot; external paths can be offline.
+    public static ItemContentType? AvailablePathType(DropItemSnapshot item)
+    {
+        if (item.Status != ItemStatus.Available || (item.Payload is null && !item.HasExternalSource) ||
+            (item.Text is not null && item.Kind is (ItemKind.Text or ItemKind.Code or ItemKind.Color)))
+            return null;
+
+        return string.Equals(item.Payload?.Kind, "images", StringComparison.OrdinalIgnoreCase)
+            ? ItemContentType.Image
+            : Infer(item.Kind, item.Extension ?? item.Payload?.RelativePath ?? item.OriginalPath, item.MimeType);
+    }
 
     public static bool IsImageExtension(string? extension) =>
         ImageExtensions.Contains(NormalizeExtension(extension));

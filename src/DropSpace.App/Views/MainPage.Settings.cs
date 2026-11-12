@@ -170,19 +170,24 @@ public sealed partial class MainPage
         var logo = new Image
         {
             Width = 112, Height = 112, Stretch = Stretch.Uniform,
-            HorizontalAlignment = HorizontalAlignment.Center, Margin = new(0, 0, 0, 12),
+            HorizontalAlignment = HorizontalAlignment.Center,
         };
         logo.Loaded += OnAboutLogoLoaded;
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAccessibilityView(logo, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
-        about.Children.Add(logo);
+        var hint = _strings.Get("AboutReleaseHistoryHint");
+        var logoButton = new Button { Content = logo, Style = (Style)Application.Current.Resources["SubtleButtonStyle"],
+            HorizontalAlignment = HorizontalAlignment.Center, CornerRadius = new(16) };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(logoButton, hint);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(logoButton, "AboutReleaseHistory");
+        logoButton.Click += (_, _) => _viewModel.OpenReleaseHistory();
+        about.Children.Add(logoButton);
         var version = new TextBlock { FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center };
         version.SetBinding(TextBlock.TextProperty, new Binding { Source = _viewModel, Path = new PropertyPath(nameof(MainViewModel.CurrentVersionDisplayText)) });
         groups["About"].Children.Add(version);
-        var deployment = new TextBlock { TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
+        var instruction = new TextBlock { Text = hint, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] };
-        deployment.SetBinding(TextBlock.TextProperty, new Binding { Source = _viewModel, Path = new PropertyPath(nameof(MainViewModel.DeploymentModeText)) });
-        groups["About"].Children.Add(deployment);
+        about.Children.Add(instruction);
         var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(24, 0, 24, 0) };
         error.SetBinding(TextBlock.TextProperty, new Binding { Source = editor, Path = new PropertyPath(nameof(NativeSettingsEditor.Error)) });
         var navigation = new NavigationView { PaneDisplayMode = NavigationViewPaneDisplayMode.Top, IsSettingsVisible = false, IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed };

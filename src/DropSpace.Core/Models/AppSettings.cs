@@ -337,13 +337,7 @@ public sealed record AppSettings
             preference.Validate();
         }
 
-        var normalizedHotkey = SettingsValidationPolicy.CanonicalizeHotkey(QuickPanelHotkey);
-        if (normalizedHotkey is null)
-        {
-            throw new ArgumentOutOfRangeException(nameof(QuickPanelHotkey));
-        }
-
-        KeyboardShortcutPolicy.Validate(this);
+        var normalizedHotkey = KeyboardShortcutPolicy.ValidateAndGetQuickPanel(this);
 
         if (SmartDragExcludedProcesses is null || SmartDragExcludedProcesses.Length > SettingsValidationPolicy.MaximumSmartDragExcludedProcesses || SmartDragExcludedProcesses.Any(value =>
                 string.IsNullOrWhiteSpace(value) || value.Length > SettingsValidationPolicy.MaximumSmartDragProcessLength ||

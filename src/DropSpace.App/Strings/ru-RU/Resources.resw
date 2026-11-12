@@ -1056,4 +1056,7 @@
   <data name="NeteaseUpdateCurrent" xml:space="preserve"><value>Установлена последняя версия</value></data>
   <data name="NeteaseUpdateUnavailable" xml:space="preserve"><value>Не удалось проверить. Повторите позже.</value></data>
   <data name="NeteaseUpdateInstall" xml:space="preserve"><value>Установить обновление</value></data>
+  <data name="AboutReleaseHistoryHint" xml:space="preserve"><value>Нажмите на логотип, чтобы узнать, что нового</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Что нового</value></data>
+  <data name="ReleaseHistoryLoadMore" xml:space="preserve"><value>Нажмите, чтобы загрузить ещё</value></data>
 </root>

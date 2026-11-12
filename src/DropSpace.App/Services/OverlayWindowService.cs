@@ -141,6 +141,7 @@ public sealed class OverlayWindowService : IDisposable
         _mediaViewModel.PropertyChanged += OnMediaSettingsChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested += OnOverlayPlacementEditRequested;
+        _mainViewModel.ReleaseHistoryRequested += OnReleaseHistoryRequested;
         _mainViewModel.PropertyChanged += OnMainSettingsChanged;
         _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
         _foregroundWindowMonitor.Start();
@@ -577,6 +578,7 @@ public sealed class OverlayWindowService : IDisposable
         _mediaViewModel.PropertyChanged -= OnMediaSettingsChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested -= OnOverlayPlacementEditRequested;
+        _mainViewModel.ReleaseHistoryRequested -= OnReleaseHistoryRequested;
         _mainViewModel.PropertyChanged -= OnMainSettingsChanged;
         _foregroundWindowMonitor.ForegroundChanged -= OnForegroundChanged;
         _dragSessionDetector.CandidateStarted -= OnSmartDragCandidateStarted;
@@ -658,6 +660,14 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnMainSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName == nameof(MainViewModel.UpdateChannel))
+        {
+            _dispatcher.TryEnqueue(() =>
+            {
+                if (_disposed) return;
+                foreach (var window in _windows) window.RefreshReleaseHistoryChannel(_mainViewModel.UpdateChannel);
+            });
+        }
         if (args.PropertyName == nameof(MainViewModel.Language) && _displayLanguage != _mainViewModel.Language)
         {
             _displayLanguage = _mainViewModel.Language;
@@ -898,7 +908,10 @@ public sealed class OverlayWindowService : IDisposable
 
     public void OpenRetrieval() => OnQuickPanelHotkeyInvoked(this, EventArgs.Empty);
 
-    private void OnQuickPanelHotkeyInvoked(object? sender, EventArgs args)
+    private void OnQuickPanelHotkeyInvoked(object? sender, EventArgs args) => OpenQuickPanel(showHistory: false);
+    private void OnReleaseHistoryRequested(object? sender, EventArgs args) => OpenQuickPanel(showHistory: true);
+
+    private void OpenQuickPanel(bool showHistory)
     {
         var returnWindow = OverlayWindow.CaptureRetrievalForeground();
         _dispatcher.TryEnqueue(() =>
@@ -915,8 +928,7 @@ public sealed class OverlayWindowService : IDisposable
             // Surface routing includes Primary/fullscreen preferences. Let the
             // window actually shown by ApplySnapshot accept the keyboard request.
             foreach (var window in _windows)
-                if (window.TryActivateQuickPanel(retrieval: true, returnWindow)) break;
-            _logger.LogInformation("Quick Panel opened from the registered global hotkey.");
+                if (window.TryActivateQuickPanel(retrieval: !showHistory, returnWindow, showHistory ? _mainViewModel.UpdateChannel : null)) break;
         });
     }
 
@@ -955,7 +967,8 @@ public sealed class OverlayWindowService : IDisposable
         foreach (var host in _activationHosts)
         {
             var monitorEnabled = !primaryOnly || host.MonitorId == _primaryMonitor.Id;
-            var visualSurfaceOwnsStableInput = activePresentation.State is OverlayState.Compact or OverlayState.Expanded;
+            var visualSurfaceOwnsStableInput = host.MonitorId == activeMonitorId &&
+                activePresentation.State is OverlayState.Compact or OverlayState.Expanded;
             var activationEnabled = _activeDragOwner == DragTargetOwner.ActivationHost ||
                                     _activeDragOwner == DragTargetOwner.None && !visualSurfaceOwnsStableInput;
             host.SetEnabled(monitorEnabled && activationEnabled);

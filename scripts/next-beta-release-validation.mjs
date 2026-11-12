@@ -1,6 +1,5 @@
 // New Beta releases compile the PR, then package the exact merged main.
-// PR builds perform no functional cases. Package production counts one installer
-// payload scenario; other focused checks are budgeted separately.
+// PR receipts bind the compilation log. Final packaging verifies the installer payload.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,7 +37,10 @@ export function verifyValidation(directory,receipt,expected) {
   assert.ok(isNextBetaRelease(receipt.releaseVersion),'A supported release candidate is required');
   assert.match(receipt.sourceCommit??'',/^[a-f0-9]{40}$/);
   assert.equal(receipt.appXamlBuild,true,'Complete Windows App/XAML build required');
-  assert.deepEqual(receipt.tests,{status:'not-run',executed:0,reason:'PR compilation only; focused functional checks use the project budget'});
+  // The prior producer used a longer reason for the same compilation-only result.
+  const oldReason = 'PR compilation only; focused functional checks use the project budget';
+  assert.deepEqual(receipt.tests,{status:'not-run',executed:0,
+    reason:receipt.tests?.reason === oldReason ? oldReason : 'PR compilation only'});
   assert.deepEqual(Object.keys(receipt.files),['app-build.txt']);
   assert.deepEqual(receipt.files['app-build.txt'],identity(path.join(directory,'app-build.txt')),'Actual build evidence changed');
   return receipt;
@@ -71,7 +73,7 @@ async function main() {
       runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),
       sourceCommit:git('rev-parse','HEAD'),sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion,
       appXamlBuild:true,
-      tests:{status:'not-run',executed:0,reason:'PR compilation only; focused functional checks use the project budget'},
+      tests:{status:'not-run',executed:0,reason:'PR compilation only'},
       files:{'app-build.txt':identity(path.join(directory,'app-build.txt'))}};
     verifyValidation(directory,receipt,receipt);
     fs.writeFileSync(path.join(directory,'validation-receipt.json'),JSON.stringify(receipt,null,2)+'\n');
@@ -80,7 +82,9 @@ async function main() {
     const sourceTree=git('rev-parse','HEAD^{tree}');
     const runs=await api('actions/workflows/ci.yml/runs?status=success&event=pull_request&per_page=30');
     for(const candidate of runs.workflow_runs??[]) {
-      const run=await api(`actions/runs/${candidate.id}`);producer(run);
+      const run=await api(`actions/runs/${candidate.id}`);
+      if(run.head_repository?.full_name!==repository)continue;
+      producer(run);
       const associated=run.pull_requests?.length?run.pull_requests:await api(`commits/${run.head_sha}/pulls`);
       let merged=false;
       for(const pr of associated) {
@@ -109,7 +113,7 @@ async function main() {
     assert.ok(receipt.sourceCommit===run.head_sha||commit.parents?.some(parent=>parent.sha===run.head_sha),'Build is not bound to producer head');
     verifyValidation(directory,receipt,expected);
     if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-      `Reused full Windows App/XAML PR build ${run.id}/${run.run_attempt}, checkout ${receipt.sourceCommit}, identical tree ${receipt.sourceTree}. PR functional cases executed: 0. The final installer payload scenario is counted separately.\n`);
+      `Reused full Windows App/XAML PR build ${run.id}/${run.run_attempt}, checkout ${receipt.sourceCommit}, identical tree ${receipt.sourceTree}. PR functional cases executed: 0. Final packaging verifies the installer payload.\n`);
   } else throw new Error('Expected record, find or verify');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(error.message);process.exitCode=1;});

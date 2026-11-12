@@ -63,7 +63,22 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
                 session.PlaybackState != _session.PlaybackState &&
                 session.Timeline.Position == _session.Timeline.Position &&
                 session.Timeline.LastUpdated == _session.Timeline.LastUpdated;
-            position = staleStateTransition ? interpolated : Math.Max(0, session.Timeline.Position.TotalSeconds);
+            var nativeSeconds = Math.Max(0, session.Timeline.Position.TotalSeconds);
+            var appleSeconds = MediaProcessIdentityPolicy.IsAppleMusic(session.SourceAppUserModelId) &&
+                session.Timeline.PlaybackRate == 1 && session.Timeline.Position.Ticks % TimeSpan.TicksPerSecond == 0;
+            var advance = (session.Timeline.Position - _session.Timeline.Position).TotalSeconds;
+            var lag = interpolated - nativeSeconds;
+            var trailingAppleTick = appleSeconds && sameTrack && !IsEstimated &&
+                advance is >= 0 and <= 2 && lag is >= 0 and < 3;
+            position = staleStateTransition ? interpolated : nativeSeconds;
+            if (appleSeconds && sameTrack && !IsEstimated && session.PlaybackState == MediaPlaybackState.Paused &&
+                lag >= 0)
+            {
+                var confirmingStop = _session.PlaybackState == MediaPlaybackState.Playing ||
+                    interpolated >= _session.Timeline.Position.TotalSeconds + 1;
+                // State, a final playing tick and the confirmed stop may arrive separately.
+                if (lag < 1 || (confirmingStop && trailingAppleTick)) position = interpolated;
+            }
             if (session.PlaybackState == MediaPlaybackState.Playing)
             {
                 var rate = double.IsFinite(session.Timeline.PlaybackRate) && session.Timeline.PlaybackRate is > 0 and <= 8 ? session.Timeline.PlaybackRate : 1;
@@ -75,10 +90,26 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
                     // includes the paused interval and must not be counted as playback.
                     var resumedAt = validSessionTimestamp ? session.LastUpdated : now;
                     if (observation < resumedAt) observation = resumedAt;
+                    if (trailingAppleTick) position = interpolated;
                 }
                 position += Math.Clamp((now - observation).TotalSeconds, 0, 86_400) * rate;
-                var advance = (session.Timeline.Position - _session.Timeline.Position).TotalSeconds;
-                if (sameTrack && _session.PlaybackState == MediaPlaybackState.Playing &&
+                if (appleSeconds && (!sameTrack || IsEstimated) && nativeSeconds > 2)
+                {
+                    // Joining an already playing Apple Music session has no transport anchor.
+                    // Its integer observation is published one reporting period late, with
+                    // an unknown fractional second. Use the midpoint only on initial attach.
+                    position += 1.5;
+                }
+                else if (appleSeconds && sameTrack && !IsEstimated &&
+                    _session.PlaybackState == MediaPlaybackState.Playing && advance is > 0 and <= 2 &&
+                    interpolated >= position && interpolated - position < 3)
+                {
+                    // Apple Music samples whole seconds roughly once a second. A normal
+                    // report can skip an integer or trail an observed resume by two seconds.
+                    // Keep the running transport anchor. Seeks and long stalls re-anchor.
+                    position = interpolated;
+                }
+                else if (sameTrack && _session.PlaybackState == MediaPlaybackState.Playing &&
                     session.Timeline.Position.Ticks % TimeSpan.TicksPerSecond == 0 && advance is >= 0 and <= 1 &&
                     Math.Abs(position - interpolated) < 1)
                     position = Math.Max(interpolated, position);

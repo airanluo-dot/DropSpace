@@ -13,6 +13,7 @@ using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Preview;
+using DropSpace.Core.Updates;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
@@ -34,19 +35,23 @@ public sealed partial class OverlayWindow : Window
     private bool _pageReducedMotion;
     private readonly IslandPageTransition _pageTransition = new();
     private readonly Dictionary<FrameworkElement, TranslateTransform> _pageOffsets = [];
-    private double ExpandedNaturalWidth => _retrievalVisible && RetrievalView.IsPreviewOpen ? 760 : 560;
-    private double ExpandedNaturalHeight => _retrievalVisible && RetrievalView.IsPreviewOpen ? 580 : 340;
+    private double HistoryWidth => Math.Clamp(_monitor.EffectiveWorkWidth / _monitor.Scale - 48, 1, 920);
+    private double HistoryHeight => Math.Clamp(_monitor.EffectiveWorkHeight / _monitor.Scale - 64, 1, 640);
+    private bool _historyVisible;
+    private bool _historyClosing;
+    private bool _reserveHistorySize;
+    private double ExpandedNaturalWidth => _historyVisible ? HistoryWidth : _retrievalVisible && RetrievalView.IsPreviewOpen ? 760 : 560;
+    private double ExpandedNaturalHeight => _historyVisible ? HistoryHeight : _retrievalVisible && RetrievalView.IsPreviewOpen ? 580 : 340;
     private double ExpandedScale => OverlayPlacementPolicy.FitContentScale(
         _monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight, _monitor.Scale,
         ExpandedNaturalWidth, ExpandedNaturalHeight,
-        _mediaViewModel.Settings.IslandAppearance.ExpandedScale);
+        _historyVisible ? 1 : _mediaViewModel.Settings.IslandAppearance.ExpandedScale);
     private double HostContentScale => Math.Max(1, Math.Max(ExpandedScale, _mediaViewModel.Settings.IslandAppearance.CompactScale));
-    private double _compactSurfaceWidth;
-    // Reserve the preview envelope so the existing spring and native hit region can
-    // grow and reverse without clipping against a smaller HWND halfway through.
-    private double HostWidth => Math.Max(800 * HostContentScale, _compactSurfaceWidth + 40);
+    private IslandGeometry _compactSurface = IslandGeometry.EmptyCompact;
+    // Once history is opened, keep room for its spring to reverse during dismissal.
+    private double HostWidth => Math.Max(Math.Max(800 * HostContentScale, _reserveHistorySize ? HistoryWidth + 40 : 0), _compactSurface.Width + 40);
     private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
-    private double HostHeight => OverlayPlacementPolicy.DynamicIslandTopGapDips + 620 * HostContentScale;
+    private double HostHeight => OverlayPlacementPolicy.DynamicIslandTopGapDips + Math.Max(620 * HostContentScale, _reserveHistorySize ? HistoryHeight + 24 : 0);
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
     private readonly MonitorDescriptor _monitor;
@@ -612,6 +617,10 @@ public sealed partial class OverlayWindow : Window
         if (_closing) return;
         if (!_mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove) CancelRightHold();
         _presentationSnapshot = snapshot;
+        if (!isActiveWindow || !activationEnabled || snapshot.State == OverlayState.Hidden ||
+            (_historyClosing && snapshot.State == OverlayState.Expanded))
+            _historyVisible = false;
+        _historyClosing = _historyVisible && snapshot.State != OverlayState.Expanded;
         if (snapshot.State != OverlayState.Expanded && _retrievalVisible) CloseRetrieval();
         var page = _experience.Current.Page;
         _pageReducedMotion = IsReducedMotion();
@@ -620,7 +629,7 @@ public sealed partial class OverlayWindow : Window
         PreviousPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Collapsed : Visibility.Visible;
         NextPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Clipboard ? Visibility.Collapsed : Visibility.Visible;
         OtherPageCollapse.Visibility = Visibility.Visible;
-        ApplyRetrievalVisibility();
+        UpdateExpandedContentLayout();
         var mediaCompact = _experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music;
         var activityCompact = _experience.Current.CompactContent is DropSpace.Core.Island.IslandContentKind.Notification or DropSpace.Core.Island.IslandContentKind.Volume;
         ActivityCompact.Visibility = activityCompact ? Visibility.Visible : Visibility.Collapsed;
@@ -630,18 +639,18 @@ public sealed partial class OverlayWindow : Window
         (string Id, DropSpace.Core.Dlc.ModuleManifest Manifest, DropSpace.Core.Dlc.ModuleIslandContent Content)? moduleIdle =
             variant == IslandPresentationVariant.Idle && !mediaCompact && !activityCompact &&
             _mediaViewModel.Settings.IslandAppearance.Resident ? _modules?.IslandContents.FirstOrDefault() : null;
-        ModuleCompactText.Visibility = moduleIdle is { Manifest: not null } ? Visibility.Visible : Visibility.Collapsed;
-        if (moduleIdle is { Manifest: not null } module)
-        {
-            ModuleCompactText.Text = DropSpace.Core.Dlc.ModuleContract.Text(module.Manifest, module.Content.Compact, _strings.Culture.Name);
-            AutomationProperties.SetName(ModuleCompactText, ModuleCompactText.Text);
-        }
-        else ModuleCompactText.Text = string.Empty;
+        var moduleText = moduleIdle is { Manifest: not null } module
+            ? DropSpace.Core.Dlc.ModuleContract.Text(module.Manifest, module.Content.Compact, _strings.Culture.Name)
+            : string.Empty;
+        var hasModuleText = !string.IsNullOrWhiteSpace(moduleText);
+        ModuleCompactText.Text = moduleText;
+        ModuleCompactText.Visibility = hasModuleText ? Visibility.Visible : Visibility.Collapsed;
+        AutomationProperties.SetName(ModuleCompactText, moduleText);
         FileCompactContent.Visibility = variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? Visibility.Visible : Visibility.Collapsed;
         EmptyWakeLogo.Visibility = (variant is IslandPresentationVariant.EmptyWake or IslandPresentationVariant.Idle) &&
             _mediaViewModel.Settings.IslandAppearance.ShowLogoWhenIdle
             ? Visibility.Visible : Visibility.Collapsed;
-        EmptyWakeLogo.HorizontalAlignment = moduleIdle is { Manifest: not null } ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        EmptyWakeLogo.HorizontalAlignment = hasModuleText ? HorizontalAlignment.Left : HorizontalAlignment.Center;
         ModuleCompactText.Margin = new Thickness(EmptyWakeLogo.Visibility == Visibility.Visible ? 32 : 0, 0, 0, 0);
         MusicCompact.SetAvailableWidth(_monitor.EffectiveWorkWidth / _monitor.Scale /
             _mediaViewModel.Settings.IslandAppearance.CompactScale - 36);
@@ -654,15 +663,13 @@ public sealed partial class OverlayWindow : Window
             try { MusicCompact.RefreshForPresentation(); }
             finally { _preparingMediaGeometry = wasPreparingMediaGeometry; }
         }
-        if (isActiveWindow && activationEnabled && snapshot.State == OverlayState.Expanded && page == IslandPage.Music)
+        if (isActiveWindow && activationEnabled && snapshot.State == OverlayState.Expanded && !_historyVisible && page == IslandPage.Music)
             MusicExpanded.RefreshForPresentation();
-        var naturalWidth = mediaCompact ? MusicCompact.IdealIslandWidth : activityCompact ? 400 :
-            variant == IslandPresentationVariant.SingleFile ? 340 : variant == IslandPresentationVariant.MultipleFiles ? 200 : variant == IslandPresentationVariant.EmptyWake ? 88 : 180;
-        var naturalHeight = mediaCompact ? MusicCompact.IdealIslandHeight : activityCompact ? 80 :
-            variant is IslandPresentationVariant.SingleFile or IslandPresentationVariant.MultipleFiles ? 64 : 40;
+        var (naturalWidth, naturalHeight, naturalRadius) = IslandGeometry.ForCompact(variant, hasModuleText,
+            MusicCompact.IdealIslandWidth, MusicCompact.IdealIslandHeight);
         var compactScale = OverlayPlacementPolicy.FitContentScale(_monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight,
             _monitor.Scale, naturalWidth, naturalHeight, _mediaViewModel.Settings.IslandAppearance.CompactScale);
-        _compactSurfaceWidth = naturalWidth * compactScale;
+        _compactSurface = new(naturalWidth * compactScale, naturalHeight * compactScale, naturalRadius * compactScale);
         CompactPanel.Padding = new Thickness(0);
         // Music measures fractional glyph advances. Rounding each nested gutter,
         // spectrum bar and viewport separately steals pixels from a fitting line.
@@ -671,7 +678,7 @@ public sealed partial class OverlayWindow : Window
         CompactContentScaleHost.UseLayoutRounding = !mediaCompact;
         CompactContentRoot.Width = naturalWidth; CompactContentRoot.Height = naturalHeight;
         CompactContentRoot.Padding = new Thickness(mediaCompact ? 14 : 18, 0, mediaCompact ? 14 : 18, 0);
-        CompactContentScaleHost.Width = naturalWidth * compactScale; CompactContentScaleHost.Height = naturalHeight * compactScale;
+        CompactContentScaleHost.Width = _compactSurface.Width; CompactContentScaleHost.Height = _compactSurface.Height;
         MusicCompact.Width = MusicCompact.IdealIslandWidth - 28;
         MusicCompact.Height = MusicCompact.IdealIslandHeight;
         MusicCompact.HorizontalAlignment = HorizontalAlignment.Center;
@@ -752,9 +759,6 @@ public sealed partial class OverlayWindow : Window
 
         var topOffset = _resolvedPlacement.SurfaceTopOffsetDips;
         var target = CreateMotionTarget(snapshot.State, topOffset);
-        if (snapshot.State == OverlayState.Compact)
-            target = Create(naturalWidth * compactScale, naturalHeight * compactScale, topOffset,
-                Math.Min(naturalWidth, naturalHeight) * compactScale / 2, 1, 0, 0);
 
         // Hidden has TopOffset=0 because it is independent of monitor placement.
         // Anchor it while the body is still transparent; otherwise opacity can lead
@@ -763,9 +767,9 @@ public sealed partial class OverlayWindow : Window
         if (anchored != _motion.Current) _motion.SnapTo(anchored);
         EnsureVisualHostShown(fullscreen.AllowActivation);
         MaintainFullscreenVisibility();
-        _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Music));
-        WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Widgets);
-        SetClipboardPresentationActive(_isVisible && snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
+        _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && !_historyVisible && page == DropSpace.Core.Island.IslandPage.Music));
+        WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && !_historyVisible && page == DropSpace.Core.Island.IslandPage.Widgets);
+        SetClipboardPresentationActive(_isVisible && snapshot.State == OverlayState.Expanded && !_historyVisible && page == DropSpace.Core.Island.IslandPage.Clipboard);
         PrepareContentForTarget(target);
         if (_previousState == OverlayState.DragReady && snapshot.State == OverlayState.Compact)
         {
@@ -919,7 +923,7 @@ public sealed partial class OverlayWindow : Window
         var compactLyricsVisible = MusicCompact.IsTranslationVisibleWithin(Surface) &&
             CompactPanel.Visibility == Visibility.Visible && values.CompactContent > 0.01 &&
             settings.IslandActivity.ShowLyricsInCompact;
-        var expandedLyricsVisible = MusicExpanded.IsTranslationActuallyVisible &&
+        var expandedLyricsVisible = !_historyVisible && MusicExpanded.IsTranslationActuallyVisible &&
             ExpandedPanel.Visibility == Visibility.Visible && values.ExpandedContent > 0.01 &&
             _pageTransition.Progress(IslandPage.Music) > 0.01;
         var secondary = _mediaViewModel.SecondaryLyricText;
@@ -984,7 +988,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnExpandedPanelVisibilityChanged(DependencyObject sender, DependencyProperty property)
     {
-        MusicExpanded.SetActive(!_closing && ExpandedPanel.Visibility == Visibility.Visible);
+        MusicExpanded.SetActive(!_closing && !_historyVisible && ExpandedPanel.Visibility == Visibility.Visible);
         RetrievalView.SetActive(!_closing && _retrievalVisible && ExpandedPanel.Visibility == Visibility.Visible);
     }
 
@@ -1268,11 +1272,13 @@ public sealed partial class OverlayWindow : Window
 
         if (matches)
         {
+            var moved = _positionedHostLeftPixels != left || _positionedHostTopPixels != top;
             _positionedHostWidthPixels = width;
             _positionedHostHeightPixels = height;
             _positionedHostLeftPixels = left;
             _positionedHostTopPixels = top;
             _glow.RefreshPosition();
+            if (moved) _materialController.OnHostMoved();
         }
 
         return matches;
@@ -1289,7 +1295,7 @@ public sealed partial class OverlayWindow : Window
                 _monitor.EffectiveWorkHeight,
                 _monitor.Scale,
                 wakeMode,
-                HostContentScale, HostWidth, Math.Max(ExpandedNaturalWidth * ExpandedScale, _compactSurfaceWidth), ExpandedNaturalHeight * ExpandedScale),
+                HostContentScale, HostWidth, Math.Max(ExpandedNaturalWidth * ExpandedScale, _compactSurface.Width), ExpandedNaturalHeight * ExpandedScale),
             placement);
 
     internal void RefreshAnimationRefreshRate()
@@ -1594,7 +1600,7 @@ public sealed partial class OverlayWindow : Window
 
     private void ApplyPage(FrameworkElement element, IslandPage page)
     {
-        if (_retrievalVisible) { element.Visibility = Visibility.Collapsed; element.IsHitTestVisible = false; return; }
+        if (_retrievalVisible || _historyVisible) { element.Visibility = Visibility.Collapsed; element.IsHitTestVisible = false; return; }
         var progress = _pageTransition.Progress(page);
         element.Opacity = progress;
         element.Visibility = progress > 0 || page == _pageTransition.Target ? Visibility.Visible : Visibility.Collapsed;
@@ -1806,6 +1812,12 @@ public sealed partial class OverlayWindow : Window
         if (values.ExpandedContent <= 0.001 && _motion.Target.ExpandedContent == 0)
         {
             ExpandedPanel.Visibility = Visibility.Collapsed;
+            if (_historyClosing)
+            {
+                _historyClosing = false;
+                _historyVisible = false;
+                HistoryView.Visibility = Visibility.Collapsed;
+            }
         }
     }
 
@@ -1815,7 +1827,7 @@ public sealed partial class OverlayWindow : Window
 
     private OverlayMotionValues CreateMotionTarget(OverlayState state, double topOffset)
     {
-        var geometry = DropSpace.Core.Island.IslandGeometry.ForFiles(state);
+        var geometry = state == OverlayState.Compact ? _compactSurface : IslandGeometry.ForFiles(state);
         if (state == OverlayState.Expanded)
             geometry = geometry with { Width = ExpandedNaturalWidth * ExpandedScale, Height = ExpandedNaturalHeight * ExpandedScale, Radius = geometry.Radius * ExpandedScale };
         return state switch
@@ -2078,10 +2090,24 @@ public sealed partial class OverlayWindow : Window
         _placementEditActive = false;
     }
 
-    internal bool TryActivateQuickPanel(bool retrieval = false, nint returnWindow = 0)
+    internal bool TryActivateQuickPanel(bool retrieval = false, nint returnWindow = 0, UpdateChannel? historyChannel = null)
     {
         if (!CanActivateQuickPanel()) return false;
-        if (retrieval) OpenRetrieval(returnWindow);
+        if (historyChannel is { } channel)
+        {
+            if (_retrievalVisible) CloseRetrieval();
+            _historyVisible = true;
+            _historyClosing = false;
+            _reserveHistorySize = true;
+            HistoryView.Open(_strings, channel);
+        }
+        else if (retrieval)
+        {
+            _historyVisible = false;
+            OpenRetrieval(returnWindow);
+        }
+        if ((historyChannel.HasValue || retrieval) && _presentationSnapshot is { } snapshot)
+            ApplySnapshot(snapshot, _isActiveWindow, _isActiveWindow, _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
         CancelQuickPanelFocus();
         try
         {
@@ -2097,7 +2123,7 @@ public sealed partial class OverlayWindow : Window
             if (!CanActivateQuickPanel() || generation != _experience.HideGeneration || page != _experience.Current.Page)
                 return false;
 
-            FrameworkElement pageRoot = _retrievalVisible ? RetrievalView : page switch
+            FrameworkElement pageRoot = _historyVisible ? HistoryView : _retrievalVisible ? RetrievalView : page switch
             {
                 IslandPage.Music => MusicExpanded,
                 IslandPage.Widgets => WidgetsExpanded,
@@ -2150,6 +2176,7 @@ public sealed partial class OverlayWindow : Window
     {
         try
         {
+            if (_historyVisible) return HistoryView.FocusHistory();
             if (_retrievalVisible) return RetrievalView.FocusSearch();
             // An outgoing animated page can remain visible. Search only the page
             // selected for this request, never the whole expanded visual tree.
@@ -2276,6 +2303,11 @@ public sealed partial class OverlayWindow : Window
             _experience.SelectPage(_experience.Current.Page - 1);
     }
 
+    internal void RefreshReleaseHistoryChannel(UpdateChannel channel)
+    {
+        if (_historyVisible && HistoryView.Channel != channel) HistoryView.Open(_strings, channel);
+    }
+
     public void RefreshLanguage()
     {
         Root.Language = _strings.Culture.Name;
@@ -2283,6 +2315,7 @@ public sealed partial class OverlayWindow : Window
         XamlResourceOverride.ApplyTree(Root);
         WidgetsExpanded.RefreshLanguage();
         RetrievalView.RefreshLanguage();
+        if (_historyVisible) HistoryView.Open(_strings, HistoryView.Channel);
         CancelPlacementButton.Content = _strings.Get("CommonCancel");
     }
     public void RefreshModules() => WidgetsExpanded.RefreshModules();

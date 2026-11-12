@@ -1,5 +1,7 @@
 # Plain Hy production evidence capture
 
+> Historical record. Commands below refer to the tools in Git revision `20c524a3`. Current test entry points are listed in [TEST_PLAN.md](../../TEST_PLAN.md).
+
 This finite Windows harness captures the current shipping plaintext Beta through
 `PlainHyLyricsBackend` → `PlainHyLyricsCoordinator` → the actual
 `PersistentPlainLyricsRunner.RunPlainAsync`. `IPlainLyricsRunner` is an observation boundary,

@@ -1,13 +1,11 @@
 # DropSpace Roadmap
 
-## Release target: v1.1.0-beta.6
+## Release target: v1.1.0-beta.7
 
-The current Beta target is `v1.1.0-beta.6` (Beta 6).
-v1.1.0-beta.5 is the immediate upgrade baseline for this release.
+The current Beta target is `v1.1.0-beta.7` (Beta 7).
+v1.1.0-beta.6 is the immediate upgrade baseline for this release.
 
-All maintenance rounds develop this same Beta6 on top of the previous round's latest code. Preserve the completed settings, file-reference, download recovery, preview, hotkey, sharing and website fixes. The fourth round continues targeted lifecycle, cancellation, resource ownership and efficiency work without changing existing features, defaults, visuals, interactions, schemas or model/CUDA assets.
-
-This is an unpublished development candidate. The previous second-round Beta7 label was an assistant naming error, now corrected; no separate Beta7 release is being developed. See the [release notes](.github/release-notes/v1.1.0-beta.6.md), [first-round record](docs/dev/beta6-maintenance-20261031.md), [second-round record](docs/dev/beta6-round2-maintenance-20261031.md) and [third-round record](docs/dev/beta6-round3-maintenance-20261031.md) and [fourth-round record](docs/dev/beta6-round4-maintenance-20261031.md). Windows App/XAML compilation, native acceptance and exact-candidate package/release qualification remain outstanding. The pre-existing native heap crash investigation remains unresolved.
+The [candidate notes](.github/release-notes/v1.1.0-beta.7.md) cover the shared release archive and its native Island view.
 
 ## Published release: v0.3.1-beta.18
 
@@ -160,7 +158,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.1.0-beta.6 is the current Beta target; 1.0 remains the public Stable baseline.
+v1.1.0-beta.7 is the current Beta target; 1.0 remains the public Stable baseline.
 Published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

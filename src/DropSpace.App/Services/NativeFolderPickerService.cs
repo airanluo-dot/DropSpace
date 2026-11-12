@@ -7,6 +7,8 @@ public sealed class NativeFolderPickerService
 {
     public static string GetDownloadsDirectory()
     {
+        if (LocalPreview.DataRoot is { } root)
+            return Directory.CreateDirectory(Path.Combine(root, "Downloads", "Files")).FullName;
         var id = new Guid("374DE290-123F-4565-9164-39C4925E467B");
         var result = SHGetKnownFolderPath(ref id, 0, 0, out var path);
         System.Runtime.InteropServices.Marshal.ThrowExceptionForHR(result);

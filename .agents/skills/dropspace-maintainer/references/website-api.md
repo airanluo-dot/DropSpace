@@ -28,7 +28,7 @@ Edit `website/_source`; generated deployment output is produced by the build scr
 The shared catalog is `localization/languages.json`; resource IDs and reviewed source fingerprints
 are checked by `scripts/check-localization.mjs` before website builds and artifact publication.
 See `website/_source/README.md` for language matching, storage fallback, redirects, fixed/sample
-exceptions and the focused verification workflow. Keep the global passive test budget intact.
+exceptions and the focused verification workflow. Use the [repository testing rules](../../../../docs/dev/passive-test-budget.md).
 
 Common local commands are:
 
@@ -52,7 +52,7 @@ The static build generates two versioned endpoints:
 
 `releases.json` is the updater-facing list of recent releases and their assets.
 `latest-change.json` is presentation-oriented metadata for the latest release headline and
-English-only highlights (the legacy locale fields both carry the same English body). Their schema and normalization logic live in
+hand-written English and Chinese highlights for the homepage. Their schema and normalization logic live in
 `website/_source/scripts/release-contract.mjs`; `build.mjs` writes the final JSON files.
 
 The metadata flow is:
@@ -65,7 +65,8 @@ GitHub Releases
   -> /api/v1/releases.json and /api/v1/latest-change.json
 ```
 
-Release-specific website copy should normally come from release metadata. Evergreen product copy
+The changelog and homepage highlights use the hand-edited `localization/release-history.json`.
+The Island embeds the same file. Follow the [release history guide](../../../../docs/dev/interface-localization.md#release-history). Evergreen product copy
 belongs in the localized website source and `scripts/i18n.mjs`.
 
 ## How the Windows app consumes the release API

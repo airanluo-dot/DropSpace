@@ -10,6 +10,43 @@ namespace DropSpace.App;
 public sealed partial class OverlayWindow
 {
     internal object ObserveGlassMaterial() => _materialController.CaptureGlassState();
+    internal async Task<object> CheckGlassHostMovementAsync()
+    {
+        if (_materialController.MaterialTier != DropSpace.Core.Overlay.OverlayMaterialTier.LiquidGlass)
+            throw new InvalidOperationException("The movement check requires a visible, ready glass surface.");
+        await WaitForMotionSettledAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        var original = _resolvedPlacement;
+        var offset = original.HostLeftPixels + _positionedHostWidthPixels / 2 < _monitor.Left + _monitor.Width / 2 ? 32 : -32;
+        var originalX = AppWindow.Position.X;
+        FreezeGlassForDiagnosticCapture();
+        try
+        {
+            var before = ObserveGlassMaterial();
+            // Both moves arrive before XAML composes. Frozen WGC rules out a new capture as the cause of a redraw.
+            foreach (var delta in new[] { offset / 2, offset })
+            {
+                _resolvedPlacement = original with { HostLeftPixels = original.HostLeftPixels + delta };
+                if (!PositionFixedHost()) throw new InvalidOperationException("Cannot move the diagnostic island.");
+            }
+            await Task.Delay(160);
+            var actualOffset = AppWindow.Position.X - originalX;
+            var moved = ObserveGlassMaterial();
+            if (!PositionFixedHost()) throw new InvalidOperationException("Cannot revalidate the diagnostic island.");
+            await Task.Delay(160);
+            var repeated = ObserveGlassMaterial();
+            _resolvedPlacement = original;
+            if (!PositionFixedHost()) throw new InvalidOperationException("Cannot restore the diagnostic island position.");
+            await Task.Delay(160);
+            return new { actualOffset, before, moved, repeated, restoredX = AppWindow.Position.X - originalX, restored = ObserveGlassMaterial() };
+        }
+        finally
+        {
+            _resolvedPlacement = original;
+            PositionFixedHost();
+            _materialController.SetVisible(false);
+            _materialController.SetVisible(true);
+        }
+    }
     internal void BeginGlassMeasurement() => _materialController.BeginGlassMeasurement();
     internal object? EndGlassMeasurement() => _materialController.EndGlassMeasurement();
     internal object CompareGlassSampling(bool compareWidth = false) => _materialController.CompareGlassSampling(compareWidth);

@@ -125,11 +125,14 @@ internal sealed class OverlayMaterialController : IDisposable
     internal void SetGeometry(OverlayRegionSignature geometry, double dpi = 1, double expandedProgress = 0)
     {
         _geometry = geometry;
-        _acrylic?.SetGeometry(geometry);
+        // Apply replays this geometry before enabling Acrylic on fallback.
+        if (IsUsingDesktopAcrylic) _acrylic?.SetGeometry(geometry);
         _glass.SetGeometry(new GlassFrame(geometry.LeftPixels, geometry.TopPixels, geometry.WidthPixels,
             geometry.HeightPixels, geometry.TopRadiusPixels, geometry.BottomRadiusPixels, (float)dpi,
             (float)Math.Clamp(expandedProgress, 0, 1)));
     }
+
+    internal void OnHostMoved() => _glass.OnHostMoved();
 
     internal void SetAppearance(IslandAppearanceSettings appearance)
     {
@@ -146,7 +149,7 @@ internal sealed class OverlayMaterialController : IDisposable
             IslandGlassRefreshRate.Ultra => displayRate,
             _ => 30d,
         };
-        _glass.SetRefreshRate(rate, _appearance.LiquidGlassRefreshRate != IslandGlassRefreshRate.Standard, displayRate);
+        _glass.SetRefreshRate(rate, displayRate);
     }
     internal void SetVisible(bool visible)
     {
@@ -161,7 +164,7 @@ internal sealed class OverlayMaterialController : IDisposable
     internal object CaptureGlassState() => new { ready = _glass.IsReady, failure = _glass.Failure,
         frames = _glass.PresentedFrames, requested = _appearance.MaterialStyle.ToString(), visible = _visible,
         refreshRate = _appearance.LiquidGlassRefreshRate.ToString(), targetHz = _glass.TargetRefreshRate,
-        captureRateControl = _glass.HasCaptureRateControl };
+        captureRateControl = _glass.HasCaptureRateControl, acrylicCoverage = _acrylic?.CaptureCoverageState() };
     internal void FreezeGlassForDiagnosticCapture() => _glass.FreezeForDiagnosticCapture();
     internal void BeginGlassMeasurement() => _glass.BeginDiagnosticMeasurement();
     internal object? EndGlassMeasurement() => _glass.EndDiagnosticMeasurement();

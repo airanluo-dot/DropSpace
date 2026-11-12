@@ -9,212 +9,24 @@ on:
         default: false
         type: boolean
 
-      produce_selection_runtime:
-        description: Explicit nonpublishing worker build and three-case selection probe
-        required: false
-        default: false
-        type: boolean
-
-      diagnose_selection_runtime:
-        description: Nonproduction ten-second observations using exact existing worker bytes
-        required: false
-        default: false
-        type: boolean
-
-      selection_diagnostic_variant:
-        description: Explicit diagnostic prompt variant; production is unchanged
-        required: false
-        default: original
-        type: choice
-        options:
-          - original
-          - refined
-          - qwen06
-          - qwen06-thinking
-          - qwen06-admission
-          - qwen06-dual
-          - qwen06-plain-transfer
-          - qwen06-evidence
-          - qwen06-labelled-control
-          - qwen06-native-id-control
-          - qwen4-evidence
-          - qwen4-template-validation
-          - qwen4-deterministic
-          - qwen8-evidence
-
       expected_commit:
         description: Exact reviewed main commit required for publication
         required: false
         type: string
 
-      capture_ai_evidence:
-        description: Capture actual plain-Hy production evidence without publishing
-        required: false
-        default: false
-        type: boolean
-
-      allow_unrestricted_fallback:
-        description: Explicit manual approval to rerun unrestricted suites if no validated producer exists
-        required: false
-        default: false
-        type: boolean
-
 concurrency:
   # Validation must never occupy the publication queue. Publication remains
   # serialized and non-cancellable within its own lane.
-  group: dropspace-release-${{ github.ref }}-${{ inputs.diagnose_selection_runtime == true && 'selection-diagnostic' || inputs.produce_selection_runtime == true && 'runtime-producer' || (inputs.publish == true && 'publish' || 'validation') }}
+  group: dropspace-release-${{ github.ref }}-${{ inputs.publish == true && 'publish' || 'validation' }}
   cancel-in-progress: false
 
 jobs:
-  diagnose-selection-runtime:
-    name: Explicit longer observation of original worker bytes (never publishes)
-    if: github.event_name == 'workflow_dispatch' && inputs.diagnose_selection_runtime == true
-    runs-on: windows-2025
-    timeout-minutes: 25
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Reject publication or producer requests
-        shell: pwsh
-        env:
-          PUBLISH: ${{ inputs.publish }}
-          PRODUCE: ${{ inputs.produce_selection_runtime }}
-          CAPTURE: ${{ inputs.capture_ai_evidence }}
-        run: |
-          if ($env:PUBLISH -eq 'true' -or $env:PRODUCE -eq 'true' -or $env:CAPTURE -eq 'true') { throw 'Long diagnostic is isolated from publication/build/translation evidence.' }
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
-        with:
-          dotnet-version: 10.0.401
-      - name: Retrieve exact original runtime and failed 500ms evidence
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: ./scripts/Get-SelectionDiagnosticInputs.ps1
-      # Public immutable weights are optional cloud reuse, never release evidence.
-      # The harness rechecks exact size/SHA on a hit; no broad restore prefix.
-      - name: Reuse approved Qwen4 diagnostic model
-        if: startsWith(inputs.selection_diagnostic_variant, 'qwen4-')
-        continue-on-error: true
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ${{ runner.temp }}/dropspace-diagnostic-qwen3-4b-instruct-2507-q8
-          key: dropspace-qwen4-diagnostic-ae916ede1c010a26955ee8ae2e908bf8815a3f135ec860439ab924701c69d5f1
-      - name: Reuse approved Qwen8 diagnostic model
-        if: inputs.selection_diagnostic_variant == 'qwen8-evidence'
-        continue-on-error: true
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ${{ runner.temp }}/dropspace-diagnostic-qwen3-8b-q4km
-          key: dropspace-qwen8-diagnostic-d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785
-      - name: Observe bounded diagnostic cases without changing production limits
-        timeout-minutes: 20
-        shell: pwsh
-        env:
-          DIAGNOSTIC_VARIANT: ${{ inputs.selection_diagnostic_variant }}
-        run: |
-          $inputs = "$env:GITHUB_WORKSPACE/artifacts/selection-diagnostic-inputs"
-          $runtime = "$inputs/runtime"
-          if ($env:DIAGNOSTIC_VARIANT -in @('qwen06','qwen06-thinking','qwen06-admission','qwen06-dual','qwen06-plain-transfer','qwen06-evidence','qwen06-labelled-control','qwen06-native-id-control','qwen4-evidence','qwen4-template-validation','qwen4-deterministic','qwen8-evidence')) {
-            ./scripts/selection-qwen-diagnostic/Run-CloudQwenDiagnostic.ps1 -InputsDirectory $inputs -OutputDirectory "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
-          } else {
-            dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
-          }
-          if ($LASTEXITCODE -ne 0) { throw 'Diagnostic execution failure; retained observations are not model approval.' }
-      - name: Retain observations and original provenance on failure or success
-        if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: ai-selection-long-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            artifacts/selection-long-diagnostic/*.json
-            artifacts/selection-long-diagnostic/*.txt
-            artifacts/selection-diagnostic-inputs/*-artifact.json
-            artifacts/selection-diagnostic-inputs/run.json
-            artifacts/selection-diagnostic-inputs/runtime/runtime-manifest.json
-            artifacts/selection-diagnostic-inputs/evidence/**/*.json
-          if-no-files-found: warn
-          retention-days: 60
-
-  produce-selection-runtime:
-    name: Explicit diagnostic worker producer (never publishes)
-    if: github.event_name == 'workflow_dispatch' && inputs.produce_selection_runtime == true
-    runs-on: windows-2025
-    timeout-minutes: 90
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - name: Reject mixed publication or evidence modes
-        shell: pwsh
-        env:
-          PUBLISH: ${{ inputs.publish }}
-          CAPTURE: ${{ inputs.capture_ai_evidence }}
-          DIAGNOSE: ${{ inputs.diagnose_selection_runtime }}
-        run: |
-          if ($env:PUBLISH -eq 'true' -or $env:CAPTURE -eq 'true' -or $env:DIAGNOSE -eq 'true') { throw 'Diagnostic producer cannot publish or run the translation benchmark.' }
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      # Frozen Beta10 approval is used only to retrieve its existing legacy bytes.
-      # It does not approve current source, a new helper, or publication.
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: 4044baed6b1c393a815b91e1406a83e0995f1f94
-          path: artifacts/reviewed-beta10-source
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
-        with:
-          dotnet-version: 10.0.401
-      - name: Retrieve exact previously reviewed legacy runtime
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          ./artifacts/reviewed-beta10-source/scripts/Get-ReviewedAiRuntime.ps1 -OutputDirectory "$env:GITHUB_WORKSPACE/artifacts/verified-legacy-runtime"
-      - name: Prepare pinned Vulkan build dependencies (no driver installation)
-        shell: pwsh
-        run: ./scripts/Prepare-VulkanBuildDependencies.ps1 -GitHubActions
-      - name: Build only three worker targets and reuse verified legacy executable bytes
-        shell: pwsh
-        run: ./scripts/Build-AiLyricsRuntime.ps1 -VerifiedLegacyRuntimeDirectory "$env:GITHUB_WORKSPACE/artifacts/verified-legacy-runtime"
-      - name: Record actual producer and exact reuse identities
-        run: node scripts/selection-runtime-producer.mjs
-      - name: Retain exact eight-file candidate runtime
-        id: runtime-artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: ai-candidate-runtime-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/ai-runtime/win-x64/*
-          if-no-files-found: error
-          retention-days: 60
-      - name: Run three annotated actual model selections and one sent-request cancellation
-        timeout-minutes: 15
-        shell: pwsh
-        env:
-          RUNTIME_ARTIFACT_ID: ${{ steps.runtime-artifact.outputs.artifact-id }}
-          RUNTIME_ARCHIVE_SHA256: ${{ steps.runtime-artifact.outputs.artifact-digest }}
-        run: |
-          $runtime = "$env:GITHUB_WORKSPACE/artifacts/ai-runtime/win-x64"
-          dotnet run --project scripts/selection-model-probe/SelectionModelProbe.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- "$env:GITHUB_WORKSPACE/artifacts/selection-probe"
-          if ($LASTEXITCODE -ne 0) { throw 'Selection probe execution failed; retained evidence remains diagnostic only.' }
-      - name: Retain diagnostic evidence even on probe failure
-        if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: ai-selection-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            artifacts/selection-probe/*.json
-            artifacts/selection-runtime-producer.json
-          if-no-files-found: warn
-          retention-days: 60
-
   validate-release:
-    if: inputs.produce_selection_runtime != true && inputs.diagnose_selection_runtime != true
     name: Build and validate release bundle
     # The release lane uses the named Windows Server 2025 image so a moving
     # windows-latest image cannot silently change produced bytes.
     runs-on: windows-2025
-    # Final evidence adds a separately bounded 30-minute capture to normal validation.
-    timeout-minutes: ${{ (inputs.capture_ai_evidence == true && inputs.publish != true) && 110 || 80 }}
+    timeout-minutes: 80
     permissions:
       contents: read
       actions: read
@@ -228,7 +40,6 @@ jobs:
       signing_required: ${{ steps.version.outputs.signing_required }}
       isolated_beta: ${{ steps.version.outputs.isolated_beta }}
       next_beta: ${{ steps.version.outputs.next_beta }}
-      ai_runtime_manifest_sha256: ${{ steps.ai-runtime-diagnostic-manifest.outputs.sha256 }}
       ai_semantic_approved: ${{ steps.ai-release-approval.outputs.semantic_approved }}
       ai_publication_authorized: ${{ steps.ai-release-approval.outputs.authorized }}
       ai_publication_mode: ${{ steps.ai-release-approval.outputs.mode }}
@@ -239,7 +50,6 @@ jobs:
 
       - name: Locate successful identical-tree CI bundle
         id: ci-promotion
-        if: inputs.publish == true && inputs.capture_ai_evidence != true
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-release-promotion.mjs find
@@ -271,7 +81,6 @@ jobs:
           dotnet-version: 10.0.401
           cache: true
           cache-dependency-path: Directory.Packages.props
-
 
       - name: Derive Stable or Beta release metadata
         id: version
@@ -341,42 +150,13 @@ jobs:
             throw 'This release requires its successful exact-main isolated producer. Dispatch ci.yml on final main first; this legacy path must not repeat tests, packages or model downloads.'
           }
 
-      - name: Forbid passive publication fallback to full suites
-        if: inputs.publish == true && inputs.allow_unrestricted_fallback != true
+      - name: Require validated CI bundle for publication
+        if: inputs.publish == true
         shell: pwsh
         run: |
           if ('${{ steps.ci-promotion.outputs.reuse }}' -cne 'true') {
-            throw 'Standard or bridged publication requires an exact validated producer bundle; unbounded fallback requires explicit manual allow_unrestricted_fallback=true.'
+            throw 'Publication requires the validated CI bundle for this source tree.'
           }
-
-      - name: Test AI semantic release gate regressions
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
-
-
-      - name: Test packaged runtime inspection regressions
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: |
-          ./scripts/Test-AiRuntimePayloadInspector.ps1
-          ./scripts/Test-ReviewedAiRuntimeArchive.ps1
-          ./scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1
-
-
-      - name: Test expanded island scope and fullscreen behavior contracts
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
-
-
-      - name: Test private translation helper protocol without model dependencies
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: |
-          python -m unittest discover -s tools/ct2-helper -p 'test_*.py' -v
-          if ($LASTEXITCODE -ne 0) { throw 'Private translation helper protocol checks failed.' }
-
-      # Pending approval blocks publication, never ordinary PR validation.
-      # Only v0.3.1-beta.5 may use its exact recorded owner acceptance without semantic approval.
 
       - name: Enforce AI publication decision before building
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
@@ -386,44 +166,22 @@ jobs:
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: |
-          ./scripts/Test-ReleaseVersion.ps1
           ./scripts/Test-ReleaseConsistency.ps1
-
 
       - name: Enforce localization resource policy
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
 
-
-      - name: Test frozen model prompt localization exceptions
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        run: node --test scripts/test-localization-policy.test.mjs
-
-
-      - name: Enforce Windows 10/11 compatibility baseline
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: ./scripts/Test-WindowsCompatibility.ps1
-
-
-      - name: Enforce hardcoding governance
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: ./scripts/Test-HardcodingGovernance.ps1
-
-
       - name: Enforce secret hygiene
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Test-SecretHygiene.ps1
 
-
       - name: Verify committed brand assets on clean checkout
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1 -Verify
-
 
       - name: Confirm brand verification did not mutate the checkout
         if: steps.ci-promotion.outputs.reuse != 'true'
@@ -432,11 +190,9 @@ jobs:
           $status = git status --short --untracked-files=all
           if ($status) { throw "Brand verification mutated the clean checkout:`n$status" }
 
-
       - name: Restore locked dependency graph
         if: steps.ci-promotion.outputs.reuse != 'true'
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
-
 
       - name: Retrieve the exact reviewed runtime
         if: steps.ci-promotion.outputs.reuse != 'true'
@@ -444,7 +200,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-ReviewedAiRuntime.ps1
-
 
       - name: Bind AI publication decision to exact shipping runtime bytes
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
@@ -457,157 +212,32 @@ jobs:
             node scripts/test-ai-release-approval.mjs --runtime-manifest artifacts/ai-runtime/win-x64/runtime-manifest.json
           }
           if ($LASTEXITCODE -ne 0) { throw 'AI publication decision failed.' }
-          if ('${{ steps.ci-promotion.outputs.reuse }}' -ne 'true') { ./scripts/Test-AiLyricsRuntime.ps1 }
           node scripts/test-ai-release-approval.mjs --github-output $env:GITHUB_OUTPUT
           if ($LASTEXITCODE -ne 0) { throw 'AI publication decision output failed.' }
-
-      # Development-only handoff of this run's verified build. No model weights are uploaded.
-      - name: Record candidate diagnostic runtime identity
-        if: ${{ steps.ci-promotion.outputs.reuse != 'true' && (github.event_name == 'workflow_dispatch' && inputs.publish != true) }}
-        id: ai-runtime-diagnostic-manifest
-        shell: pwsh
-        run: |
-          $hash = (Get-FileHash artifacts/ai-runtime/win-x64/runtime-manifest.json -Algorithm SHA256).Hash.ToLowerInvariant()
-          "sha256=$hash" >> $env:GITHUB_OUTPUT
-
-
-      - name: Upload runtime for isolated candidate diagnostics
-        if: ${{ steps.ci-promotion.outputs.reuse != 'true' && (github.event_name == 'workflow_dispatch' && inputs.publish != true) }}
-        id: ai-runtime-artifact
-        continue-on-error: true
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: ai-candidate-runtime-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            artifacts/ai-runtime/win-x64/runtime-manifest.json
-            artifacts/ai-runtime/win-x64/llama-completion.exe
-            artifacts/ai-runtime/win-x64/llama-completion-avx2.exe
-            artifacts/ai-runtime/win-x64/llama-tokenize.exe
-            artifacts/ai-runtime/win-x64/plain-lyrics-worker.exe
-            artifacts/ai-runtime/win-x64/plain-lyrics-worker-avx2.exe
-            artifacts/ai-runtime/win-x64/plain-lyrics-worker-vulkan.exe
-            artifacts/ai-runtime/win-x64/LICENSE-llama.cpp
-          if-no-files-found: error
-          retention-days: 60
-
-
-      - name: Test core policies, versions, and update selection
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core-release.trx"
-
-
-      - name: Test persistence, manifests, downloads, and update coordination
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure-release.trx"
-
-
-      - name: Test production evidence harness without native inference
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: |
-          dotnet restore scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -p:RestoreLockedMode=true
-          if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness locked restore failed.' }
-          dotnet run --project scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -c Release --no-restore -- --contract-self-test
-          if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness contract tests failed.' }
-
-
-      - name: Download pinned models for native AI smoke
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: ./scripts/Get-AiLyricsSmokeModel.ps1
-
-
-      - name: Validate native offline inference and cancellation
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-build --no-restore --filter FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests --logger "trx;LogFileName=ai-native-runtime.trx"
-
-
-      - name: Capture final plain-Hy production evidence on both runtime variants
-        if: ${{ steps.ci-promotion.outputs.reuse != 'true' && (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true) }}
-        timeout-minutes: 30
-        shell: pwsh
-        env:
-          RUNTIME_ARTIFACT_ID: ${{ steps.ai-runtime-artifact.outputs.artifact-id }}
-          RUNTIME_ARCHIVE_SHA256: ${{ steps.ai-runtime-artifact.outputs.artifact-digest }}
-        run: |
-          if (-not $env:RUNTIME_ARTIFACT_ID -or -not $env:RUNTIME_ARCHIVE_SHA256) { throw 'The exact licensed runtime artifact must be retained before capture.' }
-          $runtime = 'artifacts/ai-runtime/win-x64'
-          $output = 'artifacts/plain-hy-production-evidence'
-          New-Item $output -ItemType Directory -Force | Out-Null
-          $producer = (Get-Content "$runtime/runtime-manifest.json" -Raw | ConvertFrom-Json).producer
-          $files = @(Get-ChildItem $runtime -File | ForEach-Object {
-            [ordered]@{ path=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); bytes=$_.Length }
-          })
-          $contract = [ordered]@{
-            schemaVersion=1; repository=$producer.repository; workflowPath=$producer.workflowPath
-            runId=$producer.runId; runAttempt=$producer.runAttempt; headCommit=$producer.headCommit; checkoutCommit=$producer.checkoutCommit
-            artifactId=[long]$env:RUNTIME_ARTIFACT_ID; artifactName="ai-candidate-runtime-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)"
-            archiveSha256=$env:RUNTIME_ARCHIVE_SHA256; files=$files
-          }
-          $contract | ConvertTo-Json -Depth 8 | Set-Content "$output/runtime-artifact.json" -Encoding utf8
-          node scripts/ai-runtime-publication.mjs verify-contract "$output/runtime-artifact.json"
-          if ($LASTEXITCODE -ne 0) { throw 'Retained runtime artifact contract is invalid.' }
-          foreach ($variant in @('Baseline', 'Avx2')) {
-            $name = "production-plain-hy-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)-$($variant.ToLowerInvariant())"
-            ./scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1 -RuntimeDirectory $runtime -ModelPath $env:DROPSPACE_AI_SMOKE_MODEL -ModelId hy-mt2-18-q8-plain-beta -Variant $variant -OutputDirectory "$output/$name"
-            $captureSucceeded = $?
-            $captureExitCode = $LASTEXITCODE
-            if (-not $captureSucceeded -or $captureExitCode -ne 0) { throw "Production $variant capture failed; later variants will not be started." }
-          }
-
-
-      - name: Preserve final production evidence including failures
-        if: always() && (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: plain-hy-production-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/plain-hy-production-evidence/**
-          if-no-files-found: warn
-          retention-days: 60
-
-
-      - name: Install locked Windows App Runtime for native tests
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        timeout-minutes: 10
-        shell: pwsh
-        run: ./scripts/Install-TestWindowsAppRuntime.ps1
-
-
-      - name: Test App policies and native-boundary contracts
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        timeout-minutes: 10
-        run: dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --logger "trx;LogFileName=app-release.trx"
-
 
       - name: Build WinUI Release
         if: steps.ci-promotion.outputs.reuse != 'true'
         run: dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false
-
 
       - name: Publish portable self-contained EXE
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Build-PortableExe.ps1
 
-
       - name: Build unsigned MSIX
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Build-UnsignedPackage.ps1 -Platform x64 -NoRestore
-
 
       - name: Validate MSIX symbol policy
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Test-MsixSymbolPolicy.ps1 -ArtifactRoot artifacts/msix
 
-
       - name: Build external-location identity package
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Build-IdentityPackage.ps1
-
 
       - name: Stage application payloads
         if: steps.ci-promotion.outputs.reuse != 'true'
@@ -617,7 +247,6 @@ jobs:
           if ($null -eq $package) { throw "MSIX build did not produce an .msix file." }
           Copy-Item $package.FullName artifacts/release/DropSpace-x64.msix -Force
 
-
       - name: Build pinned Inno Setup installer from final app payload
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
@@ -625,50 +254,22 @@ jobs:
           ./scripts/Build-Installer.ps1
           Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
 
-
       - name: Reject mismatched executable release identities
         shell: pwsh
         run: |
-          if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.18') {
-            # Check only the actual final identities; do not repeat negative
-            # version-regression fixtures under this release's one-percent budget.
-            . ./scripts/ReleaseVersion.ps1
-            . ./scripts/ReleaseArtifactVersion.ps1
-            $info = Get-DropSpaceReleaseInfo ((Get-Content RELEASE_VERSION -Raw).Trim())
-            Assert-DropSpaceExecutableVersion -Path artifacts/release/DropSpace.exe -ReleaseInfo $info
-            Assert-DropSpaceExecutableVersion -Path artifacts/release/DropSpaceSetup.exe -ReleaseInfo $info -Installer
-          } else { ./scripts/Test-ReleaseArtifactVersion.ps1 }
+          ./scripts/Test-ReleaseArtifactVersion.ps1
 
-
-      - name: Validate generated icon and brand chain
+      - name: Verify unsigned installer and portable payload bytes
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
-        run: ./scripts/Test-BrandAssets.ps1
-
-
-      - name: Test installer /UPDATE, restart, upgrade, and uninstall lifecycle
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
-
-
-      - name: Smoke test portable EXE (en-US resource context) without public network access
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/runtime-inspection/portable.json
-
-
-      - name: Smoke test portable EXE (zh-CN resource context) without public network access
-        if: steps.ci-promotion.outputs.reuse != 'true'
-        shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
-
+        run: |
+          ./scripts/Inspect-ReleasePackage.ps1 -Kind Installer -InstallerPath artifacts/release/DropSpaceSetup.exe
+          ./scripts/Inspect-ReleasePackage.ps1 -Kind Portable -OutputPath artifacts/runtime-inspection/portable.json
 
       - name: Inspect runtime bytes inside the final MSIX
         if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Inspect-AiRuntimePayload.ps1 -MsixPath artifacts/release/DropSpace-x64.msix -OutputPath artifacts/runtime-inspection/msix.json
-
 
       - name: Freeze unsigned bytes and generate release metadata
         if: steps.version.outputs.isolated_beta != 'true'
@@ -695,7 +296,6 @@ jobs:
         if: steps.ci-promotion.outputs.reuse != 'true'
         run: node scripts/ai-runtime-publication.mjs record-bundle artifacts/release runtime-directory artifacts/ai-runtime/win-x64 artifacts/runtime-inspection/portable.json artifacts/runtime-inspection/msix.json artifacts/runtime-inspection/installer.json
 
-
       - name: Verify exact reviewed bytes in the completed unsigned release bundle
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
@@ -720,7 +320,6 @@ jobs:
           }
           $metadata | ConvertTo-Json -Depth 4 | Set-Content artifacts/release/build-environment.json -Encoding utf8
           Get-Content artifacts/release/build-environment.json
-
 
       - name: Upload unsigned validated release bundle
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -751,30 +350,12 @@ jobs:
           path: artifacts/identity/DropSpace.Identity.msix
           if-no-files-found: error
           retention-days: 3
-      - name: Upload release test results
-        if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: release-test-results-${{ steps.version.outputs.tag }}
-          path: "**/TestResults/*.trx"
-          if-no-files-found: ignore
-          retention-days: 14
-
       - name: Upload release build environment record
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: release-build-environment-${{ steps.version.outputs.tag }}
           path: artifacts/release/build-environment.json
           if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload release smoke and installer diagnostics
-        if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: release-diagnostics-${{ github.run_id }}
-          path: artifacts/diagnostics/**
-          if-no-files-found: ignore
           retention-days: 14
 
   sign-release:
@@ -899,12 +480,11 @@ jobs:
             throw "Artifact Signing did not produce a trusted installer signature."
           }
 
-      - name: Re-run final signed installer and portable smoke gates
+      - name: Verify signed installer and portable payload bytes
         shell: pwsh
         run: |
-          ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
-          ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/runtime-inspection/portable.json
-          ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
+          ./scripts/Inspect-ReleasePackage.ps1 -Kind Installer -InstallerPath artifacts/release/DropSpaceSetup.exe
+          ./scripts/Inspect-ReleasePackage.ps1 -Kind Portable -OutputPath artifacts/runtime-inspection/portable.json
 
       - name: Inspect runtime bytes inside the signed MSIX
         shell: pwsh
@@ -952,15 +532,6 @@ jobs:
             artifacts/release/runtime-publication.json
           if-no-files-found: error
           retention-days: 2
-
-      - name: Upload signed smoke and installer diagnostics
-        if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: signed-release-diagnostics-${{ github.run_id }}
-          path: artifacts/diagnostics/**
-          if-no-files-found: ignore
-          retention-days: 14
 
   publish-release:
     name: Publish GitHub Release

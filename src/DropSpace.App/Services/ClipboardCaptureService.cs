@@ -977,10 +977,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                             currentSequence == signal.ClipboardSequenceNumber)
                         {
                             if (TryQueueSignal(signal with { Attempt = signal.Attempt + 1 }))
-                            {
-                                PublishStatus(AppUiMessage.Resource("ClipboardBusyRetrying"));
                                 continue;
-                            }
 
                             Interlocked.Increment(ref _droppedEvents);
                         }
@@ -1068,8 +1065,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 lastException = exception;
                 Interlocked.Increment(ref _failedReads);
                 RecordDiagnostic(ClipboardDiagnosticDecision.ReadFailed, signal, exception, attempt + 1);
-                PublishStatus(AppUiMessage.Resource("ClipboardBusyRetrying"));
-                _logger.LogWarning(
+                _logger.LogDebug(
                     exception,
                     "Transient clipboard read failure for sequence {SequenceNumber}, attempt {Attempt}.",
                     signal.ClipboardSequenceNumber,
@@ -1753,7 +1749,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     cancellationToken)
                     .ConfigureAwait(false);
             if (result.RemovedCount > 0)
-                await _previews.ClearAsync(cancellationToken).ConfigureAwait(false);
+            {
+                try { await _previews.ClearAsync(cancellationToken).ConfigureAwait(false); }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                {
+                    _logger.LogWarning(exception, "Retention committed; preview cache cleanup remains pending.");
+                }
+            }
             if (_payloadCleanup is not null)
             {
                 // Retention deletes payload rows transactionally and records their physical
@@ -1777,9 +1779,6 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 }
             }
 
-            // Advance the watermark only after the database and preview cleanup completed;
-            // a failed pass is then eligible for a retry instead of being suppressed for five
-            // minutes.
             _lastRetentionUtc = now;
         }
         finally

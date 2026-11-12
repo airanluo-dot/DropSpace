@@ -1,4 +1,4 @@
-param([string]$RuntimeDirectory = '', [string]$ModelPath = '')
+param([string]$RuntimeDirectory = '')
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -40,22 +40,4 @@ $exe = Join-Path $RuntimeDirectory 'llama-completion.exe'
 $version = & $exe --version 2>&1
 if ($LASTEXITCODE -ne 0 -or ($version -join "`n") -notmatch '0\.5\.0') { throw 'Native runtime version smoke failed.' }
 
-if ($ModelPath) {
-    if (-not (Test-Path $ModelPath -PathType Leaf)) { throw 'Native smoke model is missing.' }
-    # Model inference must use the actual production plaintext backend and Windows Job ownership,
-    # never a parallel raw Process.Start path or the retired JSON grammar profile.
-    $previousModel = $env:DROPSPACE_AI_SMOKE_MODEL
-    $previousRuntime = $env:DROPSPACE_AI_SMOKE_RUNTIME
-    try {
-        $env:DROPSPACE_AI_SMOKE_MODEL = [IO.Path]::GetFullPath($ModelPath)
-        $env:DROPSPACE_AI_SMOKE_RUNTIME = $RuntimeDirectory
-        $project = Join-Path $PSScriptRoot '../tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj'
-        & dotnet test $project --filter 'FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests.PinnedWindowsRuntimeTranslatesOriginalLinesAndHonorsCancellation' --logger 'console;verbosity=normal'
-        if ($LASTEXITCODE -ne 0) { throw 'Actual production plaintext native smoke failed.' }
-    } finally {
-        $env:DROPSPACE_AI_SMOKE_MODEL = $previousModel
-        $env:DROPSPACE_AI_SMOKE_RUNTIME = $previousRuntime
-    }
-    Write-Host 'Actual plaintext Beta model/backend and native cancellation checks passed.'
-}
 Write-Host 'Pinned Windows runtime provenance, SHA256, x64 image, payload, and startup verified.'

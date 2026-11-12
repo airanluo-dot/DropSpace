@@ -64,27 +64,16 @@ The following product contracts are unchanged:
 | Supported platform | `10.0.20348.0` | `SupportedOSPlatformVersion`, `TargetPlatformMinVersion` |
 | MSIX and identity | `MinVersion=10.0.20348.0` | `Package.appxmanifest`, identity template |
 | Inno Setup | `MinVersion=10.0.20348` | `installer/DropSpace.iss` |
-| Update manifest | `minimumWindowsBuild=20348` | generator, parser, tests |
+| Update manifest | `minimumWindowsBuild=20348` | generator and parser |
 | Modern visual gate | Build `22000` | runtime capability service |
 | Compile-time SDK | Build `26100` | pinned Windows SDK Build Tools |
 
-`scripts/Test-WindowsCompatibility.ps1` is executed in both Windows CI and the
-release workflow before restore/build. It rejects target/minimum drift, direct
-Mica XAML parsing, unguarded modern DWM attributes, updater-policy drift, and
-missing baseline documentation.
-
 ## Physical evidence matrix
 
-The following is the acceptance matrix, not a claim that every row has already
-been run. A row is complete only when its OS build, display scale, monitor
-topology, deployment mode, application version, and result are recorded from a
-real Windows environment.
-
-Under the current Beta publication policy in [TEST_PLAN.md](TEST_PLAN.md), missing
-physical/manual matrix evidence is recommended follow-up rather than a Beta
-publication blocker. Unexecuted rows remain unverified. Exact-candidate Windows
-automated build, tests including actual DPAPI, native smoke, packaging/lifecycle,
-security and final artifact checks remain required; Stable criteria are unchanged.
+The matrix below records the original Beta.25 compatibility plan. Use an affected
+row when investigating a specific compatibility issue. Current development and
+release checks follow [the core test plan](TEST_PLAN.md). OS build, display scale,
+topology and deployment mode identify the environment for any result.
 
 | OS baseline | Build | Required focus |
 | --- | ---: | --- |
@@ -99,7 +88,7 @@ security and final artifact checks remain required; Stable criteria are unchange
 
 Rows below build 20348 are negative compatibility tests: verify graceful launch
 and installation rejection, rather than claiming support for runtime features.
-For every supported row at build 20348 or later, exercise 100%, 125%, 150%, 175%, and 200% display
+The historical Beta.25 plan covered 100%, 125%, 150%, 175%, and 200% display
 scales where the OS can configure them; one, two, and three monitor layouts;
 primary and non-primary placement; monitor reconnect/topology refresh; and
 both x64 Installer and Portable deployments. On Windows 11, include the
@@ -108,7 +97,7 @@ available. On supported builds below Windows 11, verify that the same content pa
 through the main window and visible Overlay even though Mica, modern DWM
 attributes, and Drop Tray-specific behavior are unavailable.
 
-The critical flows are:
+The original plan covered these flows:
 
 1. Normal launch, tray lifecycle, single-instance redirect, and `--startup`
    with no visible main window.
@@ -127,16 +116,9 @@ The critical flows are:
 
 ## Current evidence boundary
 
-The source-level compatibility gate, pure policy tests, updater tests, and
-Windows workflow definitions are part of this implementation. A Linux
-development environment can run platform-neutral tests and read-only script
-checks when .NET and PowerShell are available, but it lacks WinUI and a Windows
-display stack. Those checks cannot establish Windows executable, installer,
-DPI, OLE, clipboard, or multi-monitor behavior. Inspect the relevant Windows
-CI/release results; the rows above remain conditional until real Windows
-machines or equivalent dedicated test fixtures record them. Hosted Windows CI
-is useful for build/smoke coverage but does not replace the historical
-OS/DPI/monitor/provider matrix.
+Build and package metadata establish the declared minimum Windows version.
+Behavior on a specific OS, display or device requires observation there.
+The historical matrix records the scope of that work.
 
 ## Preview.19 execution record
 

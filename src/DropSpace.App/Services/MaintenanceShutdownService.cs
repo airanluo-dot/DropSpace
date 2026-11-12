@@ -11,8 +11,9 @@ public sealed class MaintenanceShutdownService(
     DispatcherQueue dispatcher,
     ILogger<MaintenanceShutdownService> logger)
 {
-    private const string RequestEventName = "Local\\DropSpace.MaintenanceShutdown.v1";
-    private const string StoppedEventName = "Local\\DropSpace.MaintenanceStopped.v1";
+    private static readonly string RequestEventName = LocalPreview.ScopeName("Local\\DropSpace.MaintenanceShutdown.v1");
+    private static readonly string StoppedEventName = LocalPreview.ScopeName("Local\\DropSpace.MaintenanceStopped.v1");
+    private static readonly string RunningMutexName = LocalPreview.ScopeName("Local\\DropSpace.Running.v1");
     private RegisteredWaitHandle? _registration;
     private EventWaitHandle? _requestEvent;
     private EventWaitHandle? _stoppedEvent;
@@ -47,14 +48,10 @@ public sealed class MaintenanceShutdownService(
                     await _startupReady.Task.ConfigureAwait(false);
                     logger.LogInformation("A maintenance shutdown was requested by Setup or the uninstaller.");
                     await dispatcher.EnqueueAsync(shutdown);
-                    // ShutdownAsync disposes the application services, but the named
-                    // process mutex is owned by this cross-process coordinator rather
-                    // than by the DI container. Release it before acknowledging the
-                    // stopped event so Setup never mistakes the final CLR/WinUI teardown
-                    // window for a still-running DropSpace instance.
-                    ReleaseRunningMutex();
+                    // The event acknowledges cleanup. Windows releases the running mutex at process exit.
                     _stoppedEvent.Set();
                     Environment.Exit(0);
+                    GC.KeepAlive(_runningMutex);
                 }
                 catch (Exception exception)
                 {
@@ -70,16 +67,10 @@ public sealed class MaintenanceShutdownService(
         // the mutex as the readiness probe; exposing it last prevents a freshly
         // restarted instance from being mistaken for the previous instance
         // while the manual-reset stopped event is still signaled.
-        _runningMutex = new Mutex(initiallyOwned: true, "Local\\DropSpace.Running.v1", out _);
+        _runningMutex = new Mutex(initiallyOwned: true, RunningMutexName, out _);
     }
 
     public void MarkReady() => _startupReady.TrySetResult();
-
-    private void ReleaseRunningMutex()
-    {
-        var runningMutex = Interlocked.Exchange(ref _runningMutex, null);
-        runningMutex?.Dispose();
-    }
 
     public static async Task<int> RequestRunningInstanceAsync(
         TimeSpan timeout,

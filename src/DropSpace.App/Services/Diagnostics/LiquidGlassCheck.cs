@@ -107,6 +107,15 @@ internal static class LiquidGlassCheck
                         case "music-window-check": await VerifyMusicWindowLifecycle(); break;
                         case "music-page": host.ShowAndActivate(); await main.NavigateAsync("Music"); break;
                         case "snapshot": break;
+                        case "acrylic":
+                        case "glass":
+                            await main.UpdateSettingsAsync(main.Settings with { IslandAppearance = main.Settings.IslandAppearance with
+                            { MaterialStyle = name == "glass" ? IslandMaterialStyle.LiquidGlass : IslandMaterialStyle.Acrylic } });
+                            break;
+                        case "move-check":
+                            await File.WriteAllTextAsync(Path.Combine(output, "move-check.json"),
+                                JsonSerializer.Serialize(await overlay.DiagnosticActiveWindow.CheckGlassHostMovementAsync(), new JsonSerializerOptions { WriteIndented = true }));
+                            break;
                         case "measure": await MeasureRefresh(); break;
                         case "compare":
                         case "width-compare":

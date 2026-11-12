@@ -113,17 +113,6 @@ package tokenizer and actual translation quality must be established separately 
 
 ## Checks and remaining acceptance
 
-Run the stdlib-only protocol/build-validator suite without installing any dependency:
-
-```text
-python -m unittest discover -s tools/ct2-helper -p "test_*.py" -v
-```
-
-Tests use fake native modules and synthetic wheels. They cover bounded framing, type/schema/ID
-rejection, separate tokenizer selection, explicit prefix behavior, token ceilings, EOS failures,
-protocol-only stdout, offline inventory validation and recursive runtime inventory. They do not
-prove native translation quality, Windows process containment, or a successful frozen build.
-
 Before any private native acceptance, supply the reviewed offline CPython/wheels and complete
 model package, build on Windows x64, compare actual tokenization/decoding with the model's original
 reference, and run the frozen executable inside the unchanged one-process Job with timeout,

@@ -252,21 +252,11 @@ export const sourcePaths = Object.freeze([
   'scripts/Build-AiLyricsRuntime.ps1',
   'scripts/Prepare-VulkanBuildDependencies.ps1',
   'scripts/build-dependencies/vulkan/vcpkg.json',
-  'scripts/ai-model-qa/Program.cs',
-  'scripts/ai-model-qa/Run-WindowsModelQa.ps1',
-  'scripts/ai-model-qa/WindowsModelQa.csproj',
-  'scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj',
-  'scripts/plain-hy-production-evidence/packages.lock.json',
-  'scripts/plain-hy-production-evidence/Program.cs',
   // Retain the prior reviewed computation as an immutable historical input;
   // the active host computation below has its own path and honest provenance.
   'scripts/plain-hy-production-evidence/source48-admission-v10.json',
   'scripts/plain-hy-production-evidence/source48-admission-v11.json',
   admissionPath,
-  'scripts/plain-hy-production-evidence/ContractTests.cs',
-  'scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1',
-  'scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1',
-  'scripts/Get-AiLyricsSmokeModel.ps1',
   'scripts/Test-AiLyricsRuntime.ps1',
   // Embedding/packaging declarations are also part of the reviewed shipping input.
   'src/DropSpace.Core/DropSpace.Core.csproj',
@@ -274,14 +264,11 @@ export const sourcePaths = Object.freeze([
   'scripts/Build-PortableExe.ps1',
   'scripts/Build-UnsignedPackage.ps1',
   'scripts/Build-Installer.ps1',
-  // Exact Beta17 producer, asset reuse and validation/promotion are shipping inputs.
-  'scripts/Build-Beta17Candidate.ps1',
-  'scripts/Build-Beta18Candidate.ps1',
+  // Asset reuse, receipt verification and release promotion are shipping inputs.
   'scripts/Reuse-BundledLyricsLanguageModel.ps1',
-  'scripts/beta17-release-validation.mjs',
   'scripts/beta18-release-validation.mjs',
   'scripts/ci-release-promotion.mjs',
-  'scripts/Inspect-OwnerWaivedPackages.ps1',
+  'scripts/Inspect-ReleasePackage.ps1',
   'scripts/Collect-AiRuntimeNotices.ps1',
   'tools/ct2-helper/helper.py',
   'tools/ct2-helper/build.ps1',
@@ -349,7 +336,7 @@ export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
 export const betaHostExperimentalModelsStatus = 'owner-authorized-beta-host-experimental-models';
-export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.6';
+export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.7';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -383,6 +370,12 @@ export function readSourceFingerprint(root) {
     assert.ok(!/[*$?;]/.test(include), 'Embedded resource expansion requires an explicit fingerprint extractor update');
     if (!include.toLowerCase().endsWith('.json')) return [];
     const relative = include.replaceAll('\\', '/');
+    if (relative === '../../modules/sample/fixture-catalog.json') {
+      assert.match(attributes, /\bCondition="Exists\('\$\(MSBuildProjectDirectory\)\/\.\.\/\.\.\/\.local\/preview-id'\)"/,
+        'The sample catalog is embedded only in an opt-in local preview');
+      assert.match(attributes, /\bLogicalName="DropSpace\.Infrastructure\.Dlc\.fixture-catalog\.json"/);
+      return [];
+    }
     assert.ok(!path.posix.isAbsolute(relative) && !relative.split('/').includes('..'), 'Embedded resource path must stay within Infrastructure');
     const name = path.posix.join(path.posix.dirname(projectPath), relative);
     assert.ok([...modelDeliverySourcePaths, ...languageIdentificationSourcePaths, ...moduleIntegrationSourcePaths].includes(name), `Embedded JSON needs code-owned fingerprint coverage: ${name}`);
@@ -913,6 +906,9 @@ export function validateApproval(root, { now = Date.now(), runtimeManifestPath, 
   const betaHost = approval.status === betaHostExperimentalModelsStatus;
   const experimental = approval.status === experimentalBetaStatus || stableHost || betaHost;
   assert.ok(approval.status === 'approved' || experimental, 'AI semantic release approval is pending or absent; structural success is not approval');
+  const candidate = readText(root, 'RELEASE_VERSION').trim();
+  assert.equal(approval.scope?.releaseVersion, candidate,
+    `AI release approval covers ${approval.scope?.releaseVersion ?? 'no version'}; ${candidate} requires its own review`);
   const scope = readScope(root);
   nonempty(scope.releaseVersion, 'Release version');
   assert.deepEqual(approval.scope, scope, 'AI approval is stale: shipping model, runtime, prompt/parser sources, release or fixture changed');
