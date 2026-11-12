@@ -21,6 +21,8 @@
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
+    <DropSpaceLocalPreviewId Condition="Exists('$(MSBuildProjectDirectory)/../../.local/preview-id')">$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/../../.local/preview-id').Trim())</DropSpaceLocalPreviewId>
+    <DropSpaceDeployment Condition="'$(DropSpaceDeployment)' == '' and '$(DropSpaceLocalPreviewId)' != ''">Portable</DropSpaceDeployment>
     <DropSpaceDeployment Condition="'$(DropSpaceDeployment)' == ''">Packaged</DropSpaceDeployment>
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType Condition="'$(DropSpaceDeployment)' == 'Packaged'">MSIX</WindowsPackageType>
@@ -35,6 +37,7 @@
     <DropSpaceWin32ResourceDependsOn Condition="'$(WindowsAppSDKSelfContained)' == 'true'">CreateWinRTRegistration</DropSpaceWin32ResourceDependsOn>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyMetadata Include="DropSpaceLocalPreviewId" Value="$(DropSpaceLocalPreviewId)" Condition="'$(DropSpaceLocalPreviewId)' != ''" />
     <ProjectReference Include="..\DropSpace.Core\DropSpace.Core.csproj" />
     <ProjectReference Include="..\DropSpace.Infrastructure\DropSpace.Infrastructure.csproj" />
     <ProjectReference Include="..\DropSpace.MusicBackground\DropSpace.MusicBackground.csproj" GlobalPropertiesToRemove="WindowsAppSDKSelfContained;PublishSingleFile" />

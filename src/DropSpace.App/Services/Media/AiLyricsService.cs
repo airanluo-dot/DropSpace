@@ -80,7 +80,7 @@ public sealed class AiLyricsService : IDisposable
     {
         _cudaPackage = cudaPackage; _residentRunner = residentRunner;
         _ownsLanguageIdentifier = languageIdentifier is null;
-        _languageIdentifier = languageIdentifier ?? new FastTextLanguageIdentifier();
+        _languageIdentifier = languageIdentifier ?? new FastTextLanguageIdentifier(paths);
         _applicationRoot = paths.Root;
         var root = Path.Combine(paths.Root, "AiLyrics");
         _ownsModels = models is null;

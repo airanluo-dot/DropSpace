@@ -42,6 +42,8 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var definition = Parse(gesture);
+        // A probe also temporarily reserves the system shortcut. Leave it to the daily app.
+        if (LocalPreview.IsEnabled) return false;
         if (IsRegistered && string.Equals(_gesture, gesture, StringComparison.OrdinalIgnoreCase))
         {
             return true;
@@ -113,6 +115,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
 
     public async Task StartAsync(string gesture, CancellationToken cancellationToken = default)
     {
+        if (LocalPreview.IsEnabled) return;
         if (!await TryStartAsync(gesture, cancellationToken).ConfigureAwait(false))
         {
             _logger.LogWarning("Quick Panel hotkey could not be registered; the Dynamic Island remains available by pointer.");

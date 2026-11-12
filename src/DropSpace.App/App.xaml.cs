@@ -120,7 +120,7 @@ public partial class App : Application
             }
             if (Services.Diagnostics.LyricsLanguageSmoke.IsRequested(commandLine))
             {
-                Environment.Exit(await Services.Diagnostics.LyricsLanguageSmoke.RunAsync(commandLine)); return;
+                Environment.Exit(await Services.Diagnostics.LyricsLanguageSmoke.RunAsync(commandLine, GetStoragePaths())); return;
             }
             if (Services.Diagnostics.MusicVisualSmoke.IsRequested(commandLine))
             {
@@ -138,7 +138,8 @@ public partial class App : Application
             }
 
             var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
-            _mainInstance = AppInstance.FindOrRegisterForKey(_moduleUiOptions is null ? "DropSpace.Main" : "DropSpace.ModuleUi." + Path.GetFileName(_moduleUiOptions.Root));
+            var instanceKey = _moduleUiOptions is null ? "DropSpace.Main" : "DropSpace.ModuleUi." + Path.GetFileName(_moduleUiOptions.Root);
+            _mainInstance = AppInstance.FindOrRegisterForKey(LocalPreview.ScopeName(instanceKey));
             if (!_mainInstance.IsCurrent)
             {
                 await _mainInstance.RedirectActivationToAsync(activation);
@@ -445,7 +446,7 @@ public partial class App : Application
                     Environment.Exit(0);
                 }
 
-                else if (!commandLine.Contains("--test-mode", StringComparer.OrdinalIgnoreCase) &&
+                else if (!LocalPreview.IsEnabled && !commandLine.Contains("--test-mode", StringComparer.OrdinalIgnoreCase) &&
                     !string.Equals(Environment.GetEnvironmentVariable("DROPSPACE_TEST_MODE"), "1", StringComparison.Ordinal))
                 {
                     // Process-lifetime ownership: opening or hiding windows never calls this path.
@@ -636,11 +637,17 @@ public partial class App : Application
 
     private ServiceProvider BuildServices() => BuildServices(null);
 
+    private AppStoragePaths GetStoragePaths(string? diagnosticDataRoot = null)
+    {
+        var testRoot = diagnosticDataRoot ?? _moduleUiOptions?.Root ?? (Environment.GetCommandLineArgs().Contains("--test-mode", StringComparer.OrdinalIgnoreCase)
+            ? Environment.GetEnvironmentVariable("DROPSPACE_TEST_DATA_ROOT") : null);
+        var root = string.IsNullOrWhiteSpace(testRoot) ? LocalPreview.DataRoot : testRoot;
+        return root is null ? AppStoragePaths.CreateForCurrentUser() : new AppStoragePaths(root);
+    }
+
     private ServiceProvider BuildServices(string? diagnosticDataRoot)
     {
-        var testRoot = diagnosticDataRoot ?? (Environment.GetCommandLineArgs().Contains("--test-mode", StringComparer.OrdinalIgnoreCase)
-            ? Environment.GetEnvironmentVariable("DROPSPACE_TEST_DATA_ROOT") : null);
-        var paths = string.IsNullOrWhiteSpace(testRoot) ? AppStoragePaths.CreateForCurrentUser() : new AppStoragePaths(testRoot);
+        var paths = GetStoragePaths(diagnosticDataRoot);
         var fileLogger = new RedactingFileLoggerProvider(paths);
         _fileLogger = fileLogger;
         var services = new ServiceCollection();
@@ -736,8 +743,8 @@ public partial class App : Application
         services.AddSingleton<DragStorageItemService>();
         services.AddSingleton<IFileReferenceService, LocalFileReferenceService>();
         services.AddSingleton<ILocalStorageMetrics, LocalStorageMetrics>();
-        if (Services.Diagnostics.FeatureModuleUiSmoke.IsRequested(Environment.GetCommandLineArgs()))
-            services.AddSingleton<IStartupRegistrationService, ModuleUiStartupRegistration>();
+        if (LocalPreview.IsEnabled || Services.Diagnostics.FeatureModuleUiSmoke.IsRequested(Environment.GetCommandLineArgs()))
+            services.AddSingleton<IStartupRegistrationService, InMemoryStartupRegistration>();
         else services.AddSingleton<IStartupRegistrationService, StartupRegistrationService>();
         services.AddSingleton<WindowsShareIntegrationService>();
         services.AddSingleton<ShareTargetActivationService>();
@@ -806,7 +813,7 @@ public partial class App : Application
         services.AddSingleton<WidgetViewModel>();
         services.AddSingleton<ClipboardIslandViewModel>();
         services.AddSingleton<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>();
-        services.AddSingleton<DropSpace.Core.Lyrics.ILyricsLanguageIdentifier, FastTextLanguageIdentifier>();
+        services.AddSingleton<DropSpace.Core.Lyrics.ILyricsLanguageIdentifier>(_ => new FastTextLanguageIdentifier(paths));
         services.AddSingleton<DropSpace.Core.Downloads.IDownloadTaskRepository>(provider => new DropSpace.Infrastructure.Downloads.DownloadTaskRepository(
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "Downloads", "Tasks"),
             provider.GetRequiredService<ILogger<DropSpace.Infrastructure.Downloads.DownloadTaskRepository>>()));
@@ -948,7 +955,7 @@ public partial class App : Application
     {
         try
         {
-            var paths = _moduleUiOptions is { } options ? new AppStoragePaths(options.Root) : AppStoragePaths.CreateForCurrentUser();
+            var paths = GetStoragePaths();
             Directory.CreateDirectory(paths.Logs);
             var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={LogRedactor.Redact(SummarizeExceptionChain(exception))}";
             if (!string.IsNullOrWhiteSpace(exception.StackTrace))
@@ -971,8 +978,7 @@ public partial class App : Application
         { status = "failed", functionalScenarioExecutions = 1, failedAtUtc = DateTimeOffset.UtcNow, error = SummarizeExceptionChain(exception) }));
     }
 
-    // The explicit disposable diagnostic never changes the current user's Run registration.
-    private sealed class ModuleUiStartupRegistration : IStartupRegistrationService
+    private sealed class InMemoryStartupRegistration : IStartupRegistrationService
     {
         public bool IsEnabled { get; private set; }
         public Task SetEnabledAsync(bool enabled, CancellationToken cancellationToken = default)

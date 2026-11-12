@@ -31,6 +31,13 @@ shipped features. See [release history](docs/dev/interface-localization.md#relea
 
 ## Working in the repository
 
+- Treat the executable and worktree the user runs every day as their main copy, regardless of its
+  version label or branch name. Start changes on a new branch in a separate Git worktree from the
+  requested baseline. Build and run the local preview there. Keep the daily process running.
+- Before the first interactive preview build in that worktree, create `.local/preview-id` with
+  a fresh GUID in `N` format (32 hex digits). Keep that local file for subsequent builds. The
+  executable uses its embedded ID for private data and process coordination, including on double-click.
+  Use a clean checkout without the preview ID when preparing a public release.
 - Infer routine details from the current code and the user's request. Ask only when a missing
   choice would materially change the result.
 - Check the worktree and preserve unrelated user changes.

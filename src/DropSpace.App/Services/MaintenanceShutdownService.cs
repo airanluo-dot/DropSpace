@@ -11,8 +11,9 @@ public sealed class MaintenanceShutdownService(
     DispatcherQueue dispatcher,
     ILogger<MaintenanceShutdownService> logger)
 {
-    private const string RequestEventName = "Local\\DropSpace.MaintenanceShutdown.v1";
-    private const string StoppedEventName = "Local\\DropSpace.MaintenanceStopped.v1";
+    private static readonly string RequestEventName = LocalPreview.ScopeName("Local\\DropSpace.MaintenanceShutdown.v1");
+    private static readonly string StoppedEventName = LocalPreview.ScopeName("Local\\DropSpace.MaintenanceStopped.v1");
+    private static readonly string RunningMutexName = LocalPreview.ScopeName("Local\\DropSpace.Running.v1");
     private RegisteredWaitHandle? _registration;
     private EventWaitHandle? _requestEvent;
     private EventWaitHandle? _stoppedEvent;
@@ -70,7 +71,7 @@ public sealed class MaintenanceShutdownService(
         // the mutex as the readiness probe; exposing it last prevents a freshly
         // restarted instance from being mistaken for the previous instance
         // while the manual-reset stopped event is still signaled.
-        _runningMutex = new Mutex(initiallyOwned: true, "Local\\DropSpace.Running.v1", out _);
+        _runningMutex = new Mutex(initiallyOwned: true, RunningMutexName, out _);
     }
 
     public void MarkReady() => _startupReady.TrySetResult();

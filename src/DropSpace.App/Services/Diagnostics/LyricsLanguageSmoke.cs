@@ -2,6 +2,7 @@ using System.Text.Json;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
+using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.App.Services.Diagnostics;
 
@@ -11,7 +12,7 @@ internal static class LyricsLanguageSmoke
     public static bool IsRequested(string[] arguments) =>
         arguments.Contains("--lyrics-language-smoke", StringComparer.OrdinalIgnoreCase);
 
-    public static async Task<int> RunAsync(string[] arguments)
+    public static async Task<int> RunAsync(string[] arguments, AppStoragePaths paths)
     {
         var outputFlags = arguments.Select((value, index) => (value, index))
             .Where(item => item.value.Equals("--lyrics-language-smoke-output", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -22,9 +23,8 @@ internal static class LyricsLanguageSmoke
         var passed = false;
         try
         {
-            // Default production constructor proves the entry assembly's bundled
-            // bin and the single-file native resolver; no supplied model path.
-            using var identifier = new FastTextLanguageIdentifier();
+            // Exercise the bundled model and the same extraction directory as interactive playback.
+            using var identifier = new FastTextLanguageIdentifier(paths);
             var english = Document("I will carry the sunlight across the open water.",
                 "And every morning I will wait for you to come back home.");
             var enTarget = await identifier.PrepareAsync(english, "en", default);
