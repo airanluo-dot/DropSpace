@@ -109,7 +109,12 @@ function Invoke-Session([string]$session, [bool]$measure, [bool]$lifecycle) {
             if ($acrylic.island.State -ne 'Expanded' -or !$acrylic.material.visible -or
                 $acrylic.material.requested -ne 'Acrylic' -or $acrylic.material.ready) { throw "Acrylic switch failed. See $run." }
             Assert-Glass (Send-Control 'glass' 'glass-restored') 'Expanded'
-            $hidden = Send-Control 'hide' 'hidden'
+            $hidden = Send-Control 'hide'
+            $dismissal = [Diagnostics.Stopwatch]::StartNew()
+            while ($hidden.island.State -eq 'Dismissing' -and $dismissal.Elapsed.TotalSeconds -lt 5) {
+                $hidden = Send-Control 'snapshot'
+            }
+            [IO.File]::Copy($stateFile, (Join-Path $run 'hidden.json'))
             if ($hidden.island.State -ne 'Hidden' -or $hidden.material.ready -or $hidden.material.visible) {
                 throw "Hidden island retained glass. See $run."
             }
