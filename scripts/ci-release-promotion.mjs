@@ -10,6 +10,11 @@ import {isNextBetaRelease} from './next-beta-release-validation.mjs';
 const git = (...args) => execFileSync('git', args, {encoding:'utf8'}).trim();
 const payloads = ['DropSpace.exe','DropSpaceSetup.exe','DropSpace-x64.msix','runtime-publication.json','DropSpace.Identity.msix'];
 const usesIndependentCuda = releaseVersion => ['v0.3.1-beta.17','v0.3.1-beta.18'].includes(releaseVersion)||isNextBetaRelease(releaseVersion);
+const packageValidation = releaseVersion => releaseVersion === 'v1.1.0'
+  ? {unitCases:0,browserScenarios:0,modelCases:0,installerScenarios:0,
+      scope:'Owner-requested no tests; compilation and static package, resource, runtime and hash verification only'}
+  : {unitCases:0,browserScenarios:0,modelCases:0,installerScenarios:1,
+      scope:'One isolated installer payload scenario; static package, resource, runtime and hash verification'};
 export function promotionPayloads(releaseVersion) {
   return usesIndependentCuda(releaseVersion)
     ? [...payloads,'cuda-runtime-download.json','cuda-runtime-manifest.json','update-manifest.json','SHA256SUMS.txt',...(isNextBetaRelease(releaseVersion)?['localization-publication.json']:[])]
@@ -78,8 +83,7 @@ export function verifyReceipt(directory, receipt, expected) {
   verifyReleaseBinding(directory,{expectedCommit:receipt.sourceCommit});
   if(usesIndependentCuda(expected.releaseVersion))verifyIndependentCudaMetadata(directory,receipt.sourceCommit,expected.releaseVersion);
   if(isNextBetaRelease(expected.releaseVersion))assert.deepEqual(receipt.packageValidation,
-    {unitCases:0,browserScenarios:0,modelCases:0,installerScenarios:1,
-      scope:'One isolated installer payload scenario; static package, resource, runtime and hash verification'},
+    packageValidation(expected.releaseVersion),
     'New Beta package execution scope changed');
   if(expected.releaseVersion==='v0.3.1-beta.18') {
     const validation=verifyBeta18FocusedValidation(directory,receipt.sourceCommit);
@@ -104,8 +108,7 @@ async function main() {
   const releaseVersion=fs.readFileSync('RELEASE_VERSION','utf8').trim();
   if(usesIndependentCuda(releaseVersion))verifyIndependentCudaMetadata(directory,sourceCommit,releaseVersion);
   const receipt={schemaVersion:1,repository:process.env.GITHUB_REPOSITORY,runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),sourceCommit,sourceTree:git('rev-parse','HEAD^{tree}'),releaseVersion,files:Object.fromEntries(promotionPayloads(releaseVersion).map(name=>[name,identity(path.join(directory,name))]))};
-  if(isNextBetaRelease(releaseVersion))receipt.packageValidation={unitCases:0,browserScenarios:0,modelCases:0,installerScenarios:1,
-    scope:'One isolated installer payload scenario; static package, resource, runtime and hash verification'};
+  if(isNextBetaRelease(releaseVersion))receipt.packageValidation=packageValidation(releaseVersion);
   if(releaseVersion==='v0.3.1-beta.18') {
     receipt.focusedValidation=verifyBeta18FocusedValidation(directory,sourceCommit);
     assert.equal(receipt.focusedValidation.sourceTree,receipt.sourceTree);

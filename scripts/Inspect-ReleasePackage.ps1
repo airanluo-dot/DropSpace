@@ -58,7 +58,7 @@ if ($Kind -eq 'Portable') {
         package = Get-PackageIdentity $InstallerPath
     }
     $releaseVersion = (Get-Content -LiteralPath RELEASE_VERSION -Raw).Trim()
-    if ($releaseVersion -cin @('v0.3.1-beta.11', 'v0.3.1-beta.15', 'v0.3.1-beta.16')) {
+    if ($releaseVersion -cin @('v0.3.1-beta.11', 'v0.3.1-beta.15', 'v0.3.1-beta.16', 'v1.1.0')) {
         # These historical receipts cover the compiler input only.
         $report.kind = 'installer-build-input'
         $report.verificationScope = 'compiler-input-bytes-only; installer not executed; tests waived'

@@ -335,6 +335,7 @@ export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
+export const stableHostExperimentalModelsVersion = 'v1.1.0';
 export const betaHostExperimentalModelsStatus = 'owner-authorized-beta-host-experimental-models';
 export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.8';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -830,7 +831,7 @@ function validateExperimentalBeta(root, report, scope, reviewedAt) {
   const stableHost = report.kind === stableHostExperimentalModelsStatus;
   const betaHost = report.kind === betaHostExperimentalModelsStatus;
   const authorizedHost = stableHost || betaHost;
-  const authorizedVersion = stableHost ? 'v1.0.0' : betaHost ? betaHostExperimentalModelsVersion : experimentalBetaVersion;
+  const authorizedVersion = stableHost ? stableHostExperimentalModelsVersion : betaHost ? betaHostExperimentalModelsVersion : experimentalBetaVersion;
   assert.equal(scope.releaseVersion, authorizedVersion, 'Experimental model authorization is release-specific');
   if (authorizedHost) {
     assert.equal(report.publicationAuthorization?.releaseVersion, authorizedVersion);
@@ -928,7 +929,7 @@ export function validateApproval(root, { now = Date.now(), runtimeManifestPath, 
   assert.ok(Array.isArray(report.openDefects) && report.openDefects.length === 0, 'Known defects must be cleared; accepted Beta limitations are not a bug waiver');
   assert.ok(Array.isArray(report.acceptedLimitations), 'An explicit accepted-limitations list is required');
   if (report.acceptedLimitations.length > 0) {
-    if (stableHost) assert.equal(scope.releaseVersion, 'v1.0.0', 'Stable host authorization is limited to v1.0.0');
+    if (stableHost) assert.equal(scope.releaseVersion, stableHostExperimentalModelsVersion, 'Stable host authorization is release-specific');
     else assert.match(scope.releaseVersion, /-beta\.\d+$/, 'Accepted experimental limitations apply only to an authorized release');
     for (const limitation of report.acceptedLimitations) {
       nonempty(limitation.id, 'Accepted limitation ID');

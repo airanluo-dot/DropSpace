@@ -1,5 +1,24 @@
 [
   {
+    "tag": "v1.1.0",
+    "date": "2026-11-12",
+    "en": [
+      "Search, collect and reuse content from the Island, with a reference window and local Agent access.",
+      "Added an independent music window and configurable Liquid Glass.",
+      "Improved lyric matching, word highlighting and offline replay."
+    ],
+    "zh-CN": [
+      "新增灵动岛检索、收集、结果复用和本地 Agent。",
+      "新增独立音乐窗口和可调液态玻璃。",
+      "改进歌词匹配、逐字高亮和离线重播。"
+    ],
+    "zh-TW": [
+      "新增動態島檢索、收集、結果重用與本機 Agent。",
+      "新增獨立音樂視窗與可調液態玻璃。",
+      "改進歌詞比對、逐字醒目提示與離線重播。"
+    ]
+  },
+  {
     "tag": "v1.1.0-beta.8",
     "date": "2026-11-12",
     "en": [

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "status": "owner-authorized-beta-host-experimental-models",
-  "reason": "Publish the Windows Beta 8 host based on 6e0e7f5d with the selected lyric matching and word timing parser changes. The playback clock matches that build. The model files, prompt, sampler and native runtime identity match Beta 7.",
+  "status": "owner-authorized-stable-host-experimental-models",
+  "reason": "Owner-authorized promotion of Windows Beta 8 functionality to v1.1.0 Stable. Rebuild version metadata and packages; preserve model/runtime inputs and historical limitations. No functional, browser, model or installation tests requested or claimed.",
   "scope": {
-    "releaseVersion": "v1.1.0-beta.8",
+    "releaseVersion": "v1.1.0",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -337,7 +337,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "57bf1b19412452d9a28cc2da7452a962c5054bbd0ae5ea8d9bdfce780a34e2b4"
+          "sha256": "3e4436de069904b2361d1e2c281ec051e7ccdc5a4edcbabffeabc8513ea1535a"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -897,7 +897,7 @@
         },
         {
           "path": "scripts/next-beta-release-validation.mjs",
-          "sha256": "ecebd7117af40598b54c3b8811ee2874677c7d068c8f747762cc72ced4896d45"
+          "sha256": "21a65148be728282d64c99e4457db1e0e45d13f832d1a6865810e71496779351"
         },
         {
           "path": "scripts/Test-PackagedLocalization.ps1",
@@ -1061,11 +1061,11 @@
         },
         {
           "path": "scripts/ci-release-promotion.mjs",
-          "sha256": "cbc41970b893edf1f017f9d91c30249ccb7224066f177f251ac106de94672c25"
+          "sha256": "05ca26a2082ca100b4fa33d8adc7f826bdbb09d84d874bfc44c2edf3bec92c57"
         },
         {
           "path": "scripts/Inspect-ReleasePackage.ps1",
-          "sha256": "8c7add95f78b6e7e829b64ad1e42de7a8479180f469095368a0e39eebe93970e"
+          "sha256": "4bf039b60a3f98f582e42cd6147740dbb19d4785e772f078c7418e0783dcca8e"
         },
         {
           "path": "scripts/Collect-AiRuntimeNotices.ps1",
@@ -1229,7 +1229,7 @@
         },
         {
           "path": "scripts/ai-runtime-publication.mjs",
-          "sha256": "36cd46b655d66930f6e90e49bbd09d81c01b663bb663c09c3defff9e3f181a91"
+          "sha256": "5c98c4e0b818bba50fcfb2f79ed78d68f66a7fe9be07cabe394e0c246c840784"
         },
         {
           "path": "src/DropSpace.App/Services/Media/MusicWindowService.cs",
@@ -1292,7 +1292,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "8c7ffd29412d76fc80fba4c32fcfeeb1acf6fcfd99dbeab8186a258cb9313ec9"
+      "sha256": "cfe4f4d94a9304baea6805b0c9b806922fe900dfe6629d010b3e1478226d1fc3"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2735,7 +2735,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.8-host-review.json",
-    "sha256": "93fb04f2c35d0d422e1dc0abc6acfbece459aa929f56bea3632bbf70798fb1c7"
+    "path": "scripts/ai-model-qa/evidence/v1.1.0-host-review.json",
+    "sha256": "446b37dd8f266c2ce55e3dcbabb89a522026a18902a3a98685a48c0744f9b136"
   }
 }
