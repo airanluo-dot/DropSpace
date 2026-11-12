@@ -16,8 +16,9 @@ public sealed class LocalLrcLyricsProvider(Func<string> getDirectory) : ILyricsP
     {
         var directory = getDirectory();
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory)) return LyricsDocument.Empty;
-        Candidate? best = null;
+        LyricsDocument? best = null;
         double bestScore = 0;
+        var ambiguous = false;
         var paths = CandidatePaths(directory, query).ToArray();
         foreach (var path in paths)
         {
@@ -38,40 +39,46 @@ public sealed class LocalLrcLyricsProvider(Func<string> getDirectory) : ILyricsP
                 if (builder.Length == 0) continue;
                 var text = builder.ToString();
                 var fileNameTitle = Path.GetFileNameWithoutExtension(path);
-                var title = fileNameTitle;
+                var title = string.Empty;
                 var artist = string.Empty;
                 var album = string.Empty;
-                var hasTitleMetadata = false;
                 foreach (Match match in Metadata.Matches(text))
                 {
                     switch (match.Groups[1].Value.ToLowerInvariant())
                     {
-                        case "ti": title = match.Groups[2].Value; hasTitleMetadata = true; break;
+                        case "ti": title = match.Groups[2].Value; break;
                         case "ar": artist = match.Groups[2].Value; break;
                         case "al": album = match.Groups[2].Value; break;
                     }
                 }
-                if (string.IsNullOrWhiteSpace(artist) && TrySplitFileName(fileNameTitle, out var fileArtist, out var fileTitle))
+                if (TrySplitFileName(fileNameTitle, out var fileArtist, out var fileTitle))
                 {
-                    artist = fileArtist;
-                    if (!hasTitleMetadata) title = fileTitle;
+                    if (string.IsNullOrWhiteSpace(artist)) artist = fileArtist;
+                    if (string.IsNullOrWhiteSpace(title)) title = fileTitle;
                 }
+                if (string.IsNullOrWhiteSpace(title)) title = fileNameTitle;
                 var score = LyricsMatcher.Score(query, title, artist, album, 0);
-                if (score <= bestScore || score < 4) continue;
+                if (score < bestScore || score < 4) continue;
                 try
                 {
                     var parsed = LyricsParser.Parse(text, Kind);
-                    if (parsed.Lines.Count > 0) { bestScore = score; best = new(text, title, artist, album, score, path); }
+                    if (parsed.Lines.Count == 0 || LyricsMatcher.OriginalLanguageConflicts(query, parsed)) continue;
+                    var document = parsed.Bind(query, title, artist, album, 0, score, path);
+                    if (score == bestScore && best?.Match is { } leader)
+                    {
+                        if (LyricsMatcher.ConflictingCandidates(query, leader, document.Match!)) ambiguous = true;
+                        continue;
+                    }
+                    ambiguous = false;
+                    bestScore = score;
+                    best = document;
                 }
                 catch (Exception exception) when (exception is InvalidDataException or XmlException or FormatException) { }
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { }
         }
-        return best is null ? LyricsDocument.Empty : LyricsParser.Parse(best.Text, Kind)
-            .Bind(query, best.Title, best.Artist, best.Album, 0, best.Score, best.Path);
+        return ambiguous ? new LyricsDocument([], Kind) { BodyQuality = LyricsBodyQuality.Ambiguous } : best ?? LyricsDocument.Empty;
     }, cancellationToken);
-
-    private sealed record Candidate(string Text, string Title, string Artist, string Album, double Score, string Path);
 
     private static IEnumerable<string> CandidatePaths(string directory, LyricsQuery query)
     {

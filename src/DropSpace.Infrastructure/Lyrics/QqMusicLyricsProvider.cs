@@ -79,8 +79,9 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http, ILyricsLanguage
                     candidate.Title, candidate.Artist, candidate.Album, candidate.Duration, candidate.Score,
                     reason = candidate.Score >= 4 ? "recording-matched" : candidate.NeedsVocalProof
                         ? "missing-featured-credit-requires-lyric-proof" : "canonical-recording-not-confirmed" });
-            foreach (var best in candidates.Where(candidate => candidate.Score >= 4 || candidate.NeedsVocalProof)
-                .OrderByDescending(candidate => candidate.Score))
+            var eligible = candidates.Where(candidate => candidate.Score >= 4 || candidate.NeedsVocalProof);
+            foreach (var best in LyricsCandidateRequests.OrderCatalogue(eligible, query, value =>
+                new(value.Title, value.Artist, value.Album, value.Duration, value.Score)))
             {
                 var songId = Field(best.Song, "mid", "songmid");
                 if (string.IsNullOrWhiteSpace(songId) || !attempted.Add(songId)) continue;

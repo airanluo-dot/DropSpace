@@ -34,7 +34,7 @@ internal sealed class MusicLyricRow : Grid
     private readonly Run _run = new();
     private readonly RectangleGeometry _partialClip = new();
     private LyricsLine? _line;
-    private readonly List<(int Start, int End)> _words = [];
+    private (int Start, int End)[] _words = [];
     private readonly List<(int Start, int End, Rect Bounds, bool RightToLeft)> _glyphs = [];
     private bool _layoutDirty = true, _timed, _effectFailed;
     private int _completedLength = -1;
@@ -87,36 +87,12 @@ internal sealed class MusicLyricRow : Grid
         _translation.FontSize = translationSize; _translation.LineHeight = translationSize * 1.35;
         _translation.Visibility = string.IsNullOrEmpty(secondary) ? Visibility.Collapsed : Visibility.Visible;
         foreach (var layer in _completedLayers) UpdateCompletedLayer(layer.Text);
-        _words.Clear();
-        var timedText = string.Concat(line.Words.Select(word => word.Text));
-        if (string.Equals(timedText.Trim(), line.Text, StringComparison.Ordinal))
-        {
-            // Enhanced LRC keeps whitespace in its timed words but trims the
-            // display body. Keep provider indices, including whitespace-only
-            // words, while projecting their ranges into the displayed text.
-            var offset = -(timedText.Length - timedText.TrimStart().Length);
-            foreach (var word in line.Words)
-            {
-                var end = offset + word.Text.Length;
-                _words.Add((Math.Clamp(offset, 0, line.Text.Length), Math.Clamp(end, 0, line.Text.Length)));
-                offset = end;
-            }
-            return;
-        }
-        var cursor = 0;
-        foreach (var word in line.Words)
-        {
-            var start = line.Text.IndexOf(word.Text, cursor, StringComparison.Ordinal);
-            // Provider words occasionally use a different normalized body. Keep
-            // the existing line fallback instead of highlighting the wrong text.
-            if (start < 0) { _words.Clear(); break; }
-            _words.Add((start, start + word.Text.Length)); cursor = start + word.Text.Length;
-        }
+        _words = LyricsDisplayPolicy.WordTextRanges(line);
     }
 
     internal void Highlight(LyricsHighlightFrame frame, bool active, bool wordHighlighting)
     {
-        var timed = active && wordHighlighting && _line is { Words.Count: > 0 } && _words.Count == _line.Words.Count;
+        var timed = active && wordHighlighting && _line is { Words.Count: > 0 } && _words.Length == _line.Words.Count;
         if (_timed != timed)
         {
             _timed = timed; _completedLength = -1;
@@ -129,7 +105,7 @@ internal sealed class MusicLyricRow : Grid
         var done = 0;
         var clip = new Rect();
         HighlightedCharacters = 0;
-        if (frame.WordIndex >= 0 && frame.WordIndex < _words.Count)
+        if (frame.WordIndex >= 0 && frame.WordIndex < _words.Length)
         {
             var word = _words[frame.WordIndex];
             done = word.Start;

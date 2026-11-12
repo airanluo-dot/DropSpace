@@ -4210,17 +4210,30 @@
     "ReleaseHistoryLoadMore": [
       "09cf7b1a85ad9f075225619e3a4428e507a100d0cfaddcef5dce586dda4393ad",
       "8ad732dfdcd890b63b093c4e3ceac3d51af5c94f24cd4eed3b89ce3c830a2e2f"
+    ],
+    "LyricsUnsynced": [
+      "6b53540d90207c8c08c521f37058c5067b1407db021f325a28dfec3ca8e2e2a3",
+      "9b6aacf4affb4f3fc4c90c1546fa40dcd06b4c1131f1c78b9dd3d4cec547d4ef"
+    ],
+    "LyricsAmbiguous": [
+      "19e6d2f2513c671787b4e17569ad860d634f66495c1472f12cfd22cf833c67ee",
+      "8a64a7f76e75e7ad7bdda36fa94399eb45cb8f538d9cd2a1935659ca9f26e8e9"
+    ],
+    "LyricsInstrumental": [
+      "1808df5bf642c1f7564f9d700a1f57224848acd47eac39459189526ff251cd4d",
+      "440aa471f6b7540c684f20d1cf75a26fb8d937b8c5d43594a60e960c2d8bf831"
     ]
   },
-  "reviewedBy": "Codex release history copy review",
-  "reviewedAt": "2026-11-10T14:39:24.805Z",
+  "reviewedBy": "Codex",
+  "reviewedAt": "2026-11-12T07:29:46.392Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "ReleaseHistoryTitle",
-      "ReleaseHistoryLoadMore"
+      "LyricsUnsynced",
+      "LyricsAmbiguous",
+      "LyricsInstrumental"
     ],
-    "reviewedBy": "Codex release history copy review",
-    "reviewedAt": "2026-11-10T14:39:24.805Z"
+    "reviewedBy": "Codex",
+    "reviewedAt": "2026-11-12T07:29:46.392Z"
   }
 }

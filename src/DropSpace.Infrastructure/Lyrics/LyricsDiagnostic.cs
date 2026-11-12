@@ -3,12 +3,13 @@ using DropSpace.Core.Models;
 namespace DropSpace.Infrastructure.Lyrics;
 
 public enum LyricsDiagnosticStage { Search, Lyric, Query, Source, Reuse, Admission }
-public enum LyricsDiagnosticOutcome { Found, NoMatch, RateLimited, Rejected, TransportFailure, Timeout, Cancelled, Malformed, Disabled }
+public enum LyricsDiagnosticOutcome { Found, NoMatch, RateLimited, Rejected, TransportFailure, Timeout, Cancelled, Malformed, Disabled, Ambiguous }
 
 // No titles, artists, track IDs, URLs, response messages, lyrics or model data.
 public sealed record LyricsDiagnostic(LyricsProviderKind Provider, LyricsDiagnosticStage Stage,
     LyricsDiagnosticOutcome Outcome, long ElapsedMilliseconds, int Lines = 0, int TranslatedLines = 0,
-    int? HttpStatus = null, int? ApiCode = null, bool TranslationLookupIncomplete = false);
+    int? HttpStatus = null, int? ApiCode = null, bool TranslationLookupIncomplete = false,
+    HttpRequestError? NetworkError = null);
 
 internal static class LyricsDiagnostics
 {

@@ -115,7 +115,7 @@ The media experience may retry when the same track gains duration but never bran
 name. `LyricsService` starts with the preferred source and may launch permitted supplemental
 lookups after a progressive original result. An optional backup has a 150 ms hedge before the
 enabled remaining-provider race; a shared short selection budget and provider concurrency bound
-the work. Source preference and target-language priority still decide among admitted results,
+the work. Recording evidence and usable synchronization take precedence over source and translation preferences,
 and the strategy is part of the cache key. Local
 mode never enters the online chain. Online documents (including provider translations) and local-AI
 translations share an app-owned persistent lyrics cache. Its identity includes track evidence,
@@ -124,14 +124,14 @@ provider strategy, target language, pinned model hash, source content, and trans
 Beta3 embeds a bounded factual artist/title alias table. It enriches at most three search terms
 without rewriting media metadata; cross-language title admission additionally requires the
 mapped complete artist identity, compatible recording variants and independent duration evidence.
-Providers examine at most six admitted candidates in a pool, publishing usable results
-progressively. Shared quality ordering compares valid text-aligned timing and duration evidence
-only after target satisfaction and source priority. Request-stage health temporarily skips
+Providers rank catalog metadata before fetching lyrics for at most six candidates in a pool.
+Usable results can appear progressively. The shared ranking compares independent recording
+evidence and usable synchronization before choosing among equally suitable sources. Request-stage health temporarily skips
 repeated transport failures; manual refresh does not bypass server rate limiting.
 
-The cache uses atomic replacement, generation-fenced clearing, access-time LRU eviction, and a
-settings-bounded 100 MiB–5 GiB quota (1 GiB by default); user LRC files and model packages are outside
-this directory and are never cache eviction targets. Persistent lyric identity excludes the random
+The cache uses atomic replacement, generation-fenced clearing and access-time LRU eviction.
+The quota defaults to 1 GB and can be set to 0–10 decimal GB. Zero turns off disk cache reads
+and writes. User LRC files and model packages are outside the cache. Persistent lyric identity excludes the random
 SMTC session identifier while retaining player, track metadata, track number, and exact duration;
 the runtime identity still controls song-change publication. Old AI cache identities cannot
 bypass the current whole-track gate; directly incompatible AI entries are regenerated on

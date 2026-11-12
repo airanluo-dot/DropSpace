@@ -142,7 +142,8 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http, ILyricsLanguageIde
                 .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
             if (best is not null && best.Score >= 4 && !string.IsNullOrWhiteSpace(best.Id)) matches.Add(best);
         }
-        return matches.OrderByDescending(candidate => candidate.Score).DistinctBy(candidate => candidate.Id)
+        return LyricsCandidateRequests.OrderCatalogue(matches, query, value =>
+                new(value.Title, value.Artist, value.Album, 0, value.Score)).DistinctBy(candidate => candidate.Id)
             .Take(LyricsCandidateRequests.MaximumCandidates);
     }
 

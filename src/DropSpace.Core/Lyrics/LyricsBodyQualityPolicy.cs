@@ -1,6 +1,6 @@
 namespace DropSpace.Core.Lyrics;
 
-public enum LyricsBodyQuality { Usable, PlaceholderOnly, NoLyrics, ConfirmedInstrumental, RequestFailed }
+public enum LyricsBodyQuality { Usable, PlaceholderOnly, NoLyrics, ConfirmedInstrumental, RequestFailed, Ambiguous }
 
 /// <summary>Whole-line service placeholders are not proof that a recording is instrumental.</summary>
 public static class LyricsBodyQualityPolicy

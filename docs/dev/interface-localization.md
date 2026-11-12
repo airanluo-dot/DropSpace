@@ -59,17 +59,21 @@ separately indexed languages at one URL.
 ## Release history
 
 Before building each app version, add its tag at the top of `localization/release-history.json`.
-Read the release notes and group changes by what a person can now do. Start with new features,
-then meaningful improvements or fixes. Give each change one short bullet. Explain an unfamiliar
-feature in a phrase. Combine minor layout adjustments and omit implementation and test details.
 Include every published app release, including Preview, Beta, Stable and platform-specific tags.
+Follow Windows 1.1 Beta 4–6 for the length and tone of public highlights. Pick the two or three
+changes people will notice most; one is enough for a single change. Lead with a new feature,
+then improvements or fixes. Group related fixes by their visible result. Write one short sentence
+per item, naming the feature and what changed (for example, “优化专辑封面清晰度。”).
+Aim for about 25 Chinese characters or fewer per item. Skip introductions, subheadings,
+step-by-step instructions, edge cases, implementation and test details.
 
 Use the [release comparison rule](../../AGENTS.md#release-comparison-rule) for the Island,
 website and GitHub release notes. Compare the shipped result across the whole interval. Leave
 out experimental features that were withdrawn before Stable. The previous installer used to
 verify an upgrade is a separate technical detail.
 
-Write matching bullets in `en`, `zh-CN` and `zh-TW`. Both Chinese interfaces use their respective
+Write the same highlights in the same order in `en`, `zh-CN` and `zh-TW`. Use natural, equally
+brief wording in each language. Both Chinese interfaces use their respective
 copy. All other interfaces use English summaries with localized controls, channel labels and dates.
 Use `date: null` for an unpublished candidate. Set the UTC release date as `YYYY-MM-DD` when
 preparing the release build. Publish the app before deploying its dated website entry.

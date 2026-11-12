@@ -149,13 +149,19 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
     public Task SkipPreviousAsync(CancellationToken cancellationToken = default) => ControlAsync("Previous", async (session, snapshot, token) =>
         snapshot.CanSkipPrevious && await AwaitOwnedNativeAsync(session.TrySkipPreviousAsync(), token), cancellationToken);
 
-    public Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default) => ControlAsync("Seek", async (session, snapshot, token) =>
-    {
-        if (!snapshot.CanSeek) return false;
-        var timeline = snapshot.Timeline;
-        var ticks = Math.Clamp(position.Ticks, timeline.Start.Ticks, Math.Max(timeline.Start.Ticks, timeline.End.Ticks));
-        return await AwaitOwnedNativeAsync(session.TryChangePlaybackPositionAsync(ticks), token);
-    }, cancellationToken);
+    public Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default)
+        => SeekAsync(position, Current, cancellationToken);
+
+    public Task SeekAsync(TimeSpan position, MediaSessionSnapshot requestedTrack, CancellationToken cancellationToken = default)
+        => ControlAsync("Seek", async (session, snapshot, token) =>
+        {
+            // A second drag may queue behind the first native command. Its captured
+            // position only belongs to the recording for which it was submitted.
+            if (!snapshot.CanSeek || !snapshot.IsSameTrack(requestedTrack)) return false;
+            var timeline = snapshot.Timeline;
+            var ticks = Math.Clamp(position.Ticks, timeline.Start.Ticks, Math.Max(timeline.Start.Ticks, timeline.End.Ticks));
+            return await AwaitOwnedNativeAsync(session.TryChangePlaybackPositionAsync(ticks), token);
+        }, cancellationToken);
 
     private Task ControlAsync(string command,
         Func<GlobalSystemMediaTransportControlsSession, MediaSessionSnapshot, CancellationToken, Task<bool>> action, CancellationToken token) =>
@@ -378,15 +384,12 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
                     var sameTrack = previous.SessionId == _sessionIdentity && previous.SourceAppUserModelId == source && previous.TrackTitle == title &&
                         previous.Artist == artist && previous.AlbumArtist == albumArtist && previous.AlbumTitle == album &&
                         previous.TrackNumber == trackNumber && durationConsistent;
-                    var effectiveStart = timeline.Start;
-                    var effectiveEnd = timeline.End;
                     if (sameTrack && duration <= TimeSpan.Zero && previous.Timeline.Duration > TimeSpan.Zero)
                     {
-                        // A short-lived zero timeline is an Apple Music metadata refresh, not a new
-                        // track. Keep the last known bounds so the UI and lyric clock do not collapse
-                        // to a one-second duration while the native session catches up.
-                        effectiveStart = previous.Timeline.Start;
-                        effectiveEnd = previous.Timeline.End;
+                        // Retain the song length for the UI and lookup. Borrowed bounds cannot
+                        // establish that an otherwise empty native report is a seek to zero.
+                        timeline = timeline with { Start = previous.Timeline.Start, End = previous.Timeline.End,
+                            BoundsFromPreviousSnapshot = true };
                     }
                     // Publish current metadata before optional artwork. A thumbnail publisher
                     // may ignore cancellation, but must never hold back the title or lyrics.
@@ -395,7 +398,7 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
                     {
                         SessionId = _sessionIdentity, SourceDisplayName = FriendlyName(source, strings),
                         Artwork = cachedArtwork,
-                        Timeline = timeline with { Start = effectiveStart, End = effectiveEnd },
+                        Timeline = timeline,
                     };
                 }
                 var snapshot = CreateSnapshot(properties, metadata.Revision);

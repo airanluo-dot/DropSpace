@@ -23,9 +23,9 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
         var remaining = LyricsCandidateRequests.MaximumCandidates;
         var remainingCatalogs = 3;
         var attemptedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        async Task TryCandidatesAsync(System.Text.Json.JsonElement root, CatalogRecording? recording = null)
+        async Task TryCandidatesAsync(JsonElement root, LyricsMatchInfo? recording = null)
         {
-            foreach (var candidate in Choose(root, query, recording))
+            foreach (var candidate in LyricsCandidateRequests.OrderCatalogue(Choose(root, query, recording), query, value => value.Match))
             {
                 if (remaining == 0) break;
                 if (!attempted.Add(candidate.Id)) continue;
@@ -54,9 +54,10 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
                         parsed = LyricsParser.Parse(Encoding.UTF8.GetString(bytes), Kind);
                         cancellationToken.ThrowIfCancellationRequested();
                     }
-                    LyricsRequestTrace.Record("parse", new { provider = "Kugou", candidate.Id, candidate.Title, candidate.Artist, candidate.DurationSeconds, document = LyricsRequestTrace.Describe(parsed) });
-                    return parsed.Bind(query, candidate.Title, candidate.Artist, candidate.Album, candidate.DurationSeconds, candidate.Score, candidate.Id)
-                        with { ProviderDataRevision = DataRevision };
+                    var match = candidate.Match;
+                    LyricsRequestTrace.Record("parse", new { provider = "Kugou", candidate.Id, match.Title, match.Artist, match.DurationSeconds, match.ArtistAliases, document = LyricsRequestTrace.Describe(parsed) });
+                    var bound = parsed.Bind(query, match.Title, match.Artist, match.Album, match.DurationSeconds, match.Score, candidate.Id);
+                    return bound with { ProviderDataRevision = DataRevision, Match = bound.Match! with { ArtistAliases = match.ArtistAliases } };
                 });
                 if (document.Lines.Count == 0) continue;
                 if (languageIdentifier is not null && target.Length > 0)
@@ -81,23 +82,19 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
             using var songs = await http.GetAsync($"https://songsearch.kugou.com/song_search_v2?keyword={Escape(terms)}&page=1&pagesize=20&platform=WebFilter&filter=2&iscorrection=1&privilege_filter=0", cancellationToken);
             Validate(songs.RootElement, "data", JsonValueKind.Object, catalog: true);
             ValidateField(songs.RootElement.GetProperty("data"), "lists", JsonValueKind.Array);
-            var matches = Array(songs.RootElement, "data", "lists").Select(item => new
-                { Item = item, Title = CatalogTitle(item), Score = LyricsMatcher.CandidateScore(query, CatalogTitle(item), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
-                .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "FileHash")))
-                .OrderByDescending(candidate => candidate.Score);
-            foreach (var song in matches)
+            var matches = Array(songs.RootElement, "data", "lists")
+                .Select(item => (Hash: Text(item, "FileHash"), Match: CatalogMatch(item, query)))
+                .Where(song => song.Hash.Length > 0 && song.Match.Score >= 4);
+            foreach (var song in LyricsCandidateRequests.OrderCatalogue(matches, query, value => value.Match))
             {
                 if (remaining == 0 || remainingCatalogs == 0) break;
-                var hash = Text(song.Item, "FileHash");
-                if (!attemptedHashes.Add(hash)) continue;
+                if (!attemptedHashes.Add(song.Hash)) continue;
                 remainingCatalogs--;
-                var recording = new CatalogRecording(song.Title, Text(song.Item, "SingerName"),
-                    Text(song.Item, "AlbumName"), Number(song.Item, "Duration"));
                 await requests.TryAsync(async () =>
                 {
-                    using var hashed = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash={Escape(hash)}", cancellationToken);
+                    using var hashed = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash={Escape(song.Hash)}", cancellationToken);
                     Validate(hashed.RootElement, "candidates", JsonValueKind.Array);
-                    await TryCandidatesAsync(hashed.RootElement, recording);
+                    await TryCandidatesAsync(hashed.RootElement, song.Match);
                     return LyricsDocument.Empty;
                 });
             }
@@ -138,38 +135,51 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http, ILyricsLanguageId
             throw new InvalidDataException("Unsupported Kugou response payload.");
     }
 
-    private sealed record CatalogRecording(string Title, string Artist, string Album, double DurationSeconds);
+    private static LyricsMatchInfo CatalogMatch(JsonElement song, LyricsQuery query)
+    {
+        var title = CatalogTitle(song);
+        var artist = Text(song, "SingerName");
+        var album = Text(song, "AlbumName");
+        var duration = Number(song, "Duration");
+        // A localized search can match a singer's full localized name ("hl")
+        // even though SingerName and the hash-bound lyrics carry the Latin credit.
+        var singers = Array(song, "Singers").Select(singer =>
+            new[] { Text(singer, "name"), Text(singer, "hl") }).ToArray();
+        var canonicalCredit = string.Join("; ", singers.Select(names => names[0]));
+        var aliases = singers.Any(names => names[1].Length > 0) && singers.All(names => names[0].Length > 0) &&
+            LyricsMatcher.AreArtistCreditsCompatible(artist, canonicalCredit)
+            ? LyricsMatcher.ProjectArtistCredits(query, singers) : [];
+        return new(title, artist, album, duration, LyricsMatcher.CandidateScore(query, title, artist, album, duration, aliases))
+            { ArtistAliases = aliases };
+    }
 
-    private sealed record Candidate(string Id, string Key, string Title, string Artist, string Album, double DurationSeconds, double Score);
+    private sealed record Candidate(string Id, string Key, LyricsMatchInfo Match);
 
-    private static IEnumerable<Candidate> Choose(System.Text.Json.JsonElement root, LyricsQuery query, CatalogRecording? recording = null) =>
-        Array(root, "candidates").Select(item => new
+    private static IEnumerable<Candidate> Choose(JsonElement root, LyricsQuery query, LyricsMatchInfo? recording)
+    {
+        foreach (var item in Array(root, "candidates"))
         {
-            Item = item,
-            Title = Text(item, "song"),
-            Artist = Text(item, "singer"),
-            Album = Text(item, "album"),
-            DurationSeconds = Number(item, "duration") / 1000,
-        }).Select(candidate =>
-        {
+            var title = Text(item, "song");
+            var artist = Text(item, "singer");
+            var album = Text(item, "album");
+            var duration = Number(item, "duration") / 1000;
             // Only a hash-bound, independently matched recording can supply missing
             // metadata. Never borrow duration from the requested player track, and
             // never overwrite explicit conflicting lyric metadata.
             var sameRecording = recording is not null &&
-                LyricsMatcher.AreTitlesEquivalent(recording.Title, candidate.Title) &&
-                LyricsMatcher.AreArtistCreditsCompatible(recording.Artist, candidate.Artist);
-            var duration = candidate.DurationSeconds > 0 ? candidate.DurationSeconds :
-                sameRecording ? recording!.DurationSeconds : 0;
-            var album = string.IsNullOrWhiteSpace(candidate.Album) && sameRecording ? recording!.Album : candidate.Album;
-            return new
+                LyricsMatcher.AreTitlesEquivalent(recording.Title, title) &&
+                LyricsMatcher.AreArtistCreditsCompatible(recording.Artist, artist);
+            if (sameRecording)
             {
-                candidate.Item, candidate.Title, candidate.Artist, Album = album, DurationSeconds = duration,
-                Score = LyricsMatcher.CandidateScore(query, candidate.Title, candidate.Artist, album, duration),
-            };
-        })
-        .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")) &&
-            !string.IsNullOrWhiteSpace(Text(candidate.Item, "accesskey")))
-        .OrderByDescending(candidate => candidate.Score)
-        .Select(candidate => new Candidate(Text(candidate.Item, "id"), Text(candidate.Item, "accesskey"), candidate.Title,
-            candidate.Artist, candidate.Album, candidate.DurationSeconds, candidate.Score));
+                if (duration <= 0) duration = recording!.DurationSeconds;
+                if (string.IsNullOrWhiteSpace(album)) album = recording!.Album;
+            }
+            var aliases = sameRecording ? recording!.ArtistAliases : [];
+            var score = LyricsMatcher.CandidateScore(query, title, artist, album, duration, aliases);
+            var id = Text(item, "id");
+            var key = Text(item, "accesskey");
+            if (score >= 4 && !string.IsNullOrWhiteSpace(id) && !string.IsNullOrWhiteSpace(key))
+                yield return new(id, key, new(title, artist, album, duration, score) { ArtistAliases = aliases });
+        }
+    }
 }

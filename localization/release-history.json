@@ -1,36 +1,37 @@
 [
   {
+    "tag": "v1.1.0-beta.8",
+    "date": "2026-11-12",
+    "en": [
+      "Lyrics match more songs with alternate artist names or multiple versions.",
+      "Improved word highlighting at the start of lines and around punctuation."
+    ],
+    "zh-CN": [
+      "歌词匹配可识别更多歌手别名和歌曲版本。",
+      "修正逐字歌词中首词和标点的高亮时机。"
+    ],
+    "zh-TW": [
+      "歌詞比對可辨識更多歌手別名與歌曲版本。",
+      "修正逐字歌詞中首詞與標點的醒目提示時機。"
+    ]
+  },
+  {
     "tag": "v1.1.0-beta.7",
     "date": "2026-11-12",
     "en": [
-      "Click the About logo to browse release highlights for your update channel. The website also lists each release.",
-      "Fixed lyrics falling behind or jumping back during Apple Music playback.",
-      "Saved lyrics load offline on replay. Live performances and remixes are matched more accurately.",
-      "The music window adapts to resizing and fullscreen. Its background responds more strongly to the music.",
-      "Liquid Glass follows moving backgrounds more smoothly and updates as you drag the Island.",
-      "Clipboard history retries brief locks. Re-adding a removed file and then undoing keeps one copy in Temporary Space.",
-      "The workspace opens even if LAN sharing or Windows startup registration is unavailable.",
-      "Improved Island wake-up on multiple displays and widget placement when dragging."
+      "Browse release history from About.",
+      "View cached lyrics offline when replaying a song.",
+      "Use the music window in fullscreen."
     ],
     "zh-CN": [
-      "在「关于」点击 Logo，可按更新通道分批查看历代更新。官网也可查看每版要点。",
-      "修复 Apple Music 播放时歌词延迟、恢复播放时偶尔跳回上一句的问题。",
-      "重播时离线读取已缓存的歌词，现场版和混音版的匹配更准确。",
-      "音乐视窗支持自适应布局和全屏，背景随音乐起伏更明显。",
-      "灵动岛液态玻璃更流畅，拖动时折射会跟随新位置。",
-      "剪贴板短暂被占用时会自动补录。临时空间移除文件后重新添加，再撤销也只保留一条。",
-      "局域网共享或开机自启不可用时，仍可正常打开工作台。",
-      "改进多屏灵动岛唤醒和小组件拖放定位。"
+      "在「关于」查看历代更新。",
+      "重播时可离线查看已缓存的歌词。",
+      "音乐视窗支持全屏。"
     ],
     "zh-TW": [
-      "在「關於」點選 Logo，可依更新頻道分批查看歷代更新。官網也可查看各版重點。",
-      "修正 Apple Music 播放時歌詞延遲、繼續播放時偶爾跳回上一句的問題。",
-      "重播時離線讀取已快取的歌詞，現場版與混音版的比對更準確。",
-      "音樂視窗支援自適應配置和全螢幕，背景隨音樂起伏更明顯。",
-      "靈動島液態玻璃更流暢，拖曳時折射會跟隨新位置。",
-      "剪貼簿短暫被占用時會自動補錄。在暫存空間移除檔案後重新加入，再復原也只會保留一筆。",
-      "區域網路分享或開機自動啟動無法使用時，仍可正常開啟工作台。",
-      "改善多螢幕靈動島喚醒與小工具拖放定位。"
+      "在「關於」查看歷次更新。",
+      "重播時可離線查看已快取的歌詞。",
+      "音樂視窗支援全螢幕。"
     ]
   },
   {

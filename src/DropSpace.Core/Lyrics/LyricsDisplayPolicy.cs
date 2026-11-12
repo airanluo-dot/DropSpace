@@ -33,21 +33,40 @@ public static class LyricsDisplayPolicy
     {
         if (lines.Count == 0) return new(false, null, false, false);
         if (frame.Line is { } active) return new(true, active, false, false);
-        var effective = position.TotalMilliseconds + Math.Clamp(delayMilliseconds, -30_000, 30_000);
-        var low = 0;
-        var high = lines.Count - 1;
-        var previous = -1;
-        while (low <= high)
+        var time = position + TimeSpan.FromMilliseconds(Math.Clamp(delayMilliseconds, -30_000, 30_000));
+        var cue = LyricsPlaybackTimeline.For(lines).At(time);
+        if (cue.Anchor < 0) return new(false, null, false, false);
+        return new(true, lines[cue.Anchor], true, cue.Active < 0 && (time - cue.Start).TotalSeconds >= 3);
+    }
+
+    // The rendered original may contain untimed punctuation and whitespace between
+    // TTML spans. Both surfaces measure the provider words against that same text.
+    public static (int Start, int End)[] WordTextRanges(LyricsLine line)
+    {
+        var ranges = new (int Start, int End)[line.Words.Count];
+        var joined = string.Concat(line.Words.Select(word => word.Text));
+        if (string.Equals(joined.Trim(), line.Text, StringComparison.Ordinal))
         {
-            var middle = low + (high - low) / 2;
-            if (lines[middle].Start.TotalMilliseconds <= effective) { previous = middle; low = middle + 1; }
-            else high = middle - 1;
+            var offset = joined.TrimStart().Length - joined.Length;
+            for (var i = 0; i < ranges.Length; i++)
+            {
+                var end = offset + line.Words[i].Text.Length;
+                ranges[i] = (Math.Clamp(offset, 0, line.Text.Length), Math.Clamp(end, 0, line.Text.Length));
+                offset = end;
+            }
+            return ranges;
         }
-        // Retain the preceding lyric (and its layout) while waiting. Before the first
-        // line, preview it without highlighting. Never fall back to the song title.
-        var anchor = lines[Math.Max(0, previous)];
-        var gapStart = previous < 0 ? 0 : Math.Max(anchor.Start.TotalMilliseconds, anchor.End.TotalMilliseconds);
-        return new(true, anchor, true, effective - gapStart >= 3_000);
+
+        var cursor = 0;
+        for (var i = 0; i < ranges.Length; i++)
+        {
+            var word = line.Words[i].Text;
+            var start = line.Text.IndexOf(word, cursor, StringComparison.Ordinal);
+            if (start < 0) return [];
+            cursor = start + word.Length;
+            ranges[i] = (start, cursor);
+        }
+        return ranges;
     }
 
     public static string? SecondaryPresentation(LyricsLine? line, string languageTag, bool enabled, bool showAiLabel = true)

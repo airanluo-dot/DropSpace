@@ -543,6 +543,9 @@
   <data name="LyricsLoading" xml:space="preserve"><value>正在加载歌词……</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>无匹配歌词</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>歌词暂时无法加载，请点击刷新重试。</value></data>
+  <data name="LyricsUnsynced" xml:space="preserve"><value>纯文本歌词，无同步时间</value></data>
+  <data name="LyricsAmbiguous" xml:space="preserve"><value>找到多个录音版本，需要更多曲目信息才能确定。</value></data>
+  <data name="LyricsInstrumental" xml:space="preserve"><value>纯音乐曲目</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>无法在此放置小组件，请拖到网格单元格或使用位置设置。</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>移除小组件</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>灵动岛</value></data>

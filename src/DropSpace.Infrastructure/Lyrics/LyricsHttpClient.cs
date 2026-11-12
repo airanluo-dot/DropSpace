@@ -84,13 +84,16 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
                 _health.Failed(provider, stage);
             else if (!token.IsCancellationRequested && error is HttpRequestException { StatusCode: System.Net.HttpStatusCode.NotFound })
                 _health.Succeeded(provider, stage, healthRevision);
+            var requestError = error as HttpRequestException;
+            var outcome = LyricsDiagnostics.Classify(error, token.IsCancellationRequested);
+            var networkError = outcome == LyricsDiagnosticOutcome.TransportFailure && requestError?.StatusCode is null
+                ? requestError?.HttpRequestError : null;
             LyricsRequestTrace.Record("http-failure", new { provider = provider.ToString(), endpoint = uri.GetLeftPart(UriPartial.Path),
-                status = error is HttpRequestException requestError ? (int?)requestError.StatusCode : null,
-                category = LyricsDiagnostics.Classify(error, token.IsCancellationRequested).ToString() });
+                status = (int?)requestError?.StatusCode, category = outcome.ToString(), networkError = networkError?.ToString() });
             LyricsDiagnostics.Report(diagnostic, new(provider, stage,
-                LyricsDiagnostics.Classify(error, token.IsCancellationRequested),
+                outcome,
                 (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
-                HttpStatus: error is HttpRequestException httpError ? (int?)httpError.StatusCode : null));
+                HttpStatus: (int?)requestError?.StatusCode, NetworkError: networkError));
             throw;
         }
     }
@@ -207,11 +210,11 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
             if (referer is not null) request.Headers.Referrer = new(referer);
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
             if (isQq && response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-                qqMusicSession?.ReportAccess(sessionGeneration, false, 429);
+                qqMusicSession?.ReportAccess(sessionGeneration, false, httpStatus: response.StatusCode);
             if (!string.IsNullOrEmpty(cookieHeader) && qqMusicSession is not null)
             {
-                if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.TooManyRequests)
-                    qqMusicSession.ReportAccess(sessionGeneration, false, (int)response.StatusCode);
+                if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                    qqMusicSession.ReportAccess(sessionGeneration, false, httpStatus: response.StatusCode);
                 if (response.Headers.TryGetValues("Set-Cookie", out var updates))
                 {
                     try { await qqMusicSession.ApplyResponseCookiesAsync(uri, updates, sessionGeneration, token).ConfigureAwait(false); }

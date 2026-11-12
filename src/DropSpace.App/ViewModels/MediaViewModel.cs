@@ -26,6 +26,9 @@ public sealed class MediaViewModel : ObservableObject
     private AppUiMessage _controlError = AppUiMessage.Empty;
     private bool _isReducedMotion;
     private bool _positionEstimated = true;
+    private bool _seekEstimate;
+    private long _seekRequest;
+    internal event Action<MediaSessionSnapshot, TimeSpan, DateTimeOffset, bool>? SeekAccepted;
     private string _notifiedCurrentLyricText = string.Empty;
     private string? _notifiedSecondaryLyricText;
     private string? _notifiedNextLyricText;
@@ -77,15 +80,28 @@ public sealed class MediaViewModel : ObservableObject
         PlayPauseCommand = new AsyncRelayCommand(token => Execute(() => media.PlayPauseAsync(token)), () => IsPlaying ? Session.CanPause : Session.CanPlay);
         PreviousCommand = new AsyncRelayCommand(token => Execute(() => media.SkipPreviousAsync(token)), () => Session.CanSkipPrevious);
         NextCommand = new AsyncRelayCommand(token => Execute(() => media.SkipNextAsync(token)), () => Session.CanSkipNext);
-        SeekCommand = new AsyncRelayCommand<double?>(value => Execute(async () => { if (value is { } seconds && double.IsFinite(seconds)) await media.SeekAsync(Session.Timeline.Start + TimeSpan.FromSeconds(seconds)); }), _ => Session.CanSeek && !PositionEstimated);
-        async Task Execute(Func<Task> action)
+        SeekCommand = new AsyncRelayCommand<double?>(async value =>
+        {
+            if (value is not { } seconds || !double.IsFinite(seconds)) return;
+            var session = Session;
+            var target = session.Timeline.Start + TimeSpan.FromSeconds(seconds);
+            var sentAt = DateTimeOffset.UtcNow;
+            var request = ++_seekRequest;
+            bool IsCurrent() => request == _seekRequest && session.IsSameTrack(Session);
+            await Execute(async () =>
+            {
+                await media.SeekAsync(target, session);
+                if (session.IsSameTrack(Session)) SeekAccepted?.Invoke(session, target, sentAt, request != _seekRequest);
+            }, IsCurrent);
+        }, _ => Session.CanSeek && !PositionEstimated, AsyncRelayCommandOptions.AllowConcurrentExecutions);
+        async Task Execute(Func<Task> action, Func<bool>? isCurrent = null)
         {
             try { ControlErrorMessage = AppUiMessage.Empty; await action(); }
             catch (OperationCanceledException) { }
             catch (Exception exception)
             {
                 logger.LogDebug("Media control failed ({Category}).", exception.GetType().Name);
-                ControlErrorMessage = AppUiMessage.Resource("MediaControlFailed");
+                if (isCurrent is null || isCurrent()) ControlErrorMessage = AppUiMessage.Resource("MediaControlFailed");
             }
         }
     }
@@ -150,9 +166,12 @@ public sealed class MediaViewModel : ObservableObject
         get => _lyrics;
         internal set
         {
-            if (!SetProperty(ref _lyrics, value)) return;
+            if (_lyrics == value) return;
+            _lyrics = value;
             var index = FindLyricIndex(value.Line);
             SetProperty(ref _currentLyricIndex, index, nameof(CurrentLyricIndex));
+            // Observers of the frame can now read its corresponding row index immediately.
+            OnPropertyChanged(nameof(Lyrics));
             NotifyLyricTextChanges();
         }
     }
@@ -169,8 +188,11 @@ public sealed class MediaViewModel : ObservableObject
         _lyricsDocument = document;
         _lyricsDocumentTrackIdentity = Session.TrackIdentity;
         var index = FindLyricIndex(_lyrics.Line);
-        SetProperty(ref _currentLyricIndex, index, nameof(CurrentLyricIndex));
+        var rowChanged = _currentLyricIndex != index;
+        _currentLyricIndex = index;
         OnPropertyChanged(nameof(LyricsLines));
+        if (rowChanged) OnPropertyChanged(nameof(CurrentLyricIndex));
+        OnPropertyChanged(nameof(LyricsStatusText));
         NotifyLyricTextChanges();
     }
     public LyricsQueryStatus LyricsStatus
@@ -233,7 +255,8 @@ public sealed class MediaViewModel : ObservableObject
     public string SourceDisplayName => Session.SourceDisplayName;
     public string ArtistAlbum => string.Join(" · ", new[] { Artist, Session.AlbumTitle }.Where(value => !string.IsNullOrWhiteSpace(value)));
     public string PlayPauseLabel => _strings.Get(IsPlaying ? "MediaPauseLabel" : "MediaPlayLabel");
-    public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated ? _strings.Get("MediaEstimatedTimeline") : string.Empty;
+    internal bool SeekEstimate { get => _seekEstimate; set { if (SetProperty(ref _seekEstimate, value)) OnPropertyChanged(nameof(TimelineStatus)); } }
+    public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated || SeekEstimate ? _strings.Get("MediaEstimatedTimeline") : string.Empty;
     public LyricsPresentation LyricPresentation
     {
         get
@@ -261,12 +284,16 @@ public sealed class MediaViewModel : ObservableObject
     {
         LyricsQueryStatus.Loading => _strings.Get("LyricsLoading"),
         LyricsQueryStatus.NotFound => _strings.Get("LyricsNotFound"),
+        LyricsQueryStatus.Ambiguous => _strings.Get("LyricsAmbiguous"),
         LyricsQueryStatus.Failed => _strings.Get("LyricsFailed"),
+        LyricsQueryStatus.Found when _lyricsDocument.BodyQuality == LyricsBodyQuality.ConfirmedInstrumental => _strings.Get("LyricsInstrumental"),
+        LyricsQueryStatus.Found when LyricsLines.Count > 0 && !_lyricsDocument.HasSynchronizedTiming => _strings.Get("LyricsUnsynced"),
         _ => string.Empty,
     };
     public bool IsPlaying => Session.PlaybackState == MediaPlaybackState.Playing;
     public string PlaybackGlyph => IsPlaying ? "\uE769" : "\uE768";
     public double PositionSeconds => Math.Max(0, (Position - Session.Timeline.Start).TotalSeconds);
+    public double ProgressSliderSeconds => Math.Min(PositionSeconds, Session.Timeline.Duration.TotalSeconds);
     public double DurationSeconds => Math.Max(1, Session.Timeline.Duration.TotalSeconds);
     public string ElapsedText => FormatTime(Position - Session.Timeline.Start);
     public string RemainingText => Session.Timeline.Duration > TimeSpan.Zero ? "-" + FormatTime(Session.Timeline.End - Position) : "—";

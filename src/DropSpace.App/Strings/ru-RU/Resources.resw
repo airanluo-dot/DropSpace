@@ -541,6 +541,9 @@
   <data name="LyricsLoading" xml:space="preserve"><value>Загрузка текста…</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>Нет подходящего текста</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>Тексты временно недоступны. Выберите «Обновить», чтобы повторить попытку.</value></data>
+  <data name="LyricsUnsynced" xml:space="preserve"><value>Текст песни без временных меток</value></data>
+  <data name="LyricsAmbiguous" xml:space="preserve"><value>Найдено несколько подходящих записей. Чтобы определить версию, нужны дополнительные сведения о треке.</value></data>
+  <data name="LyricsInstrumental" xml:space="preserve"><value>Инструментальная композиция</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>Этот виджет не удалось переместить сюда. Попробуйте ячейку сетки или используйте элементы управления положением.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Удалить виджет</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Динамический остров</value></data>

@@ -541,6 +541,9 @@
   <data name="LyricsLoading" xml:space="preserve"><value>歌詞を読み込んでいます…</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>一致する歌詞はありません</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>歌詞は一時的に利用できなくなります。再試行するには、「更新」を選択します。</value></data>
+  <data name="LyricsUnsynced" xml:space="preserve"><value>タイムスタンプのない歌詞</value></data>
+  <data name="LyricsAmbiguous" xml:space="preserve"><value>複数の録音が一致しました。特定するには曲の情報がさらに必要です。</value></data>
+  <data name="LyricsInstrumental" xml:space="preserve"><value>インストゥルメンタル曲</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>このウィジェットはここにドロップできませんでした。グリッド セルを試すか、位置コントロールを使用してください。</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>ウィジェットを削除する</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>ダイナミックアイランド</value></data>

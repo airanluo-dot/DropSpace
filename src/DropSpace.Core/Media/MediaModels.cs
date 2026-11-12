@@ -16,6 +16,8 @@ public sealed record MediaTimelineSnapshot(
     DateTimeOffset LastUpdated)
 {
     public TimeSpan Duration => End > Start ? End - Start : TimeSpan.Zero;
+    public bool BoundsFromPreviousSnapshot { get; init; }
+    public bool HasReportedPosition => Position > TimeSpan.Zero || (!BoundsFromPreviousSnapshot && End > Start);
 }
 
 public sealed record MediaSessionSnapshot(
@@ -63,8 +65,11 @@ public sealed record MediaSessionSnapshot(
 
         var left = Timeline.Duration;
         var right = other.Timeline.Duration;
-        return left <= TimeSpan.Zero || right <= TimeSpan.Zero || Math.Abs((left - right).TotalSeconds) <= 2;
+        return left <= TimeSpan.Zero || right <= TimeSpan.Zero || DurationsAgree(left.TotalSeconds, right.TotalSeconds);
     }
+
+    public static bool DurationsAgree(double leftSeconds, double rightSeconds) =>
+        leftSeconds > 0 && rightSeconds > 0 && Math.Abs(leftSeconds - rightSeconds) <= 2;
 
     public static MediaSessionSnapshot Empty { get; } = new(
         string.Empty,
@@ -103,4 +108,8 @@ public interface IMediaSessionService : IAsyncDisposable
     Task SkipPreviousAsync(CancellationToken cancellationToken = default);
 
     Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default);
+    Task SeekAsync(TimeSpan position, MediaSessionSnapshot requestedTrack, CancellationToken cancellationToken = default)
+        => Current.IsSameTrack(requestedTrack)
+            ? SeekAsync(position, cancellationToken)
+            : Task.FromException(new InvalidOperationException("The requested media track has changed."));
 }

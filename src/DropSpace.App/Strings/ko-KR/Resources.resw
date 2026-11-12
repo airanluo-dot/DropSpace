@@ -541,6 +541,9 @@
   <data name="LyricsLoading" xml:space="preserve"><value>가사 로드 중…</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>일치하는 가사가 없습니다.</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>가사를 일시적으로 사용할 수 없습니다. 다시 시도하려면 새로 고침을 선택하세요.</value></data>
+  <data name="LyricsUnsynced" xml:space="preserve"><value>시간 정보가 없는 가사</value></data>
+  <data name="LyricsAmbiguous" xml:space="preserve"><value>일치하는 녹음이 여러 개입니다. 버전을 확인하려면 곡 정보가 더 필요합니다.</value></data>
+  <data name="LyricsInstrumental" xml:space="preserve"><value>연주곡</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>이 위젯은 여기에 놓을 수 없습니다. 그리드 셀을 사용해 보거나 위치 컨트롤을 사용해 보세요.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>위젯 제거</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>다이내믹 아일랜드</value></data>

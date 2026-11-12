@@ -35,11 +35,10 @@ public sealed partial class ExpandedIslandMusicView : UserControl
     private EventHandler<object>? _renderHandler;
     private bool _presentationActive = true;
     internal long RenderCount { get; private set; }
-    internal bool HasPendingSeekWork => _seekCommitTimer.IsRunning || _seekAcknowledgementTimer.IsRunning ||
+    internal bool HasPendingSeekWork => _seekCommitTimer.IsRunning ||
         _queuedSeekSeconds is not null || _activePointerId is not null || _seekInteraction.HeldSeconds is not null;
-    private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
+    private readonly MediaSeekInteraction _seekInteraction = new();
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekCommitTimer;
-    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekAcknowledgementTimer;
     private uint? _activePointerId;
     private double? _queuedSeekSeconds;
     private string _trackIdentity = string.Empty;
@@ -61,15 +60,6 @@ public sealed partial class ExpandedIslandMusicView : UserControl
         _seekCommitTimer.Interval = TimeSpan.FromMilliseconds(120);
         _seekCommitTimer.IsRepeating = false;
         _seekCommitTimer.Tick += OnSeekCommitTimer;
-        _seekAcknowledgementTimer = DispatcherQueue.CreateTimer();
-        _seekAcknowledgementTimer.Interval = TimeSpan.FromSeconds(2);
-        _seekAcknowledgementTimer.IsRepeating = false;
-        _seekAcknowledgementTimer.Tick += (_, _) =>
-        {
-            if (!CanRender) return;
-            _seekInteraction.RejectPending();
-            RequestRender();
-        };
         // Observe the whole slider, including track presses, even when its template
         // handles pointer events. Never depend on finding a Thumb before layout.
         Progress.AddHandler(PointerPressedEvent, new PointerEventHandler(OnSeekPointerPressed), true);
@@ -108,7 +98,15 @@ public sealed partial class ExpandedIslandMusicView : UserControl
         CancelSeekInteraction();
         NotifyTranslationVisibility();
     }
-    private void OnChanged(object? sender, PropertyChangedEventArgs args) => RequestRender();
+    private void OnChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(MediaViewModel.CurrentLyricIndex) && CanRender)
+        {
+            CancelRender();
+            Render();
+        }
+        else RequestRender();
+    }
     internal void SetActive(bool active)
     {
         if (_presentationActive == active) return;
@@ -178,8 +176,8 @@ public sealed partial class ExpandedIslandMusicView : UserControl
                 Progress.Maximum = _view.DurationSeconds;
                 Progress.IsEnabled = _view.Session.CanSeek && !_view.PositionEstimated;
             }
-            var playbackSeconds = _view.PositionEstimated ? 0 : Math.Clamp(_view.PositionSeconds, 0, Progress.Maximum);
-            if (_seekInteraction.ShouldApplyPlayback(playbackSeconds, DateTimeOffset.UtcNow, Progress.IsEnabled))
+            var playbackSeconds = _view.ProgressSliderSeconds;
+            if (_seekInteraction.ShouldApplyPlayback(Progress.IsEnabled))
                 Progress.Value = playbackSeconds;
             UpdateTimelineLabels();
             Progress.Visibility = _view.Settings.IslandActivity.ShowProgress ? Visibility.Visible : Visibility.Collapsed;
@@ -284,7 +282,6 @@ public sealed partial class ExpandedIslandMusicView : UserControl
         if (!CanRender || _updating || !double.IsFinite(args.NewValue)) return;
         var value = Math.Clamp(args.NewValue, Progress.Minimum, Progress.Maximum);
         if (_seekInteraction.IsPendingTarget(value)) return;
-        _seekAcknowledgementTimer.Stop();
         _seekInteraction.Preview(value);
         UpdateTimelineLabels();
         if (_seekInteraction.IsDragging) return;
@@ -303,7 +300,6 @@ public sealed partial class ExpandedIslandMusicView : UserControl
         if (!CanRender || !Progress.IsEnabled || (!point.IsInContact && !point.Properties.IsLeftButtonPressed)) return;
         if (_activePointerId is not null) return;
         _activePointerId = args.Pointer.PointerId;
-        _seekAcknowledgementTimer.Stop();
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
         _seekInteraction.Begin(Progress.Value);
@@ -334,7 +330,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
         _seekInteraction.Preview(Progress.Value);
-        var target = _seekInteraction.Complete(canceled, DateTimeOffset.UtcNow);
+        var target = _seekInteraction.Complete(canceled);
         if (target is { } seconds) ExecuteSeek(seconds);
         else RequestRender();
     }
@@ -343,27 +339,20 @@ public sealed partial class ExpandedIslandMusicView : UserControl
     {
         if (!CanRender || _queuedSeekSeconds is not { } seconds || _seekInteraction.IsDragging) return;
         _queuedSeekSeconds = null;
-        ExecuteSeek(_seekInteraction.Commit(seconds, DateTimeOffset.UtcNow));
+        ExecuteSeek(_seekInteraction.Commit(seconds));
     }
 
-    private void ExecuteSeek(double seconds)
+    private async void ExecuteSeek(double seconds)
     {
-        if (_view?.SeekCommand.CanExecute(seconds) == true)
-        {
-            _view.SeekCommand.Execute(seconds);
-            // Paused players may reject a seek without producing another media event.
-            _seekAcknowledgementTimer.Stop();
-            _seekAcknowledgementTimer.Start();
-            return;
-        }
-
-        _seekInteraction.RejectPending();
+        var revision = _seekInteraction.Revision;
+        if (CanRender && _view?.SeekCommand.CanExecute(seconds) == true)
+            await _view.SeekCommand.ExecuteAsync(seconds);
+        _seekInteraction.FinishRequest(revision);
         RequestRender();
     }
 
     private void CancelSeekInteraction()
     {
-        _seekAcknowledgementTimer.Stop();
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
         _activePointerId = null;

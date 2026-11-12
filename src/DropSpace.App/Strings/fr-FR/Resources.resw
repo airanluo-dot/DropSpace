@@ -541,6 +541,9 @@ Aucun contenu ne sera ouvert automatiquement.</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Chargement des paroles…</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>Aucune parole correspondante</value></data>
   <data name="LyricsFailed" xml:space="preserve"><value>Les paroles sont temporairement indisponibles. Sélectionnez Actualiser pour réessayer.</value></data>
+  <data name="LyricsUnsynced" xml:space="preserve"><value>Paroles sans repères temporels</value></data>
+  <data name="LyricsAmbiguous" xml:space="preserve"><value>Plusieurs enregistrements correspondent. Il faut plus d’informations sur le morceau pour identifier la version.</value></data>
+  <data name="LyricsInstrumental" xml:space="preserve"><value>Morceau instrumental</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>Ce widget n'a pas pu être déposé ici. Essayez une cellule de grille ou utilisez les commandes de position.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Supprimer le widget</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Dynamic Island</value></data>
