@@ -26,6 +26,8 @@ internal sealed class SwapChainPanelPresenter : IDisposable
     private int height;
     private bool firstFrameRaised;
 
+    internal nint DiagnosticSwapChainAddress => swapChain?.NativePointer ?? 0;
+
     public SwapChainPanelPresenter(
         SwapChainPanel panel,
         Action? firstFramePresented = null,

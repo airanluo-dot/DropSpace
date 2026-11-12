@@ -10,6 +10,8 @@
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RootNamespace>DropSpace.App.Controls</RootNamespace>
+    <DropSpaceFxcPath Condition="'$(DropSpaceFxcPath)' == '' and Exists('$(WindowsSdkVerBinPath)x64\fxc.exe')">$(WindowsSdkVerBinPath)x64\fxc.exe</DropSpaceFxcPath>
+    <DropSpaceFxcPath Condition="'$(DropSpaceFxcPath)' == ''">$(MSBuildProgramFiles32)\Windows Kits\10\bin\10.0.$(DropSpaceCompileWindowsSdkBuild).0\x64\fxc.exe</DropSpaceFxcPath>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" />
@@ -23,4 +25,15 @@
     <Content Include="ThirdParty\Lyricify\LICENSE.txt" Link="Licenses\Lyricify-Backgrounds-Apache-2.0.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="ThirdParty\Lyricify\UPSTREAM.md" Link="Licenses\Lyricify-Backgrounds-NOTICE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup Condition="Exists('$(DropSpaceFxcPath)')">
+    <GlassShader Include="VS" Profile="vs_5_0" />
+    <GlassShader Include="Blur;Glass" Profile="ps_5_0" />
+    <EmbeddedResource Include="@(GlassShader->'$(IntermediateOutputPath)GlassShaders\%(Identity).cso')" LogicalName="DropSpace.LiquidGlass.%(Filename).cso" />
+  </ItemGroup>
+  <Target Name="CompileLiquidGlassBytecode" BeforeTargets="PrepareForBuild" Condition="'@(GlassShader)' != ''"
+          Inputs="LiquidGlass\LiquidGlass.hlsl;$(DropSpaceFxcPath);$(MSBuildProjectFullPath)"
+          Outputs="@(GlassShader->'$(IntermediateOutputPath)GlassShaders\%(Identity).cso')">
+    <MakeDir Directories="$(IntermediateOutputPath)GlassShaders" />
+    <Exec Command="&quot;$(DropSpaceFxcPath)&quot; /nologo /Ges /O3 /T %(GlassShader.Profile) /E %(GlassShader.Identity) /Fo &quot;$(IntermediateOutputPath)GlassShaders\%(GlassShader.Identity).cso&quot; LiquidGlass\LiquidGlass.hlsl" />
+  </Target>
 </Project>

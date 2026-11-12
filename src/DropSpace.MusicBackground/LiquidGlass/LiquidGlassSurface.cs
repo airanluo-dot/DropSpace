@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX.Direct3D11;
@@ -29,8 +30,6 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
     private ID3D11Texture2D? _lastFrame;
     private Direct3D11CaptureFrame? _displayedCapture;
     private CaptureRateControl? _captureRateControl;
-    private bool _frameDriven;
-    private int _notificationQueued;
     private double _displayRefreshRate = 60;
     private nint _monitor;
     private CaptureInterop.Rect _monitorRect;
@@ -41,6 +40,8 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
     private bool _wanted, _starting, _disposed, _excluded, _dirty;
     private bool _diagnosticFrozen;
     private bool _hasRendered;
+    private bool _waitingForPanelLayout;
+    private bool _hostMovePending;
     private CaptureInterop.Point _renderedOrigin;
     private double _renderedPanelWidth, _renderedPanelHeight;
     private GlassRefreshMeasurement? _measurement;
@@ -58,30 +59,30 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
         Children.Add(_panel);
         _uiQueue = DispatcherQueue.GetForCurrentThread();
         _timer = _uiQueue.CreateTimer();
-        _timer.Interval = TimeSpan.FromMilliseconds(1000d / 30);
-        _timer.Tick += OnTick;
+        _timer.Interval = TimeSpan.FromMilliseconds(250);
+        _timer.Tick += OnMonitorTick;
+        _panel.SizeChanged += OnPanelSizeChanged;
         Loaded += OnLoaded; Unloaded += OnUnloaded;
     }
 
     public void SetState(bool enabled, GlassOptions options)
     {
         if (_disposed) return;
-        _dirty |= _options != options; _options = options;
+        var optionsChanged = _options != options;
+        _dirty |= optionsChanged; _options = options;
         if (_wanted != enabled) { _wanted = enabled; Failure = null; }
-        if (!enabled) Stop(); else EnsureStarted();
+        if (!enabled) { Stop(); return; }
+        EnsureStarted();
+        if (optionsChanged && IsReady) Render();
     }
-    public void SetRefreshRate(double rate, bool frameDriven, double displayRefreshRate)
+    public void SetRefreshRate(double rate, double displayRefreshRate)
     {
         if (_disposed) return;
         if (!double.IsFinite(rate) || rate <= 0) rate = 60;
         if (!double.IsFinite(displayRefreshRate) || displayRefreshRate <= 0) displayRefreshRate = 60;
-        if (TargetRefreshRate == rate && _frameDriven == frameDriven && _displayRefreshRate == displayRefreshRate) return;
+        if (TargetRefreshRate == rate && _displayRefreshRate == displayRefreshRate) return;
         TargetRefreshRate = rate;
         _displayRefreshRate = displayRefreshRate;
-        Volatile.Write(ref _frameDriven, frameDriven);
-        // Standard retains the original 30 Hz poll. Faster tiers wake immediately
-        // for a fresh frame; the timer then only watches for monitor changes.
-        _timer.Interval = frameDriven ? TimeSpan.FromMilliseconds(250) : TimeSpan.FromSeconds(1d / rate);
         try { ConfigureCaptureRate(); }
         catch (Exception error) when (error is not OutOfMemoryException) { Fail(error); }
     }
@@ -89,21 +90,48 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
     {
         // At or above native cadence every fresh frame is useful; the latest-slot
         // coalescer still bounds UI work without an additional phase gate.
-        _capture?.SetNotificationRate(_frameDriven
-            ? TargetRefreshRate >= _displayRefreshRate ? double.PositiveInfinity : TargetRefreshRate : 0);
+        _capture?.SetNotificationRate(TargetRefreshRate >= _displayRefreshRate ? double.PositiveInfinity : TargetRefreshRate);
         // Capture at a display-aligned cadence at least as fast as the target.
         // A small interval margin avoids dropping a vblank because of clock jitter.
         // Notification pacing, not this margin, controls material update frequency.
         var captureHz = _displayRefreshRate / Math.Max(1, Math.Floor(_displayRefreshRate / TargetRefreshRate));
         // At native cadence let WGC follow the compositor directly. A nonzero
         // minimum can otherwise skip alternating vblanks on high-Hz displays.
-        _captureRateControl?.SetRate(_frameDriven ? TargetRefreshRate >= _displayRefreshRate ? 0 : captureHz / .9 : null);
+        _captureRateControl?.SetRate(TargetRefreshRate >= _displayRefreshRate ? 0 : captureHz / .9);
     }
     public void SetGeometry(GlassFrame frame)
     {
         if (_disposed || frame.Width <= 0 || frame.Height <= 0) return;
         _dirty |= _frame != frame; _frame = frame;
-        if (_wanted) { EnsureStarted(); if (IsReady) Render(); }
+        if (_wanted) { EnsureStarted(); Render(); }
+    }
+
+    private void OnPanelSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        // A static desktop can deliver its only frame before XAML has arranged the panel.
+        // Ordinary resize animation publishes the matching shape through SetGeometry.
+        if (_waitingForPanelLayout && args.NewSize.Width > 0 && args.NewSize.Height > 0) Render();
+    }
+
+    public void OnHostMoved()
+    {
+        if (!_wanted || !IsReady) return;
+        if (CaptureInterop.MonitorFromWindow(_window, 2) != _monitor)
+        {
+            Stop(); EnsureStarted(); return;
+        }
+        // WGC need not deliver a new desktop image when the excluded HWND moves.
+        // Several input events before one display frame need only the final origin.
+        if (_hostMovePending) return;
+        _hostMovePending = true;
+        CompositionTarget.Rendering += OnHostMoveFrame;
+    }
+
+    private void OnHostMoveFrame(object? sender, object args)
+    {
+        CompositionTarget.Rendering -= OnHostMoveFrame;
+        _hostMovePending = false;
+        Render();
     }
     private void OnLoaded(object sender, RoutedEventArgs args) => EnsureStarted();
     private void OnUnloaded(object sender, RoutedEventArgs args) => Stop();
@@ -134,7 +162,7 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
             });
             _item.Closed += _captureClosed;
             _captureSize = _item.Size;
-            _capture = new LatestGlassCapture(_captureDevice, _captureSize, () => QueueLatestFrame(generation));
+            _capture = new LatestGlassCapture(_captureDevice, _captureSize, CreateFrameNotification(generation));
             _capture.SetMeasurement(_measurement);
             _session = _capture.CreateSession(_item);
             _session.IsCursorCaptureEnabled = false;
@@ -148,21 +176,35 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
             _session.StartCapture();
             _timer.Start();
         }
-        catch (Exception error) when (error is not OutOfMemoryException) { Fail(error); }
+        catch (Exception error) when (error is not OutOfMemoryException) { if (generation == _generation) Fail(error); }
         finally { if (generation == _generation) _starting = false; }
     }
 
-    private void QueueLatestFrame(int generation)
+    private Action CreateFrameNotification(int generation)
     {
-        if (!Volatile.Read(ref _frameDriven) || Interlocked.CompareExchange(ref _notificationQueued, 1, 0) != 0) return;
-        if (!_uiQueue.TryEnqueue(() =>
+        // An outgoing pool's queued callback cannot suppress the new pool's first frame.
+        int queued = 0;
+        void Consume()
         {
-            Interlocked.Exchange(ref _notificationQueued, 0);
-            if (generation == _generation && _frameDriven && !_diagnosticFrozen) OnTick(_timer, EventArgs.Empty);
-        })) Interlocked.Exchange(ref _notificationQueued, 0);
+            Interlocked.Exchange(ref queued, 0);
+            if (generation == _generation && !_diagnosticFrozen) ConsumeFrame();
+        }
+        return () =>
+        {
+            if (Interlocked.Exchange(ref queued, 1) == 0 && !_uiQueue.TryEnqueue(Consume))
+                Interlocked.Exchange(ref queued, 0);
+        };
     }
 
-    private void OnTick(DispatcherQueueTimer sender, object args)
+    private void OnMonitorTick(DispatcherQueueTimer sender, object args)
+    {
+        if (_wanted && !_disposed && CaptureInterop.MonitorFromWindow(_window, 2) != _monitor)
+        {
+            Stop(); EnsureStarted();
+        }
+    }
+
+    private void ConsumeFrame()
     {
         if (!_wanted || _disposed) return;
         _measurement?.Tick();
@@ -199,7 +241,9 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
 
     private void Render()
     {
-        if (_lastFrame is null || _renderer is null || _panel.ActualWidth <= 0 || _panel.ActualHeight <= 0) return;
+        if (_lastFrame is null || _renderer is null) return;
+        _waitingForPanelLayout = _panel.ActualWidth <= 0 || _panel.ActualHeight <= 0;
+        if (_waitingForPanelLayout) return;
         try
         {
             var measuredAt = _measurement is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
@@ -239,7 +283,8 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
     public object? EndDiagnosticMeasurement()
     {
         _capture?.SetMeasurement(null);
-        var result = _measurement?.Complete(_captureSize.Width, _captureSize.Height, _frame, TargetRefreshRate, _frameDriven);
+        var result = _measurement?.Complete(_captureSize.Width, _captureSize.Height, _frame, TargetRefreshRate,
+            _renderer?.DiagnosticSwapChainAddress ?? 0);
         _measurement = null;
         if (_renderer is not null) _renderer.Measurement = null;
         return result;
@@ -268,6 +313,11 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
     private void Fail(Exception error) { Failure = error.ToString(); Stop(); StateChanged?.Invoke(this, EventArgs.Empty); }
     private void Stop()
     {
+        if (_hostMovePending)
+        {
+            CompositionTarget.Rendering -= OnHostMoveFrame;
+            _hostMovePending = false;
+        }
         ++_generation; _starting = false; _diagnosticFrozen = false; _timer.Stop();
         if (_item is not null && _captureClosed is not null) _item.Closed -= _captureClosed;
         _captureClosed = null;
@@ -275,7 +325,7 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
         _displayedCapture?.Dispose(); _displayedCapture = null;
         _captureRateControl?.Dispose(); _captureRateControl = null;
         _session?.Dispose(); _session = null; _capture?.Dispose(); _capture = null; _item = null;
-        _hasRendered = false;
+        _hasRendered = false; _waitingForPanelLayout = false;
         _captureDevice?.Dispose(); _captureDevice = null;
         _renderer?.Dispose(); _renderer = null;
         if (_excluded)
@@ -290,7 +340,8 @@ public sealed class LiquidGlassSurface : Grid, IDisposable
     {
         if (_disposed) return;
         _disposed = true; _wanted = false;
-        Loaded -= OnLoaded; Unloaded -= OnUnloaded; _timer.Tick -= OnTick;
+        Loaded -= OnLoaded; Unloaded -= OnUnloaded; _timer.Tick -= OnMonitorTick;
+        _panel.SizeChanged -= OnPanelSizeChanged;
         Stop(); Children.Clear();
     }
 }

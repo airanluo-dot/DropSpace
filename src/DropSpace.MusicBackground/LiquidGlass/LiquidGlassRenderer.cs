@@ -12,6 +12,9 @@ namespace DropSpace.Rendering;
 /// <summary>UI-thread-owned GPU crop, separable blur and refractive material. No CPU screen readback.</summary>
 internal sealed class LiquidGlassRenderer : IDisposable
 {
+    private sealed record ShaderBytecode(byte[] Vertex, byte[] Blur, byte[] Glass);
+    private static ShaderBytecode? _shaderBytecode;
+    private static object? _shaderCompileLock;
     private readonly List<IDisposable> _owned = [];
     internal ID3D11Device Device { get; private set; } = null!;
     private ID3D11DeviceContext _context = null!;
@@ -23,6 +26,7 @@ internal sealed class LiquidGlassRenderer : IDisposable
     private Texture? _crop, _horizontal, _vertical, _output;
     private bool _disposed;
     internal long PresentedFrames { get; private set; }
+    internal nint DiagnosticSwapChainAddress => _presenter.DiagnosticSwapChainAddress;
     internal GlassRefreshMeasurement? Measurement { get; set; }
     [StructLayout(LayoutKind.Sequential)] private struct Constants { internal Vector4 Size, Shape, Optics, Crop, Lens; }
 
@@ -36,12 +40,10 @@ internal sealed class LiquidGlassRenderer : IDisposable
             Device = Own(device); _context = Own(device.ImmediateContext);
             _presenter = Own(new SwapChainPanelPresenter(panel, alphaMode: AlphaMode.Premultiplied));
             _presenter.Initialize(device);
-            using var stream = typeof(LiquidGlassRenderer).Assembly.GetManifestResourceStream("DropSpace.LiquidGlass.hlsl")!;
-            using var reader = new StreamReader(stream);
-            var shader = reader.ReadToEnd();
-            _vertex = Own(device.CreateVertexShader(Compile(shader, "VS", "vs_5_0")));
-            _blur = Own(device.CreatePixelShader(Compile(shader, "Blur", "ps_5_0")));
-            _glass = Own(device.CreatePixelShader(Compile(shader, "Glass", "ps_5_0")));
+            var shaders = GetShaderBytecode();
+            _vertex = Own(device.CreateVertexShader(shaders.Vertex));
+            _blur = Own(device.CreatePixelShader(shaders.Blur));
+            _glass = Own(device.CreatePixelShader(shaders.Glass));
             _constants = Own(device.CreateBuffer(Marshal.SizeOf<Constants>(), BindFlags.ConstantBuffer,
                 ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.None, 0));
             _sampler = Own(device.CreateSamplerState(new SamplerDescription(Filter.MinMagMipLinear,
@@ -172,6 +174,30 @@ internal sealed class LiquidGlassRenderer : IDisposable
         }
         public void Dispose() { Source?.Dispose(); Target?.Dispose(); Image.Dispose(); }
     }
+
+    // Only device-independent bytecode survives hiding the island. A failed compile can retry.
+    private static ShaderBytecode GetShaderBytecode() =>
+        LazyInitializer.EnsureInitialized(ref _shaderBytecode, ref _shaderCompileLock, static () =>
+        {
+            var assembly = typeof(LiquidGlassRenderer).Assembly;
+            if (assembly.GetManifestResourceInfo("DropSpace.LiquidGlass.VS.cso") is not null)
+            {
+                byte[] ReadBytecode(string entry)
+                {
+                    using var input = assembly.GetManifestResourceStream($"DropSpace.LiquidGlass.{entry}.cso")!;
+                    var bytes = new byte[input.Length];
+                    input.ReadExactly(bytes);
+                    return bytes;
+                }
+                return new ShaderBytecode(ReadBytecode("VS"), ReadBytecode("Blur"), ReadBytecode("Glass"));
+            }
+            // The lightweight .NET / NuGet build environment can lack the Windows SDK FXC tool.
+            using var stream = assembly.GetManifestResourceStream("DropSpace.LiquidGlass.hlsl")!;
+            using var reader = new StreamReader(stream);
+            var shader = reader.ReadToEnd();
+            return new ShaderBytecode(Compile(shader, "VS", "vs_5_0"),
+                Compile(shader, "Blur", "ps_5_0"), Compile(shader, "Glass", "ps_5_0"));
+        });
 
     private static byte[] Compile(string source, string entry, string target)
     {

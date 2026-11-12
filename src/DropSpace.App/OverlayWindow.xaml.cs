@@ -1272,11 +1272,13 @@ public sealed partial class OverlayWindow : Window
 
         if (matches)
         {
+            var moved = _positionedHostLeftPixels != left || _positionedHostTopPixels != top;
             _positionedHostWidthPixels = width;
             _positionedHostHeightPixels = height;
             _positionedHostLeftPixels = left;
             _positionedHostTopPixels = top;
             _glow.RefreshPosition();
+            if (moved) _materialController.OnHostMoved();
         }
 
         return matches;
