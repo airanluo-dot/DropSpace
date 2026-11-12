@@ -1,11 +1,11 @@
 # DropSpace Roadmap
 
-## Release target: v1.1.0-beta.7
+## Release target: v1.1.0-beta.8
 
-The current Beta target is `v1.1.0-beta.7` (Beta 7).
-v1.1.0-beta.6 is the immediate upgrade baseline for this release.
+The current Beta target is `v1.1.0-beta.8` (Beta 8).
+v1.1.0-beta.7 is the immediate upgrade baseline for this release.
 
-The [candidate notes](.github/release-notes/v1.1.0-beta.7.md) cover the shared release archive and its native Island view.
+The [candidate notes](.github/release-notes/v1.1.0-beta.8.md) cover lyric lookup and playback timing on Windows.
 
 ## Published release: v0.3.1-beta.18
 
@@ -158,7 +158,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.1.0-beta.7 is the current Beta target; 1.0 remains the public Stable baseline.
+v1.1.0-beta.8 is the current Beta target; 1.0 remains the public Stable baseline.
 Published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,

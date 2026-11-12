@@ -49,12 +49,13 @@ public static class LyricsMatcher
     private const string EnglishRecordingKinds = @"live|remix|acoustic|instrumental|karaoke|radio|extended|edit|demo|concert|cover|sped[\s-]*up|slowed";
     private const string ChineseRecordingKinds = "现场|現場|混音|伴奏|翻唱|不插电|不插電";
     private const string RecordingYear = @"(?:19|20)[0-9]{2}";
+    private const string EditionSeparator = @"[\s\p{Pd}()\[\]【】]*";
     // Only canonicalize a complete edition suffix. A venue, remixer or other recording
     // credit remains part of the title and must match across catalogues.
     private static readonly Regex RecordingSuffix = new(
         @"(?:[\(\[【–—-]\s*|\s+|(?<=[\u3400-\u9fff])(?=[a-z]|(?:" + ChineseRecordingKinds + @")版))" +
-        @"(?:(?<before>" + RecordingYear + @")[\s-]*)?(?<kind>" + EnglishRecordingKinds + "|" + ChineseRecordingKinds + @")" +
-        @"(?:\s*(?:版本?|ver(?:sion)?\.?))?(?:[\s-]*(?<after>" + RecordingYear + @"))?\s*[\)\]】]?\z",
+        @"(?:(?<before>" + RecordingYear + @")" + EditionSeparator + @")?(?<kind>" + EnglishRecordingKinds + "|" + ChineseRecordingKinds + @")" +
+        @"(?:\s*(?:版本?|ver(?:sion)?\.?))?(?:" + EditionSeparator + @"(?<after>" + RecordingYear + @"))?\s*[\)\]】]*\z",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     private static readonly Regex DisambiguatingVersionWords = new(
         @"\b(?:" + EnglishRecordingKinds + @")\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
@@ -166,6 +167,18 @@ public static class LyricsMatcher
         ComparableTitle(left) is { Length: > 0 } title && title == ComparableTitle(right);
 
     public static bool AreArtistCreditsCompatible(string left, string right) => ArtistSimilarity(left, right) >= 0.6;
+
+    // A catalogue artist's own aliases can identify that performer within a collaboration.
+    // The complete projected list still has to pass the recording matcher.
+    public static string? FindCreditedArtistName(string fullCredit, IEnumerable<string> names)
+    {
+        var requested = ArtistCredits(fullCredit);
+        return names.FirstOrDefault(name =>
+        {
+            var parts = ArtistCredits(name);
+            return parts.Length > 0 && parts.All(requested.Contains);
+        });
+    }
 
     // Collection admission is not authorization to publish an original. Unknown
     // cross-script artists reach the selector only with exact title/version and

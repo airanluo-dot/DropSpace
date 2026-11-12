@@ -28,6 +28,7 @@ public sealed class QqMusicSession(string directory)
     {
         internal long Generation { get; } = generation;
         internal bool Confirmed { get; set; }
+        internal bool AccessRefused { get; set; }
     }
     private readonly AsyncLocal<Verification?> _verification = new();
     private Verification? _latestVerification;
@@ -119,7 +120,8 @@ public sealed class QqMusicSession(string directory)
                 if (ReferenceEquals(attempt, _latestVerification))
                 {
                     _latestVerification = null;
-                    if (!attempt.Confirmed && !cancellationToken.IsCancellationRequested &&
+                    // An empty catalogue, offline transport or timeout says nothing about the saved ticket.
+                    if (attempt.AccessRefused && !attempt.Confirmed && !cancellationToken.IsCancellationRequested &&
                         attempt.Generation == _generation && _state is QqMusicSessionState.Saved or QqMusicSessionState.Connected)
                     {
                         _state = QqMusicSessionState.Rejected;
@@ -181,12 +183,13 @@ public sealed class QqMusicSession(string directory)
         }
     }
 
-    internal void ReportAccess(long generation, bool accepted, int? code = null)
+    internal void ReportAccess(long generation, bool accepted, int? code = null, HttpStatusCode? httpStatus = null)
     {
         lock (_gate)
         {
             if (_generation != generation ||
                 _verification.Value is { } attempt && (!ReferenceEquals(attempt, _latestVerification) || attempt.Generation != generation)) return;
+            code ??= (int?)httpStatus;
             if (!accepted && code == 429)
             {
                 _rateLimitUntil = DateTimeOffset.UtcNow.AddSeconds(30);
@@ -199,6 +202,8 @@ public sealed class QqMusicSession(string directory)
                 if (_latestVerification is { } verifying && verifying.Generation == generation) verifying.Confirmed = true;
             }
             else if (code is 1000 or 2001 or 101010 or 401) _state = QqMusicSessionState.Expired;
+            else if (httpStatus == HttpStatusCode.Forbidden && _verification.Value is { } checking)
+                checking.AccessRefused = true;
             // Other business/request refusals do not prove credential expiry and
             // must not block every subsequent song for the lifetime of the session.
         }

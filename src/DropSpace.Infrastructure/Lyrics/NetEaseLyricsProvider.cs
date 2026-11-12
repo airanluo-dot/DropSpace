@@ -161,14 +161,20 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
         // Each alternative remains attached to the same provider artist object.
         // Project complete collaboration credits; never treat any member's alias
         // as an alias for the entire collaboration or guess a Latin/Han suffix.
-        return query.ArtistCandidates.Take(4).Select(requested => string.Join("; ", artists.Select(item =>
+        return query.ArtistCandidates.Take(4).Select(requested =>
         {
-            token.ThrowIfCancellationRequested();
-            var canonical = Text(item, "name");
-            var names = new[] { canonical }.Concat(new[] { "alias", "alia", "transNames", "tns" }
-                .SelectMany(property => StringArray(item, property))).Take(65);
-            return names.FirstOrDefault(name => LyricsMatcher.AreArtistCreditsCompatible(requested, name)) ?? canonical;
-        }))).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray();
+            var projection = artists.Select(item =>
+            {
+                token.ThrowIfCancellationRequested();
+                var canonical = Text(item, "name");
+                var names = new[] { canonical }.Concat(new[] { "alias", "alia", "transNames", "tns" }
+                    .SelectMany(property => StringArray(item, property))).Take(65);
+                return LyricsMatcher.FindCreditedArtistName(requested, names) ?? canonical;
+            }).ToArray();
+            // Do not collapse two source artists onto the same requested name.
+            return projection.Select(LyricsMatcher.Normalize).Distinct(StringComparer.Ordinal).Count() == projection.Length
+                ? string.Join("; ", projection) : string.Empty;
+        }).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray();
     }
 
     private static IEnumerable<string> StringArray(JsonElement element, string property)

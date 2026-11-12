@@ -1,5 +1,24 @@
 [
   {
+    "tag": "v1.1.0-beta.8",
+    "date": null,
+    "en": [
+      "Find lyrics for live recordings when the year is written differently, and for NetEase collaborations listed under alternate artist names.",
+      "QQ Music keeps your saved login available when a check finds no songs or loses its connection.",
+      "Lyrics and the progress bar stay in step when Windows players send stale timestamps or temporarily lose their timeline."
+    ],
+    "zh-CN": [
+      "现场版年份的括号写法不同也能匹配歌词，网易云合作曲可按每位歌手的别名匹配。",
+      "验证 QQ 音乐登录时，即使歌曲没有搜索结果或网络中断，仍可用已保存的登录搜索下一首。",
+      "播放器沿用旧时间戳或暂时缺少进度时，歌词和进度条能继续跟随，减少跳行、提前到结尾和突然归零。"
+    ],
+    "zh-TW": [
+      "現場版年份的括號寫法不同也能比對歌詞，網易雲合作曲可依每位歌手的別名比對。",
+      "驗證 QQ 音樂登入時，即使歌曲沒有搜尋結果或網路中斷，仍可使用已儲存的登入資料搜尋下一首。",
+      "播放器沿用舊時間戳記或暫時缺少進度時，歌詞和進度列能繼續跟隨，減少跳行、提早到結尾和突然歸零。"
+    ]
+  },
+  {
     "tag": "v1.1.0-beta.7",
     "date": "2026-11-12",
     "en": [

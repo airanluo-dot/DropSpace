@@ -8,7 +8,8 @@ public enum LyricsDiagnosticOutcome { Found, NoMatch, RateLimited, Rejected, Tra
 // No titles, artists, track IDs, URLs, response messages, lyrics or model data.
 public sealed record LyricsDiagnostic(LyricsProviderKind Provider, LyricsDiagnosticStage Stage,
     LyricsDiagnosticOutcome Outcome, long ElapsedMilliseconds, int Lines = 0, int TranslatedLines = 0,
-    int? HttpStatus = null, int? ApiCode = null, bool TranslationLookupIncomplete = false);
+    int? HttpStatus = null, int? ApiCode = null, bool TranslationLookupIncomplete = false,
+    HttpRequestError? NetworkError = null);
 
 internal static class LyricsDiagnostics
 {

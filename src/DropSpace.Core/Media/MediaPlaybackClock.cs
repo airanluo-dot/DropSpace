@@ -6,6 +6,7 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
     private static readonly TimeSpan MaximumEstimatedObservationGap = TimeSpan.FromSeconds(5);
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     private MediaSessionSnapshot _session = MediaSessionSnapshot.Empty;
+    private MediaTimelineSnapshot? _lastNativeTimeline;
     private double _position;
     private long _anchor;
     private long _lastObservation;
@@ -30,17 +31,25 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
     {
         var now = _time.GetUtcNow();
         var sameTrack = _hasSnapshot && _session.IsSameTrack(session);
-        var validTimelineTimestamp = session.Timeline.LastUpdated.Year >= 2000 &&
-            session.Timeline.LastUpdated >= now.AddMinutes(-5) &&
-            session.Timeline.LastUpdated <= now.AddMinutes(5);
+        var timeline = session.Timeline;
+        var previousNative = sameTrack ? _lastNativeTimeline : null;
+        var previousReport = previousNative ?? (sameTrack ? _session.Timeline : null);
+        var positionChangedWithoutTimestamp = previousReport?.LastUpdated == timeline.LastUpdated &&
+            previousReport.Position != timeline.Position;
+        // A paused sample does not age out. Some SMTC publishers also keep their timestamp
+        // fixed while publishing new positions, including after an explicit seek.
+        var validTimelineTimestamp = timeline.LastUpdated.Year >= 2000 && timeline.LastUpdated <= now.AddMinutes(5) &&
+            (timeline.LastUpdated >= now.AddMinutes(-5) || session.PlaybackState == MediaPlaybackState.Paused ||
+             previousNative?.LastUpdated == timeline.LastUpdated || positionChangedWithoutTimestamp);
         var validSessionTimestamp = session.LastUpdated.Year >= 2000 &&
             session.LastUpdated >= now.AddMinutes(-5) &&
             session.LastUpdated <= now.AddMinutes(5);
-        var native = validTimelineTimestamp && (session.Timeline.End > session.Timeline.Start || session.Timeline.Position > TimeSpan.Zero);
+        var native = validTimelineTimestamp && timeline.HasReportedPosition;
         // Apple Music refreshes timestamps several times within the same whole
         // second. Timestamp-only updates are not new position observations and
         // must not repeatedly rewind the interpolated word highlight.
-        var nativeChanged = !sameTrack || IsEstimated || session.Timeline.Position != _session.Timeline.Position || session.PlaybackState != _session.PlaybackState;
+        var nativeChanged = previousNative is null || timeline.Position != previousNative.Position ||
+            session.PlaybackState != _session.PlaybackState || (IsEstimated && timeline.LastUpdated != previousNative.LastUpdated);
         var elapsedSinceObservation = _hasSnapshot ? _time.GetElapsedTime(_lastObservation) : TimeSpan.Zero;
         var lastObservedPosition = _lastObservedPosition;
         var position = sameTrack ? Position.TotalSeconds : Math.Max(0, session.Timeline.Position.TotalSeconds);
@@ -59,48 +68,47 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
             var interpolated = position;
             // A state-only pause/resume event may carry the unchanged native
             // observation. Reusing that old position rewinds the lyric clock.
-            var staleStateTransition = sameTrack && !IsEstimated &&
+            var staleStateTransition = previousNative is not null &&
                 session.PlaybackState != _session.PlaybackState &&
-                session.Timeline.Position == _session.Timeline.Position &&
-                session.Timeline.LastUpdated == _session.Timeline.LastUpdated;
+                timeline.Position == previousNative.Position && timeline.LastUpdated == previousNative.LastUpdated;
             var nativeSeconds = Math.Max(0, session.Timeline.Position.TotalSeconds);
             var appleSeconds = MediaProcessIdentityPolicy.IsAppleMusic(session.SourceAppUserModelId) &&
                 session.Timeline.PlaybackRate == 1 && session.Timeline.Position.Ticks % TimeSpan.TicksPerSecond == 0;
-            var advance = (session.Timeline.Position - _session.Timeline.Position).TotalSeconds;
+            var advance = (timeline.Position - (previousNative?.Position ?? TimeSpan.Zero)).TotalSeconds;
             var lag = interpolated - nativeSeconds;
-            var trailingAppleTick = appleSeconds && sameTrack && !IsEstimated &&
+            var trailingAppleTick = appleSeconds && previousNative is not null &&
                 advance is >= 0 and <= 2 && lag is >= 0 and < 3;
             position = staleStateTransition ? interpolated : nativeSeconds;
-            if (appleSeconds && sameTrack && !IsEstimated && session.PlaybackState == MediaPlaybackState.Paused &&
+            if (appleSeconds && previousNative is not null && session.PlaybackState == MediaPlaybackState.Paused &&
                 lag >= 0)
             {
                 var confirmingStop = _session.PlaybackState == MediaPlaybackState.Playing ||
-                    interpolated >= _session.Timeline.Position.TotalSeconds + 1;
+                    interpolated >= previousNative.Position.TotalSeconds + 1;
                 // State, a final playing tick and the confirmed stop may arrive separately.
                 if (lag < 1 || (confirmingStop && trailingAppleTick)) position = interpolated;
             }
             if (session.PlaybackState == MediaPlaybackState.Playing)
             {
                 var rate = double.IsFinite(session.Timeline.PlaybackRate) && session.Timeline.PlaybackRate is > 0 and <= 8 ? session.Timeline.PlaybackRate : 1;
-                var observation = session.Timeline.LastUpdated;
+                var readAt = validSessionTimestamp ? session.LastUpdated : now;
+                var observation = positionChangedWithoutTimestamp ? readAt : timeline.LastUpdated;
                 if (sameTrack && _session.PlaybackState != MediaPlaybackState.Playing)
                 {
                     // Apple Music can resume with the paused position and its old timestamp,
                     // then publish a fresh position a second later. The age of that timestamp
                     // includes the paused interval and must not be counted as playback.
-                    var resumedAt = validSessionTimestamp ? session.LastUpdated : now;
-                    if (observation < resumedAt) observation = resumedAt;
+                    if (observation < readAt) observation = readAt;
                     if (trailingAppleTick) position = interpolated;
                 }
                 position += Math.Clamp((now - observation).TotalSeconds, 0, 86_400) * rate;
-                if (appleSeconds && (!sameTrack || IsEstimated) && nativeSeconds > 2)
+                if (appleSeconds && previousNative is null && nativeSeconds > 2)
                 {
                     // Joining an already playing Apple Music session has no transport anchor.
                     // Its integer observation is published one reporting period late, with
                     // an unknown fractional second. Use the midpoint only on initial attach.
                     position += 1.5;
                 }
-                else if (appleSeconds && sameTrack && !IsEstimated &&
+                else if (appleSeconds && previousNative is not null &&
                     _session.PlaybackState == MediaPlaybackState.Playing && advance is > 0 and <= 2 &&
                     interpolated >= position && interpolated - position < 3)
                 {
@@ -109,7 +117,7 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
                     // Keep the running transport anchor. Seeks and long stalls re-anchor.
                     position = interpolated;
                 }
-                else if (sameTrack && _session.PlaybackState == MediaPlaybackState.Playing &&
+                else if (previousNative is not null && _session.PlaybackState == MediaPlaybackState.Playing &&
                     session.Timeline.Position.Ticks % TimeSpan.TicksPerSecond == 0 && advance is >= 0 and <= 1 &&
                     Math.Abs(position - interpolated) < 1)
                     position = Math.Max(interpolated, position);
@@ -118,5 +126,6 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
         _position = position; _anchor = _time.GetTimestamp(); _session = session; _hasSnapshot = true;
         _lastObservedPosition = position; _lastObservation = _anchor;
         IsEstimated = !native;
+        _lastNativeTimeline = native ? timeline : previousNative;
     }
 }

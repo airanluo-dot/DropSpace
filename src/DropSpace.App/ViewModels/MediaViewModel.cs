@@ -267,6 +267,7 @@ public sealed class MediaViewModel : ObservableObject
     public bool IsPlaying => Session.PlaybackState == MediaPlaybackState.Playing;
     public string PlaybackGlyph => IsPlaying ? "\uE769" : "\uE768";
     public double PositionSeconds => Math.Max(0, (Position - Session.Timeline.Start).TotalSeconds);
+    public double ProgressSliderSeconds => Math.Min(PositionSeconds, Session.Timeline.Duration.TotalSeconds);
     public double DurationSeconds => Math.Max(1, Session.Timeline.Duration.TotalSeconds);
     public string ElapsedText => FormatTime(Position - Session.Timeline.Start);
     public string RemainingText => Session.Timeline.Duration > TimeSpan.Zero ? "-" + FormatTime(Session.Timeline.End - Position) : "—";

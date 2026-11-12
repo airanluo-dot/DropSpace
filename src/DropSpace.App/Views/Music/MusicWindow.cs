@@ -622,7 +622,7 @@ public sealed partial class MusicWindow : Window
             var seekEnabled = _media.Session.CanSeek && !_media.PositionEstimated;
             if (!seekEnabled && (_seekInteraction.IsDragging || _seekInteraction.IsPreviewing)) CancelSeek();
             _seek.IsEnabled = seekEnabled; _seek.Maximum = _media.DurationSeconds;
-            var playback = _media.PositionEstimated ? 0 : Math.Clamp(_media.PositionSeconds, 0, _seek.Maximum);
+            var playback = _media.ProgressSliderSeconds;
             if (_seekInteraction.ShouldApplyPlayback(playback, DateTimeOffset.UtcNow, seekEnabled)) _seek.Value = playback;
             ToolTipService.SetToolTip(_seek, seekEnabled ? null : _strings.Get("MusicWindowSeekUnavailable"));
             UpdateTimeLabels(); RefreshVolume();

@@ -129,9 +129,9 @@ progressively. Shared quality ordering compares valid text-aligned timing and du
 only after target satisfaction and source priority. Request-stage health temporarily skips
 repeated transport failures; manual refresh does not bypass server rate limiting.
 
-The cache uses atomic replacement, generation-fenced clearing, access-time LRU eviction, and a
-settings-bounded 100 MiB–5 GiB quota (1 GiB by default); user LRC files and model packages are outside
-this directory and are never cache eviction targets. Persistent lyric identity excludes the random
+The cache uses atomic replacement, generation-fenced clearing and access-time LRU eviction.
+The quota defaults to 1 GB and can be set to 0–10 decimal GB. Zero turns off disk cache reads
+and writes. User LRC files and model packages are outside the cache. Persistent lyric identity excludes the random
 SMTC session identifier while retaining player, track metadata, track number, and exact duration;
 the runtime identity still controls song-change publication. Old AI cache identities cannot
 bypass the current whole-track gate; directly incompatible AI entries are regenerated on

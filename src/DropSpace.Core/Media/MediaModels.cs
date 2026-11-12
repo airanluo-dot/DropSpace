@@ -16,6 +16,8 @@ public sealed record MediaTimelineSnapshot(
     DateTimeOffset LastUpdated)
 {
     public TimeSpan Duration => End > Start ? End - Start : TimeSpan.Zero;
+    public bool BoundsFromPreviousSnapshot { get; init; }
+    public bool HasReportedPosition => Position > TimeSpan.Zero || (!BoundsFromPreviousSnapshot && End > Start);
 }
 
 public sealed record MediaSessionSnapshot(

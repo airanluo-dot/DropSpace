@@ -178,7 +178,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
                 Progress.Maximum = _view.DurationSeconds;
                 Progress.IsEnabled = _view.Session.CanSeek && !_view.PositionEstimated;
             }
-            var playbackSeconds = _view.PositionEstimated ? 0 : Math.Clamp(_view.PositionSeconds, 0, Progress.Maximum);
+            var playbackSeconds = _view.ProgressSliderSeconds;
             if (_seekInteraction.ShouldApplyPlayback(playbackSeconds, DateTimeOffset.UtcNow, Progress.IsEnabled))
                 Progress.Value = playbackSeconds;
             UpdateTimelineLabels();

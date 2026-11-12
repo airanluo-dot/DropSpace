@@ -166,9 +166,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
             suppressed = _lyricsDiagnosticsSuppressed;
             _lyricsDiagnosticsSuppressed = 0;
         }
-        _logger.LogInformation("Lyrics query diagnostic: provider={Provider}, stage={Stage}, outcome={Outcome}, elapsedMs={Elapsed}, lines={Lines}, translated={Translated}, http={Http}, api={Api}, translationIncomplete={Incomplete}, suppressed={Suppressed}.",
+        _logger.LogInformation("Lyrics query diagnostic: provider={Provider}, stage={Stage}, outcome={Outcome}, elapsedMs={Elapsed}, lines={Lines}, translated={Translated}, http={Http}, api={Api}, network={Network}, translationIncomplete={Incomplete}, suppressed={Suppressed}.",
             diagnostic.Provider, diagnostic.Stage, diagnostic.Outcome, diagnostic.ElapsedMilliseconds,
-            diagnostic.Lines, diagnostic.TranslatedLines, diagnostic.HttpStatus, diagnostic.ApiCode,
+            diagnostic.Lines, diagnostic.TranslatedLines, diagnostic.HttpStatus, diagnostic.ApiCode, diagnostic.NetworkError,
             diagnostic.TranslationLookupIncomplete, suppressed);
     }
     /// <summary>Reconnects only the music runtime. Settings, models and lyric caches are retained.</summary>
