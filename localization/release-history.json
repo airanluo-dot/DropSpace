@@ -4,15 +4,15 @@
     "date": "2026-11-12",
     "en": [
       "Lyrics match more songs with alternate artist names or multiple versions.",
-      "Improved playback progress and word-by-word lyric timing."
+      "Improved word highlighting at the start of lines and around punctuation."
     ],
     "zh-CN": [
       "歌词匹配可识别更多歌手别名和歌曲版本。",
-      "改进播放进度和逐字歌词同步。"
+      "修正逐字歌词中首词和标点的高亮时机。"
     ],
     "zh-TW": [
       "歌詞比對可辨識更多歌手別名與歌曲版本。",
-      "改善播放進度與逐字歌詞同步。"
+      "修正逐字歌詞中首詞與標點的醒目提示時機。"
     ]
   },
   {

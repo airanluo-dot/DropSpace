@@ -129,13 +129,6 @@ Usable results can appear progressively. The shared ranking compares independent
 evidence and usable synchronization before choosing among equally suitable sources. Request-stage health temporarily skips
 repeated transport failures; manual refresh does not bypass server rate limiting.
 
-The Windows media clock feeds the elapsed label, progress sliders and lyric frames.
-Apple Music publishes whole seconds at normal speed, including repeated updates for
-the same second during buffering. The clock interpolates within the reported second.
-If position and timestamp both stop changing for five seconds during playback, it
-continues from there as an estimate until a fresh report arrives. An explicit seek
-accepted by the player keeps its own target until the publisher confirms the new position.
-
 The cache uses atomic replacement, generation-fenced clearing and access-time LRU eviction.
 The quota defaults to 1 GB and can be set to 0–10 decimal GB. Zero turns off disk cache reads
 and writes. User LRC files and model packages are outside the cache. Persistent lyric identity excludes the random

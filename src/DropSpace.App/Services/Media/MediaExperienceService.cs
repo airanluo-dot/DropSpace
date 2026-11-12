@@ -401,7 +401,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.Lyrics = LyricsHighlightFrame.Empty;
                         }
                         if (trackChanged) _view.Artwork = null;
-                        _view.Settings = settings; _view.Session = session;
+                        _view.Settings = settings; _view.Session = session; _view.PositionEstimated = _clock.IsEstimated;
                         if (resetLyrics)
                             _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
                                 ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
@@ -735,7 +735,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private void RenderFrame()
     {
         _view.Position = _clock.Position;
-        _view.PositionEstimated = _clock.IsEstimated;
         _view.SeekEstimate = _clock.IsSeekEstimate;
         if (!_clock.IsAwaitingSeek) _seekObservation.Stop();
         // SMTC timelines may have a non-zero media start. Lyric timestamps are track-relative,
