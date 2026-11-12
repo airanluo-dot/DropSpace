@@ -17,7 +17,9 @@ const staticShowcase = process.env.SITE_VARIANT === "static";
 const dist = path.join(root, staticShowcase ? "dist-static" : "dist");
 const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8")));
 const archive = JSON.parse(await readFile(path.join(root, "../../localization/release-history.json"), "utf8"));
-const history = archive.filter(entry => entry.date);
+const candidateTag = (await readFile(path.join(root, "../../RELEASE_VERSION"), "utf8")).trim();
+const candidatePublished = releases.api.releases.some(release => release.tagName === candidateTag);
+const history = archive.filter(entry => entry.date && (entry.tag !== candidateTag || candidatePublished));
 const ramps = JSON.parse(await readFile(path.join(root, "../../branding/text-gradients.json"), "utf8"));
 const gradients = ramps.flatMap(colors => [colors, [...colors].reverse()]);
 const inkStyles = gradients.map(([start, middle, end], i) =>

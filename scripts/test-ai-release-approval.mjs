@@ -336,7 +336,7 @@ export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
 export const betaHostExperimentalModelsStatus = 'owner-authorized-beta-host-experimental-models';
-export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.6';
+export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.7';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -370,6 +370,12 @@ export function readSourceFingerprint(root) {
     assert.ok(!/[*$?;]/.test(include), 'Embedded resource expansion requires an explicit fingerprint extractor update');
     if (!include.toLowerCase().endsWith('.json')) return [];
     const relative = include.replaceAll('\\', '/');
+    if (relative === '../../modules/sample/fixture-catalog.json') {
+      assert.match(attributes, /\bCondition="Exists\('\$\(MSBuildProjectDirectory\)\/\.\.\/\.\.\/\.local\/preview-id'\)"/,
+        'The sample catalog is embedded only in an opt-in local preview');
+      assert.match(attributes, /\bLogicalName="DropSpace\.Infrastructure\.Dlc\.fixture-catalog\.json"/);
+      return [];
+    }
     assert.ok(!path.posix.isAbsolute(relative) && !relative.split('/').includes('..'), 'Embedded resource path must stay within Infrastructure');
     const name = path.posix.join(path.posix.dirname(projectPath), relative);
     assert.ok([...modelDeliverySourcePaths, ...languageIdentificationSourcePaths, ...moduleIntegrationSourcePaths].includes(name), `Embedded JSON needs code-owned fingerprint coverage: ${name}`);
