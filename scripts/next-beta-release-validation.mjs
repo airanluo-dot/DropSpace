@@ -16,9 +16,9 @@ const identity = filename => {const {bytes,sha256}=fileIdentity(filename);return
 // Preserve immutable historical routes. New release lines also use this route,
 // including beta.1 of a later semantic version; no next Beta number is hardcoded.
 export function isNextBetaRelease(tag) {
-  // Keep the established artifact/receipt route for the first stable host. Its
+  // Keep the established artifact/receipt route for owner-authorized stable hosts. Their
   // release channel is still derived from the tag by ReleaseVersion.ps1.
-  if (tag === 'v1.0.0') return true;
+  if (['v1.0.0', 'v1.1.0'].includes(tag)) return true;
   const match = /^v(\d+)\.(\d+)\.(\d+)-beta\.(\d+)$/.exec(tag);
   if (!match) return false;
   const numbers=match.slice(1).map(Number);

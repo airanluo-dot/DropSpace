@@ -1,11 +1,15 @@
 # DropSpace Roadmap
 
-## Release target: v1.1.0-beta.8
+## Release target: v1.1.0
 
-The current Beta target is `v1.1.0-beta.8` (Beta 8).
-v1.1.0-beta.7 is the immediate upgrade baseline for this release.
+Promote the functionality of `v1.1.0-beta.8` to Stable with App, installer, MSIX,
+updater and website metadata for `v1.1.0`. Keep the Beta 8 release and downloads.
+v1.1.0-beta.8 is the immediate upgrade baseline for this release.
 
-The [candidate notes](.github/release-notes/v1.1.0-beta.8.md) cover lyric lookup and playback timing on Windows.
+The [1.1 release notes](.github/release-notes/v1.1.0.md) summarize changes since
+the previous Stable, `v1.0.0`: Island search, file collection and processing results,
+the reference window, local Agent access, the music window, Liquid Glass and lyrics.
+The owner requested no new tests; compilation and static publication integrity checks remain.
 
 ## Published release: v0.3.1-beta.18
 
