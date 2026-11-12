@@ -103,7 +103,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
     public async Task VerifyQqMusicAsync(CancellationToken token)
     {
         await QqMusicLogin.Session.LoadAsync(token).ConfigureAwait(false);
-        QqMusicLogin.Session.AllowExplicitRetry();
         var current = Volatile.Read(ref _latest);
         var query = string.IsNullOrWhiteSpace(current.TrackTitle)
             ? new LyricsQuery("Happier", "Ed Sheeran", "", TimeSpan.FromSeconds(207))
@@ -112,15 +111,19 @@ public sealed class MediaExperienceService : IAsyncDisposable
         query = query with { PreferredTranslationLanguage = "zh-Hans" };
         using var trace = LyricsRequestTrace.Begin(new { diagnostic = "qq-login-check", query.Title, query.Artist,
             query.Album, duration = query.Duration.TotalSeconds });
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, _stop.Token);
+        using var caller = CancellationTokenSource.CreateLinkedTokenSource(token, _stop.Token);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(caller.Token);
         deadline.CancelAfter(TimeSpan.FromSeconds(12));
-        var result = await _lyrics.QueryDetailedAsync(query, Volatile.Read(ref _settings).Lyrics with
+        await QqMusicLogin.Session.VerifyAccessAsync(async () =>
         {
-            Enabled = true, Mode = LyricsMode.Online, Provider = LyricsProviderKind.QqMusic,
-            BackupProvider = null, SearchRemainingProviders = false, SelectionMode = LyricsSelectionMode.Rules,
-        }, deadline.Token, refresh: true).ConfigureAwait(false);
-        trace.Write("qq-login-result", new { status = result.Status.ToString(), result.TranslationLookupIncomplete,
-            document = LyricsRequestTrace.Describe(result.Document) });
+            var result = await _lyrics.QueryDetailedAsync(query, Volatile.Read(ref _settings).Lyrics with
+            {
+                Enabled = true, Mode = LyricsMode.Online, Provider = LyricsProviderKind.QqMusic,
+                BackupProvider = null, SearchRemainingProviders = false, SelectionMode = LyricsSelectionMode.Rules,
+            }, deadline.Token, refresh: true).ConfigureAwait(false);
+            trace.Write("qq-login-result", new { status = result.Status.ToString(), result.TranslationLookupIncomplete,
+                document = LyricsRequestTrace.Describe(result.Document) });
+        }, caller.Token).ConfigureAwait(false);
     }
 
     public Task InitializeAsync(AppSettings settings)

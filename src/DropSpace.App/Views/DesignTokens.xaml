@@ -6,6 +6,7 @@
   <!-- Per-theme island resources keep simultaneous main/island appearances independent. -->
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
+      <Thickness x:Key="DropSpaceOverlayStrokeThickness">0</Thickness>
       <x:Boolean x:Key="UseBrandTextGradient">True</x:Boolean>
       <SolidColorBrush x:Key="DropSpaceOverlayForegroundPrimaryBrush" Color="{ThemeResource SystemBaseHighColor}" />
       <SolidColorBrush x:Key="DropSpaceOverlayForegroundSecondaryBrush" Color="{ThemeResource SystemBaseMediumHighColor}" />
@@ -19,6 +20,7 @@
       <SolidColorBrush x:Key="DropSpaceOverlayFallbackBrush" Color="{ThemeResource SystemAltLowColor}" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
+      <Thickness x:Key="DropSpaceOverlayStrokeThickness">0</Thickness>
       <x:Boolean x:Key="UseBrandTextGradient">True</x:Boolean>
       <SolidColorBrush x:Key="DropSpaceOverlayForegroundPrimaryBrush" Color="{ThemeResource SystemBaseHighColor}" />
       <SolidColorBrush x:Key="DropSpaceOverlayForegroundSecondaryBrush" Color="{ThemeResource SystemBaseMediumHighColor}" />
@@ -32,6 +34,7 @@
       <SolidColorBrush x:Key="DropSpaceOverlayFallbackBrush" Color="{ThemeResource SystemAltLowColor}" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="HighContrast">
+      <Thickness x:Key="DropSpaceOverlayStrokeThickness">1</Thickness>
       <x:Boolean x:Key="UseBrandTextGradient">False</x:Boolean>
       <SolidColorBrush x:Key="DropSpaceOverlayForegroundPrimaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
       <SolidColorBrush x:Key="DropSpaceOverlayForegroundSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />

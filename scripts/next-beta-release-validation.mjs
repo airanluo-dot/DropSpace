@@ -82,7 +82,9 @@ async function main() {
     const sourceTree=git('rev-parse','HEAD^{tree}');
     const runs=await api('actions/workflows/ci.yml/runs?status=success&event=pull_request&per_page=30');
     for(const candidate of runs.workflow_runs??[]) {
-      const run=await api(`actions/runs/${candidate.id}`);producer(run);
+      const run=await api(`actions/runs/${candidate.id}`);
+      if(run.head_repository?.full_name!==repository)continue;
+      producer(run);
       const associated=run.pull_requests?.length?run.pull_requests:await api(`commits/${run.head_sha}/pulls`);
       let merged=false;
       for(const pr of associated) {

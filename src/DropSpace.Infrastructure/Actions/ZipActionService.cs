@@ -21,10 +21,7 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
         var available = !selection.IsEmpty && selection.Items.All(item =>
-        {
-            var content = contentResolver.Resolve(item);
-            return content.HasReadablePath && content.Type is (ItemContentType.File or ItemContentType.Folder or ItemContentType.Image);
-        });
+            ItemContentPolicy.AvailablePathType(item) is ItemContentType.File or ItemContentType.Folder or ItemContentType.Image);
         return new ItemActionCapability(available, available ? null : "Select readable files or folders.", Descriptor);
     }
 
@@ -39,7 +36,7 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
         {
             await using var output = ActionOutputPolicy.CreateNewFile(
                 root,
-                context.Selection.Items.Count == 1 ? GetEntryName(context.Selection.Items[0], contentResolver) : "DropSpace files",
+                context.Selection.IsSingle ? GetEntryName(context.Selection.Single) : "DropSpace files",
                 ".zip",
                 out archivePath);
             using var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
@@ -47,8 +44,10 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
             foreach (var selected in context.Selection.Items)
             {
                 var content = contentResolver.Resolve(selected);
+                if (!content.HasReadablePath)
+                    throw new FileNotFoundException("A selected archive source is unavailable.");
                 var source = content.ReadablePath!;
-                var baseName = GetEntryName(selected, contentResolver);
+                var baseName = GetEntryName(selected);
                 if (File.GetAttributes(source).HasFlag(FileAttributes.Directory))
                 {
                     await AddDirectoryAsync(archive, source, baseName, archivePath!, budget, cancellationToken).ConfigureAwait(false);
@@ -133,10 +132,9 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
     private static string SanitizeEntryName(string name) =>
         string.IsNullOrWhiteSpace(name) || name is "." or ".." ? "item" : name.Replace('\0', '_').Replace('/', '_').Replace('\\', '_');
 
-    private static string GetEntryName(DropItemSnapshot item, IItemContentResolver contentResolver)
+    private static string GetEntryName(DropItemSnapshot item)
     {
-        var content = contentResolver.Resolve(item);
-        var fallback = content.ReadablePath is { } path ? Path.GetFileName(path) : item.Title;
+        var fallback = Path.GetFileName(item.Payload?.RelativePath ?? item.OriginalPath) ?? "item";
         return SanitizeEntryName(string.IsNullOrWhiteSpace(item.Title) ? fallback : item.Title);
     }
 

@@ -43,17 +43,17 @@ public sealed partial class WidgetEditorView
         });
         if (saved) PublishLayoutFeedback(revision, id, rejected);
     }
-    private async Task<bool> PlaceAsync(NativeWidgetId id, int column, int row, int? width = null, int? height = null)
+    private async Task<bool> PlaceAsync(NativeWidgetId id, int column, int row, bool exactPosition = true)
     {
         var revision = BeginLayoutIntent();
         _selectedId = id;
         var current = _editor.Settings.Widgets.Layout;
-        if (!current.Expanded.Any(item => item.Id == id) && !WidgetLayoutPolicy.TryAdd(current, id, column, row, out _))
+        if (!current.Expanded.Any(item => item.Id == id) && !WidgetLayoutPolicy.TryAdd(current, id, column, row, out _, exactPosition))
         { SetError(_strings.Get("WidgetNoRoom")); return false; }
         var existing = current.Expanded.FirstOrDefault(item => item.Id == id);
         if (existing is not null)
         {
-            var desired = existing with { Column = column, Row = row, ColumnSpan = width ?? existing.ColumnSpan, RowSpan = height ?? existing.RowSpan };
+            var desired = existing with { Column = column, Row = row };
             if (desired == existing) return true;
             if (!WidgetLayoutPolicy.TryMoveOrResize(current, desired, out _))
             { SetError(_strings.Get("WidgetNoRoom")); return false; }
@@ -64,10 +64,11 @@ public sealed partial class WidgetEditorView
             var old = layout.Expanded.FirstOrDefault(item => item.Id == id);
             if (old is null)
             {
-                if (!WidgetLayoutPolicy.TryAdd(layout, id, column, row, out var added)) throw new InvalidOperationException("No vacant widget slot remains.");
-                return added;
+                if (WidgetLayoutPolicy.TryAdd(layout, id, column, row, out var added, exactPosition)) return added;
+                rejected = true;
+                return layout;
             }
-            var moved = old with { Column = column, Row = row, ColumnSpan = width ?? old.ColumnSpan, RowSpan = height ?? old.RowSpan };
+            var moved = old with { Column = column, Row = row };
             if (!WidgetLayoutPolicy.TryMoveOrResize(layout, moved, out var updated))
             {
                 rejected = true;
@@ -76,7 +77,7 @@ public sealed partial class WidgetEditorView
             return updated;
         });
         if (saved && PublishLayoutFeedback(revision, id, rejected) && rejected) RefreshSelection();
-        return saved;
+        return saved && !rejected;
     }
     private async Task<bool> UpdateLayoutAsync(Func<WidgetLayout, WidgetLayout> change)
     {

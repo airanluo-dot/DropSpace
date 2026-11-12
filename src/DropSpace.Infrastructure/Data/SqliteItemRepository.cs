@@ -148,14 +148,26 @@ public sealed partial class SqliteItemRepository(
         CancellationToken cancellationToken)
     {
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        var duplicateId = source == ItemSource.Space
+        var duplicate = source == ItemSource.Space
             ? await FindFileDuplicateAsync(connection, source, candidate.NormalizedPath, cancellationToken)
                 .ConfigureAwait(false)
             : null;
-        if (duplicateId is Guid existingId)
+        if (duplicate is { } existing)
         {
+            // Re-adding during Undo restores this reference now. The rest of a pending
+            // batch still belongs to its original token and keeps its original deadline.
+            if (existing.Pending)
+            {
+                await using var restore = connection.CreateCommand();
+                restore.CommandText = """
+                    UPDATE items SET pending_delete_token = NULL, pending_delete_expires_at_utc = NULL,
+                        revision = revision + 1 WHERE id = @id AND pending_delete_token IS NOT NULL;
+                    """;
+                restore.Parameters.AddWithValue("@id", ToBytes(existing.Id));
+                await restore.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
             logger.LogInformation("An existing Space reference was reused instead of creating a duplicate.");
-            return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
+            return (await GetWithConnectionAsync(connection, existing.Id, CancellationToken.None).ConfigureAwait(false))!;
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -1428,7 +1440,7 @@ public sealed partial class SqliteItemRepository(
         return result;
     }
 
-    private static async Task<Guid?> FindFileDuplicateAsync(
+    private static async Task<(Guid Id, bool Pending)?> FindFileDuplicateAsync(
         SqliteConnection connection,
         ItemSource source,
         string normalizedPath,
@@ -1436,18 +1448,22 @@ public sealed partial class SqliteItemRepository(
     {
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT f.item_id
+            SELECT f.item_id, i.pending_delete_token IS NOT NULL AS pending
             FROM file_references f
             JOIN items i ON i.id = f.item_id
             WHERE i.source = @source
               AND f.normalized_path = @path COLLATE DROPSPACE_PATH
-              AND i.pending_delete_token IS NULL
+              AND (i.pending_delete_token IS NULL OR i.pending_delete_expires_at_utc IS NULL OR i.pending_delete_expires_at_utc > @now)
+            ORDER BY pending, i.created_at_utc DESC, i.id
             LIMIT 1;
             """;
         command.Parameters.AddWithValue("@source", (int)source);
         command.Parameters.AddWithValue("@path", normalizedPath);
-        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        return result is byte[] bytes ? new Guid(bytes) : null;
+        command.Parameters.AddWithValue("@now", ToTimestamp(DateTimeOffset.UtcNow));
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        return await reader.ReadAsync(cancellationToken).ConfigureAwait(false)
+            ? (ReadGuid(reader, 0), reader.GetBoolean(1))
+            : null;
     }
 
     private static async Task InsertBaseItemAsync(

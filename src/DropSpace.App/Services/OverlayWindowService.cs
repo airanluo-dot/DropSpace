@@ -967,7 +967,8 @@ public sealed class OverlayWindowService : IDisposable
         foreach (var host in _activationHosts)
         {
             var monitorEnabled = !primaryOnly || host.MonitorId == _primaryMonitor.Id;
-            var visualSurfaceOwnsStableInput = activePresentation.State is OverlayState.Compact or OverlayState.Expanded;
+            var visualSurfaceOwnsStableInput = host.MonitorId == activeMonitorId &&
+                activePresentation.State is OverlayState.Compact or OverlayState.Expanded;
             var activationEnabled = _activeDragOwner == DragTargetOwner.ActivationHost ||
                                     _activeDragOwner == DragTargetOwner.None && !visualSurfaceOwnsStableInput;
             host.SetEnabled(monitorEnabled && activationEnabled);

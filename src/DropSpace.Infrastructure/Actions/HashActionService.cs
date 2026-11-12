@@ -16,7 +16,7 @@ public sealed class HashActionService(AppStoragePaths paths, IItemContentResolve
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = selection.IsSingle && contentResolver.Resolve(selection.Single) is { HasReadablePath: true, Type: not ItemContentType.Folder };
+        var available = selection.IsSingle && ItemContentPolicy.AvailablePathType(selection.Single) is not null and not ItemContentType.Folder;
         return new ItemActionCapability(available, available ? null : "A readable single file is required.", Descriptor);
     }
 
@@ -26,6 +26,8 @@ public sealed class HashActionService(AppStoragePaths paths, IItemContentResolve
         if (!capability.IsAvailable) return ItemActionResult.Failure("not-available", "ActionUnavailable");
         var item = context.Selection.Single;
         var content = contentResolver.Resolve(item);
+        if (!content.HasReadablePath || content.Type == ItemContentType.Folder)
+            return ItemActionResult.Failure("source-unavailable", "ActionSourceUnavailable");
         var path = content.ReadablePath!;
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         var hash = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);

@@ -1,6 +1,5 @@
 using DropSpace.Core.Actions;
 using DropSpace.Core.Content;
-using DropSpace.Core.Models;
 using DropSpace.Core.Preview;
 using DropSpace.Infrastructure.Actions;
 using Windows.Graphics.Imaging;
@@ -308,30 +307,18 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
 
 public sealed class ImageTransformActionService(
     IImageTransformService transforms,
-    DropSpace.Infrastructure.Storage.AppStoragePaths paths,
-    IItemContentResolver contentResolver) : IItemAction
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.ResizeImage, "ActionResizeImageMenuItem.Text", "ResizeImage", ItemActionGroup.Transform, 20, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = IsAvailableImage(selection, contentResolver);
+        var available = IsAvailableImage(selection);
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 
-    internal static bool IsAvailableImage(ItemSelectionSnapshot selection, IItemContentResolver contentResolver)
-    {
-        _ = contentResolver; // Execution resolves the live source; presentation uses its snapshot.
-        if (!selection.IsSingle) return false;
-        var item = selection.Single;
-        var extension = ItemContentPolicy.NormalizeExtension(item.Extension ?? item.Payload?.RelativePath ?? item.OriginalPath);
-        var image = string.Equals(item.Payload?.Kind, "images", StringComparison.OrdinalIgnoreCase) ||
-            ItemContentPolicy.IsImage(item.Kind, extension, item.MimeType);
-        // Availability evaluation runs for every projected card on the dispatcher.
-        // It must not open a file or synchronously resolve an external/network path.
-        return image && item.Status == ItemStatus.Available &&
-            (item.Payload is not null || !string.IsNullOrWhiteSpace(item.OriginalPath));
-    }
+    internal static bool IsAvailableImage(ItemSelectionSnapshot selection) =>
+        selection.IsSingle && ItemContentPolicy.AvailablePathType(selection.Single) == ItemContentType.Image;
 
     public Task<ItemActionResult> ExecuteAsync(ItemActionContext context, CancellationToken cancellationToken = default)
     {
@@ -361,14 +348,13 @@ public sealed class ImageTransformActionService(
 
 public sealed class ConvertImageActionService(
     IImageTransformService transforms,
-    DropSpace.Infrastructure.Storage.AppStoragePaths paths,
-    IItemContentResolver contentResolver) : IItemAction
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.ConvertImage, "ActionConvertImage.Text", "Photo2", ItemActionGroup.Transform, 21, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = ImageTransformActionService.IsAvailableImage(selection, contentResolver);
+        var available = ImageTransformActionService.IsAvailableImage(selection);
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 
@@ -399,14 +385,13 @@ public sealed class ConvertImageActionService(
 
 public sealed class StripMetadataActionService(
     IImageTransformService transforms,
-    DropSpace.Infrastructure.Storage.AppStoragePaths paths,
-    IItemContentResolver contentResolver) : IItemAction
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.StripMetadata, "ActionStripMetadata.Text", "ProtectiveCover", ItemActionGroup.Transform, 22, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = ImageTransformActionService.IsAvailableImage(selection, contentResolver);
+        var available = ImageTransformActionService.IsAvailableImage(selection);
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 

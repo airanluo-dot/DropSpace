@@ -45,7 +45,13 @@ public sealed class JsonSettingsService : ISettingsService
 
     public SettingsRecoveryReport LastLoadRecovery { get; private set; } = SettingsRecoveryReport.None;
 
-    public async Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default)
+    public Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default) =>
+        LoadOrResetAsync(resetUi: false, cancellationToken);
+
+    public Task<AppSettings> ResetUiSettingsAsync(CancellationToken cancellationToken = default) =>
+        LoadOrResetAsync(resetUi: true, cancellationToken);
+
+    private async Task<AppSettings> LoadOrResetAsync(bool resetUi, CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -54,7 +60,9 @@ public sealed class JsonSettingsService : ISettingsService
             LastLoadRecovery = SettingsRecoveryReport.None;
             if (!File.Exists(_paths.Settings))
             {
-                return CreateDefaults();
+                var defaults = CreateDefaults();
+                if (resetUi) await SaveCoreAsync(defaults, cancellationToken).ConfigureAwait(false);
+                return defaults;
             }
 
             AppSettings? settings = null;
@@ -65,9 +73,24 @@ public sealed class JsonSettingsService : ISettingsService
                         cancellationToken)
                     .ConfigureAwait(false);
                 using var document = JsonDocument.Parse(bytes);
-                settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions)
-                    ?? throw new JsonException("Settings must be an object.");
+                try
+                {
+                    settings = DeserializeSettings(document.RootElement);
+                }
+                catch (JsonException error) when (IsShortcutPath(error.Path))
+                {
+                    // Keep a recovery candidate while the outer handler quarantines the original bytes.
+                    settings = MigrateSettings(document.RootElement, ReadWithoutShortcuts(document.RootElement));
+                    throw;
+                }
                 settings = MigrateSettings(document.RootElement, settings);
+                if (resetUi)
+                {
+                    settings = settings with { Version = AppSettings.CurrentVersion };
+                    var reset = settings.Validate().WithSafeUiPreferences().Validate();
+                    await SaveCoreAsync(reset, cancellationToken).ConfigureAwait(false);
+                    return reset;
+                }
                 var validated = settings.Validate();
                 // Record equality can differ solely because validation copied a list.
                 // Compare persisted JSON values to retain normalization without rewriting
@@ -148,51 +171,6 @@ public sealed class JsonSettingsService : ISettingsService
         finally { _gate.Release(); }
     }
 
-    public async Task<AppSettings> ResetUiSettingsAsync(CancellationToken cancellationToken = default)
-    {
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            _paths.EnsureCreated();
-            AppSettings settings;
-            try
-            {
-                settings = await LoadRawAsync(cancellationToken).ConfigureAwait(false);
-                settings = settings with { Version = AppSettings.CurrentVersion };
-                try
-                {
-                    settings.Validate();
-                }
-                catch (Exception exception) when (IsRecoverableSettingsFailure(exception))
-                {
-                    var quarantinePath = QuarantineSettingsFile();
-                    _logger.LogWarning(
-                        exception,
-                        "The UI reset command quarantined invalid settings as {QuarantineFileName} before preserving valid non-UI preferences.",
-                        Path.GetFileName(quarantinePath));
-                    settings = TryPreserveNonUiPreferences(settings, out _);
-                }
-            }
-            catch (Exception exception) when (IsRecoverableSettingsFailure(exception))
-            {
-                var quarantinePath = QuarantineSettingsFile();
-                _logger.LogWarning(
-                    exception,
-                    "The UI reset command quarantined unreadable settings as {QuarantineFileName}.",
-                    Path.GetFileName(quarantinePath));
-                settings = CreateDefaults();
-            }
-
-            var reset = settings.WithSafeUiPreferences().Validate();
-            await SaveCoreAsync(reset, cancellationToken).ConfigureAwait(false);
-            return reset;
-        }
-        finally
-        {
-            _gate.Release();
-        }
-    }
-
     private async Task<AppSettings> LoadRawAsync(CancellationToken cancellationToken)
     {
         if (!File.Exists(_paths.Settings))
@@ -205,9 +183,38 @@ public sealed class JsonSettingsService : ISettingsService
                 cancellationToken)
             .ConfigureAwait(false);
         using var document = JsonDocument.Parse(bytes);
-        var settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions)
-            ?? throw new JsonException("Settings must be an object.");
-        return MigrateSettings(document.RootElement, settings);
+        return MigrateSettings(document.RootElement, DeserializeSettings(document.RootElement));
+    }
+
+    private static AppSettings DeserializeSettings(JsonElement root) =>
+        root.Deserialize<AppSettings>(SerializerOptions) ?? throw new JsonException("Settings must be an object.");
+
+    private static readonly string[] ShortcutFields =
+        [nameof(AppSettings.QuickPanelHotkey), nameof(AppSettings.MusicWindowHotkey), nameof(AppSettings.KeyboardShortcuts)];
+
+    private static bool IsShortcutPath(string? path)
+    {
+        if (path is null || !path.StartsWith("$.", StringComparison.Ordinal)) return false;
+        var first = path.AsSpan(2);
+        var end = first.IndexOfAny('.', '[');
+        if (end >= 0) first = first[..end];
+        foreach (var field in ShortcutFields)
+            if (first.Equals(field, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private static AppSettings ReadWithoutShortcuts(JsonElement root)
+    {
+        using var bytes = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(bytes))
+        {
+            writer.WriteStartObject();
+            foreach (var property in root.EnumerateObject())
+                if (!ShortcutFields.Contains(property.Name, StringComparer.OrdinalIgnoreCase)) property.WriteTo(writer);
+            writer.WriteEndObject();
+        }
+        bytes.Position = 0;
+        return JsonSerializer.Deserialize<AppSettings>(bytes, SerializerOptions)!;
     }
 
     // Every entry point must interpret the same persisted choices before validation or mutation.
@@ -268,6 +275,13 @@ public sealed class JsonSettingsService : ISettingsService
             try
             {
                 var recovered = candidate with { Version = AppSettings.CurrentVersion, PrivacyChoicesCompleted = false };
+                try { KeyboardShortcutPolicy.Validate(recovered); }
+                catch (ArgumentException)
+                {
+                    var defaults = new AppSettings();
+                    recovered = recovered with { QuickPanelHotkey = defaults.QuickPanelHotkey,
+                        MusicWindowHotkey = defaults.MusicWindowHotkey, KeyboardShortcuts = defaults.KeyboardShortcuts };
+                }
                 recovered = recovered.WithSafeUiPreferences().Validate();
                 preserved = true;
                 return recovered;

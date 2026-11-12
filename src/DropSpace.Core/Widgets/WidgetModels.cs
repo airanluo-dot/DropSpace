@@ -103,7 +103,11 @@ public static class WidgetLayoutPolicy
         return true;
     }
 
-    public static bool TryAdd(WidgetLayout layout, NativeWidgetId id, int preferredColumn, int preferredRow, out WidgetLayout updated)
+    public static bool TryAdd(WidgetLayout layout, NativeWidgetId id, int preferredColumn, int preferredRow, out WidgetLayout updated) =>
+        TryAdd(layout, id, preferredColumn, preferredRow, out updated, exactPosition: false);
+
+    public static bool TryAdd(WidgetLayout layout, NativeWidgetId id, int preferredColumn, int preferredRow,
+        out WidgetLayout updated, bool exactPosition)
     {
         updated = layout;
         if (!Enum.IsDefined(id) || layout.Expanded.Any(item => item.Id == id)) return false;
@@ -116,6 +120,7 @@ public static class WidgetLayoutPolicy
         }
         var added = WidgetCatalog.DefaultPlacement(id);
         if (!TryFindSlot(occupied, preferredColumn, preferredRow, added.ColumnSpan, added.RowSpan, out var column, out var row)) return false;
+        if (exactPosition && (column != preferredColumn || row != preferredRow)) return false;
         updated = new(layout.Expanded.Append(added with { Column = column, Row = row }).ToArray(), layout.Compact);
         return true;
     }

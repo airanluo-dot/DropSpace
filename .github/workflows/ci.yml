@@ -816,22 +816,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-ReviewedAiRuntime.ps1
       - name: Restore the exact previously bundled language model cache
-        id: language-cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: artifacts/lyrics-language/lid.176.bin
           key: dropspace-bundled-language-7e69ec5451bc261cc7844e49e4792a85d7f09c06789ec800fc4a44aec362764e
-      - name: Reuse immutable previously bundled language bytes
-        if: github.event_name == 'pull_request' && steps.language-cache.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          # Immutable successful PR #103 artifact; only the fixed-hash language
-          # asset is reused. This PR performs its own full build without functional tests.
-          artifact-ids: 11468175429
-          run-id: 37588748222
-          github-token: ${{ github.token }}
-          path: artifacts/next-beta-pr-validation
-      - name: Reuse verified language bytes from cache or existing Beta16 App
+      - name: Reuse verified language bytes from cache, the reviewed PR build, or the pinned release
         shell: pwsh
         run: ./scripts/Reuse-BundledLyricsLanguageModel.ps1 -PrAssetDirectory "artifacts/next-beta-pr-validation"
       - name: Bind existing independent CUDA component metadata to this checkout

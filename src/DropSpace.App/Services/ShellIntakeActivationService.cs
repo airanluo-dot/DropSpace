@@ -39,7 +39,7 @@ public sealed class ShellIntakeActivationService(
         CancellationToken cancellationToken = default)
     {
         if (activation.Kind != ExtendedActivationKind.Launch ||
-            activation.Data is not LaunchActivatedEventArgs launch)
+            activation.Data is not ILaunchActivatedEventArgs launch)
         {
             return false;
         }

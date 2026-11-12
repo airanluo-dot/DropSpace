@@ -912,7 +912,7 @@ public sealed partial class MainPage : Page
         {
             if (!_capabilities.IsAvailable(WindowsCapability.PdfPreview))
             {
-                return CreateUnavailablePreviewContent();
+                return CreateUnavailablePreviewContent(descriptor);
             }
 
             try
@@ -932,7 +932,7 @@ public sealed partial class MainPage : Page
         {
             if (!_capabilities.IsAvailable(WindowsCapability.MediaPreview))
             {
-                return CreateUnavailablePreviewContent();
+                return CreateUnavailablePreviewContent(descriptor);
             }
 
             try
@@ -957,11 +957,11 @@ public sealed partial class MainPage : Page
         return CreateUnavailablePreviewContent(descriptor);
     }
 
-    private TextBlock CreateUnavailablePreviewContent(PreviewDescriptor? descriptor = null)
+    private TextBlock CreateUnavailablePreviewContent(PreviewDescriptor descriptor)
     {
         return new TextBlock
         {
-            Text = descriptor is null || descriptor.Metadata.Count == 0
+            Text = descriptor.Metadata.Count == 0
                 ? _strings.Get("PreviewUnavailable")
                 : string.Join(Environment.NewLine, descriptor.Metadata.Select(pair => string.Concat(pair.Key, ": ", pair.Value))),
             TextWrapping = TextWrapping.Wrap,

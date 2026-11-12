@@ -133,6 +133,7 @@ async function main() {
   for(const candidate of runs.workflow_runs ?? []) {
    if(!['pull_request','workflow_dispatch'].includes(candidate.event)) continue;
    const run=await api(`actions/runs/${candidate.id}`);
+   if(run.head_repository?.full_name!==process.env.GITHUB_REPOSITORY) continue;
    validateProducer(run,process.env.GITHUB_REPOSITORY);
    const artifacts=await api(`actions/runs/${run.id}/artifacts?per_page=100`);
    const name=`dropspace-release-promotion-${run.id}-${run.run_attempt}`;

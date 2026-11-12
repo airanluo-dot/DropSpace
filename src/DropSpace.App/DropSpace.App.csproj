@@ -58,7 +58,7 @@
     <EmbeddedResource Include="Assets\Square44x44Logo.targetsize-256_altform-unplated.png" LogicalName="DropSpace.Brand.AboutLogo.png" />
     <EmbeddedResource Include="Assets\AgentIntegration\dropspace-agent\**\*" LogicalName="DropSpace.AgentSkill/%(RecursiveDir)%(Filename)%(Extension)" />
     <Content Include="Assets\AppIcon.ico" />
-    <DropSpaceStringResource Include="Strings\**\*.resw" />
+    <DropSpacePriInput Include="Strings\**\*.resw;Assets\**\*;**\*.xaml" Exclude="$(DefaultItemExcludes)" />
     <EmbeddedResource Include="..\..\artifacts\lyrics-language\lid.176.bin" LogicalName="DropSpace.LyricsLanguage.lid.176.bin" Condition="Exists('..\..\artifacts\lyrics-language\lid.176.bin')" />
     <Content Include="..\..\docs\licenses\fasttext-engine-MIT.txt" Link="Licenses\fasttext-engine-MIT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\docs\licenses\fluent-system-icons-MIT.txt" Link="Licenses\fluent-system-icons-MIT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
@@ -149,11 +149,17 @@
       <NoWin32Manifest>true</NoWin32Manifest>
     </PropertyGroup>
   </Target>
+  <Target Name="RecordDropSpacePortableResourceInputs">
+    <!-- MSBuild timestamps alone cannot detect the removal or rename of a resource. -->
+    <WriteLinesToFile File="$(IntermediateOutputPath)DropSpace.pri-inputs.txt" Lines="@(DropSpacePriInput)"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
   <Target
     Name="GenerateDropSpacePortableResourceIndex"
+    DependsOnTargets="RecordDropSpacePortableResourceInputs"
     BeforeTargets="PrepareForBundle"
     Condition="'$(DropSpaceDeployment)' == 'Portable' and '$(OS)' == 'Windows_NT'"
-    Inputs="@(DropSpaceStringResource);$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1"
+    Inputs="@(DropSpacePriInput);$(IntermediateOutputPath)DropSpace.pri-inputs.txt;$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1"
     Outputs="$(IntermediateOutputPath)DropSpace.resources.pri">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"

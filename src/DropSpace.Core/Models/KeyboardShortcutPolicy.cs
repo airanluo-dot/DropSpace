@@ -12,8 +12,13 @@ public static class KeyboardShortcutPolicy
     public static string Get(AppSettings settings, string id) =>
         settings.KeyboardShortcuts.TryGetValue(id, out var value) ? value : Defaults[id];
 
-    public static void Validate(AppSettings settings, bool includeGlobal = false)
+    public static void Validate(AppSettings settings, bool includeGlobal = false) =>
+        ValidateAndGetQuickPanel(settings, includeGlobal);
+
+    internal static string ValidateAndGetQuickPanel(AppSettings settings, bool includeGlobal = false)
     {
+        var quickPanel = SettingsValidationPolicy.CanonicalizeHotkey(settings.QuickPanelHotkey)
+            ?? throw new ArgumentOutOfRangeException(nameof(settings.QuickPanelHotkey));
         if (settings.KeyboardShortcuts is null || settings.KeyboardShortcuts.Count > Defaults.Count ||
             settings.KeyboardShortcuts.Keys.Any(id => !Defaults.ContainsKey(id)))
             throw new ArgumentException("Invalid keyboard shortcut settings.");
@@ -23,16 +28,17 @@ public static class KeyboardShortcutPolicy
         if (!string.IsNullOrWhiteSpace(settings.MusicWindowHotkey))
         {
             var music = SettingsValidationPolicy.CanonicalizeHotkey(settings.MusicWindowHotkey);
-            if (music is null || music.Equals(SettingsValidationPolicy.CanonicalizeHotkey(settings.QuickPanelHotkey),StringComparison.OrdinalIgnoreCase))
+            if (music is null || music.Equals(quickPanel,StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("Invalid or conflicting music-window shortcut.");
             gestures.Add(music);
         }
-        if (includeGlobal) gestures.Add(SettingsValidationPolicy.CanonicalizeHotkey(settings.QuickPanelHotkey)!);
+        if (includeGlobal) gestures.Add(quickPanel);
         foreach (var id in Defaults.Keys)
         {
             var gesture = SettingsValidationPolicy.CanonicalizeHotkey(Get(settings, id));
             if (gesture is null || !gestures.Add(gesture)) throw new ArgumentException("Invalid or duplicate keyboard shortcut.");
         }
+        return quickPanel;
     }
 
     public static uint KeyCode(string key) => key switch

@@ -4,7 +4,7 @@ const i18n = window.DropSpaceI18n;
 i18n.apply();
 function applyRequirementSnapshot() {
   document.querySelectorAll("[data-stable-requirements]").forEach(node => {
-    if (node.dataset.requirementRelease) node.textContent = stableRequirements(JSON.parse(node.dataset.requirementRelease), i18n.language);
+    if (node.dataset.requirementRelease) node.textContent = stableRequirements(JSON.parse(node.dataset.requirementRelease), i18n.language, i18n.t);
     else node.textContent = i18n.t("requirements.hint");
   });
 }
@@ -69,7 +69,7 @@ const releaseApiPaths = isGitHubPages || isLocalPreview
   : [localReleaseApi, "https://airanluo-dot.github.io/DropSpace/api/v1/releases.json"];
 let currentStable;
 addEventListener("dropspace-language-change", () => { if (currentStable) updateRequirementText(currentStable); });
-function updateRequirementText(stable) { document.querySelectorAll("[data-stable-requirements]").forEach(node => { node.textContent = stableRequirements(stable, i18n.language); }); }
+function updateRequirementText(stable) { document.querySelectorAll("[data-stable-requirements]").forEach(node => { node.textContent = stableRequirements(stable, i18n.language, i18n.t); }); }
 const latestChangeApiPaths = releaseApiPaths.map((path) => path.replace(/releases\.json$/, "latest-change.json"));
 
 void refreshReleaseData();

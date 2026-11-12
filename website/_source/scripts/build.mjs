@@ -7,7 +7,7 @@ import { languageCatalog, resources, text } from "./i18n.mjs";
 import { checkLocalization, checkBuiltWebsite } from "../../../scripts/check-localization.mjs";
 import { createLatestChangeApi, validateWebsiteReleaseData } from "./release-contract.mjs";
 import { createMacReleaseData, validateMacReleaseData, macChannelFeed } from "./macos-release-contract.mjs";
-import { releaseRequirementsHint, stableRequirements } from "../src/release-requirements.js";
+import { stableRequirements } from "../src/release-requirements.js";
 import { macReleaseMarkup } from "../src/platform.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -230,7 +230,7 @@ async function render(templatePath, kind) {
   }
   for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = text(node.dataset.i18n, JSON.parse(replaceTokens(node.dataset.i18nArgs || '{}')));
   document.querySelectorAll('[data-stable-requirements]').forEach(node => {
-    node.textContent = staticShowcase ? releaseRequirementsHint('en-US',text) : stableRequirements(stableRelease,'en-US',text);
+    node.textContent = staticShowcase ? text('requirements.hint') : stableRequirements(stableRelease,'en-US',text);
     if (!staticShowcase) node.dataset.requirementRelease = JSON.stringify({tagName:stableRelease.tagName,body:stableRelease.body});
   });
   rewriteLinks(document);

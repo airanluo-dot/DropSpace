@@ -31,9 +31,10 @@ if (Test-Path -LiteralPath $prAsset) {
 if ($env:GITHUB_REF -ceq 'refs/heads/main') {
     throw 'Final packaging requires the verified PR language asset; no repeated old-App download fallback.'
 }
+$nextBetaPr = $env:GITHUB_EVENT_NAME -ceq 'pull_request' -and $PrAssetDirectory -ceq 'artifacts/next-beta-pr-validation'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_REPOSITORY -cne 'airanluo-dot/DropSpace' -or
-    $releaseVersion -cnotin @('v0.3.1-beta.17','v0.3.1-beta.18')) {
-    throw 'Published asset reuse is limited to the reviewed Beta17/Beta18 producers.'
+    (-not $nextBetaPr -and $releaseVersion -cnotin @('v0.3.1-beta.17','v0.3.1-beta.18'))) {
+    throw 'Published language bytes may only be reused by the approved Windows build routes.'
 }
 $work = Join-Path $env:RUNNER_TEMP ('DropSpace-beta16-language-' + [guid]::NewGuid().ToString('N'))
 New-Item $work -ItemType Directory | Out-Null

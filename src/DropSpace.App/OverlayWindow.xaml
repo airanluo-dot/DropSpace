@@ -52,6 +52,8 @@
           x:Name="FallbackSurface"
           UseLayoutRounding="False"
           Background="{ThemeResource DropSpaceOverlayFallbackBrush}"
+          BorderBrush="{ThemeResource DropSpaceOverlayStrokeBrush}"
+          BorderThickness="{ThemeResource DropSpaceOverlayStrokeThickness}"
           CornerRadius="{StaticResource DropSpaceOverlayRadius}"
           IsHitTestVisible="False" />
         <Border

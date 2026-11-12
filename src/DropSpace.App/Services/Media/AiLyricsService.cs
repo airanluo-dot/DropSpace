@@ -211,16 +211,20 @@ public sealed class AiLyricsService : IDisposable
     }
 
     /// <summary>Retires queued UI progress synchronously, before cancellation/draining completes.</summary>
-    public void InvalidateTranslation()
+    public void InvalidateTranslation() => TryInvalidateTranslation(null);
+
+    private bool TryInvalidateTranslation(Func<bool>? isCurrent)
     {
         MediaWorkCancellation? active;
         lock (_stateGate)
         {
+            if (isCurrent is not null && !isCurrent()) return false;
             _statusGeneration++; _state = AiLyricsTranslationState.Ready; _fromCache = false;
             active = _activeRequest;
         }
         active?.Request();
         TranslationStateChanged?.Invoke(this, EventArgs.Empty);
+        return true;
     }
 
     /// <summary>A fresh source revision retires every AI publication from the preceding candidate.</summary>
@@ -307,10 +311,9 @@ public sealed class AiLyricsService : IDisposable
         if (!settings.Enabled || !settings.AiTranslationEnabled ||
             !LyricsLanguagePolicy.CanTranslate(document, targetLanguage) || eligible.Length == 0)
         {
-            if (!isCurrent()) return new(document, () => false);
             // Retire the preceding presentation before any asynchronous configuration wait.
             // A stale bypass continuation must never invalidate a newer song's AI result.
-            InvalidateTranslation();
+            if (!TryInvalidateTranslation(isCurrent)) return new(document, () => false);
             // A provider/same-language bypass never initializes AI. If a resident runtime
             // was already configured, setting changes must still retire its old owner.
             await ConfigureRuntimeAsync(settings, isCurrent, token, onlyIfConfigured: true).ConfigureAwait(false);
@@ -319,9 +322,12 @@ public sealed class AiLyricsService : IDisposable
         try
         {
             await ConfigureRuntimeAsync(settings, isCurrent, token).ConfigureAwait(false);
-            if (!isCurrent()) return new(document, () => false);
-            var request = new MediaWorkCancellation(token);
-            lock (_stateGate) _activeRequest = request;
+            MediaWorkCancellation request;
+            lock (_stateGate)
+            {
+                if (!isCurrent()) return new(document, () => false);
+                _activeRequest = request = new MediaWorkCancellation(token);
+            }
             try
             {
                 var translated = await _work.RunAsync(cancellation => TranslatePreparedCoreAsync(query, document, settings,
@@ -352,7 +358,7 @@ public sealed class AiLyricsService : IDisposable
             if (_configuredEnabled == enabled && _configuredModelId == settings.AiModelId &&
                 _runtimeOptions.GpuEnabled == settings.AiLyricsGpuAccelerationEnabled &&
                 _runtimeOptions.Backend == settings.AiLyricsGpuBackend) return;
-            InvalidateTranslation();
+            if (!TryInvalidateTranslation(isCurrent)) return;
             // GPU/model/disable changes release the old resident owner before a new profile
             // becomes visible. Ordinary song changes keep the verified model warm.
             await _work.MaintainAsync(cancellation =>

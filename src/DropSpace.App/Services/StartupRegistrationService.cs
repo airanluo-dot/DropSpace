@@ -26,16 +26,17 @@ public sealed class StartupRegistrationService(ILogger<StartupRegistrationServic
     public Task SetEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true)
-            ?? throw new InvalidOperationException("The current-user Windows startup registry key is unavailable.");
         if (enabled)
         {
+            using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true)
+                ?? throw new IOException("The current-user Windows startup registry key is unavailable.");
             key.SetValue(ValueName, BuildCommand(), RegistryValueKind.String);
             logger.LogInformation("Per-user Windows startup registration is enabled.");
         }
         else
         {
-            key.DeleteValue(ValueName, throwOnMissingValue: false);
+            using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true);
+            key?.DeleteValue(ValueName, throwOnMissingValue: false);
             logger.LogInformation("Per-user Windows startup registration is disabled.");
         }
 

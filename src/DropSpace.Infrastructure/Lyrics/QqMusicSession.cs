@@ -24,6 +24,13 @@ public sealed class QqMusicSession(string directory)
         { "qqmusic_key", "qqmusic_uin", "qm_keyst", "uin", "wxuin", "login_type" };
     private readonly SemaphoreSlim _storage = new(1, 1);
     private readonly object _gate = new();
+    private sealed class Verification(long generation)
+    {
+        internal long Generation { get; } = generation;
+        internal bool Confirmed { get; set; }
+    }
+    private readonly AsyncLocal<Verification?> _verification = new();
+    private Verification? _latestVerification;
     private QqMusicCookie[] _cookies = [];
     private bool _loaded;
     private QqMusicSessionState _state;
@@ -93,10 +100,35 @@ public sealed class QqMusicSession(string directory)
 
     public QqMusicCookie[] GetBrowserCookies() { lock (_gate) return _cookies.Where(IsCurrent).ToArray(); }
     public static bool HasUsableSession(IEnumerable<QqMusicCookie> cookies) => HasTicket(Validate(cookies));
-    public void AllowExplicitRetry()
+    public async Task VerifyAccessAsync(Func<Task> check, CancellationToken cancellationToken)
     {
-        lock (_gate) if (HasTicket(_cookies)) _state = QqMusicSessionState.Saved;
-        Notify(Changed);
+        Verification attempt;
+        lock (_gate)
+        {
+            attempt = new(_generation);
+            _latestVerification = attempt;
+        }
+        _verification.Value = attempt;
+        try { await check().ConfigureAwait(false); }
+        finally
+        {
+            _verification.Value = null;
+            var changed = false;
+            lock (_gate)
+            {
+                if (ReferenceEquals(attempt, _latestVerification))
+                {
+                    _latestVerification = null;
+                    if (!attempt.Confirmed && !cancellationToken.IsCancellationRequested &&
+                        attempt.Generation == _generation && _state is QqMusicSessionState.Saved or QqMusicSessionState.Connected)
+                    {
+                        _state = QqMusicSessionState.Rejected;
+                        changed = true;
+                    }
+                }
+            }
+            if (changed) Notify(Changed);
+        }
     }
 
     internal void EnsureUsable()
@@ -107,7 +139,9 @@ public sealed class QqMusicSession(string directory)
             if (DateTimeOffset.UtcNow < _rateLimitUntil)
                 throw new LyricsProviderRejectedException("QQ Music request cooldown is active.", 429);
             if (_cookies.Length > 0 && !HasTicket(_cookies)) _state = QqMusicSessionState.Expired;
-            blocked = _state is QqMusicSessionState.Expired or QqMusicSessionState.Rejected;
+            var attempt = _verification.Value;
+            var explicitRetry = attempt is not null && ReferenceEquals(attempt, _latestVerification) && attempt.Generation == _generation;
+            blocked = _state == QqMusicSessionState.Expired || _state == QqMusicSessionState.Rejected && !explicitRetry;
         }
         if (!blocked) return;
         Notify(Changed);
@@ -151,14 +185,19 @@ public sealed class QqMusicSession(string directory)
     {
         lock (_gate)
         {
-            if (_generation != generation) return;
+            if (_generation != generation ||
+                _verification.Value is { } attempt && (!ReferenceEquals(attempt, _latestVerification) || attempt.Generation != generation)) return;
             if (!accepted && code == 429)
             {
                 _rateLimitUntil = DateTimeOffset.UtcNow.AddSeconds(30);
                 return;
             }
             if (!HasTicket(_cookies) || _state == QqMusicSessionState.StorageError) return;
-            if (accepted) _state = QqMusicSessionState.Connected;
+            if (accepted)
+            {
+                _state = QqMusicSessionState.Connected;
+                if (_latestVerification is { } verifying && verifying.Generation == generation) verifying.Confirmed = true;
+            }
             else if (code is 1000 or 2001 or 101010 or 401) _state = QqMusicSessionState.Expired;
             // Other business/request refusals do not prove credential expiry and
             // must not block every subsequent song for the lifetime of the session.

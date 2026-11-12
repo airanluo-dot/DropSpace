@@ -130,6 +130,7 @@ public sealed class MusicPage : UserControl
             new PointerEventHandler(OnLyricsPointerWheelChanged),
             handledEventsToo: true);
         AutomationProperties.SetName(_lyricsScroll, strings.Get("MusicLyricsSection"));
+        _lyricsScroll.SizeChanged += OnLyricLayoutChanged;
         var lyricsPanel = new StackPanel { Spacing = 8 };
         lyricsPanel.Children.Add(new TextBlock
         {
@@ -419,6 +420,7 @@ public sealed class MusicPage : UserControl
         var structureChanged = _lyricRowCache.Update(lines, _media.Session.TrackIdentity, lyricsOptions);
         if (structureChanged)
         {
+            _lastCenteredLyric = -1;
             while (_lyricsRows.Children.Count > _lyricRowCache.Count)
                 _lyricsRows.Children.RemoveAt(_lyricsRows.Children.Count - 1);
             for (var index = 0; index < _lyricRowCache.Count; index++)
@@ -449,7 +451,7 @@ public sealed class MusicPage : UserControl
 
         try
         {
-            if (_lyricsRows.Children[current] is not FrameworkElement row) return;
+            if (_lyricsRows.Children[current] is not FrameworkElement row || row.ActualHeight <= 0 || _lyricsScroll.ViewportHeight <= 0) return;
             var point = row.TransformToVisual(_lyricsScroll).TransformPoint(new Point(0, 0));
             var target = Math.Max(0, _lyricsScroll.VerticalOffset + point.Y -
                 Math.Max(0, (_lyricsScroll.ViewportHeight - row.ActualHeight) / 2));
@@ -461,9 +463,16 @@ public sealed class MusicPage : UserControl
             Debug.WriteLine($"DropSpace lyrics scroll positioning failed: {exception.GetType().Name}");
         }
     }
+    private void OnLyricLayoutChanged(object sender, SizeChangedEventArgs args)
+    {
+        _lastCenteredLyric = -1;
+        RequestRefresh();
+    }
+
     private StackPanel CreateLyricRow(LyricsLine line)
     {
         var row = new StackPanel { Spacing = 2, Opacity = 0.58 };
+        row.SizeChanged += OnLyricLayoutChanged;
         row.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap });
         UpdateLyricRow(row, line);
         return row;

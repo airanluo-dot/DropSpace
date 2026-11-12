@@ -65,10 +65,19 @@ public sealed class SettingsApplicationCoordinator(
         }
     }
 
-    public Task EnsureStartupStateAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    public async Task EnsureStartupStateAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        return startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            if (startupRegistration.IsEnabled != settings.StartWithWindows)
+                await startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
+        }
+        catch (Exception error) when (error is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+        {
+            logger.LogWarning(error, "Windows startup registration could not be synchronized.");
+        }
     }
 
     public async Task<AppSettings> SetClipboardPausedAsync(

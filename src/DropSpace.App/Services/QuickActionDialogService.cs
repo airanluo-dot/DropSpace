@@ -45,6 +45,12 @@ public sealed class QuickActionDialogService(
             return new ItemActionContext(selection, CancellationToken: ownerToken);
         }
 
+        if (!ImageTransformActionService.IsAvailableImage(selection))
+        {
+            await ShowResultAsync(ItemActionResult.Failure("action-unavailable", "ActionUnavailable"), xamlRoot, cancellationToken);
+            return null;
+        }
+
         await _dialogGate.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
         {

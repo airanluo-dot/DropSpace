@@ -197,7 +197,7 @@ public sealed partial class WidgetEditorView : UserControl
         foreach (var (id, placement) in previews)
         {
             var button = CreateDragButton(id, WidgetName(id));
-            button.Click += async (_, _) => { if (_suppressClicks.Remove(id)) return; await PlaceAsync(id,0,0); };
+            button.Click += async (_, _) => { if (_suppressClicks.Remove(id)) return; await PlaceAsync(id, 0, 0, exactPosition: false); };
             button.HorizontalAlignment = HorizontalAlignment.Stretch; button.VerticalAlignment = VerticalAlignment.Stretch;
             Grid.SetColumn(button,placement.Column); Grid.SetRow(button,placement.Row);
             Grid.SetColumnSpan(button,placement.ColumnSpan); Grid.SetRowSpan(button,placement.RowSpan);
@@ -265,7 +265,7 @@ public sealed partial class WidgetEditorView : UserControl
             _suppressClicks.Remove(id);
             pressedAt = null; dragging = false; _dropPreview.Visibility = Visibility.Collapsed; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0;
         }), true);
-        button.AddHandler(PointerMovedEvent, new PointerEventHandler((_, args) =>
+        button.AddHandler(PointerMovedEvent, new PointerEventHandler((sender, args) =>
         {
             var point = args.GetCurrentPoint(_grid);
             if (pressedAt is not { } origin || !point.Properties.IsLeftButtonPressed) return;
@@ -283,8 +283,8 @@ public sealed partial class WidgetEditorView : UserControl
             var inside = column >= 0 && row >= 0 && column + size.ColumnSpan <= WidgetLayoutPolicy.Columns && row + size.RowSpan <= WidgetLayoutPolicy.Rows;
             var desired = size with { Column = column, Row = row };
             var valid = inside && (old is null
-                ? WidgetLayoutPolicy.TryAdd(_editor.Settings.Widgets.Layout, id, column, row, out var added) && added.Expanded.Any(p => p.Id == id && p.Column == column && p.Row == row)
-                : WidgetLayoutPolicy.TryMoveOrResize(_editor.Settings.Widgets.Layout, desired, out var previewLayout));
+                ? WidgetLayoutPolicy.TryAdd(_editor.Settings.Widgets.Layout, id, column, row, out _, exactPosition: true)
+                : WidgetLayoutPolicy.TryMoveOrResize(_editor.Settings.Widgets.Layout, desired, out _));
             _dropPreview.Visibility = valid ? Visibility.Visible : Visibility.Collapsed;
             if (valid) { Grid.SetColumn(_dropPreview, column); Grid.SetRow(_dropPreview, row); Grid.SetColumnSpan(_dropPreview, size.ColumnSpan); Grid.SetRowSpan(_dropPreview, size.RowSpan); }
         }), true);

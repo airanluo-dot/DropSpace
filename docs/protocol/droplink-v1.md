@@ -28,7 +28,7 @@ Folders are represented by their bounded relative file paths; reparse points are
 
 ### Explicit text/URL handoff
 
-`POST /v1/handoff/text` carries a separate `HandoffMessage`: session ID, sender device ID/name, `Text` or `Url` kind, UTF-8 byte length, lowercase SHA-256, normalized payload, optional display label, and UTC creation time. Text is limited to 1 MiB and URLs to 32 KiB. HTTP(S) URLs have fragments removed before hashing and display; the receiver previews the content and must explicitly Accept or Reject. Acceptance adds a Space item only; it does not enter Clipboard History, mutate the Windows clipboard, launch a URL, or overwrite an existing session.
+`POST /v1/handoff/text` carries a separate `HandoffMessage`: session ID, sender device ID/name, `Text` or `Url` kind, UTF-8 byte length, lowercase SHA-256, normalized payload, optional display label, and UTC creation time. Text is limited to 1 MiB and URLs to 32 KiB. Both Windows peers canonicalize an absolute HTTP(S) URL with .NET `Uri.AbsoluteUri`, retaining its query and fragment. The sender computes the byte length and SHA-256 over the UTF-8 bytes of that full URL. The receiver canonicalizes the payload again and verifies its exact text, byte length and digest; the receiver previews the content and must explicitly Accept or Reject. Acceptance adds a Space item only; it does not enter Clipboard History, mutate the Windows clipboard, launch a URL, or overwrite an existing session. For example, both peers use `https://example.test/path#fragment` as 34 UTF-8 bytes with SHA-256 `568d1b3d4db468758858f8b0c9724781e7fa98330cae94dd0b4a5b7f7aaa4e62`.
 
 ## Discovery and degraded mode
 

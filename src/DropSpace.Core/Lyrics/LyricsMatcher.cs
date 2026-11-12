@@ -9,7 +9,6 @@ public static class LyricsMatcher
     private const int MaximumMetadataCharacters = 2_048;
     // These Unicode regex tokens recognize publisher suffixes, not UI strings.
     private static readonly Regex PlayerSuffix = new(@"\s*[-|–]\s*(?:Apple Music|QQ\u97f3\u4e50|\u7f51\u6613\u4e91\u97f3\u4e50|\u9177\u72d7\u97f3\u4e50|Spotify|YouTube)\s*$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
-    private static readonly Regex VersionLabels = new(@"(?:\(|\[|（|【)([^\)\]）】]*)(?:\)|\]|）|】)|\b(live|remix|acoustic|instrumental|karaoke|radio|extended|edit|demo|version|mono|stereo|original|concert|cover|sped\s*up|slowed)\b", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex FeaturedArtistDecoration = new(
         @"(?:\s*(?:\(|\[|（|【)\s*(?:feat(?:uring)?|ft|with)(?:\.\s*|\s+)[^\)\]）】]+(?:\)|\]|）|】)\s*|\s*[-–—:]\s*(?:feat(?:uring)?|ft|with)(?:\.\s*|\s+).+|\s+(?:feat(?:uring)?|ft)(?:\.\s*|\s+).+)$",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
@@ -47,9 +46,18 @@ public static class LyricsMatcher
     private static readonly Regex FastSagaReleaseCredit = new(
         @"(?:\s*[,;&]\s*)?Fast\s*&\s*Furious:\s*The\s+Fast\s+Saga(?=\s*(?:[,;]|$))",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    private const string EnglishRecordingKinds = @"live|remix|acoustic|instrumental|karaoke|radio|extended|edit|demo|concert|cover|sped[\s-]*up|slowed";
+    private const string ChineseRecordingKinds = "现场|現場|混音|伴奏|翻唱|不插电|不插電";
+    private const string RecordingYear = @"(?:19|20)[0-9]{2}";
+    // Only canonicalize a complete edition suffix. A venue, remixer or other recording
+    // credit remains part of the title and must match across catalogues.
+    private static readonly Regex RecordingSuffix = new(
+        @"(?:[\(\[【–—-]\s*|\s+|(?<=[\u3400-\u9fff])(?=[a-z]|(?:" + ChineseRecordingKinds + @")版))" +
+        @"(?:(?<before>" + RecordingYear + @")[\s-]*)?(?<kind>" + EnglishRecordingKinds + "|" + ChineseRecordingKinds + @")" +
+        @"(?:\s*(?:版本?|ver(?:sion)?\.?))?(?:[\s-]*(?<after>" + RecordingYear + @"))?\s*[\)\]】]?\z",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     private static readonly Regex DisambiguatingVersionWords = new(
-        @"\b(?:live|remix|acoustic|instrumental|karaoke|radio|extended|edit|demo|concert|cover|sped\s*up|slowed)\b",
-        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+        @"\b(?:" + EnglishRecordingKinds + @")\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     public static string Normalize(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
@@ -348,7 +356,12 @@ public static class LyricsMatcher
 
     private static string ComparableTitle(string value)
     {
-        return ArtistCreditOrthography.Fold(SearchTitle(value));
+        var title = SearchTitle(value).Normalize(NormalizationForm.FormKC);
+        var suffix = RecordingSuffix.Match(title);
+        if (suffix.Success && suffix.Index > 0)
+            title = title[..suffix.Index] + CanonicalRecordingKind(suffix.Groups["kind"].Value) +
+                suffix.Groups["before"].Value + suffix.Groups["after"].Value;
+        return ArtistCreditOrthography.Fold(title);
     }
 
     private static double Similarity(string left, string right)
@@ -401,7 +414,7 @@ public static class LyricsMatcher
             return candidateLabels.Count > 0;
         }
 
-        return candidateLabels.Count == 0 || !requestedLabels.Overlaps(candidateLabels);
+        return !requestedLabels.SetEquals(candidateLabels);
     }
 
     private static string? LanguageVersion(string value)
@@ -422,17 +435,29 @@ public static class LyricsMatcher
     private static HashSet<string> Labels(string value)
     {
         var labels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (Match match in VersionLabels.Matches(FeaturedArtistDecoration.Replace(
-            FeaturedArtistCredit.Replace(Limit(value), string.Empty), string.Empty)))
+        var title = SearchTitle(value).Normalize(NormalizationForm.FormKC);
+        var suffix = RecordingSuffix.Match(title);
+        if (suffix.Success && suffix.Index > 0)
         {
-            var label = match.Groups[1].Success ? match.Groups[1].Value : match.Value;
-            // Compare whole version words before removing punctuation. Otherwise names
-            // such as Oliver in a featured credit contain "live" and reject the studio song.
-            foreach (Match word in DisambiguatingVersionWords.Matches(label))
-                labels.Add(Normalize(word.Value));
+            labels.Add(CanonicalRecordingKind(suffix.Groups["kind"].Value));
+            if (suffix.Groups["before"].Success) labels.Add(suffix.Groups["before"].Value);
+            if (suffix.Groups["after"].Success) labels.Add(suffix.Groups["after"].Value);
+            title = title[..suffix.Index];
         }
+        foreach (Match word in DisambiguatingVersionWords.Matches(title))
+            labels.Add(CanonicalRecordingKind(word.Value));
         return labels;
     }
+
+    private static string CanonicalRecordingKind(string value) => value switch
+    {
+        "现场" or "現場" => "live",
+        "混音" => "remix",
+        "伴奏" => "instrumental",
+        "翻唱" => "cover",
+        "不插电" or "不插電" => "acoustic",
+        _ => Normalize(value),
+    };
 
     private static string Limit(string value) => string.Concat(value.EnumerateRunes().Take(MaximumMetadataCharacters).Select(rune => rune.ToString()));
 }
