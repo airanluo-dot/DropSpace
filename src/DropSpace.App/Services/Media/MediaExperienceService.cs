@@ -112,8 +112,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         var current = Volatile.Read(ref _latest);
         var query = string.IsNullOrWhiteSpace(current.TrackTitle)
             ? new LyricsQuery("Happier", "Ed Sheeran", "", TimeSpan.FromSeconds(207))
-            : new LyricsQuery(current.TrackTitle, current.Artist, current.AlbumTitle, current.Timeline.Duration)
-                { AlbumArtist = current.AlbumArtist, TrackIdentity = current.LyricsCacheIdentity };
+            : LyricsQuery.FromSession(current);
         query = query with { PreferredTranslationLanguage = "zh-Hans" };
         using var trace = LyricsRequestTrace.Begin(new { diagnostic = "qq-login-check", query.Title, query.Artist,
             query.Album, duration = query.Duration.TotalSeconds });
@@ -402,7 +401,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.Lyrics = LyricsHighlightFrame.Empty;
                         }
                         if (trackChanged) _view.Artwork = null;
-                        _view.Settings = settings; _view.Session = session; _view.PositionEstimated = _clock.IsEstimated;
+                        _view.Settings = settings; _view.Session = session;
                         if (resetLyrics)
                             _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
                                 ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
@@ -516,8 +515,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
             if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
             var targetLanguage = LyricsTranslationTargetPolicy.ToLanguageTag(settings.LyricsTranslationTarget);
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
-                ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, settings.Lyrics with { SelectionMode = LyricsSelectionMode.Rules }, token, refresh,
+                ? await _lyrics.QueryDetailedAsync(LyricsQuery.FromSession(session) with { PreferredTranslationLanguage = targetLanguage },
+                    settings.Lyrics with { SelectionMode = LyricsSelectionMode.Rules }, token, refresh,
                     original =>
                     {
                         if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
@@ -602,8 +601,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             // A usable original can still enter the user's local translation policy.
             if (LyricsTranslationPolicy.CanOfferLocalFallback(result) && IsLyricsRequestCurrent(session, settings, generation, token))
             {
-                var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist);
+                var query = LyricsQuery.FromSession(session);
                 var partialApplied = false;
                 var progress = new LyricsTranslationProgressContext(
                     () => TimeSpan.FromTicks(Interlocked.Read(ref _lyricPositionTicks)),
@@ -737,6 +735,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private void RenderFrame()
     {
         _view.Position = _clock.Position;
+        _view.PositionEstimated = _clock.IsEstimated;
         _view.SeekEstimate = _clock.IsSeekEstimate;
         if (!_clock.IsAwaitingSeek) _seekObservation.Stop();
         // SMTC timelines may have a non-zero media start. Lyric timestamps are track-relative,

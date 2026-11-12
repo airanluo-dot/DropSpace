@@ -19,8 +19,7 @@ internal static class LyricsRapidSkipDiagnostic
                 await Task.Delay(250, token).ConfigureAwait(false);
             await Task.Delay(2000, token).ConfigureAwait(false);
             var current = media.Current;
-            var query = new LyricsQuery(current.TrackTitle, current.Artist, current.AlbumTitle, current.Timeline.Duration)
-            { AlbumArtist = current.AlbumArtist, TrackIdentity = current.LyricsCacheIdentity, PreferredTranslationLanguage = "zh-Hans" };
+            var query = LyricsQuery.FromSession(current) with { PreferredTranslationLanguage = "zh-Hans" };
             foreach (var provider in new[] { LyricsProviderKind.NetEase, LyricsProviderKind.QqMusic, LyricsProviderKind.Kugou,
                 LyricsProviderKind.Amll, LyricsProviderKind.Lrclib })
             {

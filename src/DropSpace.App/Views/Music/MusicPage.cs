@@ -138,6 +138,7 @@ public sealed class MusicPage : UserControl
             FontSize = 18,
             FontWeight = FontWeights.SemiBold,
         });
+        AutomationProperties.SetAutomationId(_lyricsStatus, "LyricsStatusText");
         lyricsPanel.Children.Add(_lyricsStatus);
         lyricsPanel.Children.Add(_lyricsScroll);
         _body.Children.Add(CreateCard(lyricsPanel, new Thickness(16)));

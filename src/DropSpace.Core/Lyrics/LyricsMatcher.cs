@@ -200,6 +200,19 @@ public static partial class LyricsMatcher
         });
     }
 
+    // Each row contains one source artist's canonical name followed by that
+    // artist's aliases. Never turn an individual alias into a whole band's credit.
+    public static string[] ProjectArtistCredits(LyricsQuery query, string[][] sourceArtists)
+    {
+        return query.ArtistCandidates.Take(4).Select(requested =>
+        {
+            var credits = sourceArtists.Select(names =>
+                FindCreditedArtistName(requested, names, sourceArtists.Length > 1) ?? names[0]).ToArray();
+            return credits.Select(Normalize).Distinct(StringComparer.Ordinal).Count() == credits.Length
+                ? string.Join("; ", credits) : string.Empty;
+        }).Where(credit => credit.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+    }
+
     // Collection admission is not authorization to publish an original. Unknown
     // cross-script artists reach the selector only with exact title/version and
     // independent duration evidence; the strict Score remains the rules fallback.

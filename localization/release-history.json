@@ -4,6 +4,8 @@
     "date": null,
     "en": [
       "Find lyrics for live recordings when the year is written differently, and for NetEase collaborations listed under alternate artist names.",
+      "Find Apple Music tracks by localized artist names and album credits. Playback progress follows Apple Music during buffering, pause and resume.",
+      "Keep zero-duration punctuation in NetEase lyrics and highlight the first word of enhanced LRC lines at its authored time.",
       "QQ Music keeps your saved login available when a check finds no songs or loses its connection.",
       "Lyrics search recognizes catalog aliases and display suffixes, distinguishes recording versions, and can correct a match when the player supplies the track length.",
       "Synchronized lyrics from enabled sources take priority over plain text for the same recording. Local lyric files can use a filename to fill in a missing tag.",
@@ -12,6 +14,8 @@
     ],
     "zh-CN": [
       "现场版年份的括号写法不同也能匹配歌词，网易云合作曲可按每位歌手的别名匹配。",
+      "能识别 Apple Music 的中文艺人名和专辑署名。切歌缓冲、暂停和恢复时，播放进度跟随播放器上报的位置。",
+      "保留网易云歌词中标点的零时长，并按增强 LRC 写明的时间高亮首词。",
       "验证 QQ 音乐登录时，即使歌曲没有搜索结果或网络中断，仍可用已保存的登录搜索下一首。",
       "歌词搜索能识别曲库别名和标题附注，区分不同录音版本；播放器补报时长后，也能纠正先前的匹配。",
       "同一录音优先显示已启用来源里的同步歌词。本地歌词缺少标签时可用文件名补全。",
@@ -20,6 +24,8 @@
     ],
     "zh-TW": [
       "現場版年份的括號寫法不同也能比對歌詞，網易雲合作曲可依每位歌手的別名比對。",
+      "可辨識 Apple Music 的中文藝人名稱與專輯資訊。切歌緩衝、暫停及恢復時，播放進度跟隨播放器回報的位置。",
+      "保留網易雲歌詞中標點的零時長，並依增強 LRC 指定的時間醒目提示首詞。",
       "驗證 QQ 音樂登入時，即使歌曲沒有搜尋結果或網路中斷，仍可使用已儲存的登入資料搜尋下一首。",
       "歌詞搜尋可辨識曲庫別名與標題附註，區分不同錄音版本；播放器補上歌曲長度後，也能修正先前的比對結果。",
       "同一錄音優先顯示已啟用來源中的同步歌詞。本機歌詞缺少標籤時可從檔名補齊。",

@@ -1,3 +1,4 @@
+using DropSpace.Core.Media;
 using DropSpace.Core.Models;
 
 namespace DropSpace.Core.Lyrics;
@@ -13,6 +14,27 @@ public sealed record LyricsQuery(
     public string? PreferredTranslationLanguage { get; init; }
     public bool BypassProviderResponseCache { get; init; }
     public bool CollectSelectionCandidates { get; init; }
+    public string? CombinedAppleCredit { get; private init; }
+
+    public static LyricsQuery FromSession(MediaSessionSnapshot session)
+    {
+        var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
+            session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist);
+        // Apple Music on Windows repeats its display subtitle in both credit fields.
+        // Only this layout establishes an album when the structured album is missing.
+        const string separator = " — ";
+        if (!MediaProcessIdentityPolicy.IsAppleMusic(session.SourceAppUserModelId) ||
+            !string.IsNullOrEmpty(session.AlbumTitle) || session.Artist != session.AlbumArtist)
+            return query;
+        var split = session.Artist.IndexOf(separator, StringComparison.Ordinal);
+        if (split <= 0 || split != session.Artist.LastIndexOf(separator, StringComparison.Ordinal)) return query;
+        var artist = session.Artist[..split].Trim();
+        var album = session.Artist[(split + separator.Length)..].Trim();
+        return artist.Length == 0 || album.Length == 0 ? query : query with
+        {
+            Artist = artist, AlbumArtist = artist, Album = album, CombinedAppleCredit = session.Artist,
+        };
+    }
 
     // AlbumArtist often describes a compilation or the lead performer, rather
     // than this recording's complete vocal credits. It supplies missing SMTC
@@ -153,7 +175,8 @@ public sealed class LyricsTimelineEngine
         var indexToHighlight = activeWord < 0 ? previousWord : activeWord;
         if (indexToHighlight < 0) return new(line, -1, 0, ++_revision);
         var highlighted = line.Words[indexToHighlight];
-        var progress = (time - highlighted.Start).TotalMilliseconds / Math.Max(1, (highlighted.End - highlighted.Start).TotalMilliseconds);
+        var duration = highlighted.End - highlighted.Start;
+        var progress = duration > TimeSpan.Zero ? (time - highlighted.Start).Ticks / (double)duration.Ticks : 1;
         return new(line, indexToHighlight, Math.Clamp(progress, 0, 1), ++_revision);
     }
 }

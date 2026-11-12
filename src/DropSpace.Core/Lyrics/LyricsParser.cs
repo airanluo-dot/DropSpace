@@ -12,13 +12,36 @@ public enum TtmlTimingMode { Automatic, Absolute, ParentRelative }
 public static class LyricsParser
 {
     public const int MaximumCharacters = 2 * 1024 * 1024;
-    public const int CurrentTimingRevision = 1;
+    public const int CurrentTimingRevision = 2;
     private const int MaximumLines = 10_000;
     private static readonly Regex LineStamp = new(@"\[((?:\d{1,3}:)?\d{1,3}:\d{1,2}(?:[.,]\d{1,3})?)\]", RegexOptions.None, TimeSpan.FromMilliseconds(200));
     private static readonly Regex MetadataStamp = new(@"^\[(?:ti|ar|al|by|offset|re|ve|length|id|la|lr|km|us|au):", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(200));
     private static readonly Regex WordStamp = new(@"<((?:\d{1,3}:)?\d{1,3}:\d{1,2}(?:[.,]\d{1,3})?)>", RegexOptions.None, TimeSpan.FromMilliseconds(200));
     private static readonly Regex YrcHeader = new(@"^\[(\d+),(\d+)\]", RegexOptions.None, TimeSpan.FromMilliseconds(200));
     private static readonly Regex YrcWord = new(@"\((\d+),(\d+),\d+\)", RegexOptions.None, TimeSpan.FromMilliseconds(200));
+
+    public static bool HasCurrentTiming(LyricsDocument document)
+    {
+        if (document.TimingRevision >= CurrentTimingRevision) return true;
+        if (document.TimingRevision != 1) return false;
+        if (!document.HasSynchronizedTiming || document.Provider == LyricsProviderKind.Amll) return true;
+        // NetEase's old YRC loses the distinction between a hold and a point.
+        // A complete ordered Kugou word track can keep its existing offline hit.
+        // Older cache entries did not distinguish native KRC from the LRC fallback.
+        if (document.Provider != LyricsProviderKind.Kugou) return false;
+        foreach (var line in document.Lines)
+        {
+            if (line.Words.Count == 0 || string.IsNullOrWhiteSpace(line.Words[^1].Text) ||
+                string.Concat(line.Words.Select(word => word.Text)).Trim() != line.Text.Trim()) return false;
+            var previousEnd = line.Start;
+            foreach (var word in line.Words)
+            {
+                if (word.Start < previousEnd || word.End <= word.Start) return false;
+                previousEnd = word.End;
+            }
+        }
+        return true;
+    }
 
     public static LyricsDocument Parse(string text, LyricsProviderKind provider, string? secondary = null, TtmlTimingMode ttmlTiming = TtmlTimingMode.Automatic)
     {
@@ -129,12 +152,26 @@ public static class LyricsParser
             var content = value[contentStart..];
             var wordTimes = WordStamp.Matches(content);
             var timedWords = new List<LyricsWord>();
-            for (var index = 0; index < wordTimes.Count && index < 2_048; index++)
+            var firstLineStart = Timestamp(times[0].Groups[1].Value);
+            var lineEnd = firstLineStart;
+            if (wordTimes.Count > 0 && wordTimes[0].Index > 0)
+            {
+                var leadingText = content[..wordTimes[0].Index];
+                var nextWordStart = Timestamp(wordTimes[0].Groups[1].Value);
+                if (!string.IsNullOrWhiteSpace(leadingText) && nextWordStart >= firstLineStart)
+                    timedWords.Add(new(leadingText, firstLineStart, nextWordStart));
+            }
+            for (var index = 0; index < wordTimes.Count && timedWords.Count < 2_048; index++)
             {
                 var stamp = wordTimes[index];
                 var start = Timestamp(stamp.Groups[1].Value);
-                var end = index + 1 < wordTimes.Count ? Timestamp(wordTimes[index + 1].Groups[1].Value) : TimeSpan.Zero;
-                timedWords.Add(new(content[(stamp.Index + stamp.Length)..(index + 1 < wordTimes.Count ? wordTimes[index + 1].Index : content.Length)], start, end));
+                var end = index + 1 < wordTimes.Count ? Timestamp(wordTimes[index + 1].Groups[1].Value) : TimeSpan.MaxValue;
+                var word = content[(stamp.Index + stamp.Length)..(index + 1 < wordTimes.Count ? wordTimes[index + 1].Index : content.Length)];
+                if (index + 1 == wordTimes.Count && string.IsNullOrWhiteSpace(word))
+                {
+                    if (start > firstLineStart) lineEnd = start;
+                }
+                else timedWords.Add(new(word, start, end));
             }
             var plain = WordStamp.Replace(content, string.Empty).Trim();
             if (plain.Length == 0)
@@ -145,15 +182,14 @@ public static class LyricsParser
             foreach (Match stamp in times.Cast<Match>().Take(64))
             {
                 var start = Timestamp(stamp.Groups[1].Value);
-                // LRC has no declared line end; infer it from the next timestamp.
-                // YRC and TTML do declare ends, which must survive instrumental gaps.
-                var shift = start - Timestamp(times[0].Groups[1].Value);
+                // Repeated LRC rows share the authored word intervals and optional end marker.
+                var shift = start - firstLineStart;
                 var wordsForOccurrence = shift == TimeSpan.Zero ? timedWords : timedWords.Select(word => word with
                 {
                     Start = word.Start + shift,
-                    End = word.End > word.Start ? word.End + shift : TimeSpan.Zero,
+                    End = word.End == TimeSpan.MaxValue ? word.End : word.End + shift,
                 }).ToList();
-                output.Add(new(start, start, plain, null, wordsForOccurrence));
+                output.Add(new(start, lineEnd + shift, plain, null, wordsForOccurrence));
             }
             if (output.Count >= MaximumLines) break;
         }
@@ -184,8 +220,11 @@ public static class LyricsParser
             var words = new List<LyricsWord>(line.Words.Count);
             foreach (var word in line.Words)
             {
-                var wordEnd = word.End > word.Start && word.End < end ? word.End : end;
-                if (wordEnd > advance && wordEnd > word.Start)
+                // A YRC word has an explicit duration. Punctuation often lands
+                // exactly on a sung word boundary and takes zero time.
+                var wordEnd = word.End > end ? end : word.End;
+                if (wordEnd > word.Start && wordEnd > advance ||
+                    wordEnd == word.Start && word.Start >= advance)
                     words.Add(word with { Start = Shift(word.Start), End = Shift(wordEnd) });
             }
             timedLines.Add(line with { Start = Shift(line.Start), End = Shift(end), Words = words });

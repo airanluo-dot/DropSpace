@@ -67,20 +67,20 @@ public sealed class LyricsService
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
         // Keep the target-specific source preference and the previous on-disk key shape
         // so Beta 7 documents can be re-admitted using the current recording rules.
-        string TargetSourceKey(string version, string matcher) => JsonSerializer.Serialize(new
+        string TargetSourceKey(string version, string matcher, LyricsQuery identity) => JsonSerializer.Serialize(new
         {
             version, matcher, primary = kind, backup, settings.SearchRemainingProviders, target,
-            query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
-            durationTicks = query.Duration.Ticks,
+            identity.TrackIdentity, identity.Title, identity.Artist, identity.AlbumArtist, identity.Album,
+            durationTicks = identity.Duration.Ticks,
         });
-        string OriginalSourceKey(string version, string matcher) => JsonSerializer.Serialize(new
+        string OriginalSourceKey(string version, string matcher, LyricsQuery identity) => JsonSerializer.Serialize(new
         {
             version, matcher, primary = kind, backup, settings.SearchRemainingProviders,
-            query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
-            durationTicks = query.Duration.Ticks,
+            identity.TrackIdentity, identity.Title, identity.Artist, identity.AlbumArtist, identity.Album,
+            durationTicks = identity.Duration.Ticks,
         });
         const string version = "source-v11-recording-timing";
-        var key = target.Length == 0 ? OriginalSourceKey(version, LyricsMatcher.Version) : TargetSourceKey(version, LyricsMatcher.Version);
+        var key = target.Length == 0 ? OriginalSourceKey(version, LyricsMatcher.Version, query) : TargetSourceKey(version, LyricsMatcher.Version, query);
         LyricsRequestTrace.Record("cache-lookup", new { key = LyricsRequestTrace.Key(key), version, target, refresh });
         var generation = _cache?.Generation ?? _memory.Generation;
         var cachedFallback = LyricsDocument.Empty;
@@ -88,11 +88,25 @@ public sealed class LyricsService
         {
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
             var legacy = false;
+            if (cached is null && _cache is not null && query.CombinedAppleCredit is { } combined)
+            {
+                // A winner saved before the album was known could belong to a different release.
+                // Keep an offline fallback only when the source independently returned this album.
+                var raw = query with { Artist = combined, AlbumArtist = combined, Album = string.Empty };
+                const string beta8Matcher = "recording-identity-v7-corroborated-catalogue";
+                var oldKey = target.Length == 0 ? OriginalSourceKey(version, beta8Matcher, raw) : TargetSourceKey(version, beta8Matcher, raw);
+                var old = await _cache.ReadDocumentAsync(oldKey, cancellationToken).ConfigureAwait(false);
+                if (old is not null && LyricsCandidateRules.HasAllRecordingEvidence(query, old.Match))
+                {
+                    cached = old;
+                    legacy = true;
+                }
+            }
             if (cached is null && _cache is not null)
             {
                 const string previousMatcher = "recording-identity-v6-bounded-name-aliases";
-                var previous = target.Length == 0 ? OriginalSourceKey("source-v5-quality2", previousMatcher) :
-                    TargetSourceKey("source-v10-quality2", previousMatcher);
+                var previous = target.Length == 0 ? OriginalSourceKey("source-v5-quality2", previousMatcher, query) :
+                    TargetSourceKey("source-v10-quality2", previousMatcher, query);
                 cached = await _cache.ReadDocumentAsync(previous, cancellationToken).ConfigureAwait(false);
                 legacy = cached is not null;
             }
@@ -144,7 +158,7 @@ public sealed class LyricsService
                     if (!refresh && !legacyPlain && (backup is null && !settings.SearchRemainingProviders ||
                         LyricsCandidateRules.HasAllRecordingEvidence(query, validated.Match)))
                         TryReportOriginal(reportOriginal, validated);
-                    if (!refresh && !legacy && !validated.SourceSearchIncomplete && validated.TimingRevision >= LyricsParser.CurrentTimingRevision &&
+                    if (!refresh && !legacy && !validated.SourceSearchIncomplete && LyricsParser.HasCurrentTiming(validated) &&
                         (validated.HasSynchronizedTiming || IsConfirmedInstrumental(validated) || backup is null && !settings.SearchRemainingProviders))
                         return new(validated, LyricsQueryStatus.Found)
                         { SelectionCandidates = new([LyricsCandidateRules.Describe("c0", validated, target)], 0) };
