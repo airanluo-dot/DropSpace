@@ -4,9 +4,9 @@
   "verdict": "owner-authorized-beta-host-experimental-models",
   "semanticApproved": false,
   "reviewedBy": "Codex, repository-owner-authorized Windows host release",
-  "reviewedAt": "2026-11-12T12:45:03Z",
-  "expiresAt": "2026-11-19T12:45:03Z",
-  "summary": "Publish the latest Windows Beta 8 lyric matching and playback changes. The model files, prompt, sampler and native runtime identity match Beta 7.",
+  "reviewedAt": "2026-11-12T12:57:42Z",
+  "expiresAt": "2026-11-19T12:57:42Z",
+  "summary": "Publish the Windows Beta 8 host based on 6e0e7f5d with the selected lyric matching and word timing parser changes. The playback clock matches that build. The model files, prompt, sampler and native runtime identity match Beta 7.",
   "scope": {
     "releaseVersion": "v1.1.0-beta.8",
     "shippingModels": [
@@ -410,7 +410,7 @@
         },
         {
           "path": "src/DropSpace.Core/Media/MediaPlaybackClock.cs",
-          "sha256": "daf5ef86adebcf7b28bf9276bb779ee5890ace557ca897a4b07eafc7dd5c052c"
+          "sha256": "3985f5c18873d604aa064b72753a78549a152d99d8161097550746884ba61d0a"
         },
         {
           "path": "src/DropSpace.Core/Media/SpectrumFreshnessPolicy.cs",
@@ -646,7 +646,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
-          "sha256": "2f3fa4f15f234e5320f29b1cdce7489fdd1fa695ef1bce92b216fdbdfaf7a39d"
+          "sha256": "735654588dd815b8900ec6b7c19884cb6d89dc6e5635cdd49674a91a6674b212"
         },
         {
           "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
@@ -734,7 +734,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
-          "sha256": "5e80ed404555f0007e635bb6c4621d654a352dfb7b3f9bd80efc3b52e9cb1b5b"
+          "sha256": "fea86c55071c60680746e584e19d18663c4e29bbb39aa05a2f0e57a3680766de"
         },
         {
           "path": "src/DropSpace.App/Views/Settings/SettingsEditBehavior.cs",
@@ -1297,7 +1297,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "66aa480c66bcaa7164e6c1d14e023d2316fdcb410efe81e1ffa758749a1e8244"
+      "sha256": "8c7ffd29412d76fc80fba4c32fcfeeb1acf6fcfd99dbeab8186a258cb9313ec9"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2965,14 +2965,14 @@
   ],
   "ownerDecision": {
     "path": "scripts/ai-model-qa/evidence/v1.1.0-beta.8-owner-request.md",
-    "sha256": "febc928093e66d441f6400feffbb9e59bf9617fe6b7f77227c9a0e8e883e72d5"
+    "sha256": "014879d3d6125fd0dde38187021f138d0918d194a109401374ba66efb12ef493"
   },
   "candidateValidation": {
     "records": [
       "docs/dev/1.1-beta8-lyrics-investigation.md"
     ],
     "newModelTests": 0,
-    "validationBoundary": "The source review compared release inputs with Beta 7. The post-reboot observation concerned an earlier local Beta 8 build. Historical model observations are retained."
+    "validationBoundary": "The source review verified that the playback clock matches the local build from the owner’s post-reboot observation. That observation applies to the local build. Historical model observations are retained."
   },
   "carriedForwardFrom": {
     "path": "scripts/ai-model-qa/evidence/v0.3.2-beta.7-owner-accepted-review.json",
@@ -3039,7 +3039,7 @@
       },
       {
         "path": "src/DropSpace.Core/Media/MediaPlaybackClock.cs",
-        "sha256": "daf5ef86adebcf7b28bf9276bb779ee5890ace557ca897a4b07eafc7dd5c052c",
+        "sha256": "3985f5c18873d604aa064b72753a78549a152d99d8161097550746884ba61d0a",
         "previousSha256": "5fa3b441dd6bd0db6f5fde7f8ded18d8445f6d9f8a1a713059fb2d154dcc4503"
       },
       {
@@ -3104,7 +3104,7 @@
       },
       {
         "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
-        "sha256": "2f3fa4f15f234e5320f29b1cdce7489fdd1fa695ef1bce92b216fdbdfaf7a39d",
+        "sha256": "735654588dd815b8900ec6b7c19884cb6d89dc6e5635cdd49674a91a6674b212",
         "previousSha256": "a97e9bbe821a9b9ad0677f2b173eb844bd288a0b40353ccc1e37c67cb0e9b77f"
       },
       {
@@ -3116,11 +3116,6 @@
         "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
         "sha256": "ac9f3c4bdc51ba8d91419aaa08c922e78103722e16bf0802c4e50661da091c3f",
         "previousSha256": "66f1e43d4a7f29e829888bd735b0bf8da4d92d53e9fa11417a23abd56e04fcca"
-      },
-      {
-        "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
-        "sha256": "5e80ed404555f0007e635bb6c4621d654a352dfb7b3f9bd80efc3b52e9cb1b5b",
-        "previousSha256": "fea86c55071c60680746e584e19d18663c4e29bbb39aa05a2f0e57a3680766de"
       },
       {
         "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
@@ -3214,6 +3209,6 @@
       }
     ],
     "removedSources": [],
-    "integrationBase": "4a5b7e2db2d79ce89e07b25e560f7b5ff18b9ad9"
+    "integrationBase": "c42192330cb7a5bf3c7c2906348066664182e652"
   }
 }
