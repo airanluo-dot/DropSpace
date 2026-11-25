@@ -65,11 +65,16 @@ internal static class ArtworkSpectrumColor
         // Bring only hard-to-see colors toward the foreground, in linear light.
         var target = dark ? Math.Max(.20, luminance) : Math.Min(.22, luminance);
         if (target == luminance) return color;
-        var foreground = dark ? 1d : 0d;
-        var mix = (target - luminance) / (foreground - luminance);
+        // Scale the original hue first. Add white only when a channel reaches its
+        // limit before the color is bright enough (notably deep blue on dark glass).
+        var peak = Math.Max(r, Math.Max(g, b));
+        var gain = luminance == 0 ? 1 : Math.Min(target / luminance, 1 / peak);
+        var raised = luminance * gain;
+        var white = dark && raised < target ? (target - raised) / (1 - raised) : 0;
         byte Channel(double value)
         {
-            value += (foreground - value) * mix;
+            value *= gain;
+            value += (1 - value) * white;
             var s = value <= .0031308 ? 12.92 * value : 1.055 * Math.Pow(value, 1 / 2.4) - .055;
             return (byte)Math.Round(255 * s);
         }
