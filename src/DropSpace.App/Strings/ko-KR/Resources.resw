@@ -566,11 +566,14 @@
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>로컬 가사 폴더</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>작은 섬에 가사 표시</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>음악 창에 다음 가사 별도 표시</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>이제 연주, 가사, 그리고 음악의 섬이 됩니다.</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>위젯</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>축소 상태 배율</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>위젯 라이브러리</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>장치/공유</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>설정에 ‘장치 및 공유’ 표시</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>설정에 ‘새 파일 수신’ 표시</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>강조 표시된 슬롯으로 드래그하세요. 동일한 크기의 위젯은 교체될 수 있습니다. 위젯을 선택하고 화살표를 사용하여 조금씩 움직이거나 위치와 크기를 편집한 다음 레이아웃을 적용하세요. 실행 취소는 마지막 변경 사항을 복원합니다.</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>확장됨 · 4행 × 8열</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>보조 가사 표시</value></data>

@@ -767,7 +767,7 @@ public sealed partial class MusicWindow : Window
         }
         _lyricFocusDirty = true;
         var hasTranslation = lines.Any(line => !string.IsNullOrWhiteSpace(LyricsDisplayPolicy.SecondaryPresentation(line, target, true, _media.Settings.Lyrics.ShowAiLyricsLabel)));
-        var noTranslation = _media.Settings.Lyrics.SecondaryLyrics && !hasTranslation;
+        var noTranslation = _media.Settings.Lyrics.SecondaryLyrics && !hasTranslation && _media.CanReportMissingTranslation(target);
         var timingStatus = _media.LyricsStatus == LyricsQueryStatus.Found ? _media.LyricsStatusText : string.Empty;
         _translationStatus.Text = string.Join(Environment.NewLine, new[] { timingStatus,
             noTranslation ? _strings.Get("MusicWindowNoTranslation") : string.Empty }.Where(text => text.Length > 0));
@@ -800,7 +800,7 @@ public sealed partial class MusicWindow : Window
         if (row >= 0 && row < _rows.Count)
             _rows[row].Highlight(_media.Lyrics, !presentation.IsWaiting,
                 _media.Settings.Lyrics.WordSyncedHighlighting, presentation.BeforeLine);
-        var next = _media.NextLyricText;
+        var next = _media.Settings.Lyrics.ShowMusicWindowNextLyric ? _media.NextLyricText : null;
         _nextLyric.Visibility = string.IsNullOrWhiteSpace(next) ? Visibility.Collapsed : Visibility.Visible;
         _nextLyric.Text = string.IsNullOrWhiteSpace(next) ? string.Empty : $"{_media.NextLyricLabel} · {next}";
     }

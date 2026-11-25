@@ -2222,6 +2222,7 @@ public sealed partial class MainPage : Page
             CaptureImagesToggle.IsOn = _viewModel.CaptureImages;
             CaptureFilesToggle.IsOn = _viewModel.CaptureFiles;
             CaptureFoldersToggle.IsOn = _viewModel.CaptureFolders;
+            SyncSettingsNavigation(_settingsEditor.Settings);
             DeviceHandoffToggle.IsOn = _viewModel.EnableDeviceHandoff;
             CrossDeviceClipboardToggle.IsOn = _viewModel.EnableCrossDeviceClipboard;
             NearbySharingToggle.IsOn = _viewModel.EnableNearbySharing;

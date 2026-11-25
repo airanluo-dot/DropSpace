@@ -566,11 +566,14 @@
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>ローカルの歌詞フォルダー</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>コンパクトアイランドに歌詞を表示</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>音楽ウィンドウで次の歌詞を個別に表示</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>今再生中、歌詞、そしてあなたの音楽島。</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>ウィジェット</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>コンパクト時の表示倍率</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>ウィジェットライブラリ</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>デバイス / 共有</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>設定に「デバイスと共有」を表示</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>設定に「新しいファイルの取り込み」を表示</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>ハイライト表示されたスロットにドラッグします。同じサイズのウィジェットは交換できます。ウィジェットを選択し、矢印を使用して微調整するか、位置とサイズを編集してレイアウトを適用します。元に戻すと、最後の変更が復元されます。</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>展開時・4行×8列</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>二次歌詞を表示する</value></data>

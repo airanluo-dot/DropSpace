@@ -13,6 +13,8 @@ public sealed record RecentFileSettings
     public int RetentionDays { get; init; } = 30;
     public int CountLimit { get; init; } = 500;
 
+    public bool HasEnabledDirectories() => Directories.Any(directory => !directory.IsPaused);
+
     public RecentFileSettings Validate() => this with
     {
         Directories = (Directories ?? []).Where(value => value is not null &&

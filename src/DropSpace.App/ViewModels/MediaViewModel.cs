@@ -193,6 +193,11 @@ public sealed class MediaViewModel : ObservableObject
         string.Equals(_lyricsDocumentTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal) ? _lyricsDocument.Lines : [];
     public int CurrentLyricIndex => _currentLyricIndex;
 
+    internal bool CanReportMissingTranslation(string target) =>
+        LyricsStatus == LyricsQueryStatus.Found && _lyricsDocumentTrackIdentity == Session.TrackIdentity &&
+        LyricsLanguagePolicy.IsAdmissionCurrent(_lyricsDocument, target) &&
+        _lyricsDocument.TranslationAdmission!.Decision is LyricsWholeTrackDecision.AllowAi or LyricsWholeTrackDecision.ProviderTarget;
+
     internal void SetLyricsDocument(LyricsDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -236,12 +241,11 @@ public sealed class MediaViewModel : ObservableObject
             if (hadSpectrumPresentation != HasSpectrumPresentationFor(trackIdentity)) OnPropertyChanged(nameof(HasSpectrumPresentation));
         }
     }
-    // Pausing capture may publish an empty frame. Keep the same session's
-    // existing visual bars, now silent, without claiming new audio activity.
+    // Once established for this track, keep the meter through pause and capture
+    // recovery. Empty/unavailable frames supply zero targets until real PCM returns.
     public bool HasSpectrumPresentation => HasSpectrumPresentationFor(Session.TrackIdentity);
     private bool HasSpectrumPresentationFor(string trackIdentity) => Session.IsActive &&
-        string.Equals(_spectrumPresentationTrackIdentity, trackIdentity, StringComparison.Ordinal) &&
-        (Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback || Session.PlaybackState == MediaPlaybackState.Paused);
+        string.Equals(_spectrumPresentationTrackIdentity, trackIdentity, StringComparison.Ordinal);
     public ImageSource? Artwork { get => _artwork; internal set => SetProperty(ref _artwork, value); }
     public AppSettings Settings
     {

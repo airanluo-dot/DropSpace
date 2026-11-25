@@ -568,11 +568,14 @@
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ 音乐</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>本地歌词文件夹</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>在紧凑灵动岛显示歌词</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>音乐视窗独立显示下一句歌词</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>正在播放、歌词与音乐灵动岛。</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>小组件</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>紧凑界面缩放</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>小组件库</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>设备与共享</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>显示「设备与分享」设置页</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>显示「新文件接力」设置页</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>拖动组件到亮框落点；同尺寸组件可交换。也可选中后用方向按钮微调，修改位置和尺寸后点“应用位置与尺寸”。不满意可撤销上一步。</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>展开 · 4 行 × 8 列</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>显示附加歌词</value></data>

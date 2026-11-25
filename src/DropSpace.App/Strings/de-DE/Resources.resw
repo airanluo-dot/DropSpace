@@ -566,11 +566,14 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>Lokaler Songtext-Ordner</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>Liedtext in kompakter Insel anzeigen</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>Nächste Liedzeile im Musikfenster separat anzeigen</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>Jetzt spielen, Texte und deine Musikinsel.</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>Widgets</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Skalierung im kompakten Modus</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>Widget-Bibliothek</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>Geräte / Teilen</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>„Geräte und Freigabe“ in den Einstellungen anzeigen</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>„Neue Dateien übernehmen“ in den Einstellungen anzeigen</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>Ziehen Sie es in einen hervorgehobenen Steckplatz. Widgets gleicher Größe können ausgetauscht werden. Wählen Sie ein Widget aus und verwenden Sie die Pfeile, um es zu verschieben, oder bearbeiten Sie Position und Größe und wenden Sie dann das Layout an. Mit „Rückgängig“ wird Ihre letzte Änderung wiederhergestellt.</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>Erweitert · 4 Zeilen × 8 Spalten</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>Sekundäre Liedtexte anzeigen</value></data>

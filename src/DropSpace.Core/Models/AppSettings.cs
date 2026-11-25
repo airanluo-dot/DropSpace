@@ -177,6 +177,13 @@ public sealed record AppSettings
 
     public DateTimeOffset? LastUpdateCheckUtc { get; init; }
 
+    public bool ShowFileRelaySettingsPage { get; init; }
+
+    public bool ShowDeviceSharingSettingsPage { get; init; }
+
+    public bool HasEnabledSharing() =>
+        EnableDeviceHandoff || EnableCrossDeviceClipboard || EnableNearbySharing || EnableInternetSharing;
+
     public bool EnableDeviceHandoff { get; init; }
 
     public bool EnableCrossDeviceClipboard { get; init; }
@@ -356,11 +363,14 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(LastUpdateCheckUtc), "Update timestamps must be stored in UTC.");
         }
 
+        var recentFiles = (RecentFiles ?? new RecentFileSettings()).Validate();
         return NativeIslandSettingsPolicy.Normalize(this with
         {
             QuickPanelHotkey = normalizedHotkey,
             MusicWindowHotkey = string.IsNullOrWhiteSpace(MusicWindowHotkey) ? string.Empty : SettingsValidationPolicy.CanonicalizeHotkey(MusicWindowHotkey)!,
-            RecentFiles = (RecentFiles ?? new RecentFileSettings()).Validate(),
+            RecentFiles = recentFiles,
+            ShowFileRelaySettingsPage = ShowFileRelaySettingsPage || recentFiles.HasEnabledDirectories(),
+            ShowDeviceSharingSettingsPage = ShowDeviceSharingSettingsPage || HasEnabledSharing(),
         });
     }
 

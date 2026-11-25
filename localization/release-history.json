@@ -1,5 +1,24 @@
 [
   {
+    "tag": "v1.2.1",
+    "date": "2026-11-25",
+    "en": [
+      "Show New File Relay and Devices & Sharing from General settings. Active features keep their page visible.",
+      "Choose a separate next-line preview in the music window. Same-language lyrics no longer show a missing translation notice.",
+      "Fixed the music spectrum disappearing during playback or after resuming."
+    ],
+    "zh-CN": [
+      "常规可显示接力和设备分享设置，启用中的页面保持可见。",
+      "音乐视窗可独立预告下一句，同语种歌词免去缺译提示。",
+      "修复播放或恢复播放时音乐频谱消失的问题。"
+    ],
+    "zh-TW": [
+      "一般設定可顯示接力與裝置共用設定，啟用中的頁面會保持可見。",
+      "音樂視窗可獨立預告下一句，同語言歌詞免去缺譯提示。",
+      "修正播放或繼續播放時音樂頻譜消失的問題。"
+    ]
+  },
+  {
     "tag": "v1.2.0",
     "date": "2026-11-25",
     "en": [

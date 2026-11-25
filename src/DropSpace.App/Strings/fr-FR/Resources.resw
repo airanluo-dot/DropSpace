@@ -566,11 +566,14 @@ Aucun contenu ne sera ouvert automatiquement.</value></data>
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>Dossier de paroles locales</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>Afficher les paroles dans une île compacte</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>Afficher la prochaine ligne de paroles séparément dans la fenêtre de musique</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>Lecture en cours, paroles et votre île musicale.</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>Widgets</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Échelle du mode compact</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>Bibliothèque de widgets</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>Appareils / Partage</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>Afficher « Appareils et partage » dans les paramètres</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>Afficher « Réception des nouveaux fichiers » dans les paramètres</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>Faites glisser vers un emplacement en surbrillance ; les widgets de même taille peuvent être échangés. Sélectionnez un widget et utilisez les flèches pour le déplacer, ou modifiez la position et la taille, puis appliquez la mise en page. Annuler restaure votre dernière modification.</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>Développé · 4 lignes × 8 colonnes</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>Afficher les paroles secondaires</value></data>

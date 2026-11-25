@@ -18,7 +18,7 @@ const identity = filename => {const {bytes,sha256}=fileIdentity(filename);return
 export function isNextBetaRelease(tag) {
   // Keep the established artifact/receipt route for owner-authorized stable hosts. Their
   // release channel is still derived from the tag by ReleaseVersion.ps1.
-  if (['v1.0.0', 'v1.1.0', 'v1.2.0'].includes(tag)) return true;
+  if (['v1.0.0', 'v1.1.0', 'v1.2.0', 'v1.2.1'].includes(tag)) return true;
   const match = /^v(\d+)\.(\d+)\.(\d+)-beta\.(\d+)$/.exec(tag);
   if (!match) return false;
   const numbers=match.slice(1).map(Number);

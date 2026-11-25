@@ -481,9 +481,16 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         }
                         try
                         {
-                            if (recoverAudio)
-                                await SetAudioSourceAsync(null, false, token).ConfigureAwait(false);
-                            await SetAudioSourceAsync(process, resolved && sourceKey.Length > 0, token).ConfigureAwait(false);
+                            // A temporary lookup failure must not tear down the still-open
+                            // stream for the same source. The existing recovery timer will retry.
+                            var keepCapture = audioKey == sourceKey && process is null &&
+                                _audio.Current.CaptureMode == AudioCaptureMode.ProcessLoopback;
+                            if (!keepCapture)
+                            {
+                                if (recoverAudio && audioKey == sourceKey && process is not null)
+                                    await SetAudioSourceAsync(null, false, token).ConfigureAwait(false);
+                                await SetAudioSourceAsync(process, resolved && sourceKey.Length > 0, token).ConfigureAwait(false);
+                            }
                         }
                         catch (Exception exception) when (exception is not OperationCanceledException)
                         { resolved = false; _logger.LogDebug("Player capture unavailable ({Category}).", exception.GetType().Name); }

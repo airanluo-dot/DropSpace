@@ -4226,16 +4226,28 @@
     "MusicArtworkSpectrumColor": [
       "5a47a98b4c9e8a35f77afb9d550fe465e1166496d5307fc4a7a9fa99b97d876f",
       "cc8984a55255ac48fe43b71e98edccbed66c6059248fefd31bdadc90c8c6499b"
+    ],
+    "ShowDeviceSharingSettingsPage": [
+      "46f4a95d67dc3ce74b209cb8b36a6da71ab31c612af8532ac4531f311c372e43",
+      "cc6e8e454ed11157944967ee13c06108d0cb74ff1d9c3c4d947fd529d413d0c2"
+    ],
+    "ShowFileRelaySettingsPage": [
+      "14918d2a44f01336dce5e5787c553e37f165f39b64a6dba5500b0ac812be6c17",
+      "c62f7139cbf2558f7e5ed566f5f07aa573c807472b8a59bf43e45d1718bbf657"
+    ],
+    "MusicWindowNextLyricSetting": [
+      "d8f3a69ba915a051d8fd654ffe82c117ba2f039276909c9f8d0afb3b6e6002bd",
+      "2b1fe880d29e3ef5035369eb0f12e355e94d3ac06d76988a7c1154e2b66abd87"
     ]
   },
-  "reviewedBy": "Codex: Island spectrum artwork color toggle",
-  "reviewedAt": "2026-11-25T12:34:11.699Z",
+  "reviewedBy": "Codex: music window separate next lyric",
+  "reviewedAt": "2026-11-25T14:04:37.419Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "MusicArtworkSpectrumColor"
+      "MusicWindowNextLyricSetting"
     ],
-    "reviewedBy": "Codex: Island spectrum artwork color toggle",
-    "reviewedAt": "2026-11-25T12:34:11.699Z"
+    "reviewedBy": "Codex: music window separate next lyric",
+    "reviewedAt": "2026-11-25T14:04:37.419Z"
   }
 }
