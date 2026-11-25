@@ -21,11 +21,11 @@
     ],
     "ui.drag.it.keep.it": [
       "ef5558933878485001cf491a1d6fa72d4f5f84d7a95f33c3ee7a30e1ccf688a6",
-      "47cd805e3b89f9a35ae48c75495d6a1384cbfa6920bf5f4a3748092b351bc095"
+      "25f7ed8dec51e71ebff0ed7bd5b73c9b93fd088fc31fd3440453d6a73337245f"
     ],
     "ui.use.it.later": [
       "bf6db7fce85e51a30571b8c3b9f3b3881511e685f44dd382b666e4eae7637b1e",
-      "67e6eb3ac8c76b6d76836e93faff46f88be216d4430a4a42dab28f81f2a9f99c"
+      "d94cafaaaef3bb179b0228585a7494fd9d13ed2796261c46d69d760bc2f02018"
     ],
     "ui.a.temporary.space.for.windows.right.at.the.top.of.your.screen": [
       "c150bb85010a7094ee92156346d97331969b628f9084e20b4eb4431d2b4bb598",
@@ -1092,20 +1092,15 @@
       "34212361699ee2e643a78cfa0f14f5ab30f0822ba852dc18d52a6452bdcfd3c9"
     ]
   },
-  "reviewedBy": "Codex: reviewed Mac early-test warning, downloads and requirements",
-  "reviewedAt": "2026-10-22T10:32:47.457Z",
+  "reviewedBy": "Codex: Chinese hero punctuation and spacing",
+  "reviewedAt": "2026-11-25T13:02:08.634Z",
   "initialReviewMethod": "website: individually translated/reviewed semantic UI IDs; regional/native terms inspected",
   "latestReviewScope": {
     "ids": [
-      "mac.nav",
-      "mac.baseline",
-      "mac.warning",
-      "mac.archive",
-      "mac.downloadTitle",
-      "mac.requirementsVersion",
-      "meta.mac.description"
+      "ui.drag.it.keep.it",
+      "ui.use.it.later"
     ],
-    "reviewedBy": "Codex: reviewed Mac early-test warning, downloads and requirements",
-    "reviewedAt": "2026-10-22T10:32:47.457Z"
+    "reviewedBy": "Codex: Chinese hero punctuation and spacing",
+    "reviewedAt": "2026-11-25T13:02:08.634Z"
   }
 }
