@@ -4226,16 +4226,25 @@
     "MusicArtworkSpectrumColor": [
       "5a47a98b4c9e8a35f77afb9d550fe465e1166496d5307fc4a7a9fa99b97d876f",
       "c1b86aff121df32fb6f8998bbbb12406dca21c7650c37e2bc5579bd8c0ebeacc"
+    ],
+    "ShowDeviceSharingSettingsPage": [
+      "46f4a95d67dc3ce74b209cb8b36a6da71ab31c612af8532ac4531f311c372e43",
+      "efb4093ad9085023505eb19508ab8301e9202dc0077977a6d448bbc31ea665f3"
+    ],
+    "ShowFileRelaySettingsPage": [
+      "14918d2a44f01336dce5e5787c553e37f165f39b64a6dba5500b0ac812be6c17",
+      "254e9d9dfbc01871e693457dcb454bfcae1cb64c9f73c536c2b1699bb78aed3d"
     ]
   },
-  "reviewedBy": "Codex: Island spectrum artwork color toggle",
-  "reviewedAt": "2026-11-25T12:34:09.162Z",
+  "reviewedBy": "Codex: optional Settings page switches",
+  "reviewedAt": "2026-11-25T13:58:45.409Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "MusicArtworkSpectrumColor"
+      "ShowDeviceSharingSettingsPage",
+      "ShowFileRelaySettingsPage"
     ],
-    "reviewedBy": "Codex: Island spectrum artwork color toggle",
-    "reviewedAt": "2026-11-25T12:34:09.162Z"
+    "reviewedBy": "Codex: optional Settings page switches",
+    "reviewedAt": "2026-11-25T13:58:45.409Z"
   }
 }

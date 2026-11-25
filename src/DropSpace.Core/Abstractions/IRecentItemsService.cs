@@ -6,6 +6,7 @@ namespace DropSpace.Core.Abstractions;
 public interface IRecentItemsService : IAsyncDisposable
 {
     event EventHandler? Changed;
+    event EventHandler? DirectorySettingsChanged;
     IReadOnlyList<RelayDirectoryStatus> Directories { get; }
     Task StartAsync(CancellationToken cancellationToken = default);
     Task AddDirectoryAsync(string path, CancellationToken cancellationToken = default);

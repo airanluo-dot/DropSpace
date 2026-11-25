@@ -62,6 +62,8 @@ public static class SettingsChangePolicy
         AutoDownloadUpdates = Pick(baseline.AutoDownloadUpdates, requested.AutoDownloadUpdates, latest.AutoDownloadUpdates),
         AutoInstallUpdates = Pick(baseline.AutoInstallUpdates, requested.AutoInstallUpdates, latest.AutoInstallUpdates),
         UpdateChannel = Pick(baseline.UpdateChannel, requested.UpdateChannel, latest.UpdateChannel),
+        ShowFileRelaySettingsPage = Pick(baseline.ShowFileRelaySettingsPage, requested.ShowFileRelaySettingsPage, latest.ShowFileRelaySettingsPage),
+        ShowDeviceSharingSettingsPage = Pick(baseline.ShowDeviceSharingSettingsPage, requested.ShowDeviceSharingSettingsPage, latest.ShowDeviceSharingSettingsPage),
         EnableDeviceHandoff = Pick(baseline.EnableDeviceHandoff, requested.EnableDeviceHandoff, latest.EnableDeviceHandoff),
         EnableCrossDeviceClipboard = Pick(baseline.EnableCrossDeviceClipboard, requested.EnableCrossDeviceClipboard, latest.EnableCrossDeviceClipboard),
         EnableNearbySharing = Pick(baseline.EnableNearbySharing, requested.EnableNearbySharing, latest.EnableNearbySharing),

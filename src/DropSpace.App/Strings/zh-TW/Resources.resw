@@ -571,6 +571,8 @@
   <data name="IslandCompactScale" xml:space="preserve"><value>收合比例</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>小工具庫</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>裝置／共用</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>顯示「裝置與共用」設定頁面</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>顯示「新檔案接力」設定頁面</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>拖曳到突出顯示的插槽；相同大小的小工具可以交換。選擇一個小工具並使用箭頭輕移它，或編輯位置和大小，然後套用佈局。復原可還原您上次的變更。</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>展開·4行×8列</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>顯示第二行歌詞</value></data>

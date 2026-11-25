@@ -573,6 +573,8 @@ Nothing will be opened automatically.</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Compact scale</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>Widget library</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>Devices / Sharing</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>Show Devices &amp; Sharing in Settings</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>Show New File Relay in Settings</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>Drag to a highlighted slot; same-size widgets can swap. Select a widget and use arrows to nudge it, or edit position and size then Apply layout. Undo restores your last change.</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>Expanded · 4 rows × 8 columns</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>Show secondary lyrics</value></data>

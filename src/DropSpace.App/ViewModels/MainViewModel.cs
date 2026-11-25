@@ -29,6 +29,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
     private readonly WorkspaceMutationUseCase _workspaceMutations;
     private readonly PinItemsUseCase _pinItems;
     private readonly SettingsApplicationCoordinator _settingsCoordinator;
+    private readonly IRecentItemsService _recentItems;
     private readonly IPayloadStore _payloadStore;
     private readonly IFileReferenceService _fileReferences;
     private readonly ILocalStorageMetrics _storageMetrics;
@@ -88,6 +89,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
         WorkspaceMutationUseCase workspaceMutations,
         PinItemsUseCase pinItems,
         SettingsApplicationCoordinator settingsCoordinator,
+        IRecentItemsService recentItems,
         IPayloadStore payloadStore,
         IFileReferenceService fileReferences,
         ILocalStorageMetrics storageMetrics,
@@ -112,6 +114,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
         _workspaceMutations = workspaceMutations;
         _pinItems = pinItems;
         _settingsCoordinator = settingsCoordinator;
+        _recentItems = recentItems;
         _payloadStore = payloadStore;
         _fileReferences = fileReferences;
         _storageMetrics = storageMetrics;
@@ -135,6 +138,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
         _clipboard.ItemCaptured += OnItemCaptured;
         _clipboard.ItemImported += OnItemCaptured;
         _clipboard.StatusChanged += OnClipboardStatusChanged;
+        _recentItems.DirectorySettingsChanged += OnRelayDirectorySettingsChanged;
         _updates.StatusChanged += OnUpdateStatusChanged;
         _undo.StateChanged += OnUndoStateChanged;
     }
@@ -1154,6 +1158,26 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
         finally { _settingsPublicationGate.Release(); }
     }
 
+    private void OnRelayDirectorySettingsChanged(object? sender, EventArgs args) =>
+        TrackBackgroundTask(RefreshRelayPreferencesAsync(_lifetimeCancellation.Token), "relay settings refresh");
+
+    private async Task RefreshRelayPreferencesAsync(CancellationToken token)
+    {
+        // Directory edits are persisted by the watcher service, including Agent edits.
+        // Read after acquiring the UI publication gate so a delayed event cannot undo a newer edit.
+        await _settingsPublicationGate.WaitAsync(token);
+        try
+        {
+            var latest = await _settingsCoordinator.LoadAsync(token);
+            await _dispatcher.EnqueueAsync(() =>
+            {
+                Settings = Settings with { RecentFiles = latest.RecentFiles, ShowFileRelaySettingsPage = latest.ShowFileRelaySettingsPage };
+                return Task.CompletedTask;
+            });
+        }
+        finally { _settingsPublicationGate.Release(); }
+    }
+
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -1270,6 +1294,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable, IAsyn
         _clipboard.ItemCaptured -= OnItemCaptured;
         _clipboard.ItemImported -= OnItemCaptured;
         _clipboard.StatusChanged -= OnClipboardStatusChanged;
+        _recentItems.DirectorySettingsChanged -= OnRelayDirectorySettingsChanged;
         _updates.StatusChanged -= OnUpdateStatusChanged;
         _undo.StateChanged -= OnUndoStateChanged;
         _queryCancellation?.Cancel();

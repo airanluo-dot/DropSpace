@@ -3,12 +3,15 @@
     "tag": "v1.2.1",
     "date": "2026-11-25",
     "en": [
+      "Show New File Relay and Devices & Sharing from General settings. Active features keep their page visible.",
       "Fixed the music spectrum disappearing during playback or after resuming."
     ],
     "zh-CN": [
+      "常规可显示接力和设备分享设置，启用中的页面保持可见。",
       "修复播放或恢复播放时音乐频谱消失的问题。"
     ],
     "zh-TW": [
+      "一般設定可顯示接力與裝置共用設定，啟用中的頁面會保持可見。",
       "修正播放或繼續播放時音樂頻譜消失的問題。"
     ]
   },

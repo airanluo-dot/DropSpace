@@ -571,6 +571,8 @@
   <data name="IslandCompactScale" xml:space="preserve"><value>Масштаб в компактном виде</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>Библиотека виджетов</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>Устройства / Совместное использование</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>Показывать страницу «Устройства и обмен» в настройках</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>Показывать страницу «Приём новых файлов» в настройках</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>Перетащите в выделенный слот; Виджеты одинакового размера могут меняться местами. Выберите виджет и перемещайте его с помощью стрелок или отредактируйте положение и размер, а затем примените макет. Отменить восстанавливает ваше последнее изменение.</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>Развернуто · 4 строки × 8 столбцов</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>Показать второстепенные тексты песен</value></data>

@@ -571,6 +571,8 @@ Nenhum conteúdo será aberto automaticamente.</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Escala do modo compacto</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>Biblioteca de widgets</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>Dispositivos/Compartilhamento</value></data>
+  <data name="ShowDeviceSharingSettingsPage" xml:space="preserve"><value>Mostrar “Dispositivos e compartilhamento” nas configurações</value></data>
+  <data name="ShowFileRelaySettingsPage" xml:space="preserve"><value>Mostrar “Recebimento de novos arquivos” nas configurações</value></data>
   <data name="WidgetsEditorHelp" xml:space="preserve"><value>Arraste para um slot destacado; widgets do mesmo tamanho podem ser trocados. Selecione um widget e use as setas para movê-lo ou edite a posição e o tamanho e depois Aplicar layout. Desfazer restaura sua última alteração.</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>Expandido · 4 linhas × 8 colunas</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>Mostrar letras secundárias</value></data>

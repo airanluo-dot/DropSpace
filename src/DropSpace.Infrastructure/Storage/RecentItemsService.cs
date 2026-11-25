@@ -42,6 +42,7 @@ public sealed class RecentItemsService(
     private bool _retentionNeeded;
 
     public event EventHandler? Changed;
+    public event EventHandler? DirectorySettingsChanged;
     public IReadOnlyList<RelayDirectoryStatus> Directories => Volatile.Read(ref _directorySnapshot);
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -118,6 +119,7 @@ public sealed class RecentItemsService(
         }
         finally { _gate.Release(); }
         RaiseChanged();
+        DirectorySettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void Subscribe(RelayDirectorySetting setting)

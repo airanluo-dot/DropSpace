@@ -20,6 +20,7 @@ public sealed partial class MainPage
     private FeatureModuleInventoryView? _moduleInventory;
     private string _selectedSettingsPage = "General";
     private NavigationView? _settingsNavigation;
+    private readonly List<NavigationViewItem> _settingsPageOrder = [];
 
     internal async Task<bool> ConfirmAgentOperationAsync(string operation, string details, CancellationToken token)
     {
@@ -43,8 +44,9 @@ public sealed partial class MainPage
             ?? throw new ArgumentException("Unknown settings page.", nameof(key));
         var ownerToken = _dialogLifetime.Token;
         var ownership = await SelectSectionAsync("Settings");
-        if (ownership is { } current && OwnsNavigation(current, ownerToken) && _viewModel.CurrentSection == "Settings")
-            _settingsNavigation!.SelectedItem = item;
+        if (ownership is { } current && OwnsNavigation(current, ownerToken) && _viewModel.CurrentSection == "Settings" &&
+            _settingsNavigation!.MenuItems.Contains(item))
+            _settingsNavigation.SelectedItem = item;
     }
 
     private void OpenDlcSettings() => _openDlcSettings?.Invoke();
@@ -69,6 +71,17 @@ public sealed partial class MainPage
                     var general = ReferenceEquals(row, QuickActionsSettingsPanel) || ContainsElement(row, StartWithWindowsToggle) ||
                         ContainsElement(row, LanguageCombo) || ContainsElement(row, ThemeCombo) || ContainsElement(row, CloseBehaviorCombo);
                     groups[general ? "General" : "Island"].Children.Add(row);
+                    if (ContainsElement(row, ThemeCombo))
+                    {
+                        var pageVisibility = new SettingsForm(editor, _strings);
+                        pageVisibility.AddToggle("ShowFileRelaySettingsPage", s => s.ShowFileRelaySettingsPage,
+                            (s, show) => s with { ShowFileRelaySettingsPage = show },
+                            isEnabled: s => !s.RecentFiles.HasEnabledDirectories());
+                        pageVisibility.AddToggle("ShowDeviceSharingSettingsPage", s => s.ShowDeviceSharingSettingsPage,
+                            (s, show) => s with { ShowDeviceSharingSettingsPage = show },
+                            isEnabled: s => !s.HasEnabledSharing());
+                        groups["General"].Children.Add(pageVisibility);
+                    }
                 }
             }
             else groups[uid == "DevicesSharingSection" ? "Devices" : uid == "UpdatesSection" ? "Updates" : "General"].Children.Add(section);
@@ -208,8 +221,9 @@ public sealed partial class MainPage
                 "Relay" => "RelayTitle", "Agents" => "AgentConnectionsTitle", "Widgets" => "SettingsPageWidgets", "DLC" => "SettingsPageDlc", "Downloads" => "SettingsPageDownloads", "SystemActivities" => "SettingsPageSystemActivities",
                 "Devices" => "SettingsPageDevices", "Updates" => "SettingsPageUpdates", _ => "SettingsPageAbout",
             };
-            navigation.MenuItems.Add(new NavigationViewItem { Content = _strings.Get(resourceKey), Tag = key });
+            _settingsPageOrder.Add(new NavigationViewItem { Content = _strings.Get(resourceKey), Tag = key });
         }
+        SyncSettingsNavigation(editor.Settings);
         navigation.SelectionChanged += (sender, args) =>
         {
             if (args.SelectedItem is not NavigationViewItem { Tag: string key }) return;
@@ -229,6 +243,31 @@ public sealed partial class MainPage
             navigation.SelectedItem = navigation.MenuItems.OfType<NavigationViewItem>().Single(item => Equals(item.Tag, "DLC"));
         };
         SettingsPages.Content = navigation;
+    }
+
+    private void SyncSettingsNavigation(AppSettings settings)
+    {
+        if (_settingsNavigation is not { } navigation) return;
+        var position = 0;
+        foreach (var item in _settingsPageOrder)
+        {
+            var visible = item.Tag switch
+            {
+                "Devices" => settings.ShowDeviceSharingSettingsPage,
+                "Relay" => settings.ShowFileRelaySettingsPage,
+                _ => true,
+            };
+            if (visible)
+            {
+                if (!navigation.MenuItems.Contains(item)) navigation.MenuItems.Insert(position, item);
+                position++;
+            }
+            else if (navigation.MenuItems.Contains(item))
+            {
+                if (Equals(navigation.SelectedItem, item)) navigation.SelectedItem = _settingsPageOrder[0];
+                navigation.MenuItems.Remove(item);
+            }
+        }
     }
 
     private async void OnAboutLogoLoaded(object sender, RoutedEventArgs args)
