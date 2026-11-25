@@ -11,8 +11,8 @@ public sealed class MediaProcessResolver
     public async Task<uint?> ResolveAudioAsync(string sourceAppUserModelId, CancellationToken cancellationToken)
     {
         var audioIdentity = DropSpace.Core.Media.MediaProcessIdentityPolicy.AudioIdentity(sourceAppUserModelId);
-        var renderer = await ResolveAsync(audioIdentity, cancellationToken).ConfigureAwait(false);
-        return renderer ?? (audioIdentity == sourceAppUserModelId ? null : await ResolveAsync(sourceAppUserModelId, cancellationToken).ConfigureAwait(false));
+        var renderer = await FindProcessAsync(audioIdentity, true, cancellationToken).ConfigureAwait(false);
+        return renderer ?? (audioIdentity == sourceAppUserModelId ? null : await FindProcessAsync(sourceAppUserModelId, true, cancellationToken).ConfigureAwait(false));
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -20,10 +20,15 @@ public sealed class MediaProcessResolver
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
     private static extern int GetApplicationUserModelId(SafeProcessHandle process, ref uint length, StringBuilder applicationId);
 
-    public Task<uint?> ResolveAsync(string sourceAppUserModelId, CancellationToken cancellationToken) => Task.Run(() =>
+    public Task<uint?> ResolveAsync(string sourceAppUserModelId, CancellationToken cancellationToken) =>
+        FindProcessAsync(sourceAppUserModelId, false, cancellationToken);
+
+    private static Task<uint?> FindProcessAsync(string sourceAppUserModelId, bool forAudio, CancellationToken cancellationToken) => Task.Run(() =>
     {
         if (string.IsNullOrWhiteSpace(sourceAppUserModelId)) return (uint?)null;
         var matches = new List<(uint Id, bool HasWindow)>();
+        using var self = Process.GetCurrentProcess();
+        var sessionId = self.SessionId;
         var processes = Process.GetProcesses();
         try
         {
@@ -48,14 +53,19 @@ public sealed class MediaProcessResolver
                         identityMatch = GetApplicationUserModelId(handle, ref length, identity) == 0 &&
                             string.Equals(identity.ToString(), sourceAppUserModelId, StringComparison.OrdinalIgnoreCase);
                     }
-                    if (exeMatch || identityMatch) matches.Add((processId, process.MainWindowHandle != 0));
+                    if ((exeMatch || identityMatch) && (!forAudio || process.SessionId == sessionId))
+                        matches.Add((processId, process.MainWindowHandle != 0));
                 }
                 catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException or NotSupportedException) { }
             }
+            if (matches.Count == 1) return matches[0].Id;
+            if (forAudio && matches.Count > 1 &&
+                AudioProcessTree.CommonPlayerRoot(matches.Select(m => m.Id).ToHashSet(), processes) is { } root)
+                return root;
+            // Independent instances still require an unambiguous window.
+            var visible = matches.Where(match => match.HasWindow).ToArray();
+            return visible.Length == 1 ? visible[0].Id : (uint?)null;
         }
         finally { foreach (var process in processes) process.Dispose(); }
-        var visible = matches.Where(match => match.HasWindow).ToArray();
-        // Ambiguous identities fail closed instead of capturing an arbitrary process.
-        return visible.Length == 1 ? visible[0].Id : matches.Count == 1 ? matches[0].Id : (uint?)null;
     }, cancellationToken);
 }

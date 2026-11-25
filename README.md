@@ -11,9 +11,9 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **1.2** adds a shared music spectrum, optional Island colors from album artwork, and synchronized interlude and next-line lyrics in the independent music window.
+DropSpace **1.2.1** fixes the music spectrum disappearing during playback and after resuming with multi-process players.
 
-The current release target is `v1.2.0`. The [1.2 release notes](.github/release-notes/v1.2.0.md) describe changes since [v1.1.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v1.1.0). Current downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+The current release target is `v1.2.1`. The [1.2.1 release notes](.github/release-notes/v1.2.1.md) describe the fix since [v1.2.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v1.2.0). Current downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
 Beta1 adds optional official feature modules around the existing host. The host owns navigation, settings and Island presentation; a module supplies an independent worker, declarations and its own data. Existing built-in behavior, independent CUDA component delivery and optional AI translation off by default remain.
 
@@ -23,7 +23,7 @@ The unchanged optional CUDA archive is reused from its [independent component re
 
 Beta16 bundled fastText `lid.176.bin` for one offline whole-track prediction. Originals already in the independently selected Chinese/English target language skip AI; any valid target-language provider translation disables AI for the entire track, including gaps. Only Unknown originals without valid target translations enter the existing optional Hy-MT2 progressive flow. Its historical validation remains in the [Beta16 audit](docs/dev/beta16-lyrics-audit.md); it does not establish Beta17 Windows acceptance.
 
-v1.1.0 is the immediate upgrade baseline for this release.
+v1.2.0 is the immediate upgrade baseline for this release.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GB by default, adjustable from 0 to 10 decimal GB in 1 GB steps. Zero disables

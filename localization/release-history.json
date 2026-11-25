@@ -1,5 +1,18 @@
 [
   {
+    "tag": "v1.2.1",
+    "date": "2026-11-25",
+    "en": [
+      "Fixed the music spectrum disappearing during playback or after resuming."
+    ],
+    "zh-CN": [
+      "修复播放或恢复播放时音乐频谱消失的问题。"
+    ],
+    "zh-TW": [
+      "修正播放或繼續播放時音樂頻譜消失的問題。"
+    ]
+  },
+  {
     "tag": "v1.2.0",
     "date": "2026-11-25",
     "en": [

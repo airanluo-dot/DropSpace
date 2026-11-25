@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "status": "owner-authorized-stable-host-experimental-models",
-  "reason": "Owner-authorized Windows 1.2.0 Stable host release with updated spectrum and music-window presentation. Model weights, inference and native runtime inputs are unchanged. Historical model limitations still apply.",
+  "reason": "Windows 1.2.1 Stable fixes player process-tree selection and spectrum visibility during capture recovery. Model weights, runtime, inference and accepted experimental limitations are carried forward from the previous Stable host.",
   "scope": {
-    "releaseVersion": "v1.2.0",
+    "releaseVersion": "v1.2.1",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -337,7 +337,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "db0e986fb918cdf2a3b892b4d7c45dd3e355cfef4ead656f9a9e2cbb232f9a77"
+          "sha256": "774e7c41ff8dac9b8cc9b9c86ae05177f9137741e988ab8ac8673381939c35f4"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -641,7 +641,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
-          "sha256": "0037daec818af04306a8c787a9a1d3a81f4cb39bc23b486cf8e74a7ac23cf91a"
+          "sha256": "545a73a8f8e009066daf5f14892405294d11a8e9da163281638526313156ac6b"
         },
         {
           "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
@@ -705,7 +705,7 @@
         },
         {
           "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
-          "sha256": "38203ed54ee803e4c95929d4f812d67b41c0f9ccc5b9f860c9c74bfaaf58b7e3"
+          "sha256": "afd339b5f67767497ab04c566e76db8b80acbfcfbb65c3589195aea574866e17"
         },
         {
           "path": "src/DropSpace.App/ViewModels/OverlayViewModel.cs",
@@ -897,7 +897,7 @@
         },
         {
           "path": "scripts/next-beta-release-validation.mjs",
-          "sha256": "f0db9e8fd0c71b8f15f637580ece14dda8c42bad74e8c81209d60c1e416da9b8"
+          "sha256": "1a90731bdaf32a1a1ed259a293d0828ab7c5e4768329b7d432d8baa9fcb23bdd"
         },
         {
           "path": "scripts/Test-PackagedLocalization.ps1",
@@ -961,7 +961,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaProcessResolver.cs",
-          "sha256": "0fadb045c28a95ad8d8d7c43bb8a25a953bb5d3a3d3a30e57b1cf3e8eca2c677"
+          "sha256": "bb5099fb6724d20e296318b6436f33e32b6266ec6997c8ccdb698e0135688675"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsPreviewPolicy.cs",
@@ -1292,7 +1292,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "1d3f6d2c7855dc98d694c3f0d5bf4851f6531b8a710791935ebcc13eb971fb26"
+      "sha256": "1ec56309c0fef72a52f50ba3bcc9a791c97047e58942ac3320a539db72d37632"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2735,7 +2735,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v1.2.0-host-review.json",
-    "sha256": "4a4b6ee99836bd09c3a67b9d2e8d09b358563c7f086d9006f93edb8a21ca53dd"
+    "path": "scripts/ai-model-qa/evidence/v1.2.1-host-review.json",
+    "sha256": "47aeae0fcb5e5cdef2d05eb7be3e2039ff88c58848e68e86e5a5a55f595de40f"
   }
 }

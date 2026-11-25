@@ -1,8 +1,8 @@
 # DropSpace Roadmap
 
-## Release target: v1.2.0
+## Release target: v1.2.1
 
-Publish the Windows music spectrum, Island cover colors and synchronized music window lyrics. The [1.2 release notes](.github/release-notes/v1.2.0.md) summarize the changes since Stable 1.1. v1.1.0 is the immediate upgrade baseline for this release.
+Ship the [Windows spectrum recovery fix](.github/release-notes/v1.2.1.md) for multi-process players across the four music surfaces. v1.2.0 is the immediate upgrade baseline for this release.
 
 ## Published release: v0.3.1-beta.18
 
@@ -155,7 +155,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.2.0 carries the Windows music presentation changes. The established Windows producer builds the merged source and inspects the packages and installer payload. The owner authorized unsigned distribution of this version. Optional AI model limitations remain as documented in the release notes.
+v1.2.1 includes the Windows music presentation changes and the spectrum recovery fix. The established Windows producer builds the merged source and inspects the packages and installer payload. The owner authorized unsigned distribution of this version. Optional AI model limitations remain as documented in the release notes.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
