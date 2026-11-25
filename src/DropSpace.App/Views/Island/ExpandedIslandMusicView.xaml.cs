@@ -8,7 +8,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Shapes;
 
 namespace DropSpace.App.Views.Island;
 
@@ -187,7 +186,10 @@ public sealed partial class ExpandedIslandMusicView : UserControl
             ArtworkHost.Visibility = showArtwork ? Visibility.Visible : Visibility.Collapsed;
             TimelineRow.Visibility = ControlsRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
             LyricsArea.Visibility = empty || !_view.Settings.Lyrics.Enabled ? Visibility.Collapsed : Visibility.Visible;
-            TranslatedLyric.Visibility = string.IsNullOrWhiteSpace(_view.SecondaryLyricText) ? Visibility.Collapsed : Visibility.Visible;
+            var interlude = _view.Settings.Lyrics.Enabled && _view.LyricPresentation.IsInterlude;
+            InterludeDots.Present(_view, interlude);
+            OriginalLyric.Visibility = interlude ? Visibility.Collapsed : Visibility.Visible;
+            TranslatedLyric.Visibility = interlude || string.IsNullOrWhiteSpace(_view.SecondaryLyricText) ? Visibility.Collapsed : Visibility.Visible;
             LyricsStatus.Visibility = string.IsNullOrWhiteSpace(_view.LyricsStatusText) ? Visibility.Collapsed : Visibility.Visible;
             NextLyricPreview.Visibility = string.IsNullOrWhiteSpace(_view.NextLyricText) ? Visibility.Collapsed : Visibility.Visible;
             AutomationProperties.SetName(NextLyric, $"{_view.NextLyricLabel}: {_view.NextLyricText}");
@@ -202,8 +204,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
                 ? Visibility.Visible : Visibility.Collapsed;
             AutomationProperties.SetName(PlayPause, _view.PlayPauseLabel);
             Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.HasSpectrumPresentation ? Visibility.Visible : Visibility.Collapsed;
-            for (var index = 0; index < Spectrum.Children.Count; index++)
-                ((Rectangle)Spectrum.Children[index]).Height = 2 + 22 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
+            if (Spectrum.Visibility == Visibility.Visible) Spectrum.Present(_view.SpectrumBarLevels);
         }
         finally { _updating = false; }
         UpdateAdaptiveLayout();

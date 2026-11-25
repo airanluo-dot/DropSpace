@@ -721,7 +721,11 @@ public sealed class MediaExperienceService : IAsyncDisposable
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception exception) { _logger.LogDebug("Artwork unavailable ({Category}).", exception.GetType().Name); }
     }
-    private void OnFrame(DispatcherQueueTimer sender, object args) => RenderFrame();
+    private void OnFrame(DispatcherQueueTimer sender, object args)
+    {
+        RenderFrame();
+        if (!_view.IsPlaying) UpdateFrameTimer();
+    }
     private void OnSeekAccepted(MediaSessionSnapshot session, TimeSpan target, DateTimeOffset sentAt, bool superseded)
     {
         _clock.AcceptSeek(session, target, sentAt, superseded);
@@ -754,7 +758,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private void UpdateFrameTimer()
     {
         if (!_initialized || _disposed) { _frames.Stop(); return; }
-        if (_view.IsPlaying && (_view.IsPresentationVisible || _view.IsIslandGlowActive || _view.IsMusicWindowAudioActive)) _frames.Start();
+        var settling = !_view.IsPlaying && _view.IsSpectrumPresentationVisible && _view.HasSpectrumPresentation &&
+            _view.Settings.IslandActivity.ShowSpectrum && _view.SpectrumBarsMoving;
+        if (settling || (_view.IsPlaying && (_view.IsPresentationVisible || _view.IsIslandGlowActive || _view.IsMusicWindowAudioActive))) _frames.Start();
         else _frames.Stop();
     }
     private void OnPresentationChanged(object? sender, PropertyChangedEventArgs args)

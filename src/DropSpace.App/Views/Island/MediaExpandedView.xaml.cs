@@ -7,7 +7,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Shapes;
 
 namespace DropSpace.App.Views.Island;
 
@@ -155,8 +154,7 @@ public sealed partial class MediaExpandedView : UserControl
             }
             AutomationProperties.SetName(PlayPause, _view.PlayPauseLabel);
             Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.HasSpectrumPresentation ? Visibility.Visible : Visibility.Collapsed;
-            for (var index = 0; index < Spectrum.Children.Count; index++)
-                ((Rectangle)Spectrum.Children[index]).Height = 2 + 22 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
+            if (Spectrum.Visibility == Visibility.Visible) Spectrum.Present(_view.SpectrumBarLevels);
         }
         finally { _updating = false; }
     }

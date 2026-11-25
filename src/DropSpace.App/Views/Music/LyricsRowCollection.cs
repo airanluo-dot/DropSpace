@@ -10,6 +10,7 @@ internal sealed class LyricsRowCollection<TRow>(int maximumRows, Func<LyricsLine
     private IReadOnlyList<LyricsLine>? _lines;
     private string _trackIdentity = string.Empty;
     private string _options = string.Empty;
+    private int _firstLine;
     public int Count => _rows.Count;
     public TRow this[int index] => _rows[index].Row;
 
@@ -17,18 +18,20 @@ internal sealed class LyricsRowCollection<TRow>(int maximumRows, Func<LyricsLine
     internal static bool SameOriginal(LyricsLine left, LyricsLine right) =>
         left.Start == right.Start && left.End == right.End && left.Text == right.Text;
 
-    public bool Update(IReadOnlyList<LyricsLine> lines, string trackIdentity, string options)
+    public bool Update(IReadOnlyList<LyricsLine> lines, string trackIdentity, string options, int firstLine = 0)
     {
         var trackChanged = !string.Equals(_trackIdentity, trackIdentity, StringComparison.Ordinal);
         var optionsChanged = !string.Equals(_options, options, StringComparison.Ordinal);
-        if (!trackChanged && !optionsChanged && ReferenceEquals(_lines, lines)) return false;
-        if (trackChanged) _rows.Clear();
-        var count = Math.Min(maximumRows, lines.Count);
-        var structureChanged = trackChanged || count != _rows.Count;
+        var pageChanged = _firstLine != firstLine;
+        _firstLine = firstLine;
+        if (!trackChanged && !pageChanged && !optionsChanged && ReferenceEquals(_lines, lines)) return false;
+        if (trackChanged || pageChanged) _rows.Clear();
+        var count = Math.Min(maximumRows, lines.Count - firstLine);
+        var structureChanged = trackChanged || pageChanged || count != _rows.Count;
         if (_rows.Count > count) _rows.RemoveRange(count, _rows.Count - count);
         for (var index = 0; index < count; index++)
         {
-            var line = lines[index];
+            var line = lines[firstLine + index];
             if (index >= _rows.Count)
             {
                 _rows.Add(new(line, create(line)));

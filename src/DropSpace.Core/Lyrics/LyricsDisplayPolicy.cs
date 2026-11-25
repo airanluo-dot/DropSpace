@@ -29,14 +29,16 @@ public static class LyricsDisplayPolicy
         left + width > 0 && top + height > 0 && left < viewportWidth && top < viewportHeight;
 
     public static LyricsPresentation Presentation(IReadOnlyList<LyricsLine> lines,
-        LyricsHighlightFrame frame, TimeSpan position, int delayMilliseconds)
+        LyricsHighlightFrame frame, TimeSpan position, int delayMilliseconds, int activeIndex = -1)
     {
         if (lines.Count == 0) return new(false, null, false, false);
-        if (frame.Line is { } active) return new(true, active, false, false);
+        if (frame.Line is { } active) return new(true, active, false, false, activeIndex);
         var time = position + TimeSpan.FromMilliseconds(Math.Clamp(delayMilliseconds, -30_000, 30_000));
         var cue = LyricsPlaybackTimeline.For(lines).At(time);
         if (cue.Anchor < 0) return new(false, null, false, false);
-        return new(true, lines[cue.Anchor], true, cue.Active < 0 && (time - cue.Start).TotalSeconds >= 3);
+        var anchor = lines[cue.Anchor];
+        return new(true, anchor, true, cue.Active < 0 && (time - cue.Start).TotalSeconds >= 3,
+            cue.Anchor, time < anchor.Start);
     }
 
     // The rendered original may contain untimed punctuation and whitespace between
@@ -96,4 +98,5 @@ public static class LyricsDisplayPolicy
     }
 }
 
-public sealed record LyricsPresentation(bool HasLyrics, LyricsLine? Line, bool IsWaiting, bool IsInterlude);
+public sealed record LyricsPresentation(bool HasLyrics, LyricsLine? Line, bool IsWaiting, bool IsInterlude,
+    int LineIndex = -1, bool BeforeLine = false);

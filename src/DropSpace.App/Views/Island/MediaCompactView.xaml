@@ -1,17 +1,12 @@
 <UserControl
     x:Class="DropSpace.App.Views.Island.MediaCompactView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:music="using:DropSpace.App.Views.Music"
+    xmlns:island="using:DropSpace.App.Views.Island"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     UseLayoutRounding="False">
   <UserControl.Resources>
     <x:Double x:Key="CompactMusicAccessorySize">24</x:Double>
-    <Style x:Key="CompactSpectrumBarStyle" TargetType="Rectangle">
-      <Setter Property="Width" Value="2.5" />
-      <Setter Property="RadiusX" Value="1.25" />
-      <Setter Property="RadiusY" Value="1.25" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="Fill" Value="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
-    </Style>
   </UserControl.Resources>
   <Grid x:Name="Layout" ColumnSpacing="12" VerticalAlignment="Center">
     <Grid.ColumnDefinitions>
@@ -34,11 +29,8 @@
         </TextBlock>
       </Grid>
       </Canvas>
-      <StackPanel x:Name="InterludeDots" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
-        <Ellipse x:Name="InterludeDot0" Width="4" Height="4" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
-        <Ellipse x:Name="InterludeDot1" Width="4" Height="4" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
-        <Ellipse x:Name="InterludeDot2" Width="4" Height="4" Fill="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
-      </StackPanel>
+      <music:LyricInterludeDots x:Name="InterludeDots" Width="22" Height="4" HorizontalAlignment="Center" VerticalAlignment="Center"
+        Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" />
     </Grid>
     <Grid x:Name="SecondaryViewport" SizeChanged="OnSecondaryViewportSizeChanged" Visibility="Collapsed">
       <Grid.Clip><RectangleGeometry x:Name="SecondaryViewportClip" /></Grid.Clip>
@@ -49,15 +41,7 @@
       </Canvas>
     </Grid>
     </StackPanel>
-    <StackPanel x:Name="SpectrumBars" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
-                Width="{StaticResource CompactMusicAccessorySize}" Height="{StaticResource CompactMusicAccessorySize}"
-                Spacing="1.8" AutomationProperties.AccessibilityView="Raw">
-      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
-      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
-      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
-      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
-      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
-      <Rectangle Style="{StaticResource CompactSpectrumBarStyle}" />
-    </StackPanel>
+    <island:CapsuleSpectrumView x:Name="SpectrumBars" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center"
+       Foreground="{ThemeResource DropSpaceOverlayForegroundPrimaryBrush}" AutomationProperties.AccessibilityView="Raw" />
   </Grid>
 </UserControl>

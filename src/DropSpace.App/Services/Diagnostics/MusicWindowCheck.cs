@@ -34,8 +34,8 @@ internal static partial class MusicWindowCheck
 
     internal static async Task<int> RunAsync(string output, Func<string, ServiceProvider> createServices, string? focus = null)
     {
-        if (focus is not (null or "baseline" or "interactive" or "portrait" or "beta2" or "beta2-ui"))
-            throw new ArgumentException("Music-check focus must be baseline, interactive, portrait, beta2 or beta2-ui.", nameof(focus));
+        if (focus is not (null or "baseline" or "interactive" or "portrait" or "beta2" or "beta2-ui" or "interlude"))
+            throw new ArgumentException("Music-check focus must be baseline, interactive, portrait, beta2, beta2-ui or interlude.", nameof(focus));
         var runBaseline = focus is null or "baseline";
         output = Path.GetFullPath(output);
         if (Directory.Exists(output) || File.Exists(output)) return 3;
@@ -154,6 +154,12 @@ internal static partial class MusicWindowCheck
                     media.IsPresentationVisible, media.IsSpectrumPresentationVisible, media.IsIslandGlowActive, media.IsMusicWindowAudioActive, captureMode = media.Spectrum.CaptureMode.ToString() },
             });
 
+            if (focus == "interlude")
+            {
+                media.Session = fixture with { Timeline = fixture.Timeline with { Start = TimeSpan.FromSeconds(5) } };
+                await VerifyInterludeAsync(media, music, Check);
+                return ledger.All(check => check.Status == "passed") ? 0 : 1;
+            }
             if (runBaseline)
             {
             await InventoryRealSessionsAsync(output, Unverified, Check);

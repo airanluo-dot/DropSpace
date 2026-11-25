@@ -18,6 +18,10 @@ public sealed class MediaViewModel : ObservableObject
     private string _lyricsDocumentTrackIdentity = string.Empty;
     private int _currentLyricIndex = -1;
     private LyricsQueryStatus _lyricsStatus = LyricsQueryStatus.Disabled;
+    private readonly CapsuleSpectrumMotion _capsules = new();
+    private long _spectrumTick;
+    internal IReadOnlyList<double> SpectrumBarLevels => _capsules.Positions;
+    internal bool SpectrumBarsMoving => _capsules.IsMoving;
     private SpectrumFrame _spectrum = SpectrumFrame.Empty;
     private string? _spectrumPresentationTrackIdentity;
     private ImageSource? _artwork;
@@ -123,6 +127,8 @@ public sealed class MediaViewModel : ObservableObject
             if (trackChanged)
             {
                 _spectrumPresentationTrackIdentity = null;
+                _capsules.Reset();
+                _spectrumTick = 0;
                 SetProperty(ref _currentLyricIndex, -1, nameof(CurrentLyricIndex));
                 OnPropertyChanged(nameof(LyricsLines));
             }
@@ -214,6 +220,12 @@ public sealed class MediaViewModel : ObservableObject
             if (IsPlaying && value.CaptureMode == AudioCaptureMode.ProcessLoopback)
                 _spectrumPresentationTrackIdentity = trackIdentity;
             SetProperty(ref _spectrum, value);
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            var elapsed = _spectrumTick == 0 ? 1d / 60 : System.Diagnostics.Stopwatch.GetElapsedTime(_spectrumTick, now).TotalSeconds;
+            _spectrumTick = now;
+            if (HasSpectrumPresentation && Settings.IslandActivity.ShowSpectrum &&
+                _capsules.Advance(value.Bands, IsPlaying, IsReducedMotion, elapsed))
+                OnPropertyChanged(nameof(SpectrumBarLevels));
             if (hadSpectrumPresentation != HasSpectrumPresentationFor(trackIdentity)) OnPropertyChanged(nameof(HasSpectrumPresentation));
         }
     }
@@ -268,7 +280,7 @@ public sealed class MediaViewModel : ObservableObject
             var frame = CurrentLyricIndex >= 0 && CurrentLyricIndex < LyricsLines.Count
                 ? Lyrics with { Line = LyricsLines[CurrentLyricIndex] } : LyricsHighlightFrame.Empty;
             return LyricsDisplayPolicy.Presentation(LyricsLines, frame,
-                Position - Session.Timeline.Start, Settings.Lyrics.DelayMilliseconds);
+                Position - Session.Timeline.Start, Settings.Lyrics.DelayMilliseconds, CurrentLyricIndex);
         }
     }
     public string CurrentLyricText => Settings.Lyrics.Enabled && LyricPresentation.HasLyrics
