@@ -486,17 +486,39 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
         {
             // The aggregate refresh budget may expire after metadata succeeded. Optional
             // artwork must not erase that successful publication. Shutdown still cancels.
-            return snapshot;
+            return Current;
         }
         if (metadataRevision != Interlocked.Read(ref _metadataRevision))
         {
             RequestRefresh();
             return Current;
         }
-        if (snapshot.IsSameTrack(previous) && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork))
-            artwork = previous.Artwork;
+        var sameBytes = artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork);
+        if (sameBytes) artwork = previous.Artwork;
+        // Some players publish a new title while their thumbnail still contains the
+        // old bytes. Do not let that first read pin the old cover to the new song.
+        if (previous.IsActive && !snapshot.IsSameTrack(previous) && (sameBytes || artwork is null) && _lifetime is { } lifetime)
+            _ = RecheckTransitionArtworkAsync(snapshot.TrackIdentity, previous.Artwork, lifetime.Token);
         _artworkRevision = metadataRevision;
         return snapshot with { Artwork = artwork };
+    }
+
+    private async Task RecheckTransitionArtworkAsync(string track, byte[]? previousCover, CancellationToken token)
+    {
+        // A genuine shared album cover should not cause polling for the rest of the song.
+        foreach (var delay in new[] { 750, 2500 })
+        {
+            try { await Task.Delay(delay, token).ConfigureAwait(false); }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
+            lock (_metadataPublicationGate)
+            {
+                var current = Current;
+                if (token.IsCancellationRequested || current.TrackIdentity != track ||
+                    (current.Artwork is not null && !ReferenceEquals(current.Artwork, previousCover))) return;
+                Interlocked.Increment(ref _metadataRevision);
+                RequestRefresh();
+            }
+        }
     }
 
     // Only metadata notifications invalidate an in-flight metadata read. Continuous
@@ -969,6 +991,11 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
         lock (_metadataPublicationGate)
         {
             if (revision != Interlocked.Read(ref _metadataRevision)) return false;
+            // A metadata-only notification is provisional. Keep this track's last
+            // confirmed cover until the read publishes its actual result.
+            var previous = Current;
+            if (snapshot.Artwork is null && previous.Artwork is not null && snapshot.IsSameTrack(previous))
+                snapshot = snapshot with { Artwork = previous.Artwork };
             Volatile.Write(ref _current, snapshot);
         }
         NotifyChanged(snapshot);

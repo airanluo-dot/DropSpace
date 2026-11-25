@@ -402,7 +402,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.SetLyricsDocument(LyricsDocument.Empty);
                             _view.Lyrics = LyricsHighlightFrame.Empty;
                         }
-                        if (coverChanged) _view.SetArtworkColor(null);
+                        if (trackChanged || session.Artwork is null) _view.SetArtworkColor(null);
                         if (trackChanged) _view.Artwork = null;
                         _view.Settings = settings; _view.Session = session; _view.PositionEstimated = _clock.IsEstimated;
                         if (resetLyrics)
@@ -717,7 +717,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
             var (image, color) = await _artwork.DecodeCoverAsync(session.Artwork, sampleColor, token).ConfigureAwait(false);
             await _dispatcher.EnqueueAsync(() =>
             {
-                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _artworkGeneration) && !_disposed)
+                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _artworkGeneration) && !_disposed &&
+                    session.IsSameTrack(_view.Session) && ReferenceEquals(session.Artwork, _view.Session.Artwork))
                 {
                     _view.Artwork = image;
                     _view.SetArtworkColor(color);

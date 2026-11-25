@@ -4,28 +4,51 @@ namespace DropSpace.App.Services.Media;
 
 internal static class ArtworkSpectrumColor
 {
-    // A 3-bit-per-channel histogram groups similar thumbnail pixels. Count opaque,
-    // colorful pixels more heavily so a small highlight cannot outweigh a broad color field.
+    // Group accent pixels by hue so variations in shade vote for the same color.
+    // An achromatic cover (or a few colored compression artifacts) uses its dominant gray.
     internal static Color? Select(ReadOnlySpan<byte> bgra)
     {
-        var bins = new (int Weight, int R, int G, int B)[512];
+        var hues = new Bucket[18];
+        var neutrals = new Bucket[8];
+        var coverage = 0;
+        var accentCoverage = 0;
         for (var i = 0; i < bgra.Length; i += 4)
         {
             var b = bgra[i];
             var g = bgra[i + 1];
             var r = bgra[i + 2];
             var alpha = bgra[i + 3];
-            var chroma = Math.Max(r, Math.Max(g, b)) - Math.Min(r, Math.Min(g, b));
-            var weight = alpha * (32 + chroma) / 255;
-            ref var bin = ref bins[((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5)];
-            bin.Weight += weight;
-            bin.R += r * weight;
-            bin.G += g * weight;
-            bin.B += b * weight;
+            var maximum = Math.Max(r, Math.Max(g, b));
+            var chroma = maximum - Math.Min(r, Math.Min(g, b));
+            coverage += alpha;
+            neutrals[(r + 2 * g + b) >> 7].Add(r, g, b, alpha);
+            if (chroma < 24 || chroma * 5 < maximum) continue;
+
+            var hue = maximum == r ? (g - b) / (double)chroma :
+                maximum == g ? 2 + (b - r) / (double)chroma : 4 + (r - g) / (double)chroma;
+            var band = ((int)Math.Floor(hue * 3 + .5) + hues.Length) % hues.Length;
+            hues[band].Add(r, g, b, (alpha * chroma + 254) / 255);
+            accentCoverage += alpha;
         }
-        var dominant = bins.MaxBy(bin => bin.Weight);
-        return dominant.Weight == 0 ? null : Color.FromArgb(255, (byte)(dominant.R / dominant.Weight),
-            (byte)(dominant.G / dominant.Weight), (byte)(dominant.B / dominant.Weight));
+        if (coverage == 0) return null;
+        var palette = accentCoverage * 100 >= coverage * 3 ? hues : neutrals;
+        var dominant = palette.MaxBy(bin => bin.Weight);
+        return dominant.Average;
+    }
+
+    private struct Bucket
+    {
+        public int Weight;
+        private int _red, _green, _blue;
+        public void Add(byte r, byte g, byte b, int weight)
+        {
+            Weight += weight;
+            _red += r * weight;
+            _green += g * weight;
+            _blue += b * weight;
+        }
+        public readonly Color Average => Color.FromArgb(255, (byte)(_red / Weight),
+            (byte)(_green / Weight), (byte)(_blue / Weight));
     }
 
     internal static Color ForTheme(Color color, bool dark)
