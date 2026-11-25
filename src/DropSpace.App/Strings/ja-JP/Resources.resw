@@ -494,6 +494,7 @@
   <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>リソース</value></data>
   <data name="WidgetsEnabled" xml:space="preserve"><value>ウィジェットを有効にする</value></data>
   <data name="MusicSpectrum" xml:space="preserve"><value>オーディオスペクトルを表示する</value></data>
+  <data name="MusicArtworkSpectrumColor" xml:space="preserve"><value>アイランドのスペクトルにジャケットの色を使う</value></data>
   <data name="ActivitiesNotifications" xml:space="preserve"><value>Windows 通知を表示する</value></data>
   <data name="IslandAutoHide" xml:space="preserve"><value>再生停止後の自動非表示</value></data>
   <data name="MusicProgress" xml:space="preserve"><value>進行状況を表示する</value></data>

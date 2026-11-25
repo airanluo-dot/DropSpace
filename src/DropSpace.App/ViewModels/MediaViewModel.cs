@@ -7,6 +7,7 @@ using DropSpace.Core.Policies;
 using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media;
+using Windows.UI;
 
 namespace DropSpace.App.ViewModels;
 
@@ -18,9 +19,19 @@ public sealed class MediaViewModel : ObservableObject
     private string _lyricsDocumentTrackIdentity = string.Empty;
     private int _currentLyricIndex = -1;
     private LyricsQueryStatus _lyricsStatus = LyricsQueryStatus.Disabled;
+    private readonly CapsuleSpectrumMotion _capsules = new();
+    private long _spectrumTick;
+    internal IReadOnlyList<double> SpectrumBarLevels => _capsules.Positions;
+    internal bool SpectrumBarsMoving => _capsules.IsMoving;
     private SpectrumFrame _spectrum = SpectrumFrame.Empty;
     private string? _spectrumPresentationTrackIdentity;
     private ImageSource? _artwork;
+    private Color? _artworkColor;
+    private bool _highContrast;
+    internal Color? IslandSpectrumColor =>
+        Settings.IslandActivity.UseArtworkSpectrumColor && !_highContrast ? _artworkColor : null;
+    internal void SetArtworkColor(Color? color) => SetProperty(ref _artworkColor, color, nameof(IslandSpectrumColor));
+    internal void SetHighContrast(bool value) => SetProperty(ref _highContrast, value, nameof(IslandSpectrumColor));
     private TimeSpan _position;
     private AppSettings _settings = new();
     private AppUiMessage _controlError = AppUiMessage.Empty;
@@ -123,6 +134,8 @@ public sealed class MediaViewModel : ObservableObject
             if (trackChanged)
             {
                 _spectrumPresentationTrackIdentity = null;
+                _capsules.Reset();
+                _spectrumTick = 0;
                 SetProperty(ref _currentLyricIndex, -1, nameof(CurrentLyricIndex));
                 OnPropertyChanged(nameof(LyricsLines));
             }
@@ -214,6 +227,12 @@ public sealed class MediaViewModel : ObservableObject
             if (IsPlaying && value.CaptureMode == AudioCaptureMode.ProcessLoopback)
                 _spectrumPresentationTrackIdentity = trackIdentity;
             SetProperty(ref _spectrum, value);
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            var elapsed = _spectrumTick == 0 ? 1d / 60 : System.Diagnostics.Stopwatch.GetElapsedTime(_spectrumTick, now).TotalSeconds;
+            _spectrumTick = now;
+            if (HasSpectrumPresentation && Settings.IslandActivity.ShowSpectrum &&
+                _capsules.Advance(value.Bands, IsPlaying, IsReducedMotion, elapsed))
+                OnPropertyChanged(nameof(SpectrumBarLevels));
             if (hadSpectrumPresentation != HasSpectrumPresentationFor(trackIdentity)) OnPropertyChanged(nameof(HasSpectrumPresentation));
         }
     }
@@ -268,7 +287,7 @@ public sealed class MediaViewModel : ObservableObject
             var frame = CurrentLyricIndex >= 0 && CurrentLyricIndex < LyricsLines.Count
                 ? Lyrics with { Line = LyricsLines[CurrentLyricIndex] } : LyricsHighlightFrame.Empty;
             return LyricsDisplayPolicy.Presentation(LyricsLines, frame,
-                Position - Session.Timeline.Start, Settings.Lyrics.DelayMilliseconds);
+                Position - Session.Timeline.Start, Settings.Lyrics.DelayMilliseconds, CurrentLyricIndex);
         }
     }
     public string CurrentLyricText => Settings.Lyrics.Enabled && LyricPresentation.HasLyrics

@@ -36,7 +36,7 @@ internal sealed class MusicLyricRow : Grid
     private LyricsLine? _line;
     private (int Start, int End)[] _words = [];
     private readonly List<(int Start, int End, Rect Bounds, bool RightToLeft)> _glyphs = [];
-    private bool _layoutDirty = true, _timed, _effectFailed;
+    private bool _layoutDirty = true, _timed, _beforeLine, _effectFailed;
     private int _completedLength = -1;
     private CompositionVisualSurface? _surface;
     private CompositionSurfaceBrush? _surfaceBrush;
@@ -55,6 +55,7 @@ internal sealed class MusicLyricRow : Grid
     internal MusicLyricRow()
     {
         _original.Inlines.Add(_run);
+        _partial.Visibility = Visibility.Collapsed;
         _partial.Clip = _partialClip;
         _partial.IsHitTestVisible = false;
         AutomationProperties.SetAccessibilityView(_partial, AccessibilityView.Raw);
@@ -90,13 +91,13 @@ internal sealed class MusicLyricRow : Grid
         _words = LyricsDisplayPolicy.WordTextRanges(line);
     }
 
-    internal void Highlight(LyricsHighlightFrame frame, bool active, bool wordHighlighting)
+    internal void Highlight(LyricsHighlightFrame frame, bool active, bool wordHighlighting, bool beforeLine = false)
     {
         var timed = active && wordHighlighting && _line is { Words.Count: > 0 } && _words.Length == _line.Words.Count;
-        if (_timed != timed)
+        if (_timed != timed || _beforeLine != beforeLine)
         {
-            _timed = timed; _completedLength = -1;
-            _original.Foreground = timed ? Waiting : White;
+            _timed = timed; _beforeLine = beforeLine; _completedLength = -1;
+            _original.Foreground = timed || beforeLine ? Waiting : White;
             _partial.Visibility = timed ? Visibility.Visible : Visibility.Collapsed;
             if (!timed) foreach (var layer in _completedLayers) layer.Text.Visibility = Visibility.Collapsed;
         }

@@ -11,6 +11,7 @@ public sealed record IslandActivitySettings
     public bool ShowArtwork { get; init; } = true;
     public bool ShowProgress { get; init; } = true;
     public bool ShowSpectrum { get; init; } = true;
+    public bool UseArtworkSpectrumColor { get; init; }
     public bool ShowLyricsInCompact { get; init; } = true;
     public bool CompactDynamicWidth { get; init; } = true;
     public string[] AllowedMediaSourceAppIds { get; init; } = [];

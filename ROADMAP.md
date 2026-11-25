@@ -1,15 +1,8 @@
 # DropSpace Roadmap
 
-## Release target: v1.1.0
+## Release target: v1.2.0
 
-Promote the functionality of `v1.1.0-beta.8` to Stable with App, installer, MSIX,
-updater and website metadata for `v1.1.0`. Keep the Beta 8 release and downloads.
-v1.1.0-beta.8 is the immediate upgrade baseline for this release.
-
-The [1.1 release notes](.github/release-notes/v1.1.0.md) summarize changes since
-the previous Stable, `v1.0.0`: Island search, file collection and processing results,
-the reference window, local Agent access, the music window, Liquid Glass and lyrics.
-The owner requested no new tests; compilation and static publication integrity checks remain.
+Publish the Windows music spectrum, Island cover colors and synchronized music window lyrics. The [1.2 release notes](.github/release-notes/v1.2.0.md) summarize the changes since Stable 1.1. v1.1.0 is the immediate upgrade baseline for this release.
 
 ## Published release: v0.3.1-beta.18
 
@@ -162,16 +155,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-v1.1.0 is the current Stable release, carrying the functionality of v1.1.0-beta.8.
-The Beta 8 release and downloads remain available.
-Published versions remain listed on the official Releases page.
-For this owner-authorized promotion, hosted Windows checks cover compilation,
-static package/version/resource integrity and security; no functional or installation tests run.
-Real OS/DPI/OLE/accessibility,
-two-device transfer, Apple Music/provider, and deployed Worker/browser evidence
-remain follow-up and are unverified where absent. The owner-authorized v1.0.0 and v1.1.0
-releases retain documented unsigned distribution when no signing service is
-configured; other Stable versions retain their signing gate.
+v1.2.0 carries the Windows music presentation changes. The established Windows producer builds the merged source and inspects the packages and installer payload. The owner authorized unsigned distribution of this version. Optional AI model limitations remain as documented in the release notes.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 

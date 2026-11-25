@@ -496,6 +496,7 @@
   <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>资源使用</value></data>
   <data name="WidgetsEnabled" xml:space="preserve"><value>启用小组件</value></data>
   <data name="MusicSpectrum" xml:space="preserve"><value>显示音频频谱</value></data>
+  <data name="MusicArtworkSpectrumColor" xml:space="preserve"><value>灵动岛频谱跟随封面取色</value></data>
   <data name="ActivitiesNotifications" xml:space="preserve"><value>显示 Windows 通知</value></data>
   <data name="IslandAutoHide" xml:space="preserve"><value>播放停止后自动隐藏</value></data>
   <data name="MusicProgress" xml:space="preserve"><value>显示进度</value></data>

@@ -186,6 +186,7 @@ internal static class MusicVisualSmoke
         {
             IslandActivity = media.Settings.IslandActivity with { ShowArtwork = true, ShowSpectrum = true },
         };
+        media.IsReducedMotion = true; // Observe settled capsule geometry at exact target levels.
         media.Spectrum = new SpectrumFrame(AudioCaptureMode.ProcessLoopback, [0, .2, .4, .6, .8, 1], 1);
         var compact = new MediaCompactView { ViewModel = media, Width = 280, Height = 64 };
         var scaleHost = new Viewbox { Child = compact, Stretch = Stretch.Uniform, UseLayoutRounding = false };
@@ -196,8 +197,8 @@ internal static class MusicVisualSmoke
         await WaitForLayoutAsync(root);
 
         var artwork = (Border)compact.FindName("ArtworkHost");
-        var meter = (StackPanel)compact.FindName("SpectrumBars");
-        var bars = meter.Children.Cast<Microsoft.UI.Xaml.Shapes.Rectangle>().ToArray();
+        var meter = (CapsuleSpectrumView)compact.FindName("SpectrumBars");
+        var bars = meter.Bars.ToArray();
         foreach (var scale in new[] { 0.5, 1.0, 1.25, 2.0 })
         {
             scaleHost.Width = compact.Width * scale;
@@ -210,7 +211,7 @@ internal static class MusicVisualSmoke
             var peak = Bounds(bars[^1]);
             if (meter.Visibility != Visibility.Visible || bars.Length != SpectrumAnalyzer.BandCount ||
                 Math.Abs(cover.Width - artwork.Width * scale) > 0.1 ||
-                Math.Abs(peak.Right - quiet.Left - cover.Width) > 0.1 || Math.Abs(peak.Height - cover.Height) > 0.1 ||
+                Math.Abs(peak.Width - quiet.Width * 1.145) > 0.1 || Math.Abs(peak.Height - .9 * cover.Height) > 0.1 ||
                 Math.Abs(quiet.Height - quiet.Width) > 0.1)
                 failures.Add($"At scale {scale}, artwork {cover}, first bar {quiet}, peak bar {peak}.");
         }
