@@ -162,6 +162,8 @@ public sealed class MusicPage : UserControl
             (s,v) => s with { LyricsTranslationTarget = v, LyricsTranslationTargetExplicit = true });
         AutomationProperties.SetAutomationId(languageTarget, "LyricsTranslationTarget");
         form.AddToggle("LyricsCompact", s => s.IslandActivity.ShowLyricsInCompact, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowLyricsInCompact = v } });
+        form.AddToggle("MusicWindowNextLyricSetting", s => s.Lyrics.ShowMusicWindowNextLyric,
+            (s, enabled) => s with { Lyrics = s.Lyrics with { ShowMusicWindowNextLyric = enabled } });
         form.AddChoice("LyricsMode", new[] { (LyricsMode.Online, strings.Get("LyricsOnline")), (LyricsMode.LocalLrc, strings.Get("LyricsLocal")) }, s => s.Lyrics.Mode, (s,v) => s with { Lyrics = s.Lyrics with { Mode = v } });
         var onlineProviders = Enum.GetValues<LyricsProviderKind>().Where(value => value != LyricsProviderKind.LocalLrc).ToArray();
         form.AddChoice("LyricsProvider", onlineProviders.Select(value => (value, strings.Get("LyricsProvider" + value))),

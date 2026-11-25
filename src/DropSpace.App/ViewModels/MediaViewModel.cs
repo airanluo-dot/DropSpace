@@ -193,6 +193,11 @@ public sealed class MediaViewModel : ObservableObject
         string.Equals(_lyricsDocumentTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal) ? _lyricsDocument.Lines : [];
     public int CurrentLyricIndex => _currentLyricIndex;
 
+    internal bool CanReportMissingTranslation(string target) =>
+        LyricsStatus == LyricsQueryStatus.Found && _lyricsDocumentTrackIdentity == Session.TrackIdentity &&
+        LyricsLanguagePolicy.IsAdmissionCurrent(_lyricsDocument, target) &&
+        _lyricsDocument.TranslationAdmission!.Decision is LyricsWholeTrackDecision.AllowAi or LyricsWholeTrackDecision.ProviderTarget;
+
     internal void SetLyricsDocument(LyricsDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);

@@ -566,6 +566,7 @@ Aucun contenu ne sera ouvert automatiquement.</value></data>
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>Dossier de paroles locales</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>Afficher les paroles dans une île compacte</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>Afficher la prochaine ligne de paroles séparément dans la fenêtre de musique</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>Lecture en cours, paroles et votre île musicale.</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>Widgets</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Échelle du mode compact</value></data>

@@ -566,6 +566,7 @@
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>ローカルの歌詞フォルダー</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>コンパクトアイランドに歌詞を表示</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>音楽ウィンドウで次の歌詞を個別に表示</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>今再生中、歌詞、そしてあなたの音楽島。</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>ウィジェット</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>コンパクト時の表示倍率</value></data>

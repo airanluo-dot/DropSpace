@@ -4234,17 +4234,20 @@
     "ShowFileRelaySettingsPage": [
       "14918d2a44f01336dce5e5787c553e37f165f39b64a6dba5500b0ac812be6c17",
       "1f34cc543a86aa1aaf0ccdbb1ca05ccdaaa0a7b4c29016fc23eeb13270957989"
+    ],
+    "MusicWindowNextLyricSetting": [
+      "d8f3a69ba915a051d8fd654ffe82c117ba2f039276909c9f8d0afb3b6e6002bd",
+      "4450526795598807e138d554cc711b2b4f05517c1d27bed5a30b20a39d697061"
     ]
   },
-  "reviewedBy": "Codex: optional Settings page switches",
-  "reviewedAt": "2026-11-25T13:58:51.635Z",
+  "reviewedBy": "Codex: music window separate next lyric",
+  "reviewedAt": "2026-11-25T14:04:43.991Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "ShowDeviceSharingSettingsPage",
-      "ShowFileRelaySettingsPage"
+      "MusicWindowNextLyricSetting"
     ],
-    "reviewedBy": "Codex: optional Settings page switches",
-    "reviewedAt": "2026-11-25T13:58:51.635Z"
+    "reviewedBy": "Codex: music window separate next lyric",
+    "reviewedAt": "2026-11-25T14:04:43.991Z"
   }
 }

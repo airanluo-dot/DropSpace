@@ -568,6 +568,7 @@
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ 音乐</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>本地歌词文件夹</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>在紧凑灵动岛显示歌词</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>音乐视窗独立显示下一句歌词</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>正在播放、歌词与音乐灵动岛。</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>小组件</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>紧凑界面缩放</value></data>

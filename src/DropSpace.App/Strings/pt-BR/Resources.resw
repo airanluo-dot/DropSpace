@@ -566,6 +566,7 @@ Nenhum conteúdo será aberto automaticamente.</value></data>
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>Pasta de letras locais</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>Mostrar letras em ilha compacta</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>Mostrar o próximo verso separadamente na janela de música</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>Agora tocando, letras e sua ilha musical.</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>Widgets</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Escala do modo compacto</value></data>

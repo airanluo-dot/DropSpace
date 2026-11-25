@@ -566,6 +566,7 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>Lokaler Songtext-Ordner</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>Liedtext in kompakter Insel anzeigen</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>Nächste Liedzeile im Musikfenster separat anzeigen</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>Jetzt spielen, Texte und deine Musikinsel.</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>Widgets</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Skalierung im kompakten Modus</value></data>

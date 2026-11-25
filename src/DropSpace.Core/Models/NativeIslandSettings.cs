@@ -45,6 +45,7 @@ public sealed record LyricsSettings
     // Retired diagnostic compatibility slot; the application always uses rules.
     [System.Text.Json.Serialization.JsonIgnore]
     public LyricsSelectionMode SelectionMode { get; init; } = LyricsSelectionMode.Rules;
+    public bool ShowMusicWindowNextLyric { get; init; }
     public bool SecondaryLyrics { get; init; }
     public bool ShowAiLyricsLabel { get; init; } = true;
     public bool WordSyncedHighlighting { get; init; } = true;

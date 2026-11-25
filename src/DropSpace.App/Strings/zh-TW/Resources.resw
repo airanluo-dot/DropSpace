@@ -566,6 +566,7 @@
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>本機歌詞資料夾</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>在收合的動態島中顯示歌詞</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>音樂視窗獨立顯示下一句歌詞</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>現在播放，歌詞，還有你的音樂島。</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>小工具</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>收合比例</value></data>

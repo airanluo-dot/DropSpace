@@ -21,7 +21,7 @@ internal static partial class MusicWindowCheck
             new(At(2.8), At(4), "Second", null, []),
             new(At(10), At(13), "Last", "最后", [new("Last", At(10), At(13))]) { TranslationLanguage = "zh-CN" }
         ], LyricsProviderKind.LocalLrc);
-        media.Settings = media.Settings with { Lyrics = media.Settings.Lyrics with { DelayMilliseconds = 500 } };
+        media.Settings = media.Settings with { Lyrics = media.Settings.Lyrics with { DelayMilliseconds = 500, ShowMusicWindowNextLyric = true } };
         media.SetLyricsDocument(document);
         media.LyricsStatus = LyricsQueryStatus.Found;
         var timeline = new LyricsTimelineEngine();

@@ -107,6 +107,7 @@ public static class SettingsChangePolicy
         Provider = Pick(baseline.Provider, requested.Provider, latest.Provider),
         BackupProvider = Pick(baseline.BackupProvider, requested.BackupProvider, latest.BackupProvider),
         SearchRemainingProviders = Pick(baseline.SearchRemainingProviders, requested.SearchRemainingProviders, latest.SearchRemainingProviders),
+        ShowMusicWindowNextLyric = Pick(baseline.ShowMusicWindowNextLyric, requested.ShowMusicWindowNextLyric, latest.ShowMusicWindowNextLyric),
         SecondaryLyrics = Pick(baseline.SecondaryLyrics, requested.SecondaryLyrics, latest.SecondaryLyrics),
         ShowAiLyricsLabel = Pick(baseline.ShowAiLyricsLabel, requested.ShowAiLyricsLabel, latest.ShowAiLyricsLabel),
         WordSyncedHighlighting = Pick(baseline.WordSyncedHighlighting, requested.WordSyncedHighlighting, latest.WordSyncedHighlighting),

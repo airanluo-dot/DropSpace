@@ -566,6 +566,7 @@
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>Папка с локальными текстами песен</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>Показать тексты песен на компактном острове</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>Отдельно показывать следующую строку в музыкальном окне</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>Сейчас играет, тексты песен и ваш музыкальный остров.</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>Виджеты</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Масштаб в компактном виде</value></data>

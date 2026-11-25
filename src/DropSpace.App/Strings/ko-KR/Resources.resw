@@ -566,6 +566,7 @@
   <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
   <data name="LyricsFolder" xml:space="preserve"><value>로컬 가사 폴더</value></data>
   <data name="LyricsCompact" xml:space="preserve"><value>작은 섬에 가사 표시</value></data>
+  <data name="MusicWindowNextLyricSetting" xml:space="preserve"><value>음악 창에 다음 가사 별도 표시</value></data>
   <data name="PageDescriptionMusic" xml:space="preserve"><value>이제 연주, 가사, 그리고 음악의 섬이 됩니다.</value></data>
   <data name="SettingsPageWidgets" xml:space="preserve"><value>위젯</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>축소 상태 배율</value></data>
