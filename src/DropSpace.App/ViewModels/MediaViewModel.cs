@@ -7,6 +7,7 @@ using DropSpace.Core.Policies;
 using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media;
+using Windows.UI;
 
 namespace DropSpace.App.ViewModels;
 
@@ -25,6 +26,12 @@ public sealed class MediaViewModel : ObservableObject
     private SpectrumFrame _spectrum = SpectrumFrame.Empty;
     private string? _spectrumPresentationTrackIdentity;
     private ImageSource? _artwork;
+    private Color? _artworkColor;
+    private bool _highContrast;
+    internal Color? IslandSpectrumColor =>
+        Settings.IslandActivity.UseArtworkSpectrumColor && !_highContrast ? _artworkColor : null;
+    internal void SetArtworkColor(Color? color) => SetProperty(ref _artworkColor, color, nameof(IslandSpectrumColor));
+    internal void SetHighContrast(bool value) => SetProperty(ref _highContrast, value, nameof(IslandSpectrumColor));
     private TimeSpan _position;
     private AppSettings _settings = new();
     private AppUiMessage _controlError = AppUiMessage.Empty;

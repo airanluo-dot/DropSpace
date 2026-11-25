@@ -158,7 +158,7 @@ public sealed partial class MediaCompactView : UserControl
             Refresh();
             return;
         }
-        if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.SpectrumBarLevels) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion) or nameof(MediaViewModel.Position)) RequestRefresh();
+        if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.IslandSpectrumColor) or nameof(MediaViewModel.SpectrumBarLevels) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion) or nameof(MediaViewModel.Position)) RequestRefresh();
     }
 
     // The owning host supplies ancestor visibility. A collapsed CompactPanel does
@@ -287,7 +287,11 @@ public sealed partial class MediaCompactView : UserControl
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
         var spectrum = settings.IslandActivity.ShowSpectrum && _view.HasSpectrumPresentation;
         SpectrumBars.Visibility = spectrum ? Visibility.Visible : Visibility.Collapsed;
-        if (spectrum) SpectrumBars.Present(_view.SpectrumBarLevels);
+        if (spectrum)
+        {
+            SpectrumBars.SetArtworkColor(_view.IslandSpectrumColor);
+            SpectrumBars.Present(_view.SpectrumBarLevels);
+        }
         var maximum = settings.Lyrics.UnlimitedScrollingWidth ? _availableWidth : settings.Lyrics.ScrollingMaxWidth;
         var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Min(Math.Max(_textWidth, _secondaryTextWidth), maximum) : 180;
         // Round outward once, rather than losing a fractional pixel at either edge.

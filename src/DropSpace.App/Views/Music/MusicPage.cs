@@ -147,6 +147,9 @@ public sealed class MusicPage : UserControl
         form.AddToggle("MusicEnabled", s => s.IslandActivity.EnableMediaActivity, (s,v) => s with { IslandActivity = s.IslandActivity with { EnableMediaActivity = v } });
         form.AddToggle("MusicArtwork", s => s.IslandActivity.ShowArtwork, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowArtwork = v } });
         form.AddToggle("MusicSpectrum", s => s.IslandActivity.ShowSpectrum, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowSpectrum = v } });
+        var spectrumColor = form.AddToggle("MusicArtworkSpectrumColor", s => s.IslandActivity.UseArtworkSpectrumColor,
+            (s, enabled) => s with { IslandActivity = s.IslandActivity with { UseArtworkSpectrumColor = enabled } });
+        spectrumColor.OnContent = spectrumColor.OffContent = string.Empty;
         form.AddToggle("MusicDynamicWidth", s => s.IslandActivity.CompactDynamicWidth, (s,v) => s with { IslandActivity = s.IslandActivity with { CompactDynamicWidth = v } });
         form.AddToggle("MusicProgress", s => s.IslandActivity.ShowProgress, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowProgress = v } });
         form.AddHeading("MusicLyricsSection");

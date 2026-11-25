@@ -494,6 +494,7 @@
   <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>Ресурсы</value></data>
   <data name="WidgetsEnabled" xml:space="preserve"><value>Включить виджеты</value></data>
   <data name="MusicSpectrum" xml:space="preserve"><value>Показать звуковой спектр</value></data>
+  <data name="MusicArtworkSpectrumColor" xml:space="preserve"><value>Цвет спектра островка из обложки альбома</value></data>
   <data name="ActivitiesNotifications" xml:space="preserve"><value>Показать уведомления Windows</value></data>
   <data name="IslandAutoHide" xml:space="preserve"><value>Автоматическое скрытие после остановки воспроизведения</value></data>
   <data name="MusicProgress" xml:space="preserve"><value>Показать прогресс</value></data>

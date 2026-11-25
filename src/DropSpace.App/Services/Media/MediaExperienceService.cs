@@ -378,7 +378,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     var lyricsSettingsChanged = LyricsReloadPolicy.RequiresReload(previousSettings, settings);
                     var reload = trackChanged || improvedLyricsEvidence || lyricsSettingsChanged || previousSettings?.IslandActivity.EnableMediaActivity != settings.IslandActivity.EnableMediaActivity ||
                         previousReloadRequest != reloadRequest || lyricsPending;
-                    var reloadArtwork = trackChanged || !ReferenceEquals(previousMedia?.Artwork, session.Artwork) || artworkPending;
+                    var coverChanged = trackChanged || !ReferenceEquals(previousMedia?.Artwork, session.Artwork);
+                    var sampleColor = settings.IslandActivity.UseArtworkSpectrumColor;
+                    var reloadArtwork = coverChanged || artworkPending || (sampleColor && previousSettings?.IslandActivity.UseArtworkSpectrumColor != true);
                     // Invalidate before publishing the new track so a queued old result
                     // cannot paint over the cleared lyric state.
                     var generation = reload ? Interlocked.Increment(ref _generation) : Interlocked.Read(ref _generation);
@@ -400,12 +402,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.SetLyricsDocument(LyricsDocument.Empty);
                             _view.Lyrics = LyricsHighlightFrame.Empty;
                         }
+                        if (coverChanged) _view.SetArtworkColor(null);
                         if (trackChanged) _view.Artwork = null;
                         _view.Settings = settings; _view.Session = session; _view.PositionEstimated = _clock.IsEstimated;
                         if (resetLyrics)
                             _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
                                 ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
-                        _view.IsReducedMotion = _visualPreferences.IsReducedMotion(settings.OverlayMotion);
+                        ApplyVisualPreferences();
                         _experience.UpdateMedia(session.IsActive && !string.IsNullOrWhiteSpace(session.TrackTitle),
                             session.PlaybackState == MediaPlaybackState.Playing,
                             settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds,
@@ -447,7 +450,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     }
                     if (reloadArtwork)
                         artworkPending = !_artworkWork.TryStart(
-                            workToken => LoadArtworkAsync(session, artworkGeneration, workToken), token,
+                            workToken => LoadArtworkAsync(session, artworkGeneration, sampleColor, workToken), token,
                             () => _changes.Writer.TryWrite(true));
                     var sourceKey = playing && ((settings.IslandActivity.ShowSpectrum && _view.IsSpectrumPresentationVisible) || _view.IsIslandGlowActive || _view.IsMusicWindowAudioActive) ? session.SourceAppUserModelId : string.Empty;
                     var observation = Volatile.Read(ref _spectrum);
@@ -707,14 +710,18 @@ public sealed class MediaExperienceService : IAsyncDisposable
         // already corroborates the recording. Missing or contradictory evidence needs a new lookup.
         return !MediaSessionSnapshot.DurationsAgree(match.DurationSeconds, current.Timeline.Duration.TotalSeconds);
     }
-    private async Task LoadArtworkAsync(MediaSessionSnapshot session, long generation, CancellationToken token)
+    private async Task LoadArtworkAsync(MediaSessionSnapshot session, long generation, bool sampleColor, CancellationToken token)
     {
         try
         {
-            var image = await _artwork.DecodeAsync(session.Artwork, token).ConfigureAwait(false);
+            var (image, color) = await _artwork.DecodeCoverAsync(session.Artwork, sampleColor, token).ConfigureAwait(false);
             await _dispatcher.EnqueueAsync(() =>
             {
-                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _artworkGeneration) && !_disposed) _view.Artwork = image;
+                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _artworkGeneration) && !_disposed)
+                {
+                    _view.Artwork = image;
+                    _view.SetArtworkColor(color);
+                }
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
         }
@@ -734,8 +741,12 @@ public sealed class MediaExperienceService : IAsyncDisposable
         if (_clock.IsAwaitingSeek) _seekObservation.Start();
         RenderFrame();
     }
-    private void OnVisualPreferencesChanged(object? sender, EventArgs args) =>
+    private void OnVisualPreferencesChanged(object? sender, EventArgs args) => ApplyVisualPreferences();
+    private void ApplyVisualPreferences()
+    {
         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(_view.Settings.OverlayMotion);
+        _view.SetHighContrast(_visualPreferences.Current.HighContrast);
+    }
     private void RenderFrame()
     {
         _view.Position = _clock.Position;

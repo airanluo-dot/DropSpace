@@ -496,6 +496,7 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>Resources</value></data>
   <data name="WidgetsEnabled" xml:space="preserve"><value>Enable widgets</value></data>
   <data name="MusicSpectrum" xml:space="preserve"><value>Show audio spectrum</value></data>
+  <data name="MusicArtworkSpectrumColor" xml:space="preserve"><value>Match Island spectrum to album artwork</value></data>
   <data name="ActivitiesNotifications" xml:space="preserve"><value>Show Windows notifications</value></data>
   <data name="IslandAutoHide" xml:space="preserve"><value>Auto-hide after playback stops</value></data>
   <data name="MusicProgress" xml:space="preserve"><value>Show progress</value></data>

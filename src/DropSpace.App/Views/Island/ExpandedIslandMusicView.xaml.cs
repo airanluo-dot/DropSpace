@@ -204,7 +204,11 @@ public sealed partial class ExpandedIslandMusicView : UserControl
                 ? Visibility.Visible : Visibility.Collapsed;
             AutomationProperties.SetName(PlayPause, _view.PlayPauseLabel);
             Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.HasSpectrumPresentation ? Visibility.Visible : Visibility.Collapsed;
-            if (Spectrum.Visibility == Visibility.Visible) Spectrum.Present(_view.SpectrumBarLevels);
+            if (Spectrum.Visibility == Visibility.Visible)
+            {
+                Spectrum.SetArtworkColor(_view.IslandSpectrumColor);
+                Spectrum.Present(_view.SpectrumBarLevels);
+            }
         }
         finally { _updating = false; }
         UpdateAdaptiveLayout();

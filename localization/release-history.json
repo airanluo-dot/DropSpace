@@ -3,14 +3,17 @@
     "tag": "v1.2.0-beta.1",
     "date": "2026-11-25",
     "en": [
+      "Island spectrum bars can take their color from the album artwork.",
       "The Island’s six spectrum bars move smoothly between compact and expanded views.",
       "The music window now follows the Island’s interlude dots and next lyric."
     ],
     "zh-CN": [
+      "灵动岛频谱可跟随专辑封面取色。",
       "灵动岛六根频谱柱在展开和收起时连续律动。",
       "独立音乐窗口同步显示间奏三点和下一句歌词。"
     ],
     "zh-TW": [
+      "動態島頻譜可跟隨專輯封面配色。",
       "動態島六根頻譜柱在展開和收合時連續律動。",
       "獨立音樂視窗同步顯示間奏三點和下一句歌詞。"
     ]

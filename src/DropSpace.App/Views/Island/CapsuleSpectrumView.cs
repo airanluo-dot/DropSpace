@@ -1,13 +1,16 @@
+using DropSpace.App.Services.Media;
 using DropSpace.Core.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
+using Windows.UI;
 
 namespace DropSpace.App.Views.Island;
 
 public sealed partial class CapsuleSpectrumView : UserControl
 {
+    private Color? _artworkColor;
     private readonly Canvas _canvas = new() { UseLayoutRounding = false };
     internal IReadOnlyList<Rectangle> Bars { get; }
 
@@ -19,11 +22,28 @@ public sealed partial class CapsuleSpectrumView : UserControl
         for (var i = 0; i < bars.Length; i++)
         {
             var bar = new Rectangle { UseLayoutRounding = false };
-            bar.SetBinding(Shape.FillProperty, new Binding { Source = this, Path = new PropertyPath(nameof(Foreground)) });
             bars[i] = bar;
             _canvas.Children.Add(bar);
         }
         Bars = bars;
+        RegisterPropertyChangedCallback(ForegroundProperty, (_, _) => UpdateFill());
+        ActualThemeChanged += (_, _) => UpdateFill();
+        UpdateFill();
+    }
+
+    internal void SetArtworkColor(Color? color)
+    {
+        if (color == _artworkColor) return;
+        _artworkColor = color;
+        UpdateFill();
+    }
+
+    private void UpdateFill()
+    {
+        var brush = _artworkColor is { } color
+            ? new SolidColorBrush(ArtworkSpectrumColor.ForTheme(color, ActualTheme == ElementTheme.Dark))
+            : Foreground;
+        foreach (var bar in Bars) bar.Fill = brush;
     }
 
     internal void Present(IReadOnlyList<double> levels)
