@@ -494,6 +494,7 @@ Es wird nichts automatisch geöffnet.</value></data>
   <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>Ressourcen</value></data>
   <data name="WidgetsEnabled" xml:space="preserve"><value>Widgets aktivieren</value></data>
   <data name="MusicSpectrum" xml:space="preserve"><value>Audiospektrum anzeigen</value></data>
+  <data name="MusicArtworkSpectrumColor" xml:space="preserve"><value>Albumfarbe für das Inselspektrum verwenden</value></data>
   <data name="ActivitiesNotifications" xml:space="preserve"><value>Windows-Benachrichtigungen anzeigen</value></data>
   <data name="IslandAutoHide" xml:space="preserve"><value>Automatisches Ausblenden nach Stopp der Wiedergabe</value></data>
   <data name="MusicProgress" xml:space="preserve"><value>Fortschritt anzeigen</value></data>

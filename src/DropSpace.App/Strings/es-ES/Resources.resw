@@ -494,6 +494,7 @@ No se abrirá ningún contenido automáticamente.</value></data>
   <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>Recursos</value></data>
   <data name="WidgetsEnabled" xml:space="preserve"><value>Habilitar widgets</value></data>
   <data name="MusicSpectrum" xml:space="preserve"><value>Mostrar espectro de audio</value></data>
+  <data name="MusicArtworkSpectrumColor" xml:space="preserve"><value>Usar el color de la portada en el espectro de la isla</value></data>
   <data name="ActivitiesNotifications" xml:space="preserve"><value>Mostrar Windows notificaciones</value></data>
   <data name="IslandAutoHide" xml:space="preserve"><value>Ocultar automáticamente después de que se detiene la reproducción</value></data>
   <data name="MusicProgress" xml:space="preserve"><value>Mostrar progreso</value></data>

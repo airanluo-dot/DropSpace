@@ -44,6 +44,7 @@ public sealed partial class MusicWindow : Window
     private readonly Canvas _body = new() { Background = new SolidColorBrush(Colors.Transparent) };
     private readonly ScrollViewer _bodyViewport = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     private readonly Grid _artworkSlot = new();
+    private readonly CapsuleSpectrumView _spectrumBars = new() { Width = 33, Height = 24, VerticalAlignment = VerticalAlignment.Center, Foreground = new SolidColorBrush(Colors.White) };
     private readonly StackPanel _metadata = new() { Spacing = 3 };
     private readonly Grid _controls = new();
     private readonly Grid _volumeRow = new() { ColumnSpacing = 12 };
@@ -73,6 +74,10 @@ public sealed partial class MusicWindow : Window
     private readonly StackPanel _lyricsEmpty = new() { Spacing = 16, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock _lyricsStatus = new() { FontSize = 26, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Opacity = 0.75 };
     private readonly TextBlock _translationStatus = new() { FontSize = 13, TextWrapping = TextWrapping.Wrap, Opacity = 0.65 };
+    private readonly LyricInterludeDots _interlude = new() { Width = 44, Height = 8, Margin = new Thickness(8, 8, 0, 8), HorizontalAlignment = HorizontalAlignment.Left, Foreground = new SolidColorBrush(Colors.White) };
+    private readonly TextBlock _nextLyric = new() { Opacity = .72, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1 };
+    private const int LyricPageSize = 2_000;
+    private int _firstLyric, _interludeIndex = -1;
     private readonly LyricsRowCollection<MusicLyricRow> _rows;
     private readonly LyricsGlowAudioResponse _audioResponse = new();
     private long _audioResponseTick;
@@ -108,7 +113,7 @@ public sealed partial class MusicWindow : Window
         WindowsVolumeActivityService volume, ILogger logger)
     {
         _media = media; _editor = editor; _strings = strings; _volume = volume; _logger = logger;
-        _rows = new(2_000, CreateLyricRow, UpdateLyricRow);
+        _rows = new(LyricPageSize, CreateLyricRow, UpdateLyricRow);
         _seekCommit = Timer(120, OnSeekCommit);
         _volumeCommit = Timer(100, (_, _) => { if (!_volumeWriting) _ = WriteVolumeAsync(); });
         _manualFollowTimer = Timer(5_000, (_, _) => CompleteManualScroll());
@@ -143,6 +148,7 @@ public sealed partial class MusicWindow : Window
                 or Windows.System.VirtualKey.Home or Windows.System.VirtualKey.End) OnManualScroll();
         }), true);
         _lyricsScroll.ViewChanged += OnLyricsViewChanged;
+        _interlude.SizeChanged += (_, _) => { _lastCentered = -1; RequestRender(); };
         _lyricsScroll.SizeChanged += (_, _) =>
         {
             var padding = Math.Max(80, _lyricsScroll.ActualHeight / 2);
@@ -204,7 +210,12 @@ public sealed partial class MusicWindow : Window
         _noArtwork.Children.Add(new FontIcon { Glyph = "\uE8D6", FontSize = 48, Opacity = 0.45 });
         _noArtwork.Children.Add(_noArtworkText); art.Children.Add(_noArtwork); _cover.Child = art;
         _artworkSlot.Children.Add(_cover); _body.Children.Add(_artworkSlot);
-        _metadata.Children.Add(_title); _metadata.Children.Add(_artist); _body.Children.Add(_metadata);
+        var titleRow = new Grid { ColumnSpacing = 8 };
+        titleRow.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+        titleRow.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        Grid.SetColumn(_spectrumBars, 1);
+        titleRow.Children.Add(_title); titleRow.Children.Add(_spectrumBars);
+        _metadata.Children.Add(titleRow); _metadata.Children.Add(_artist); _body.Children.Add(_metadata);
         static RowDefinition Row(double height, GridUnitType unit = GridUnitType.Pixel) => new() { Height = new GridLength(height, unit) };
         _controls.RowDefinitions.Add(Row(MusicWindowLayout.SeekHeight));
         _controls.RowDefinitions.Add(Row(1, GridUnitType.Star));
@@ -230,7 +241,9 @@ public sealed partial class MusicWindow : Window
         _lyricsPanel.RowDefinitions.Add(new() { Height = GridLength.Auto });
         _lyricsScroll.Content = _lyricsRows; _lyricsPanel.Children.Add(_lyricsScroll);
         _lyricsEmpty.Children.Add(_lyricsStatus); _lyricsPanel.Children.Add(_lyricsEmpty);
-        Grid.SetRow(_translationStatus, 1); _lyricsPanel.Children.Add(_translationStatus); _body.Children.Add(_lyricsPanel);
+        var lyricFooter = new StackPanel { Spacing = 4 };
+        lyricFooter.Children.Add(_nextLyric); lyricFooter.Children.Add(_translationStatus);
+        Grid.SetRow(lyricFooter, 1); _lyricsPanel.Children.Add(lyricFooter); _body.Children.Add(_lyricsPanel);
         _translation.Content = MusicWindowVisuals.Symbol("translation", 22);
         _lyricsToggle.Content = MusicWindowVisuals.Symbol("lyrics", 22);
         MusicWindowVisuals.StyleRoundToggle(_translation); MusicWindowVisuals.StyleRoundToggle(_lyricsToggle);
@@ -269,7 +282,12 @@ public sealed partial class MusicWindow : Window
                 RootWidth = _root.ActualWidth, RootHeight = _root.ActualHeight,
                 LeftX = ActualBounds(_controls).X, LeftWidth = _controls.ActualWidth, LyricsWidth = _lyricsPanel.ActualWidth,
                 LyricsDisplayed = _lyricsPanel.Visibility == Visibility.Visible,
-                ArtworkDisplayed = _artwork.Source is not null, LyricRows = _lyricsRows.Children.Count,
+                ArtworkDisplayed = _artworkSlot.Visibility == Visibility.Visible && _artwork.Source is not null, LyricRows = _rows.Count,
+                InterludeDisplayed = _interlude.IsLoaded && _interlude.Visibility == Visibility.Visible,
+                LyricAnchor = _activeLyric >= 0 ? _firstLyric + _activeLyric : -1,
+                NextLyric = _nextLyric.Text,
+                ActiveTranslationDisplayed = _activeLyric >= 0 && _activeLyric < _rows.Count && _rows[_activeLyric].TranslationVisible,
+                EmptyLyricStatus = _lyricsEmpty.Visibility == Visibility.Visible ? _lyricsStatus.Text : string.Empty,
                 TranslationDisplayed = _rows.Count > 0 && _rows[0].TranslationVisible,
                 LyricsIdle = _lyricsIdle,
                 ActivePointers = _interactingPointers.Count, ManualPointers = _manualScrollPointers.Count,
@@ -575,7 +593,7 @@ public sealed partial class MusicWindow : Window
         var property = args.PropertyName;
         if (string.IsNullOrEmpty(property) || property is nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.Artwork) or nameof(MediaViewModel.IsPlaying) or nameof(MediaViewModel.IsReducedMotion))
             _metadataDirty = true;
-        if (string.IsNullOrEmpty(property) || property is nameof(MediaViewModel.Settings) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatusText))
+        if (string.IsNullOrEmpty(property) || property is nameof(MediaViewModel.Settings) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.LyricsStatusText))
             _lyricsDirty = true;
         if (property == nameof(MediaViewModel.IsReducedMotion)) UpdateOwnership();
         if (property is nameof(MediaViewModel.IsPresentationVisible) or nameof(MediaViewModel.IsSpectrumPresentationVisible) or nameof(MediaViewModel.IsMusicWindowAudioActive) or nameof(MediaViewModel.IsIslandGlowActive)) return;
@@ -613,7 +631,11 @@ public sealed partial class MusicWindow : Window
                 _metadataDirty = false; RefreshLanguage();
                 _lyricFocusDirty = true;
                 _title.Text = string.IsNullOrWhiteSpace(_media.Title) ? _strings.Get("MediaNoSession.Text") : _media.Title;
-                _artist.Text = _media.Artist; _artwork.Source = _media.Artwork;
+                _artist.Text = string.Join(" · ", new[] { _media.ArtistAlbum, _media.SourceDisplayName }.Where(part => !string.IsNullOrWhiteSpace(part)));
+                ToolTipService.SetToolTip(_artist, _artist.Text);
+                _artwork.Source = _media.Artwork;
+                _artworkSlot.Visibility = _media.Settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
+                _seek.Visibility = _media.Settings.IslandActivity.ShowProgress ? Visibility.Visible : Visibility.Collapsed;
                 _noArtwork.Visibility = _media.Artwork is null ? Visibility.Visible : Visibility.Collapsed;
                 UpdateLayoutGeometry();
                 AutomationProperties.SetName(_play, _media.PlayPauseLabel);
@@ -632,7 +654,8 @@ public sealed partial class MusicWindow : Window
             ToolTipService.SetToolTip(_seek, seekEnabled ? null : _strings.Get("MusicWindowSeekUnavailable"));
             UpdateTimeLabels(); RefreshVolume();
             _error.Text = _media.ControlError.Length > 0 ? _media.ControlError :
-                _volumeWriteFailed ? _strings.Get("MusicWindowVolumeUnavailable") : _editor.Error;
+                _volumeWriteFailed ? _strings.Get("MusicWindowVolumeUnavailable") :
+                !string.IsNullOrWhiteSpace(_editor.Error) ? _editor.Error : _media.TimelineStatus;
             ToolTipService.SetToolTip(_error, _error.Text);
             var statusVisibility = string.IsNullOrWhiteSpace(_error.Text) ? Visibility.Collapsed : Visibility.Visible;
             if (_error.Visibility != statusVisibility)
@@ -641,20 +664,28 @@ public sealed partial class MusicWindow : Window
                 UpdateLayoutGeometry();
             }
             var spectrum = _media.Spectrum;
-            var realAudio = _media.IsPlaying && spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.Bands.Count > 0;
+            var showSpectrum = _media.Settings.IslandActivity.ShowSpectrum && _media.HasSpectrumPresentation;
+            _spectrumBars.Visibility = showSpectrum ? Visibility.Visible : Visibility.Collapsed;
+            if (showSpectrum) _spectrumBars.Present(_media.SpectrumBarLevels);
+            var realAudio = _media.IsPlaying && spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.ResponseBands.Count > 0;
             var now = Stopwatch.GetTimestamp();
             var elapsed = _audioResponseTick == 0 ? TimeSpan.FromMilliseconds(33) : Stopwatch.GetElapsedTime(_audioResponseTick, now);
             _audioResponseTick = now;
             if (realAudio)
-                _audioResponse.Advance(spectrum.Bands.Where(double.IsFinite).DefaultIfEmpty().Max(), spectrum.Bands, elapsed);
+                _audioResponse.Advance(spectrum.ResponseBands.Where(double.IsFinite).DefaultIfEmpty().Max(), spectrum.ResponseBands, elapsed);
             else _audioResponse.Reset();
-            // Spectrum bars are already dB-normalized. Reuse the island's local
-            // contrast response so sustained loudness does not flatten every beat.
+            // The background uses measured band energy, independent of capsule spring motion.
             _background.UpdateSpectrum((float)_audioResponse.Energy, realAudio);
-            if (_lyricsDirty) { _lyricsDirty = false; RefreshLyrics(); }
+            var presentation = _media.LyricPresentation;
+            var page = Math.Max(0, presentation.LineIndex) / LyricPageSize * LyricPageSize;
+            if (_lyricsDirty || page != _firstLyric)
+            {
+                _lyricsDirty = false;
+                _firstLyric = page;
+                RefreshLyrics();
+            }
+            PresentCurrentLyric(presentation);
             CenterCurrentLyric();
-            if (_activeLyric >= 0 && _activeLyric < _rows.Count)
-                _rows[_activeLyric].Highlight(_media.Lyrics, true, _media.Settings.Lyrics.WordSyncedHighlighting);
             if (_lyricFocusDirty) RefreshLyricFocus();
         }
         finally { _updating = false; }
@@ -721,20 +752,18 @@ public sealed partial class MusicWindow : Window
         _lyricsEmpty.Visibility = hasLyrics ? Visibility.Collapsed : Visibility.Visible;
         _lyricsStatus.Text = string.IsNullOrWhiteSpace(_media.Title) ? _strings.Get("MediaNoSession.Text") :
             !_media.Settings.Lyrics.Enabled ? _strings.Get("MusicWindowLyricsDisabled") :
-            string.IsNullOrWhiteSpace(_media.LyricsStatusText) ? _strings.Get("LyricsNotFound") : _media.LyricsStatusText;
+            _media.LyricsStatusText;
         var target = LyricsTranslationTargetPolicy.ToLanguageTag(_media.Settings.LyricsTranslationTarget);
         var options = $"{target}|{_media.Settings.Lyrics.SecondaryLyrics}|{_media.Settings.Lyrics.ShowAiLyricsLabel}|{_media.Settings.Lyrics.OriginalFontSize}|{_media.Settings.Lyrics.TranslationFontSize}";
         if (_lyricsOptions != options) { _lyricsOptions = options; _lastCentered = -1; }
-        if (_rows.Update(lines, _media.Session.TrackIdentity, options))
+        if (_rows.Update(lines, _media.Session.TrackIdentity, options, _firstLyric))
         {
+            if (_activeLyric >= 0 && _activeLyric < _rows.Count)
+                _rows[_activeLyric].Highlight(LyricsHighlightFrame.Empty, false, false);
             _lyricsRows.Children.Clear();
+            _interludeIndex = -1;
             for (var i = 0; i < _rows.Count; i++) _lyricsRows.Children.Add(_rows[i]);
             _activeLyric = -1; _lastCentered = -1;
-        }
-        if (_activeLyric != _media.CurrentLyricIndex)
-        {
-            if (_activeLyric >= 0 && _activeLyric < _rows.Count) _rows[_activeLyric].Highlight(LyricsHighlightFrame.Empty, false, false);
-            _activeLyric = _media.CurrentLyricIndex;
         }
         _lyricFocusDirty = true;
         var hasTranslation = lines.Any(line => !string.IsNullOrWhiteSpace(LyricsDisplayPolicy.SecondaryPresentation(line, target, true, _media.Settings.Lyrics.ShowAiLyricsLabel)));
@@ -743,7 +772,37 @@ public sealed partial class MusicWindow : Window
         _translationStatus.Text = string.Join(Environment.NewLine, new[] { timingStatus,
             noTranslation ? _strings.Get("MusicWindowNoTranslation") : string.Empty }.Where(text => text.Length > 0));
         _translationStatus.Visibility = hasLyrics && _translationStatus.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-        CenterCurrentLyric();
+    }
+
+    private void PresentCurrentLyric(LyricsPresentation presentation)
+    {
+        var enabled = _media.Settings.Lyrics.Enabled;
+        var row = enabled && presentation.HasLyrics ? presentation.LineIndex - _firstLyric : -1;
+        if (row != _activeLyric)
+        {
+            if (_activeLyric >= 0 && _activeLyric < _rows.Count)
+                _rows[_activeLyric].Highlight(LyricsHighlightFrame.Empty, false, false);
+            _activeLyric = row;
+            _lyricFocusDirty = true;
+        }
+
+        var showDots = enabled && presentation.IsInterlude;
+        var insertAt = showDots ? row + (presentation.BeforeLine ? 0 : 1) : -1;
+        if (_interludeIndex != insertAt)
+        {
+            if (_interludeIndex >= 0) _lyricsRows.Children.Remove(_interlude);
+            if (insertAt >= 0) _lyricsRows.Children.Insert(insertAt, _interlude);
+            _interludeIndex = insertAt;
+            _lastCentered = -1;
+            _lyricFocusDirty = true;
+        }
+        _interlude.Present(_media, showDots);
+        if (row >= 0 && row < _rows.Count)
+            _rows[row].Highlight(_media.Lyrics, !presentation.IsWaiting,
+                _media.Settings.Lyrics.WordSyncedHighlighting, presentation.BeforeLine);
+        var next = _media.NextLyricText;
+        _nextLyric.Visibility = string.IsNullOrWhiteSpace(next) ? Visibility.Collapsed : Visibility.Visible;
+        _nextLyric.Text = string.IsNullOrWhiteSpace(next) ? string.Empty : $"{_media.NextLyricLabel} · {next}";
     }
 
     private MusicLyricRow CreateLyricRow(LyricsLine line)
@@ -768,17 +827,17 @@ public sealed partial class MusicWindow : Window
         {
             var row = _rows[index];
             var top = row.TransformToVisual(_lyricsScroll).TransformPoint(new Point()).Y;
-            row.Focus(_activeLyric < 0 ? 1 : Math.Abs(index - _activeLyric), _lyricsIdle,
+            row.Focus(_activeLyric < 0 || _interludeIndex >= 0 ? 1 : Math.Abs(index - _activeLyric), _lyricsIdle,
                 top, _lyricsScroll.ViewportHeight, _media.IsReducedMotion);
         }
     }
     private void CenterCurrentLyric()
     {
-        var index = _media.CurrentLyricIndex;
+        var index = _activeLyric;
         if (!CanRender || !_lyricsVisible || _transitionRunning || _manualScrollPending || _manualScrollPointers.Count > 0 || index < 0 || index >= _rows.Count || index == _lastCentered || !_lyricsScroll.IsLoaded) return;
         try
         {
-            var row = _rows[index];
+            FrameworkElement row = _interludeIndex >= 0 ? _interlude : _rows[index];
             if (row.ActualHeight <= 0 || _lyricsScroll.ViewportHeight <= 0) return;
             var point = row.TransformToVisual(_lyricsScroll).TransformPoint(new Point());
             var offset = Math.Max(0, _lyricsScroll.VerticalOffset + point.Y - Math.Max(0, (_lyricsScroll.ViewportHeight - row.ActualHeight) / 2));
@@ -790,7 +849,7 @@ public sealed partial class MusicWindow : Window
     private void UpdateOwnership()
     {
         var active = CanRender;
-        _media.SetPresentationVisible(this, active, showSpectrum: false);
+        _media.SetPresentationVisible(this, active);
         _media.SetMusicWindowAudioActive(this, active && !_media.IsReducedMotion);
         _background.SetPlaybackState(_media.IsPlaying, _media.IsReducedMotion, active);
         if (!active || _media.IsReducedMotion) StopUiMotion();

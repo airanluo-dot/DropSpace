@@ -949,10 +949,10 @@ public sealed partial class OverlayWindow : Window
         // or an endpoint meter. Unavailable capture leaves only the quiet baseline.
         var spectrum = _mediaViewModel.Spectrum;
         var energy = 0d;
-        if (spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.Bands.Count > 0)
+        if (spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.ResponseBands.Count > 0)
         {
             var peak = 0d;
-            foreach (var band in spectrum.Bands)
+            foreach (var band in spectrum.ResponseBands)
             {
                 var level = double.IsFinite(band) ? Math.Clamp(band, 0, 1) : 0;
                 energy += level * level;
@@ -960,12 +960,12 @@ public sealed partial class OverlayWindow : Window
             }
             // A vocal or transient in one band must not be divided away by five
             // quiet bands while the adjacent meter visibly moves.
-            energy = .55 * Math.Sqrt(energy / spectrum.Bands.Count) + .45 * peak;
+            energy = .55 * Math.Sqrt(energy / spectrum.ResponseBands.Count) + .45 * peak;
         }
         if (_lastGlowSession is null || !_lastGlowSession.IsSameTrack(_mediaViewModel.Session))
             _glow.InvalidateFrameCapture();
         _glow.SetTarget(eligible, energy, _mediaViewModel.IsReducedMotion || preferences.ReducedMotion,
-            spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? spectrum.Bands : null, settings.Lyrics.SimplifiedGlow);
+            spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? spectrum.ResponseBands : null, settings.Lyrics.SimplifiedGlow);
         _lastGlowSession = _mediaViewModel.Session;
     }
 

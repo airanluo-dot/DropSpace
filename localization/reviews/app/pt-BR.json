@@ -4222,18 +4222,20 @@
     "LyricsInstrumental": [
       "1808df5bf642c1f7564f9d700a1f57224848acd47eac39459189526ff251cd4d",
       "4f6d16065c3ee023e3ea8c712d868bd062ca006275218aa6eb0e1b23a724adf6"
+    ],
+    "MusicArtworkSpectrumColor": [
+      "5a47a98b4c9e8a35f77afb9d550fe465e1166496d5307fc4a7a9fa99b97d876f",
+      "c47390a015e5657cc8629517c91760f40082b2154325daf25b1ded0459f287c2"
     ]
   },
-  "reviewedBy": "Codex",
-  "reviewedAt": "2026-11-12T07:29:51.212Z",
+  "reviewedBy": "Codex: Island spectrum artwork color toggle",
+  "reviewedAt": "2026-11-25T12:34:16.423Z",
   "initialReviewMethod": "app_resources: initial machine-assisted UI translations with regional/context/high-risk review; authored installer custom UI; no automatic semantic certification",
   "latestReviewScope": {
     "ids": [
-      "LyricsUnsynced",
-      "LyricsAmbiguous",
-      "LyricsInstrumental"
+      "MusicArtworkSpectrumColor"
     ],
-    "reviewedBy": "Codex",
-    "reviewedAt": "2026-11-12T07:29:51.212Z"
+    "reviewedBy": "Codex: Island spectrum artwork color toggle",
+    "reviewedAt": "2026-11-25T12:34:16.423Z"
   }
 }

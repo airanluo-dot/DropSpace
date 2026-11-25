@@ -494,6 +494,7 @@
   <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>리소스</value></data>
   <data name="WidgetsEnabled" xml:space="preserve"><value>위젯 활성화</value></data>
   <data name="MusicSpectrum" xml:space="preserve"><value>오디오 스펙트럼 표시</value></data>
+  <data name="MusicArtworkSpectrumColor" xml:space="preserve"><value>아일랜드 스펙트럼에 앨범 커버 색상 사용</value></data>
   <data name="ActivitiesNotifications" xml:space="preserve"><value>Windows 알림 표시</value></data>
   <data name="IslandAutoHide" xml:space="preserve"><value>재생 중지 후 자동 숨기기</value></data>
   <data name="MusicProgress" xml:space="preserve"><value>진행 상황 표시</value></data>

@@ -92,3 +92,9 @@ DropSpace embeds OpenCC's TSCharacters dictionary (Apache-2.0), pinned at commit
 `3ac34aa439a9908dd49fa92b5174b46314787ac2`. The unmodified dictionary and license are in
 `src/DropSpace.Core/Lyrics/Data/` and embedded in `DropSpace.Core.dll`.
 Project: https://github.com/BYVoid/OpenCC .
+
+## Windows music spectrum
+
+The six-band analyzer, capsule spring and bar geometry are C# ports of the
+[apple-like-waves reference implementation at d3c91f6](https://github.com/kmgcc/apple-like-waves/tree/d3c91f6ea8b0a4b12ec104e0681ad44d97938d77).
+Copyright (c) 2026 apple-like-waves contributors. The [MIT license](docs/licenses/apple-like-waves-MIT.txt) ships with the Windows app.
