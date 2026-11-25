@@ -1,11 +1,11 @@
 [
   {
-    "tag": "v1.2.0-beta.1",
+    "tag": "v1.2.0",
     "date": "2026-11-25",
     "en": [
-      "Island spectrum bars can take their color from the album artwork.",
-      "The Island’s six spectrum bars move smoothly between compact and expanded views.",
-      "The music window now follows the Island’s interlude dots and next lyric."
+      "The Island spectrum can use a color from the album cover.",
+      "Six spectrum bars move smoothly as the Island expands or collapses.",
+      "The music window follows the Island’s interlude dots and next lyric."
     ],
     "zh-CN": [
       "灵动岛频谱可跟随专辑封面取色。",

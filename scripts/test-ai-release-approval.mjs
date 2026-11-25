@@ -335,7 +335,7 @@ export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
 export const experimentalBetaVersion = 'v0.3.2-beta.7';
 export const stableHostExperimentalModelsStatus = 'owner-authorized-stable-host-experimental-models';
-export const stableHostExperimentalModelsVersion = 'v1.1.0';
+export const stableHostExperimentalModelsVersion = 'v1.2.0';
 export const betaHostExperimentalModelsStatus = 'owner-authorized-beta-host-experimental-models';
 export const betaHostExperimentalModelsVersion = 'v1.1.0-beta.8';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
