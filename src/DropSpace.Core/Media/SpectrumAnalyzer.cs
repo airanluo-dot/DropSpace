@@ -5,6 +5,8 @@ namespace DropSpace.Core.Media;
 public enum AudioCaptureMode { Stopped, ProcessLoopback, EndpointMeterFallback, Unavailable }
 public sealed record SpectrumFrame(AudioCaptureMode CaptureMode, IReadOnlyList<double> Bands, long Revision)
 {
+    // The halo and artwork background consume peak dB, independently of capsule animation.
+    public IReadOnlyList<double> ResponseBands { get; init; } = Bands;
     public static SpectrumFrame Empty { get; } = new(AudioCaptureMode.Stopped, new double[6], 0);
 }
 
@@ -29,6 +31,10 @@ public sealed class SpectrumAnalyzer
     private readonly Vector2[] _samples = new Vector2[SampleCount];
     private readonly double[] _slow = new double[BandCount];
     private readonly double[] _previous = new double[BandCount], _older = new double[BandCount], _oldest = new double[BandCount];
+    private readonly (int Begin, int End)[] _responseBins = new (int, int)[BandCount];
+    private readonly double[] _response = new double[BandCount];
+    private readonly double[] _magnitudes = new double[SampleCount / 2];
+    private readonly double _responseAttack, _responseRelease;
     private readonly int _hop;
     private readonly double _binWidth, _slowAlpha;
     private int _write, _pending;
@@ -38,6 +44,16 @@ public sealed class SpectrumAnalyzer
     {
         _binWidth = (double)sampleRate / SampleCount;
         _hop = Math.Max(1, (int)Math.Round(sampleRate / 60d));
+        // Preserve the original 2048-sample peak-meter attack/release at the new hop size.
+        _responseAttack = 1 - Math.Pow(1 - .8, (double)_hop / SampleCount);
+        _responseRelease = 1 - Math.Pow(1 - .25, (double)_hop / SampleCount);
+        for (var band = 0; band < BandCount; band++)
+        {
+            var low = 60 * Math.Pow(250, (double)band / BandCount);
+            var high = 60 * Math.Pow(250, (double)(band + 1) / BandCount);
+            var begin = Math.Clamp((int)(low / _binWidth), 1, SampleCount / 2 - 1);
+            _responseBins[band] = (begin, Math.Clamp((int)Math.Ceiling(high / _binWidth), begin + 1, SampleCount / 2));
+        }
         _slowAlpha = 1 - Math.Exp(-(double)_hop / sampleRate / .8);
     }
 
@@ -84,6 +100,7 @@ public sealed class SpectrumAnalyzer
             double magnitude = bin == 0
                 ? float.Hypot(_samples[0].X, _samples[SampleCount / 2].X)
                 : float.Hypot(_samples[bin].X, _samples[bin].Y);
+            _magnitudes[bin] = magnitude * (4d / SampleCount);
             var low = Edges[band];
             var high = Edges[band + 1];
             if (hz < low || hz > high)
@@ -108,6 +125,14 @@ public sealed class SpectrumAnalyzer
             _older[i] = _previous[i];
             _previous[i] = value;
         }
-        return new(AudioCaptureMode.ProcessLoopback, levels, ++_revision);
+        for (var i = 0; i < BandCount; i++)
+        {
+            var (begin, end) = _responseBins[i];
+            var peak = 0d;
+            for (var bin = begin; bin < end; bin++) peak = Math.Max(peak, _magnitudes[bin]);
+            var level = Math.Clamp((20 * Math.Log10(Math.Max(peak, .00001)) + 70) / 70, 0, 1);
+            _response[i] += (level - _response[i]) * (level > _response[i] ? _responseAttack : _responseRelease);
+        }
+        return new(AudioCaptureMode.ProcessLoopback, levels, ++_revision) { ResponseBands = _response.ToArray() };
     }
 }

@@ -62,6 +62,26 @@ internal static partial class MusicWindowCheck
             }
             await UntilAsync(() => compactDots.IsLoaded && JsonSerializer.SerializeToElement(window.LayoutSnapshot).GetProperty("LyricRows").GetInt32() == 3);
             await Observe("Open mid-interlude", true, 1, "Last");
+
+            // Prepare the incoming Island surface the same way the overlay does.
+            // Its normalized geometry must exactly match the outgoing mid-spring frame.
+            media.Spectrum = new(AudioCaptureMode.ProcessLoopback, [0, .2, .4, .6, .8, 1], 1);
+            compact.RefreshForPresentation();
+            compact.SetActive(false);
+            expanded.RefreshForPresentation();
+            var outgoing = (CapsuleSpectrumView)compact.FindName("SpectrumBars");
+            var incoming = (CapsuleSpectrumView)expanded.FindName("Spectrum");
+            static double[] Heights(CapsuleSpectrumView meter)
+            {
+                var minimum = meter.Bars[0].Height; // first target is silent
+                return meter.Bars.Select(bar => (bar.Height - minimum) / (.9 * meter.Height - minimum)).ToArray();
+            }
+            var from = Heights(outgoing);
+            var to = Heights(incoming);
+            check(from.Length == 6 && from[^1] is > 0 and < 1 && from.Zip(to).All(pair => Math.Abs(pair.First - pair.Second) < 1e-8),
+                "spectrum", "Compact and expanded capsules present the same in-flight spring positions", new { from, to });
+            compact.SetActive(true);
+
             media.Session = media.Session with { PlaybackState = MediaPlaybackState.Paused };
             await Observe("Pause in interlude", true, 1, "Last");
             Position(6.49);
@@ -75,10 +95,27 @@ internal static partial class MusicWindowCheck
             Position(10.5);
             await Observe("Advance inside a timed word", false, 2, null);
             check(window.GetState().HighlightedCharacters > 0, "interlude", "Word fill resumes after the interlude", null);
+            await music.SetTranslationEnabledAsync(false);
+            await Observe("Disable translation in the music window", false, 2, null);
+            var translated = (TextBlock)expanded.FindName("TranslatedLyric");
+            check(translated.Visibility == Visibility.Collapsed &&
+                !JsonSerializer.SerializeToElement(window.LayoutSnapshot).GetProperty("ActiveTranslationDisplayed").GetBoolean(),
+                "lyrics", "Both surfaces hide the current translation", null);
+            await music.SetTranslationEnabledAsync(true);
+            await Observe("Restore translation", false, 2, null);
+            check(translated.Text == "最后" && translated.Visibility == Visibility.Visible &&
+                JsonSerializer.SerializeToElement(window.LayoutSnapshot).GetProperty("ActiveTranslationDisplayed").GetBoolean(),
+                "lyrics", "Both surfaces restore the current provider translation", null);
             Position(1.9);
             await Observe("Seek into a short line change", false, 0, "Second");
             media.Session = media.Session with { TrackTitle = "Different track" };
+            media.LyricsStatus = LyricsQueryStatus.Loading;
             await Observe("Switch tracks before the new lyrics arrive", false, -1, null);
+            media.LyricsStatus = LyricsQueryStatus.NotFound;
+            await Observe("Finish track lookup without lyrics", false, -1, null);
+            check(media.LyricsStatusText.Length > 0 &&
+                JsonSerializer.SerializeToElement(window.LayoutSnapshot).GetProperty("EmptyLyricStatus").GetString() == media.LyricsStatusText,
+                "lyrics", "The empty window presents the shared lookup status", null);
         }
         finally { islandHost.Close(); }
     }

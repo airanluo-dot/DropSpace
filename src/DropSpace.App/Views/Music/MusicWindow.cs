@@ -286,6 +286,8 @@ public sealed partial class MusicWindow : Window
                 InterludeDisplayed = _interlude.IsLoaded && _interlude.Visibility == Visibility.Visible,
                 LyricAnchor = _activeLyric >= 0 ? _firstLyric + _activeLyric : -1,
                 NextLyric = _nextLyric.Text,
+                ActiveTranslationDisplayed = _activeLyric >= 0 && _activeLyric < _rows.Count && _rows[_activeLyric].TranslationVisible,
+                EmptyLyricStatus = _lyricsEmpty.Visibility == Visibility.Visible ? _lyricsStatus.Text : string.Empty,
                 TranslationDisplayed = _rows.Count > 0 && _rows[0].TranslationVisible,
                 LyricsIdle = _lyricsIdle,
                 ActivePointers = _interactingPointers.Count, ManualPointers = _manualScrollPointers.Count,
@@ -665,12 +667,12 @@ public sealed partial class MusicWindow : Window
             var showSpectrum = _media.Settings.IslandActivity.ShowSpectrum && _media.HasSpectrumPresentation;
             _spectrumBars.Visibility = showSpectrum ? Visibility.Visible : Visibility.Collapsed;
             if (showSpectrum) _spectrumBars.Present(_media.SpectrumBarLevels);
-            var realAudio = _media.IsPlaying && spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.Bands.Count > 0;
+            var realAudio = _media.IsPlaying && spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.ResponseBands.Count > 0;
             var now = Stopwatch.GetTimestamp();
             var elapsed = _audioResponseTick == 0 ? TimeSpan.FromMilliseconds(33) : Stopwatch.GetElapsedTime(_audioResponseTick, now);
             _audioResponseTick = now;
             if (realAudio)
-                _audioResponse.Advance(spectrum.Bands.Where(double.IsFinite).DefaultIfEmpty().Max(), spectrum.Bands, elapsed);
+                _audioResponse.Advance(spectrum.ResponseBands.Where(double.IsFinite).DefaultIfEmpty().Max(), spectrum.ResponseBands, elapsed);
             else _audioResponse.Reset();
             // The background uses measured band energy, independent of capsule spring motion.
             _background.UpdateSpectrum((float)_audioResponse.Energy, realAudio);

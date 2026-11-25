@@ -13,10 +13,11 @@ public static class SpectrumFreshnessPolicy
         // a continued absence starts the smooth decline shared by meter and halo.
         if (seconds >= 0 && seconds <= 0.15) return frame;
         if (!double.IsFinite(seconds) || seconds < 0 || seconds >= 0.6)
-            return frame with { Bands = SilentBands };
+            return frame with { Bands = SilentBands, ResponseBands = SilentBands };
         var t = (seconds - 0.15) / 0.45;
         var gain = 1 - t * t * (3 - 2 * t);
-        return frame with { Bands = frame.Bands.Select(value =>
-            double.IsFinite(value) ? Math.Clamp(value, 0, 1) * gain : 0).ToArray() };
+        IReadOnlyList<double> Decay(IReadOnlyList<double> levels) => levels.Select(value =>
+            double.IsFinite(value) ? Math.Clamp(value, 0, 1) * gain : 0).ToArray();
+        return frame with { Bands = Decay(frame.Bands), ResponseBands = Decay(frame.ResponseBands) };
     }
 }
